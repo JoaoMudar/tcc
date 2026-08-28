@@ -12,9 +12,9 @@
 
 ## 1. Como ler este documento
 
-Todo requisito tem identificador estável. Uma vez atribuído, o identificador **não é reutilizado**,
-mesmo que o requisito seja removido: a matriz de rastreabilidade
-([`B5`](B5-matriz-rastreabilidade.md)) depende dessa estabilidade.
+Todo requisito tem identificador estável, atribuído em sequência contínua na ordem em que as seções
+aparecem. A matriz de rastreabilidade ([`B5`](B5-matriz-rastreabilidade.md)) depende dessa
+estabilidade: alterar um identificador obriga a percorrer a matriz inteira.
 
 Os termos empregados são os do [glossário](../A-fundacao/A2-glossario-dominio.md). Onde o texto diz
 "espécie", "recipiente", "canal de venda" ou "perfil", entende-se a definição de lá.
@@ -25,7 +25,7 @@ Os termos empregados são os do [glossário](../A-fundacao/A2-glossario-dominio.
 |---|---|
 | **OP** | Observação participante das rotinas de produção e venda |
 | **EN** | Entrevista com chefia e gerência |
-| **AD** | Análise documental: notas de compra, registros de custos fixos, planilhas de notas fiscais, extratos bancários |
+| **AD** | Análise documental: notas de compra, planilhas de notas fiscais |
 | **DOM** | Estudo do domínio de produção de mudas nativas |
 | **LEG** | Exigência legal, fiscal ou regulatória |
 | **ORG** | Política ou convenção adotada pelo projeto |
@@ -43,18 +43,18 @@ Os termos empregados são os do [glossário](../A-fundacao/A2-glossario-dominio.
 
 ## 2. Requisitos funcionais
 
-Os requisitos estão agrupados pelos **quatro módulos** do sistema, Cadastros, Produção,
-Comercial e Financeiro, com Acesso à frente por ser transversal aos quatro. É o mesmo
-agrupamento adotado em [`C1`](../C-modelagem/C1-diagrama-casos-de-uso.md),
+Os requisitos estão agrupados pelas **três áreas de negócio** do sistema, Cadastro único, Produção e
+Comercial, com Acesso e Configurações à frente por atravessarem as três. É o mesmo agrupamento
+adotado em [`C1`](../C-modelagem/C1-diagrama-casos-de-uso.md),
 [`C6`](../C-modelagem/C6-modelo-entidade-relacionamento.md),
 [`D1`](../D-arquitetura/D1-arquitetura-c4.md) e [`D4`](../D-arquitetura/D4-matriz-rbac.md), e
 descrito em [`docs/rotinas/00-mapa-de-rotinas.md`](../../rotinas/00-mapa-de-rotinas.md).
 
-O identificador de cada requisito é anterior a esse agrupamento e **não foi renumerado**, a
-ordem numérica não acompanha a ordem das seções, e isso é deliberado: renumerar quebraria a
-rastreabilidade da [`B5`](B5-matriz-rastreabilidade.md).
+**Três perfis operam o sistema: chefia, gerência e administrador.** Os colaboradores de campo não
+têm acesso: o trabalho deles é planejado e confirmado pela gerência, e é essa decisão que explica
+por que nenhum requisito abaixo tem "Colaborador" como ator.
 
-### 2.1 Acesso: transversal aos quatro módulos
+### 2.1 Acesso: transversal às três áreas
 
 | ID | Requisito | Ator | Prior. | Origem | Verificação |
 |---|---|---|---|---|---|
@@ -66,374 +66,231 @@ rastreabilidade da [`B5`](B5-matriz-rastreabilidade.md).
 | **RF-06** | O sistema deve verificar a permissão do perfil a cada operação, e não apenas ocultar elementos da interface | - | D | ORG | Operação solicitada por perfil sem permissão é recusada mesmo quando acionada diretamente |
 | **RF-07** | O sistema deveria permitir ao usuário visualizar e encerrar suas sessões ativas | Todos | DV | ORG | Sessão encerrada à distância deixa de ter acesso |
 
-### 2.2 Módulo 1 · Cadastros
+### 2.2 Configurações do sistema: transversal às três áreas
 
-O que é estável e se repete, e alimenta os outros três módulos sem consumir nada.
-**Regra de corte:** é cadastro se, ao apagá-lo, um movimento passado ficar sem sentido, o
-que exclui custo fixo (valor que muda todo mês, apurado no Financeiro) e coleta de sementes
-(atividade de campo, da Produção).
-
-#### 2.2.1 Catálogo de produção: espécie, recipiente, insumo, área e canteiro
+**O que é valor solto mora aqui; o que é lista de coisas com atributos é cadastro.** É a mesma
+regra de fronteira que manteve o período de trabalho como entidade própria (`work_shifts`), com
+hora de início e de fim por turno, e não como quatro chaves soltas: o que muda de lugar é a
+**tela**, que sai dos Cadastros e vem para cá, porque quem a procura está procurando um ajuste do
+sistema, e não um catálogo.
 
 | ID | Requisito | Ator | Prior. | Origem | Verificação |
 |---|---|---|---|---|---|
-| **RF-08** | O sistema deve permitir cadastrar espécie com nome científico, nomes populares, características, tempo de germinação, tempo de produção e fotografia | Chefia | D | EN, DOM | Espécie cadastrada aparece nas demais telas do sistema |
+| **RF-83** | O sistema deve permitir manter o período de trabalho, com hora de início e de fim de cada turno, e adotá-lo como jornada padrão da agenda | Chefia | D | EN | Alterar o horário do turno altera a jornada exibida na agenda |
+| **RF-139** | O sistema deve permitir alterar o valor dos parâmetros de operação, os limites de atenção e de atraso do lote e o limite de mortalidade, sem permitir criar nem excluir parâmetro | Chefia | D | ORG | O valor alterado passa a valer na tela seguinte; não há ação de criar nem de excluir parâmetro |
+
+**Ninguém cria e ninguém exclui parâmetro** (RF-139). A chave nasce com a estrutura do banco, porque
+existe código que a lê pelo nome: apagá-la não deixaria a tela vazia, deixaria a leitura sem
+resposta. O que a operação faz é alterar o valor.
+
+### 2.3 Área 1 · Cadastro único
+
+O que é estável e se repete, e alimenta as outras duas áreas sem consumir nada.
+**Regra de corte:** é cadastro se, ao apagá-lo, um movimento passado ficar sem sentido.
+
+#### 2.3.1 Catálogo de produção: espécie, recipiente, insumo, área e canteiro
+
+| ID | Requisito | Ator | Prior. | Origem | Verificação |
+|---|---|---|---|---|---|
+| **RF-08** | O sistema deve permitir cadastrar espécie com nome científico, nomes populares, características e fotografia | Chefia | D | EN, DOM | Espécie cadastrada aparece nas demais telas do sistema |
 | **RF-09** | O sistema deve localizar a espécie por qualquer um de seus nomes populares ou pelo nome científico | Todos | D | OP | Busca por nome regional retorna a espécie correspondente |
-| **RF-10** | O sistema deve permitir cadastrar recipientes com volume e consumo de substrato por unidade | Chefia | D | EN | Recipiente cadastrado fica disponível para associação a espécies |
-| **RF-11** | O sistema deve permitir cadastrar insumos com unidade de medida e custo, preservando o histórico de preços | Chefia | D | AD | Alteração de preço não apaga o valor anterior |
+| **RF-10** | O sistema deve permitir cadastrar recipientes com nome e volume | Chefia | D | EN | Recipiente cadastrado fica disponível na criação de lote e no item de pedido |
+| **RF-11** | O sistema deve permitir cadastrar insumos com unidade de medida e categoria | Chefia | D | AD | Insumo cadastrado fica disponível para associação às tarefas do viveiro |
 | **RF-80** | O sistema deve permitir cadastrar áreas do viveiro identificadas por letra | Gerência | D | OP | Área cadastrada fica disponível na escolha de canteiro |
 | **RF-81** | O sistema deve permitir cadastrar canteiros numerados dentro de cada área, recusando número repetido na mesma área | Gerência | D | OP | Canteiro repetido na mesma área é recusado; a numeração recomeça em cada área |
 
-#### 2.2.2 Pessoas: cliente, fornecedor, funcionário
+#### 2.3.2 Pessoas: cliente, fornecedor, funcionário
 
-Cliente, fornecedor e funcionário são **papéis de uma mesma identidade** (`cadastro.parties`):
-quem vende muda e às vezes compra é um cadastro só. Os requisitos abaixo tratam do cadastro;
-o que se faz com a pessoa depois é do Comercial (RF-53 a RF-55) ou do Financeiro (RF-57).
+Cliente, fornecedor e funcionário são **papéis de uma mesma identidade**: quem vende muda e às
+vezes compra é um cadastro só. É o que o nome da área declara, e é a razão de o cadastro ser único
+e o papel é que se multiplicar.
 
 **Funcionário é vínculo, não acesso.** RF-69 cadastra quem trabalha no viveiro, tenha ou não
-usuário: o diarista que aparece duas semanas por ano precisa existir na agenda e no custo sem
-nunca abrir o sistema. Quem tem login é assunto de RF-05, no Acesso.
+usuário: dos nove, três têm login. O diarista que aparece duas semanas por ano precisa existir na
+agenda sem nunca abrir o sistema. Quem tem login é assunto de RF-05, no Acesso.
 
 | ID | Requisito | Ator | Prior. | Origem | Verificação |
 |---|---|---|---|---|---|
+| **RF-140** | O sistema deve manter uma identidade única por pessoa, à qual se atribuem os papéis de cliente, fornecedor e funcionário, sem duplicar o cadastro quando a mesma pessoa exercer mais de um | - | D | ORG | Pessoa já cadastrada como fornecedor recebe o papel de cliente sem gerar segundo cadastro |
 | **RF-36** | O sistema deve permitir cadastro rápido de cliente com nome e telefone, sem sair da tela de pedido | Chefia | D | OP | Pedido conclui-se com cliente novo sem interromper o fluxo |
-| **RF-37** | O sistema deve permitir cadastro completo de cliente com dados fiscais de pessoa física ou jurídica | Chefia | D | LEG, AD | Cadastro completo comporta os dados exigidos para emissão de nota |
+| **RF-37** | O sistema deve permitir cadastro completo de cliente com dados fiscais de pessoa física ou jurídica | Chefia | D | LEG, AD | Cadastro completo comporta os dados exigidos pelo emissor de nota externo |
 | **RF-38** | O sistema deve validar CPF e CNPJ informados | - | D | LEG | Documento inválido é recusado no momento da digitação |
-| **RF-39** | O sistema deve permitir localizar cliente por nome, telefone ou documento | Chefia | D | OP | Busca retorna o cliente por qualquer dos três |
-| **RF-40** | O sistema deve sinalizar cadastro fiscal incompleto quando o pedido exigir nota fiscal, permitindo completá-lo no próprio fluxo | Chefia | D | LEG, OP | Pedido com nota exigida e cliente incompleto solicita a complementação |
-| **RF-52** | O sistema deve permitir cadastrar fornecedor com contato, localização e espécies que fornece | Chefia | DV | EN | Fornecedor cadastrado aparece na seleção de cotação |
+| **RF-39** | O sistema deve permitir localizar pessoa por nome, telefone ou documento | Chefia | D | OP | Busca retorna a pessoa por qualquer dos três, indicando os papéis que ela exerce |
+| **RF-52** | O sistema deve permitir cadastrar fornecedor com contato e localização | Chefia | DV | EN | Fornecedor cadastrado aparece na lista de pessoas com o papel correspondente |
 | **RF-69** | O sistema deve permitir cadastrar funcionário com contato e vínculo (fixo ou diarista), inclusive quando ele não tem acesso ao sistema | Chefia | D | EN | Funcionário sem usuário aparece na agenda de pessoal e no cadastro |
 
-#### 2.2.3 Classificação financeira: centro de custo
-
-**Uma entidade do schema `financeiro` com requisito no módulo 1, e isso não é contradição.**
-`financeiro.cost_centers` fica no schema restrito porque é ali que ela é consumida, na classificação
-do extrato (RF-57), no rateio e nas regras automáticas. Quem a **mantém** é a chefia, pelo Cadastros:
-a fronteira de schema é de acesso, não de dono. O centro passa na regra de corte do módulo, apagá-lo
-deixaria todo lançamento passado sem natureza, que é o erro que a planilha anterior cometeu.
-
-A restrição de acesso acompanha o recurso, não a porta do módulo: a tela é de chefia e administrador
-([`D4 §3.12`](../D-arquitetura/D4-matriz-rbac.md)), porque os centros nomeiam a vida pessoal da
-família.
-
-| ID | Requisito | Ator | Prior. | Origem | Verificação |
-|---|---|---|---|---|---|
-| **RF-77** | O sistema deve permitir cadastrar centro de custo informando nome e natureza (negócio ou pessoal) | Chefia | D | AD | Centro criado passa a ser oferecido na classificação de lançamento |
-| **RF-78** | O sistema deve permitir inativar e reativar centro de custo, retirando-o das escolhas de lançamento novo sem afetar lançamento já classificado nele | Chefia | D | AD | Centro inativado some da escolha; o lançamento antigo continua exibindo-o |
-| **RF-79** | O sistema não deve permitir excluir centro de custo, nem alterar a sua natureza depois de existir lançamento classificado nele | - | D | AD | Tentativa de alterar a natureza de centro em uso é recusada |
-
-#### 2.2.4 Trabalho: tipo de tarefa e período de trabalho
-
-**RF-70 estava na seção de pessoas e veio para cá.** Tipo de tarefa nunca foi cadastro de pessoa:
-ficou ali por ter nascido junto com o funcionário, ao desenhar a agenda. Com o período de trabalho
-entrando como segundo parâmetro do mesmo assunto, os dois ganham seção própria. **O
-identificador não mudou**, e a numeração do documento nunca acompanhou a ordem das seções.
+#### 2.3.3 Trabalho: tipo de tarefa e protocolo de atividades
 
 **O catálogo de tarefas comanda o formulário.** É o tipo de tarefa que diz se a tela vai pedir
 espécie, recipiente, lote ou uma contagem por participante. Sem isso, ou o formulário pede tudo
 sempre (e ninguém preenche), ou pede o mínimo sempre (e o dado não serve).
 
 **O cadastro tem um nome e três declarações, e cada uma tem efeito visível.** "É quantitativa por
-unidade" faz o encerramento pedir quanto cada funcionário do grupo fez; "lote específico" faz
+unidade" faz a confirmação pedir quanto cada funcionário do grupo fez; "lote específico" faz
 aparecer o campo de lote; espécie e recipiente valem para as tarefas que os pedem sem haver lote,
 como colher semente e encher saquinho. A **categoria** não comanda formulário algum: agrupa a
-lista e os relatórios de horas (RN-80).
-
-**A forma de medição deixou de ser lista de três valores.** Era `tempo`, `saco` e `tubete`, e os
-dois últimos existiam para dizer qual recipiente se contava; mas o recipiente já está no lote e no
-próprio nome da tarefa. Sobrou uma pergunta de dois estados, e é assim que ela passa a ser
-declarada. **O tempo médio por unidade saiu** pelo motivo oposto: nunca teve de onde vir, e o custo
-de mão de obra (RF-76) sai das horas apontadas, não de estimativa.
+lista e os relatórios (RN-80).
 
 | ID | Requisito | Ator | Prior. | Origem | Verificação |
 |---|---|---|---|---|---|
 | **RF-70** | O sistema deve permitir manter o catálogo de tipos de tarefa, com nome, categoria e a declaração de se a tarefa é quantitativa por unidade e de se exige lote específico, espécie e recipiente | Gerência | D | OP | Tipo cadastrado e ativo fica disponível na agenda e leva consigo as declarações feitas |
-| **RF-82** | O sistema deve pedir, no planejamento e no encerramento, exatamente os dados que o tipo de tarefa declarar exigir, e nenhum outro | - | D | ORG | Tarefa sem lote específico não apresenta o campo de lote |
-| **RF-83** | O sistema deve permitir manter o período de trabalho, com hora de início e de fim de cada turno, e adotá-lo como jornada padrão da agenda | Gerência | D | EN | Alterar o horário do turno altera as horas atribuídas às tarefas planejadas nele |
-| **RF-121** | O sistema deve permitir manter tipos de embalagem, permitindo criar outros além de saco e tubete, e associar cada recipiente a um deles | Gerência | D | DOM | Tipo criado fica disponível para receber protocolo, e todo recipiente exibe o tipo a que pertence |
-| **RF-122** | O sistema deve permitir manter, por tipo de embalagem, um protocolo de atividades como sequência ordenada de etapas | Gerência | D | EN | Protocolo montado para tubete passa a reger os lotes criados em tubete, e não os em saco |
+| **RF-82** | O sistema deve pedir, no planejamento e na confirmação, exatamente os dados que o tipo de tarefa declarar exigir, e nenhum outro | - | D | ORG | Tarefa sem lote específico não apresenta o campo de lote |
+| **RF-122** | O sistema deve permitir manter, por recipiente, um protocolo de atividades como sequência ordenada de etapas | Gerência | D | EN | Protocolo montado para tubete passa a reger os lotes criados em tubete, e não os em saco |
 | **RF-123** | O sistema deve permitir que cada etapa do protocolo referencie um tipo de tarefa do catálogo e declare se o agendamento é sequencial ou recorrente, com o tempo em dias | Gerência | D | EN | Etapa sequencial admite um único tempo; etapa recorrente admite também o intervalo entre ocorrências |
 | **RF-124** | O sistema deve permitir que cada etapa do protocolo declare o seu evento de referência: a criação do lote ou a conclusão de uma etapa específica do mesmo protocolo | Gerência | D | DOM | Etapa ancorada em outra etapa exibe qual, e a lista oferecida não inclui a própria etapa |
 | **RF-125** | O sistema deve permitir ligar e desligar o alerta de atraso por etapa do protocolo, e sobrescrever nela a janela de aviso padrão | Gerência | D | OP | Etapa com alerta desligado não recebe cor em nenhuma tela; etapa com janela própria a usa no lugar do padrão |
+| **RF-133** | O sistema deveria permitir, no cadastro da espécie, sobrescrever o tempo em dias de uma etapa específica do protocolo | Gerência | DV | DOM | Espécie com tempo próprio para a classificação usa o dela; espécie sem valor usa o do protocolo do recipiente |
 
-**A configuração do protocolo entra aqui, e a operação dele fica na §2.3.8.** É a mesma divisão que
-o período de trabalho já fez: montar o protocolo é cadastro, feito pela gerência sentada, uma vez
-por safra; segui-lo é produção, e acontece todo dia. RF-121 abre a seção porque o protocolo é do
-**tipo de embalagem**, e não do recipiente (RN-98): os quatro sacos seguem um protocolo só, e o
-tipo precisa existir antes de o protocolo poder pendurar-se nele.
+**A configuração do protocolo entra aqui, e a operação dele fica na §2.4.4.** Montar o protocolo é
+cadastro, feito pela gerência sentada, uma vez por safra; segui-lo é produção, e acontece todo dia.
+
+**O protocolo é do recipiente** (RF-122, RN-98). É o recipiente que determina o manejo: o que se faz
+num tubete não é o que se faz num saco 20x26, e é do recipiente do lote que o sistema descobre qual
+receita aplicar.
 
 **O evento de referência é declarado, e não inferido da ordem das etapas** (RF-124, RN-99). Inferir
 "a etapa anterior" faria a classificação pós-germinação contar da criação do lote, e a semente pode
 ficar dias esperando plantio antes de germinar. É o erro que o requisito existe para impedir, e por
 isso a âncora é um campo, e não uma consequência da posição na lista.
 
-### 2.3 Módulo 2 · Produção
+### 2.4 Área 2 · Produção
 
-Registro de atividade de campo, e o estoque que dele deriva. É o módulo do colaborador, daí
-a severidade dos requisitos de usabilidade (RNF-01 a RNF-05) sobre estas telas. **As duas telas de
-coordenação são a exceção**, e estão sob RNF-27: quem opera a agenda do dia e o mapa não registra,
+Onde o trabalho é planejado e onde a muda é acompanhada. É o módulo da gerência.
+**As duas visões de entrada estão sob RNF-27**: quem opera a agenda e o mapa não registra,
 compara, e comparar pede tela larga.
 
-**O módulo abre em duas visões, e não numa lista de rotinas.** A pergunta que a gerência faz ao
-entrar é sempre uma das duas: *quem está fazendo o quê agora* e *como está o viveiro*. A primeira é
-a agenda do dia (§2.3.5), a segunda é o mapa de produção (§2.3.7), e as duas convivem na mesma tela
-alternadas por aba. As demais rotinas ficam listadas abaixo delas, porque são o que se procura
-depois de já ter olhado o dia.
+**A área abre em duas visões, e não numa lista de rotinas.** A pergunta que a gerência faz ao
+entrar é sempre uma das duas: *quem está fazendo o quê esta semana* e *como está o viveiro*. A
+primeira é a agenda da semana (§2.4.1), a segunda é o mapa de lotes (§2.4.3), e as duas convivem na
+mesma tela alternadas por aba.
 
 | ID | Requisito | Ator | Prior. | Origem | Verificação |
 |---|---|---|---|---|---|
-| **RF-108** | O sistema deve apresentar, na entrada do módulo Produção, as visões de agenda do dia e mapa de produção alternadas por aba, com as demais rotinas listadas abaixo delas | Gerência | D | OP | A tela inicial do módulo apresenta as duas abas, e a agenda do dia é a que abre |
+| **RF-108** | O sistema deve apresentar, na entrada da área Produção, as visões de agenda da semana e mapa de lotes alternadas por aba, com as demais rotinas listadas abaixo delas | Gerência | D | OP | A tela inicial da área apresenta as duas abas, e a agenda da semana é a que abre |
 
-#### 2.3.1 Registro de campo
+#### 2.4.1 Agenda semanal
+
+**É o planejamento e a confirmação do trabalho, na mesma grade.** A gerência monta a semana por
+funcionário, por dia e por turno, e é ali mesmo que marca o que foi feito. Não há apontamento por
+relógio: o viveiro nunca planejou por hora marcada (RN-48), e medir a hora de entrada e saída de
+cada pessoa seria controle de ponto, que está fora do escopo.
 
 | ID | Requisito | Ator | Prior. | Origem | Verificação |
 |---|---|---|---|---|---|
-| **RF-13** | O sistema deve permitir registrar coleta de sementes com região, distância, combustível, horas e quantidade obtida | Chefia | DV | EN | Custo por semente é derivado do registro |
-| **RF-14** | O sistema deve permitir registrar, em campo, o consumo de insumo indicando insumo, espécie, recipiente e quantidade | Colaborador | D | OP | Registro feito no celular aparece no custeio |
-| **RF-19** | O sistema deve permitir registrar atividade de produção (semeadura, repicagem, irrigação, adubação) com espécie, recipiente e quantidade | Colaborador | D | OP | Atividade registrada aparece no acompanhamento |
-| **RF-20** | O sistema deve permitir à gerência atribuir atividades de produção a colaboradores | Gerência | DV | OP | Colaborador vê as atividades atribuídas a ele |
-| **RF-21** | O sistema deveria apresentar o acompanhamento do ciclo produtivo por espécie, com previsão de disponibilidade a partir do tempo de produção | Chefia, Gerência | DV | EN | Previsão exibida corresponde à data de semeadura somada ao tempo de produção |
 | **RF-71** | O sistema deve permitir montar a agenda da semana atribuindo, por funcionário e por dia, o tipo de tarefa e o turno, manhã ou tarde | Gerência | D | EN, OP | Semana montada exibe, por pessoa e por dia, as tarefas e os turnos atribuídos |
-| **RF-72** | O sistema deve permitir copiar a agenda da semana anterior e marcar tarefas como recorrentes, que passam a nascer preenchidas | Gerência | D | OP | Semana copiada reproduz a anterior; tarefa recorrente aparece sem ser lançada de novo |
+| **RF-72** | O sistema deve permitir copiar a agenda da semana anterior e marcar tarefas como recorrentes, que passam a nascer preenchidas na cópia | Gerência | D | OP | Semana copiada reproduz a anterior; tarefa recorrente aparece sem ser lançada de novo |
 | **RF-73** | O sistema deve controlar a situação da semana (rascunho, publicada e fechada) e impedir alteração depois do fechamento | Gerência | D | ORG | Semana fechada recusa alteração de atribuição |
-| **RF-74** | O sistema deve apresentar ao colaborador apenas as tarefas atribuídas a ele no dia, e permitir concluí-las informando somente a quantidade realizada | Colaborador | D | OP | Colaborador vê as próprias tarefas e nenhuma outra; a conclusão pede um único número |
-| **RF-75** | O sistema deve assumir como realizada, ao fechar a semana, a tarefa planejada que não foi confirmada, registrando essa condição | - | DV | ORG | Tarefa não confirmada entra no realizado com a marca correspondente |
 | **RF-92** | O sistema deve permitir atribuir a mesma tarefa a mais de um funcionário, e mais de uma tarefa ao mesmo turno com grupos diferentes | Gerência | D | OP | Duas tarefas com grupos distintos coexistem no mesmo turno |
-| **RF-93** | O sistema deve permitir lançar a mesma atribuição para um intervalo de dias de uma vez | Gerência | D | OP | Uma atribuição lançada para cinco dias aparece nos cinco |
-| **RF-94** | O sistema deve apresentar a agenda do dia com uma faixa por funcionário, mostrando o que cada um faz naquele momento e o que estava planejado para ele | Gerência | D | EN | A faixa do funcionário exibe a tarefa em curso ou a ausência dela |
-| **RF-114** | O sistema deve permitir manter tarefas recorrentes com tipo de tarefa, grupo de funcionários, dias da semana, turno, hora de início e de fim, e período de vigência | Gerência | D | EN | Recorrência cadastrada para segunda a sábado, turno da manhã, das 7h às 8h aparece nesses dias e nesse horário, sem ser lançada |
-| **RF-115** | O sistema deve gerar as atribuições da recorrência na agenda sem digitação, e permitir alterar ou excluir a ocorrência de um dia sem alterar a regra | Gerência | D | ORG | Excluir a ocorrência de uma quarta não altera as demais nem a regra |
-| **RF-116** | O sistema deve permitir encerrar a vigência da recorrência preservando as ocorrências já geradas | Gerência | D | ORG | Encerrada a vigência, a recorrência para de gerar dias novos e os dias já trabalhados continuam na agenda |
+| **RF-107** | O sistema deve permitir confirmar a atribuição como realizada, apresentando os campos que o tipo de tarefa exigir: o lote uma vez para a tarefa, e a quantidade uma vez por participante | Gerência | D | OP | Confirmar a tarefa fecha a atribuição de todos os participantes, cada um com a própria quantidade |
+| **RF-98** | O sistema deve solicitar, na confirmação, a quantidade realizada por cada funcionário que participou da tarefa, quando o tipo de tarefa for quantitativo por unidade, e apenas nesse caso | - | D | OP | Tarefa não quantitativa confirma sem pedir número algum; tarefa quantitativa com três participantes apresenta três campos |
+| **RF-99** | O sistema deve exigir o lote na confirmação da tarefa quando o tipo de tarefa declarar lote específico, dispensando o canteiro, que vem do próprio lote | - | D | OP | Confirmação de repicagem sem lote é recusada; o canteiro não é pedido |
+| **RF-113** | O sistema deve permitir registrar a área ou o canteiro da tarefa que não exige lote, e dispensá-los quando o lote os determinar | Gerência | D | OP | Irrigação registra a área em que foi feita; repicagem não pede área nem canteiro |
+| **RF-75** | O sistema deve assumir como realizada, ao fechar a semana, a tarefa planejada que não foi confirmada, registrando essa condição | - | DV | ORG | Tarefa não confirmada entra no realizado com a marca correspondente |
 
-**RF-94 foi emendado em 26/08/2026, e o identificador não mudou.** Ele dizia "um cartão por
-funcionário"; passa a dizer "uma faixa". A faixa **é** o cartão, esticado sobre a linha do tempo do
-dia: mostra a mesma coisa (o que a pessoa faz agora), e mostra também **quando** começou e o que
-mais já passou por ela naquele dia. Ver RF-109, na §2.3.5.
+**RF-75 existe porque a alternativa é pior.** A semana que fecha com metade das células em branco
+não diz que metade do trabalho não foi feito, diz que ninguém teve tempo de confirmar. Assumir o
+planejado como realizado e **marcar a condição** preserva as duas leituras: o total sai certo e o
+que foi presumido continua distinguível do que foi confirmado.
 
-**A tarefa recorrente deixou de ser uma marca e virou regra.** RF-72 continua valendo: copiar a
-semana passada é o botão principal do planejamento, e é assim que a semana do viveiro nasce. O que
-mudou é que "marcar como recorrente" não bastava para a irrigação das 7h às 8h, de segunda a
-sábado, até o fim do verão: um booleano dizia que a tarefa era fixa sem dizer **em que dias**, **em
-que horário** e **até quando**. Com dias, hora e vigência declarados, a recorrência para de precisar
-da semana para existir.
-
-**É a recorrência que traz hora para o planejamento, e ela é a única.** O resto da agenda continua
-sendo planejado por turno (RN-48): ninguém no viveiro monta a semana de hora em hora. A rotina fixa
-é a exceção porque **já tem hora na vida real**, e é justamente por tê-la que não precisa ser
-lançada todo dia (RN-95).
-
-**Ela declara turno e hora, e não hora no lugar do turno.** O dia que a recorrência gera é uma
-atribuição comum, e atribuição sem turno não existe: é do turno que saem as horas dos dias em que
-ninguém apontou (RF-100). E a hora não determina o turno, porque os turnos não cobrem o dia
-inteiro: entre o fim da manhã e o começo da tarde não há turno nenhum, e a rotina que cai ali
-ficaria sem lugar. Quem sabe se aquilo conta como manhã ou como tarde é quem monta a agenda.
-
-**O número único de RF-74 é o do próprio colaborador.** Quem encerra a tarefa do grupo inteiro é
-quem coordena, e aí há um campo por participante (RF-107). O colaborador que abre o app e conclui
-a própria tarefa informa um número só, o dele: é a tela de cinco campos de RNF-01, e é o caso em
-que o grupo tem uma pessoa.
-
-#### 2.3.2 Estoque
-
-Estoque não é tabela digitada: é **produção − perdas − vendas**, com a contagem física
-servindo de correção. Por ser derivado da produção, mora aqui e não nos Cadastros.
-
-| ID | Requisito | Ator | Prior. | Origem | Verificação |
-|---|---|---|---|---|---|
-| **RF-22** | O sistema deve apresentar a quantidade disponível por espécie e recipiente | Chefia, Gerência | D | OP | Quantidade reflete produção registrada menos perdas e vendas |
-| **RF-23** | O sistema deve permitir registrar contagem física de estoque, com a quantidade contada substituindo a calculada | Gerência | D | OP | Após a contagem, a quantidade exibida é a contada |
-| **RF-24** | O sistema deve sinalizar espécies zeradas ou abaixo da quantidade mínima definida | Gerência | DV | EN | Espécie abaixo do mínimo aparece destacada |
-| **RF-25** | O sistema deveria manter o histórico de contagens por espécie | Gerência | P | OP | Consulta exibe a data da última contagem de cada espécie |
-
-#### 2.3.3 Perdas
-
-| ID | Requisito | Ator | Prior. | Origem | Verificação |
-|---|---|---|---|---|---|
-| **RF-26** | O sistema deve permitir registrar perda com espécie, recipiente, quantidade e causa selecionada em lista fechada | Colaborador | D | OP | Registro conclui-se em campo, sem campo de texto livre para a causa |
-| **RF-27** | O sistema deve listar as perdas registradas com filtro por período | Gerência | D | EN | Filtro por período retorna apenas os registros do intervalo |
-| **RF-28** | O sistema deve calcular a taxa de mortalidade por espécie e período | - | D | EN | Taxa corresponde a perdas divididas por produção do período |
-| **RF-29** | O sistema deve emitir alerta para espécie cuja mortalidade ultrapasse 20% | Gerência | D | EN | Espécie acima do limite gera alerta visível |
-| **RF-30** | O sistema deveria apresentar relatório consolidado de perdas com estimativa de impacto financeiro | Chefia | DV | EN | Impacto estimado usa o custo unitário da espécie |
-
-#### 2.3.4 Lotes, áreas e canteiros
+#### 2.4.2 Lotes, movimentos e perdas
 
 **O lote é o endereço da muda dentro do viveiro.** Até 24/08/2026 o escopo o excluía, e a
 justificativa da revisão está em [`A1` §7](../A-fundacao/A1-documento-de-visao.md). O rastreamento
 vai até a leva, nunca até a muda.
 
-**O canteiro comporta vários lotes, e RF-85 foi emendado por causa disso em 26/08/2026.** A
-especificação anterior dizia "o lote de cada canteiro ocupado", no singular, porque a RN-76
-declarava exclusividade. O viveiro nunca teve essa exclusividade: um canteiro recebe seis, oito,
-nove levas ao longo do tempo, e é assim que ele é usado. O que continua valendo é a outra metade da
-regra, a que interessa: **um lote não se espalha por dois canteiros**, e por isso "o que tem neste
-canteiro" tem resposta direta.
+**O canteiro comporta vários lotes.** Um canteiro recebe seis, oito, nove levas ao longo do tempo, e
+é assim que ele é usado. O que vale é a outra metade da regra: **um lote não se espalha por dois
+canteiros**, e por isso "o que tem neste canteiro" tem resposta direta.
+
+**Todo movimento passa pela mesma porta.** Perda, repicagem, venda, ajuste de contagem e
+transferência de canteiro são registrados como movimento do lote, e não em tabelas separadas. É o
+que faz o saldo ser auditável: a soma dos movimentos tem de reproduzir o saldo exibido, e
+divergência entre os dois é defeito detectável.
 
 | ID | Requisito | Ator | Prior. | Origem | Verificação |
 |---|---|---|---|---|---|
 | **RF-84** | O sistema deve permitir criar lote informando espécie, recipiente, quantidade, área e canteiro | Gerência | D | OP | Lote criado passa a ocupar o canteiro escolhido |
 | **RF-85** | O sistema deve apresentar a ocupação do viveiro por área e canteiro, indicando os lotes de cada canteiro ocupado e quais estão livres | Gerência | D | EN | Canteiro sem nenhum lote aberto aparece como livre |
-| **RF-86** | O sistema deve permitir registrar repicagem transferindo parte ou todo o lote para recipiente maior, criando um lote novo que aponta para o de origem | Colaborador | D | DOM | O lote criado exibe o lote de origem, e o saldo do de origem diminui na mesma quantidade |
+| **RF-86** | O sistema deve permitir registrar repicagem transferindo parte ou todo o lote para recipiente maior, criando um lote novo que aponta para o de origem | Gerência | D | DOM | O lote criado exibe o lote de origem, e o saldo do de origem diminui na mesma quantidade |
 | **RF-87** | O sistema deve apresentar o histórico de movimentos do lote, com a quantidade e o motivo de cada um | Gerência | D | EN | A soma dos movimentos reproduz o saldo exibido do lote |
 | **RF-88** | O sistema não deve permitir movimento que deixe o saldo do lote negativo | - | D | ORG | Baixa maior que o saldo é recusada com o motivo informado |
 | **RF-89** | O sistema deve encerrar o lote quando o saldo chegar a zero, liberando o canteiro e preservando o histórico | - | D | ORG | Lote zerado sai da ocupação e continua consultável |
-| **RF-90** | O sistema deveria apresentar, por lote, a previsão de disponibilidade, a partir da data de plantio e do tempo de produção da espécie | Gerência | DV | EN | A previsão corresponde à data de plantio somada ao tempo de produção |
-| **RF-91** | O sistema deve permitir vincular perda, contagem física e saída de venda ao lote, dispensando informar espécie e recipiente quando o lote os determinar | Colaborador | D | OP | Registro de perda feito sobre o lote não pede espécie nem recipiente |
+| **RF-91** | O sistema deve permitir registrar perda, contagem física e saída de venda sobre o lote, dispensando informar espécie e recipiente, que o lote determina | Gerência | D | OP | Registro de perda feito sobre o lote não pede espécie nem recipiente |
+| **RF-26** | O sistema deve permitir registrar a perda com quantidade e causa selecionada em lista fechada | Gerência | D | OP | Registro conclui-se em campo, sem campo de texto livre para a causa |
+| **RF-23** | O sistema deve permitir registrar contagem física do lote, gerando o movimento de ajuste que reconcilia o saldo | Gerência | D | OP | Após a contagem, o saldo exibido é o contado, e o ajuste aparece no histórico |
+| **RF-135** | O sistema deve permitir dividir um lote em dois, com cada resultante seguindo o protocolo de forma independente e herdando do original a fase e a data da última execução de cada etapa | Gerência | D | OP | Os dois lotes resultantes exibem as mesmas datas de referência do original, e podem divergir a partir da divisão |
+| **RF-27** | O sistema deve listar as perdas registradas com filtro por período, espécie e causa | Gerência | D | EN | Filtro por período retorna apenas os registros do intervalo |
+| **RF-28** | O sistema deve calcular a taxa de mortalidade do lote, como a razão entre as perdas dele e a sua quantidade inicial | - | D | EN | A taxa corresponde à soma das perdas dividida pela quantidade inicial do lote |
+| **RF-29** | O sistema deve emitir alerta para o lote cuja mortalidade ultrapasse o limite definido em Configurações | Gerência | D | EN | Lote acima do limite gera alerta visível no mapa |
+| **RF-22** | O sistema deve apresentar a quantidade de muda pronta disponível por espécie e recipiente, somada dos lotes abertos | Chefia, Gerência | D | OP | A quantidade reflete a soma dos lotes prontos, descontadas perdas e vendas |
 
-#### 2.3.5 Apontamento de tarefas
+**RF-22 é a ponte para o Comercial.** Ele não é um estoque digitado: é a soma dos lotes que
+chegaram à fase de muda pronta, e é o número que o item de pedido exibe (RF-42). Estoque como
+entidade própria criaria duas verdades sobre o mesmo dado.
 
-**É a execução, contra o planejamento da §2.3.1.** Quem opera a tela é uma pessoa só, coordenando
-a equipe: a faixa do funcionário (RF-94) é onde se marca que ele saiu de um serviço e começou
-outro.
+**O limite de mortalidade é parâmetro, não constante** (RF-29, RN-94). Os 20% de RN-17 são o valor
+inicial, não o enunciado da regra: o limite muda com a espécie e com a estação, e convenção que
+muda é dado.
 
-**Há dois encerramentos, e não um.** O da faixa fecha o apontamento de uma pessoa, quando ela
-troca de serviço (RF-95, RF-96). O da tarefa fecha o grupo inteiro de uma vez (RF-107), e é onde
-os campos declarados no catálogo aparecem: o lote uma vez, a quantidade uma vez por participante.
-Quatro pessoas encheram saquinho a manhã toda, e quem coordena informa quatro números numa tela
-só, em vez de abrir quatro faixas.
+#### 2.4.3 Mapa de lotes
 
-**A tela do dia é uma linha do tempo, e é isso que RF-109 acrescenta.** O cartão dizia o que a
-pessoa faz agora; a faixa diz também **desde quando**, **o que veio antes** e **onde ficou o
-buraco**. O buraco é a informação que o cartão não tinha como dar, e é a que se procura: manhã
-inteira sem apontamento nenhum é o que se quer enxergar antes de o mês fechar.
-
-**"Escolher horário" existe porque o registro nem sempre é feito na hora.** Quem coordena está no
-campo, e às vezes lança às onze o que começou às sete. Sem informar horário, esse lançamento
-mentiria em quatro horas. Com ele, aparece uma segunda pergunta que o relógio resolvia sozinho: dois
-intervalos da mesma pessoa podem se sobrepor e contar a mesma hora duas vezes, e RF-111 recusa isso.
-
-**A escala muda, a tela não** (RF-137). Dia, semana e mês são a mesma agenda: a faixa continua sendo
-do funcionário, e o que muda é a unidade da barra, hora no dia, turno na semana e dia no mês. Fazer
-da semana uma tela própria criaria dois desenhos iguais em rotas diferentes, e o que o viveiro
-planeja por turno (RN-48) é exatamente o que a escala de semana mostra: **RF-71 e RF-109 passam a
-ser a mesma tela**, vista de mais perto ou de mais longe.
-
-**Os dois lançamentos que não são de uma pessoa só ficam na própria agenda** (RF-138). A tarefa de
-equipe (RF-112) e a recorrente (RF-114) são o que se lança olhando o dia inteiro, e não a faixa de
-alguém: esconder as duas atrás de um menu faria o gesto normal do viveiro, metade da equipe numa
-tarefa e metade em outra, custar mais toques do que o excepcional.
-
-| ID | Requisito | Ator | Prior. | Origem | Verificação |
-|---|---|---|---|---|---|
-| **RF-95** | O sistema deve permitir iniciar o apontamento de uma tarefa para um funcionário, encerrando automaticamente o apontamento que estiver aberto para ele | Gerência | D | EN | Iniciar a segunda tarefa fecha a primeira no mesmo instante |
-| **RF-96** | O sistema deve permitir encerrar o dia do funcionário, fechando o apontamento aberto sem iniciar outro | Gerência | D | EN | Após o encerramento, a faixa do funcionário não exibe tarefa em curso |
-| **RF-97** | O sistema não deve permitir dois apontamentos abertos para o mesmo funcionário | - | D | ORG | Tentativa de abrir o segundo sem fechar o primeiro é recusada |
-| **RF-98** | O sistema deve solicitar, ao encerrar a tarefa, a quantidade realizada por cada funcionário que participou dela, quando o tipo de tarefa for quantitativo por unidade, e apenas nesse caso | - | D | OP | Tarefa não quantitativa encerra sem pedir número algum; tarefa quantitativa com três participantes apresenta três campos |
-| **RF-99** | O sistema deve exigir o lote no encerramento da tarefa quando o tipo de tarefa declarar lote específico, dispensando o canteiro, que vem do próprio lote | - | D | OP | Encerramento de repicagem sem lote é recusado; o canteiro não é pedido |
-| **RF-100** | O sistema deve calcular as horas trabalhadas pelo intervalo apontado e, na ausência de apontamento, assumir a jornada do turno planejado, registrando essa condição | - | D | ORG | Dia com apontamento usa o intervalo real; dia sem apontamento usa o turno, com a marca correspondente |
-| **RF-107** | O sistema deve permitir encerrar a tarefa de uma vez para todo o grupo escalado, apresentando os campos que o tipo de tarefa exigir: o lote uma vez para a tarefa, e a quantidade uma vez por participante | Gerência | D | OP | Encerrar a tarefa fecha o apontamento de todos os participantes, cada um com a própria quantidade |
-| **RF-109** | O sistema deve apresentar a agenda do dia como linha do tempo horizontal, com uma faixa por funcionário e cada tarefa como barra posicionada e dimensionada pelo horário, distinguindo a que está em curso, a concluída e a planejada ainda não iniciada | Gerência | D | OP | Tarefa das 8h às 10h ocupa a faixa entre as duas marcas de hora, e as três situações se distinguem entre si; a escala de hora é o caso base de RF-137 |
-| **RF-110** | O sistema deve permitir iniciar o apontamento a partir da faixa do funcionário, escolhendo entre marcar pelo relógio ou informar início e fim de trabalho já ocorrido | Gerência | D | EN | Apontamento iniciado agora usa a hora do relógio; apontamento com horário informado usa o horário digitado |
-| **RF-111** | O sistema não deve permitir apontamento cujo intervalo se sobreponha ao de outro apontamento do mesmo funcionário | - | D | ORG | Lançar 9h às 12h para quem já tem 7h às 11h é recusado com o motivo informado |
-| **RF-112** | O sistema deve permitir lançar o mesmo apontamento para vários funcionários de uma vez, criando um apontamento por participante | Gerência | D | OP | Lançamento para quatro funcionários produz quatro apontamentos, cada um na sua faixa |
-| **RF-113** | O sistema deve permitir registrar a área ou o canteiro da tarefa que não exige lote, e dispensá-los quando o lote os determinar | Colaborador | D | OP | Irrigação registra a área em que foi feita; repicagem não pede área nem canteiro |
-| **RF-137** | O sistema deve permitir alternar a escala da agenda entre dia, semana e mês, mantendo a faixa por funcionário e ajustando a unidade da barra: hora no dia, turno na semana e dia no mês | Gerência | D | OP | A tarefa planejada para a manhã de quarta ocupa a faixa de hora no dia, meia coluna daquele dia na semana e a coluna inteira no mês |
-| **RF-138** | O sistema deve permitir acionar, a partir da agenda do dia, o lançamento da mesma tarefa para vários funcionários e o cadastro de tarefa recorrente | Gerência | D | OP | Os dois lançamentos começam na própria agenda, sem passar por outra tela |
-
-#### 2.3.6 Insumos e gastos da tarefa
-
-**A baixa acontece no mesmo gesto do apontamento.** Insumo dado baixa num segundo momento é
-insumo que ninguém dá baixa, e foi assim que o consumo deixou de ser conhecido até aqui.
-
-| ID | Requisito | Ator | Prior. | Origem | Verificação |
-|---|---|---|---|---|---|
-| **RF-106** | O sistema deve permitir registrar entrada de insumo no estoque, informando insumo, motivo (compra, ajuste ou perda), quantidade e, na compra, o custo unitário | Gerência | D | AD | Entrada registrada aumenta o saldo do insumo na quantidade informada |
-| **RF-101** | O sistema deve permitir registrar, no encerramento da tarefa, os insumos consumidos nela, abatendo-os do saldo | Colaborador | D | OP | O saldo do insumo diminui na quantidade registrada, sem outra ação |
-| **RF-102** | O sistema deve apresentar o saldo de cada insumo, derivado das entradas menos o consumo registrado | Gerência | D | AD | O saldo exibido reproduz a soma das entradas menos a dos consumos |
-| **RF-103** | O sistema deve sinalizar insumo zerado ou abaixo da quantidade mínima definida | Gerência | DV | EN | Insumo abaixo do mínimo aparece destacado |
-| **RF-104** | O sistema deve permitir registrar gasto extra da tarefa, com descrição e valor, atribuindo-o ao lote trabalhado | Gerência | DV | EN | O gasto aparece no custo do lote e da espécie correspondente |
-| **RF-105** | O sistema deve sinalizar, sem recusar, o consumo que deixaria o saldo do insumo negativo | - | DV | ORG | O registro é gravado e o saldo negativo aparece destacado |
-
-**RF-106 abre a seção porque o saldo depende dele.** RF-102 apresenta entradas menos consumo, e o
-consumo já tinha requisito que o produzisse (RF-101, e antes dele RF-14): a entrada não tinha. Sem
-esse requisito o saldo nasceria sempre negativo, e a sinalização de RF-105 apontaria falta de
-compra em todo insumo do viveiro, o tempo inteiro.
-
-#### 2.3.7 Mapa de produção
-
-**É a ocupação de §2.3.4 desenhada, e não uma lista.** RF-85 já apresentava área, canteiro e lote em
+**É a ocupação de §2.4.2 desenhada, e não uma lista.** RF-85 já apresentava área, canteiro e lote em
 texto. O mapa mostra a mesma informação com a forma do viveiro: a área é o quadro, o canteiro é a
 faixa dentro dela, o lote é o quadrado dentro do canteiro. Quem opera reconhece o lote **pelo
 lugar** antes de ler o rótulo, do mesmo jeito que hoje aponta com o dedo, e é essa correspondência
 que faz a tela ser lida em segundos por quem não é técnico (RNF-02).
 
-**A situação é derivada, e mede uma coisa só: tarefa que não foi feita.** Mortalidade acima do
-limite (RF-29) e previsão de disponibilidade (RF-90) têm alerta próprio e continuam onde estão.
-Somar tudo numa cor produziria um vermelho que não diz o que fazer, e a cor aqui tem de dizer:
-apontar o lote mostra a tarefa que falta.
+**A cor mede uma coisa só: tarefa que não foi feita.** A mortalidade acima do limite (RF-29) tem
+alerta próprio e continua tendo. Somar tudo numa cor produziria um vermelho que não diz o que
+fazer, e a cor aqui tem de dizer: apontar o lote mostra a tarefa que falta.
 
 | ID | Requisito | Ator | Prior. | Origem | Verificação |
 |---|---|---|---|---|---|
 | **RF-117** | O sistema deve apresentar o mapa do viveiro com as áreas, os canteiros de cada área e os lotes abertos de cada canteiro, cada lote com a sua situação | Gerência | D | EN | Canteiro com seis lotes abertos apresenta os seis, cada um com a sua situação |
 | **RF-118** | O sistema deve classificar o lote em saudável, atenção e crítico a partir das etapas do protocolo vencidas ou a vencer nele, sem que a situação seja digitada | - | D | ORG | Lote com etapa do protocolo vencida aparece como crítico, mesmo que nenhuma tarefa tenha sido lançada na agenda; concluída a etapa, volta a saudável no mesmo dia |
 | **RF-119** | O sistema deve apresentar, ao apontar o lote, a tarefa pendente que determina a situação dele e o atraso em dias | Gerência | D | OP | Apontar o lote crítico exibe o nome da tarefa pendente mais antiga e há quantos dias ela espera |
-| **RF-120** | O sistema deveria apresentar o total de lotes por situação, no geral e por área | Gerência | DV | EN | A soma dos totais por área reproduz o total geral |
+| **RF-120** | O sistema deve apresentar, no mapa, a mortalidade de cada lote e destacar os que ultrapassam o limite | Gerência | D | EN | Lote com mortalidade acima do limite aparece destacado, com o percentual visível |
 
 **RF-118 é o requisito que não tem ator.** Ninguém classifica lote: a classificação é consequência
-do que já foi registrado na agenda. Status digitado envelheceria sozinho, e o lote marcado como
-saudável ontem continuaria saudável hoje, que é justamente o contrário do que a tela existe para
-mostrar (RN-93).
+do que já foi registrado. Status digitado envelheceria sozinho, e o lote marcado como saudável
+ontem continuaria saudável hoje, que é justamente o contrário do que a tela existe para mostrar
+(RN-93).
 
-**O limite que separa atenção de crítico é parâmetro, não constante** (RN-94), pelo mesmo motivo
-que a duração do turno passou a ser (RN-85): muda com a estação e com o tipo de tarefa, e convenção
-que muda é dado.
+**A situação deriva do protocolo, e não das tarefas lançadas.** Se derivasse do atraso das
+atribuições **já lançadas** na agenda, o lote esquecido por completo apareceria como saudável,
+porque não haveria tarefa atrasada nele: a tela que existe para mostrar o esquecimento mostraria o
+contrário dele. Com o protocolo, o que se cobra é o que o lote **tem** de receber, lembre alguém de
+lançar ou não.
 
-**RF-118 foi emendado em 26/08/2026, e o identificador não mudou.** Ele dizia "a partir do atraso
-das tarefas planejadas para ele", e passa a dizer "a partir das etapas do protocolo". A redação
-anterior tinha um defeito que só ficou visível quando o protocolo foi especificado: a situação
-derivava do atraso das tarefas **já lançadas** na agenda, de modo que **o lote esquecido por
-completo aparecia como saudável**, porque não havia tarefa atrasada nele. A tela que existe para
-mostrar o esquecimento mostrava o contrário dele. Com o protocolo, o que se cobra é o que o lote
-**tem** de receber, lembre alguém de lançar ou não (RN-93 emendada, §2.3.8). O limite em dias de
-RN-94 continua valendo para as atribuições lançadas à mão; a etapa do protocolo usa a janela
-proporcional de RN-104.
+#### 2.4.4 Protocolo de atividades por lote
 
-#### 2.3.8 Protocolo de atividades por lote
+**É o que a §2.4.1 não alcança.** A agenda registra o que a gerência lançou; o protocolo registra o
+que o lote **tem** de receber, lembre alguém ou não.
 
-**É o que a §2.3.1 não alcança.** A agenda registra o que a gerência lançou; o protocolo registra o
-que o lote **tem** de receber, lembre alguém ou não. A distinção não é acadêmica: a situação do
-lote (RF-118) deriva do atraso das tarefas **já lançadas**, de modo que o lote esquecido por
-completo aparece como saudável, porque não há tarefa atrasada nele. A tela que existe para mostrar
-o esquecimento mostra hoje o contrário dele, e é este conjunto de requisitos que corrige isso.
-
-**Não é a recorrência de RF-114, e as duas convivem.** Aquela é de calendário: dias da semana, hora
-fixa, vigência, e o sujeito é a equipe ("irrigar de segunda a sábado das 7h às 8h"). Esta é do
-lote, conta a partir da **execução real anterior** e avança a fase do lote quando a etapa é
-sequencial ("limpar 90 dias depois da última limpeza deste lote"). Forçar uma na outra quebraria as
-duas.
+**Não é a tarefa recorrente de RF-72, e as duas convivem.** Aquela é de calendário, e o sujeito é a
+equipe ("irrigar toda manhã"). Esta é do lote, conta a partir da **execução real anterior** e avança
+a fase do lote quando a etapa é sequencial ("limpar 90 dias depois da última limpeza deste lote").
+Forçar uma na outra quebraria as duas.
 
 **Os requisitos sem ator são a maior parte da seção**, e é o traço que a define: RF-126 a RF-130 e
 RF-134 descrevem o que o sistema faz **sozinho**. Requisito de geração automática com ator seria
-requisito de digitação, e o módulo existe justamente porque a digitação é o que falha.
+requisito de digitação, e a seção existe justamente porque a digitação é o que falha.
 
 | ID | Requisito | Ator | Prior. | Origem | Verificação |
 |---|---|---|---|---|---|
-| **RF-126** | O sistema deve atribuir ao lote, na criação, o protocolo vigente do tipo de embalagem do recipiente dele, e acompanhar o lote etapa a etapa | - | D | ORG | Lote criado em tubete passa a exibir as etapas do protocolo do tubete |
+| **RF-126** | O sistema deve atribuir ao lote, na criação, o protocolo vigente do recipiente dele, e acompanhar o lote etapa a etapa | - | D | ORG | Lote criado em tubete passa a exibir as etapas do protocolo do tubete |
 | **RF-127** | O sistema deve gerar as ordens de tarefa do protocolo na agenda sem digitação, e permitir alterar ou excluir a ordem de um dia sem alterar a etapa | - | D | ORG | Excluir a ordem de uma quarta não altera o protocolo nem as ordens dos demais lotes |
 | **RF-128** | O sistema deve avançar a fase do lote ao concluir uma etapa sequencial que declare fase resultante, e não deve avançá-la ao concluir etapa recorrente | - | D | DOM | Concluir o plantio avança a fase; concluir uma irrigação não altera fase alguma |
 | **RF-129** | O sistema deve contar a ocorrência seguinte de etapa recorrente a partir da data real da execução anterior, e nunca de uma data de calendário prevista | - | D | DOM | Limpeza trimestral vencida em abril e executada em 15 de setembro produz a próxima em 14 de dezembro |
 | **RF-130** | O sistema deve manter no máximo uma ordem em aberto por etapa e por lote, sem gerar ocorrência nova enquanto a anterior estiver pendente | - | D | ORG | Etapa vencida há cinco meses apresenta uma pendência, e não cinco |
 | **RF-131** | O sistema deve apresentar, no lote, as etapas do protocolo com a data da última execução, o próximo vencimento e a situação de cada uma | Gerência | D | EN | A ficha do lote responde se a classificação já foi feita e quando é a próxima limpeza |
 | **RF-132** | O sistema deve apresentar a etapa em atenção dentro da janela de aviso e em atraso depois do vencimento, e sem indicação de situação quando o alerta da etapa estiver desligado | Gerência | D | OP | Etapa trimestral entra em atenção cerca de dezoito dias antes; a irrigação diária não recebe indicação nenhuma |
-| **RF-133** | O sistema deveria permitir, no cadastro da espécie, sobrescrever o tempo em dias de uma etapa específica do protocolo | Gerência | DV | DOM | Espécie com tempo próprio para a classificação usa o dela; espécie sem valor usa o do tipo de embalagem |
 | **RF-134** | O sistema deve encerrar o protocolo do lote quando ele se encerra por saldo zero, por expedição total ou por divisão, cancelando as ordens ainda em aberto sem removê-las | - | D | ORG | Lote zerado para de gerar ordens, e as ordens futuras dele aparecem canceladas, não ausentes |
-| **RF-135** | O sistema deve permitir dividir um lote em dois, com cada resultante seguindo o protocolo de forma independente e herdando do original a fase e a data da última execução de cada etapa | Gerência | D | OP | Os dois lotes resultantes exibem as mesmas datas de referência do original, e podem divergir a partir da divisão |
-| **RF-136** | O sistema deve registrar no lote a data de criação, quando o recipiente é preenchido, e a data de plantio, quando a etapa de plantio é concluída, como datas distintas | - | D | DOM | Lote criado em 10 de janeiro e plantado em 25 de janeiro exibe as duas datas, e a previsão de disponibilidade parte da segunda |
-
-**RF-136 emenda o que RF-84 e RF-90 assumiam.** Os dois tratavam a data do lote como uma só, porque
-até aqui ela era uma só. Com o protocolo, as duas se separam: a de criação é quando o canteiro
-passa a ser ocupado, e a de plantio é o relógio real da germinação. **Os identificadores não
-mudaram**, e a previsão de RF-90 passa a partir da segunda data, ficando vazia enquanto o plantio
-não ocorre. Previsão ausente é informação; previsão contada de uma semente que ainda não foi
-plantada é erro disfarçado de dado.
-
-**RF-132 usa o vocabulário de RF-118**, atenção e atraso, e não cores. O que muda é a origem: a
-situação passa a derivar do protocolo, e não do atraso das tarefas lançadas à mão. A tela do mapa
-não aprende nada novo, e passa a dizer a verdade.
 
 **O horizonte de geração é parâmetro, e não constante.** O sistema gera as ordens de um período à
 frente e apresenta o que vence depois disso na ficha do lote, sem materializá-lo na agenda: gerar
 um ano de limpezas trimestrais encheria a grade de tarefas que ninguém olha por nove meses. É a
-mesma justificativa de RN-85 e RN-94, e o parâmetro mora com os outros (RF-83).
+mesma justificativa de RN-85 e RN-94, e o parâmetro mora com os outros (RF-139).
 
 **A ordem entra na semana do vencimento, e a semana fechada é a exceção** (RN-112). Se a semana
 ainda não existe, o sistema a abre em rascunho; se já está fechada, a ordem entra na semana aberta
@@ -442,109 +299,33 @@ corrente, porque semana fechada não se altera (RF-73). O que determina o atraso
 para a semana seguinte apagaria o atraso que ela existe para denunciar.
 
 **A ordem nasce sem ninguém escalado** (RN-113). O protocolo responde o que fazer e quando; quem faz
-segue sendo decisão de quem monta a agenda (RF-92, RN-84). Enquanto ninguém for atribuído, ela é uma
-pendência do lote e **não entra no cálculo de horas** do dia sem apontamento (RF-75, RF-100).
+segue sendo decisão de quem monta a agenda (RF-92, RN-84).
 
 **O lote da ordem do protocolo vem da ordem, e não do formulário.** A ordem sempre carrega o lote,
 inclusive quando o tipo de tarefa não declara lote específico: irrigar *aquele* lote é o que o
 protocolo mandou. Não há conflito com RF-82, que rege o que a tela **pede** a quem preenche: campo
 já respondido pela origem da tarefa não é campo a pedir.
 
-### 2.4 Módulo 3 · Comercial
+### 2.5 Área 3 · Comercial
 
 Tudo aqui é movimento: acontece uma vez e vira histórico.
 
-#### 2.4.1 Pedidos
+**O preço é digitado, e o sistema não o calcula.** Quem registra o pedido informa o valor unitário
+que foi negociado. O sistema existe para guardar o que foi vendido, por quanto e para quem, e não
+para dizer por quanto deveria ter sido vendido.
 
 | ID | Requisito | Ator | Prior. | Origem | Verificação |
 |---|---|---|---|---|---|
 | **RF-41** | O sistema deve permitir registrar pedido com cliente, canal de venda e itens compostos por espécie, recipiente e quantidade | Chefia | D | OP | Pedido registrado aparece na lista de pedidos |
-| **RF-42** | O sistema deve permitir verificar a disponibilidade de cada item do pedido contra o estoque | Gerência | D | OP | Verificação indica, por item, se há quantidade suficiente |
-| **RF-43** | O sistema deve representar disponibilidade parcial, registrando a quantidade efetivamente disponível quando menor que a pedida | Gerência | D | OP | Item parcialmente disponível não é tratado como indisponível |
-| **RF-44** | O sistema deve exigir aprovação da chefia sobre o preço antes do fechamento do pedido | Chefia | D | EN | Pedido não avança sem a aprovação |
-| **RF-45** | O sistema deve registrar se o pedido exige nota fiscal e, quando emitida em sistema externo, o número correspondente | Chefia | D | LEG | Pedido exibe a exigência e o número informado |
-| **RF-46** | O sistema deve gerar a carga de separação a partir dos itens aprovados do pedido | Gerência | D | OP | Carga contém os itens e quantidades aprovados |
-| **RF-47** | O sistema deve permitir ao colaborador registrar a separação física item a item | Colaborador | D | OP | Separação concluída marca a carga como separada |
-| **RF-48** | O sistema deve manter o histórico das mudanças de estado do pedido, com autor e momento | - | DV | ORG | Consulta exibe a sequência de estados percorrida |
-| **RF-49** | O sistema deve notificar o responsável pela etapa seguinte a cada transição relevante do pedido | Todos | DV | OP | Transição gera notificação ao perfil responsável |
-| **RF-66** | O sistema deve permitir registrar **item genérico** (quantidade e recipiente sem espécie definida), atendido posteriormente por uma ou mais espécies | Chefia | D | OP | Pedido de "500 mudas nativas" é registrado sem exigir a escolha das espécies |
-| **RF-67** | O sistema deve permitir delimitar, no item genérico, a lista de espécies aceitas pelo cliente e a especificação de qualidade exigida | Chefia | D | OP, EN | Item genérico com lista definida não admite espécie fora dela |
-| **RF-68** | O sistema deve permitir, na verificação de disponibilidade, oferecer recipiente diferente do solicitado, registrando qual | Gerência | DV | OP | Item verificado registra a quantidade disponível e o recipiente efetivamente ofertado |
+| **RF-141** | O sistema deve registrar o preço unitário informado em cada item do pedido, e apresentar o total do item e o do pedido | Chefia | D | EN | O total do pedido reproduz a soma de quantidade por preço de cada item |
+| **RF-42** | O sistema deve apresentar, ao lado de cada item do pedido, a quantidade de muda pronta que a produção tem daquela espécie e recipiente | Chefia | D | OP | Item cuja espécie tem duzentas mudas prontas exibe esse saldo, atualizado a cada consulta |
+| **RF-142** | O sistema deve controlar a situação do pedido (rascunho, confirmado e cancelado), impedindo alteração de item depois da confirmação | Chefia | D | ORG | Pedido confirmado recusa inclusão e alteração de item |
+| **RF-143** | O sistema deve listar os pedidos com filtro por cliente, canal e período | Chefia | D | OP | Filtro por período retorna apenas os pedidos do intervalo |
 
-#### 2.4.2 Cotação com fornecedores
-
-Complementa a produção própria quando falta muda. O **cadastro** do fornecedor é do módulo 1
-(RF-52); aqui está o que se faz com ele.
-
-| ID | Requisito | Ator | Prior. | Origem | Verificação |
-|---|---|---|---|---|---|
-| **RF-53** | O sistema deve permitir registrar cotação dirigida a um ou mais fornecedores, com espécie, recipiente e quantidade por item | Chefia | DV | EN | Cotação registrada permite lançar as respostas recebidas |
-| **RF-54** | O sistema deve permitir comparar as propostas recebidas e registrar a escolhida por item | Chefia | DV | EN | Comparação exibe as propostas lado a lado e registra a escolha |
-| **RF-55** | O sistema poderia apresentar os fornecedores em mapa, com a distância até o viveiro | Chefia | P | EN | Fornecedor com endereço aparece posicionado no mapa |
-
-#### 2.4.3 Entregas
-
-Cada carga é uma viagem, com calendário próprio, entrega não é o último estado do pedido.
-
-| ID | Requisito | Ator | Prior. | Origem | Verificação |
-|---|---|---|---|---|---|
-| **RF-50** | O sistema deveria apresentar a agenda de entregas com as cargas prontas e seus destinos | Chefia | DV | OP | Agenda lista as cargas separadas e não entregues |
-| **RF-51** | O sistema deve permitir confirmar a entrega da carga | Chefia | D | OP | Carga confirmada sai da agenda e o pedido é concluído |
-
-### 2.5 Módulo 4 · Financeiro: módulo restrito
-
-Custo e preço são dinheiro: ficam no módulo do dinheiro, junto do extrato que os alimenta.
-
-**A restrição é por recurso, não pela porta do módulo.** A base bancária, extrato,
-lançamento, compra, custo fixo, fechamento, é exclusiva de chefia e administrador (RF-62). O
-que é **derivado** dela e não a expõe: custo unitário, margem, preço e os indicadores
-operacionais: permanece em leitura para a gerência, que precisa desses números para operar.
-A regra completa está em [`D4 §3.2`](../D-arquitetura/D4-matriz-rbac.md).
-
-#### 2.5.1 Custos e custeio
-
-| ID | Requisito | Ator | Prior. | Origem | Verificação |
-|---|---|---|---|---|---|
-| **RF-12** | O sistema deve permitir registrar custos fixos mensais por categoria e mês de referência | Chefia | D | AD | Custos do mês somam o total informado |
-| **RF-15** | O sistema deve calcular o custo variável de cada combinação de espécie e recipiente, somando substrato, semente, recipiente, demais insumos e mão de obra | - | D | EN, AD | Valor calculado confere com apuração manual independente |
-| **RF-16** | O sistema deve ratear o custo fixo mensal sobre a produção do período | - | D | EN | Soma dos rateios do período iguala o custo fixo do período |
-| **RF-17** | O sistema deve apresentar o custo unitário por espécie e recipiente | Chefia, Gerência | D | EN | Consulta exibe o custo de cada combinação cadastrada |
-| **RF-18** | O sistema deve recalcular o custo unitário quando houver alteração em insumo, custo fixo ou consumo | - | D | EN | Alteração de preço de insumo altera o custo das espécies que o utilizam |
-| **RF-76** | O sistema deve apurar o custo de mão de obra por espécie e período, a partir das horas da agenda e de um valor-hora médio do período, e incorporá-lo ao custo unitário | - | D | EN, AD | Custo unitário de espécie com tarefas registradas na semana difere do custo sem elas |
-
-#### 2.5.2 Precificação
-
-| ID | Requisito | Ator | Prior. | Origem | Verificação |
-|---|---|---|---|---|---|
-| **RF-31** | O sistema deve permitir definir a margem aplicada a cada canal de venda | Chefia | D | EN | Margem definida é aplicada no cálculo do canal correspondente |
-| **RF-32** | O sistema deve calcular o preço sugerido somando ao custo unitário a margem do canal | - | D | EN | Preço sugerido confere com o cálculo manual |
-| **RF-33** | O sistema deve impedir que o preço praticado fique abaixo do piso mínimo de segurança | Chefia | D | EN | Tentativa de registrar preço abaixo do piso é recusada com aviso |
-| **RF-34** | O sistema deve incorporar o frete ao preço, calculado por valor por quilômetro | - | DV | EN | Preço de pedido com entrega inclui o frete calculado |
-| **RF-35** | O sistema deve apresentar relatório comparando custo e preço praticado, destacando margens negativas | Chefia | D | EN | Relatório destaca ao menos um caso real de margem negativa |
-
-#### 2.5.3 Extratos, classificação e fechamento
-
-| ID | Requisito | Ator | Prior. | Origem | Verificação |
-|---|---|---|---|---|---|
-| **RF-56** | O sistema deve permitir importar o extrato bancário de cada conta, sem digitação de lançamentos | Chefia | D | AD | Arquivo importado gera os lançamentos correspondentes |
-| **RF-57** | O sistema deve permitir classificar cada lançamento indicando centro de custo, categoria e contraparte, todos escolhidos de lista mantida no cadastro, sem digitação livre | Chefia | D | AD | Lançamento classificado sai da fila pendente |
-| **RF-58** | O sistema deve aplicar automaticamente a classificação já atribuída anteriormente a lançamentos equivalentes | - | D | AD | Lançamento recorrente já reconhecido chega classificado |
-| **RF-59** | O sistema deve permitir informar data de competência distinta da data de movimentação | Chefia | D | AD | Gasto pago em abril e competente a fevereiro compõe o custo de fevereiro |
-| **RF-60** | O sistema deve permitir fechar o mês após conferência do saldo calculado contra o saldo do extrato, travando o período | Chefia | D | AD | Mês fechado não aceita alteração de lançamento |
-| **RF-61** | O sistema não deve apresentar indicador financeiro calculado sobre mês ainda não fechado | - | D | AD | Mês aberto exibe indicação de indisponibilidade, não um número |
-| **RF-62** | O sistema deve restringir a base bancária (extratos, lançamentos, compras, custos fixos e fechamento) aos perfis chefia e administrador | - | D | EN | Gerência e colaborador não acessam extrato, lançamento, compra, custo fixo nem fechamento, nem em leitura |
-
-#### 2.5.4 Indicadores de desempenho
-
-Os indicadores estão especificados um a um em
-[`G2: Fichas de indicadores`](../G-gestao/G2-fichas-de-indicadores.md), que define fórmula,
-fonte, janela, meta, faixas e **o painel de cada perfil**.
-
-| ID | Requisito | Ator | Prior. | Origem | Verificação |
-|---|---|---|---|---|---|
-| **RF-63** | O sistema deve apresentar painel de indicadores com o conteúdo correspondente ao perfil do usuário | Chefia, Gerência | D | EN | Perfis distintos veem conjuntos distintos de indicadores |
-| **RF-64** | O sistema deve apresentar cada indicador comparado ao período anterior e à meta definida | Chefia | D | EN | Indicador exibe valor, comparação e meta |
-| **RF-65** | O sistema deve sinalizar visualmente se o valor do indicador é favorável ou desfavorável | Chefia, Gerência | D | EN | Sinalização acompanha a faixa de desempenho definida para o indicador |
+**RF-42 é a interconexão que o sistema existe para provar.** O saldo exibido não é digitado nem
+mantido à parte: vem de RF-22, que o soma dos lotes prontos. É o ponto em que o que a Produção
+registrou passa a ser o que o Comercial pode vender, e é a razão de as duas áreas não poderem ser
+avaliadas em separado.
 
 ---
 
@@ -562,12 +343,12 @@ a que se destina.
 
 | ID | Requisito | Origem | Verificação |
 |---|---|---|---|
-| **RNF-01** | Formulários de campo devem apresentar no máximo cinco campos por tela | RE-1 | Contagem de campos em cada formulário destinado ao colaborador |
+| **RNF-01** | Formulários de campo devem apresentar no máximo cinco campos por tela | RE-1 | Contagem de campos em cada formulário destinado ao registro em campo |
 | **RNF-02** | Campos de categoria devem oferecer lista fechada de opções, nunca entrada livre de texto | RE-1 | Inspeção dos formulários; nenhuma categoria admite texto digitado |
 | **RNF-03** | Elementos acionáveis devem ter alvo de toque compatível com uso de dedos sujos e molhados | RE-4 | Medição do alvo de toque contra o mínimo definido no projeto de interface |
 | **RNF-04** | Toda ação de gravação deve produzir resposta visual imediata de confirmação | RE-4 | Registro em campo exibe confirmação sem exigir conferência posterior |
 | **RNF-05** | O registro de dados em campo deve funcionar sem conexão, com envio automático ao restabelecer a rede | RE-3 | Registro feito em modo avião aparece no sistema após reconexão |
-| **RNF-06** | A interface deve ser concebida para uso em celular, e não adaptada a partir de tela de computador, nas rotinas de campo e de colaborador | RE-2 | Todas as rotinas de campo executáveis em tela de celular sem rolagem horizontal |
+| **RNF-06** | A interface deve ser concebida para uso em celular, e não adaptada a partir de tela de computador, nas rotinas de registro em campo | RE-2 | Todas as rotinas de campo executáveis em tela de celular sem rolagem horizontal |
 | **RNF-07** | O sistema deve permanecer utilizável sob conexão móvel lenta | RE-3 | Execução das rotinas de campo sob rede limitada |
 | **RNF-08** | A interface deve empregar o vocabulário da empresa, conforme o glossário, e não termos técnicos do sistema | RE-1 | Revisão dos rótulos contra [`A2`](../A-fundacao/A2-glossario-dominio.md) |
 | **RNF-09** | Senhas devem ser armazenadas de forma cifrada, por técnica que impeça sua recuperação | ORG | Inspeção do armazenamento; nenhuma senha legível |
@@ -576,23 +357,14 @@ a que se destina.
 | **RNF-12** | As regras de acesso aos dados devem ser executadas no servidor, nunca no navegador | ORG | Nenhuma credencial ou regra de acesso presente no código entregue ao cliente |
 | **RNF-13** | Toda comunicação entre cliente e servidor deve ser cifrada em trânsito | ORG | Acesso por canal não cifrado é recusado |
 | **RNF-14** | O sistema deve dispor de rotina de backup e procedimento de recuperação com objetivos declarados | RE-5 | Ver [`E6`](../E-qualidade/E6-plano-backup-recuperacao.md) |
-| **RNF-27** | As telas de coordenação da produção, agenda do dia e mapa de produção, devem ser concebidas para tela larga, e apresentar no celular uma versão reduzida em lista, sem rolagem horizontal | RE-2 | As duas telas são operáveis em tela de computador com a semana inteira visível, e no celular apresentam a mesma informação em lista |
+| **RNF-27** | As telas de coordenação da produção, agenda da semana e mapa de lotes, devem ser concebidas para tela larga, e apresentar no celular uma versão reduzida em lista, sem rolagem horizontal | RE-2 | As duas telas são operáveis em tela de computador com a semana inteira visível, e no celular apresentam a mesma informação em lista |
 
-**RNF-06 foi emendado em 26/08/2026, e o identificador não mudou.** Ele valia para a interface
-inteira; passa a valer para as **rotinas de campo e de colaborador**, que são as que motivaram RE-2.
-As duas telas de coordenação da produção ficam de fora, sob RNF-27.
-
-> **Por que abrir a exceção, e por que só para essas duas.** A agenda do dia (RF-109) e o mapa de
-> produção (RF-117) não registram nada: elas **comparam**. Nove faixas ao longo de um dia, ou trinta
+> **Por que abrir a exceção, e por que só para essas duas.** A agenda da semana (RF-71) e o mapa de
+> lotes (RF-117) não registram nada: elas **comparam**. Nove faixas ao longo de uma semana, ou trinta
 > canteiros lado a lado, existem para que se enxergue o buraco e o atraso, e o que produz esse
 > enxergar é ver tudo de uma vez. Espremer isso na largura de um celular não encolhe a tela, desfaz
 > a comparação, e o resultado prático de obedecer RNF-06 aqui seria a coordenação continuar no
-> papel. O registro em campo, que é o que RE-2 protege, segue inteiro no celular: nada do que o
-> colaborador faz mudou de dispositivo.
-
-**O número de RNF-27 está fora do bloco da seção, e é deliberado.** O identificador é o próximo
-livre, e identificador atribuído não se renumera; a seção é a da natureza do requisito, produto, e
-não a do intervalo numérico.
+> papel. O registro em campo, que é o que RE-2 protege, segue inteiro no celular.
 
 ### 3.2 Requisitos organizacionais
 
@@ -626,11 +398,11 @@ Impostos por fatores legais, regulatórios ou pelo ambiente em que o sistema ope
 
 | Prioridade | Funcionais | Não funcionais | Total |
 |---:|---:|---:|---:|
-| **D**: Deve ter | 99 | 27 | 126 |
-| **DV**: Deveria ter | 21 | - | 21 |
-| **P**: Poderia ter | 2 | - | 2 |
+| **D**: Deve ter | 65 | 27 | 92 |
+| **DV**: Deveria ter | 5 | - | 5 |
+| **P**: Poderia ter | - | - | - |
 | **N**: Não agora | - | - | - |
-| **Total** | **122** | **27** | **149** |
+| **Total** | **70** | **27** | **97** |
 
 Nenhum requisito não funcional foi classificado abaixo de *deve ter*: todos decorrem de restrição do
 ambiente, de política do projeto ou de exigência legal, nenhum é preferência negociável.
@@ -644,32 +416,20 @@ delimitação fique explícita em vez de implícita numa tabela de prioridades.
 ## 5. Conflitos entre requisitos e sua resolução
 
 Sommerville (2011) observa que *stakeholders* distintos produzem requisitos conflitantes, resolvidos
-por negociação. Quatro conflitos se manifestaram e foram resolvidos como segue. O terceiro foi
-**reaberto e resolvido de novo duas vezes**, em 10/08/2026 ao desenhar a agenda de pessoal e em
-24/08/2026 ao desenhar o apontamento: a tensão continuou a mesma nas três, e a solução ficou
-melhor a cada uma.
+por negociação. Três conflitos se manifestaram e foram resolvidos como segue.
 
 | Conflito | Partes | Resolução |
 |---|---|---|
-| **Proteção × produtividade**: exigir autenticação e troca de senha (RF-01, RF-02) contraria o uso rápido em campo | Chefia × colaborador | Sessão de duração longa no dispositivo do colaborador. A autenticação ocorre raramente; o registro de perda ou produção não a exige a cada uso. Sommerville trata essa tensão explicitamente: proteção adicional custa produtividade, e o equilíbrio é decisão de projeto. |
-| **Riqueza do dado × velocidade do registro**: registrar mais atributos por perda melhora a análise (RF-28, RF-30) e contraria o limite de cinco campos (RNF-01) | Gerência × colaborador | Prevalece o limite. Dado que não é registrado por ser trabalhoso demais não existe: o registro incompleto e feito supera o completo e omitido. |
-| **Precisão do custo × esforço de apuração**: apurar mão de obra por espécie exigiria apontamento de horas individual | Chefia × colaborador | O **planejamento** é por turnos (manhã e tarde), nunca por hora marcada (RF-71), e a **execução** é apontada pelo relógio, por quem coordena a equipe, na faixa de cada funcionário na linha do tempo do dia (RF-94, RF-95, RF-109). Onde ninguém apontou, o turno planejado é assumido, marcado como não confirmado (RF-100). O custo usa um **valor-hora médio da equipe**, folha do mês dividida pelas horas do mês (RF-76), e não o salário de cada um. Produz custo real sem controle de ponto e sem expor remuneração individual: o que varia entre espécies é o tempo gasto, não quem o gastou. |
-| **Concepção móvel × leitura de comparação**: a agenda do dia (RF-109) e o mapa (RF-117) precisam mostrar nove faixas ou trinta canteiros de uma vez, e RNF-06 exige conceber para celular | Gerência × colaborador | Separam-se os dois usos em vez de escolher um. RNF-06 passa a valer para as rotinas de campo, que é o que RE-2 protege, e as duas telas de coordenação vão para RNF-27, concebidas para tela larga com redução em lista no celular. Nenhuma tela de colaborador mudou de dispositivo. |
+| **Proteção × produtividade**: exigir autenticação e troca de senha (RF-01, RF-02) contraria o uso rápido em campo | Chefia × gerência | Sessão de duração longa no dispositivo de quem registra. A autenticação ocorre raramente; o registro de perda ou de confirmação de tarefa não a exige a cada uso. Sommerville trata essa tensão explicitamente: proteção adicional custa produtividade, e o equilíbrio é decisão de projeto. |
+| **Riqueza do dado × velocidade do registro**: registrar mais atributos por perda melhora a análise (RF-26, RF-27) e contraria o limite de cinco campos (RNF-01) | Gerência × quem registra em campo | Prevalece o limite. Dado que não é registrado por ser trabalhoso demais não existe: o registro incompleto e feito supera o completo e omitido. |
+| **Concepção móvel × leitura de comparação**: a agenda da semana (RF-71) e o mapa (RF-117) precisam mostrar nove faixas ou trinta canteiros de uma vez, e RNF-06 exige conceber para celular | Gerência × quem registra em campo | Separam-se os dois usos em vez de escolher um. RNF-06 passa a valer para as rotinas de campo, que é o que RE-2 protege, e as duas telas de coordenação vão para RNF-27, concebidas para tela larga com redução em lista no celular. |
 
-
-> **O terceiro conflito foi resolvido uma terceira vez, em 24/08/2026.** A versão anterior desta
-> linha dizia que o trabalho é registrado em turnos e que **um turno vale quatro horas por
-> convenção**. Duas coisas mudaram, e nenhuma delas é a resolução em si:
->
-> 1. **A duração do turno virou parâmetro** (RF-83, RN-85). Continuava sendo convenção, e
->    convenção que muda com a estação não pertence ao enunciado de uma regra.
-> 2. **A hora real entrou, sem virar controle de ponto.** O que a resolução original descartava
->    era o funcionário registrar a própria entrada e saída, e isso continua descartado: quem toca
->    no botão é quem coordena, de um aparelho só. O relógio mede o **tempo da tarefa**, não o
->    rendimento da pessoa, e o valor-hora segue sendo médio da equipe.
->
-> A tensão é a mesma das duas vezes anteriores; a solução mediu o que dava para medir sem pagar o
-> preço que a primeira resolução recusou.
+> **O terceiro conflito já foi resolvido de outro modo, e a solução anterior caiu com o escopo.**
+> Ele era, antes, "precisão do custo × esforço de apuração", e a resolução envolvia apontamento de
+> horas, valor-hora médio da equipe e jornada assumida por turno. Com o custeio fora do escopo, a
+> tensão que restou é a de leitura contra dispositivo, e o apontamento por relógio deixou de
+> existir: a agenda registra que a tarefa planejada foi feita, e a quantidade, sem medir a hora de
+> entrada e saída de ninguém.
 
 ---
 
