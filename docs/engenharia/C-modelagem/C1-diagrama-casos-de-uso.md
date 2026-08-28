@@ -186,8 +186,7 @@ graph LR
     UC58(["UC-58 · Dividir lote"])
     UC17(["UC-17 · Registrar perda"])
     UC16(["UC-16 · Registrar contagem do lote"])
-    UC49(["UC-49 · Consultar ocupação do viveiro"])
-    UC61(["UC-61 · Consultar mapa de lotes"])
+    UC61(["UC-61 · Consultar o mapa de lotes"])
     UC62(["UC-62 · Acompanhar protocolo do lote"])
     UC15(["UC-15 · Consultar estoque disponível"])
     UC18(["UC-18 · Analisar perdas"])
@@ -205,7 +204,6 @@ graph LR
   GE --- UC58
   GE --- UC17
   GE --- UC16
-  GE --- UC49
   GE --- UC61
   GE --- UC62
   GE --- UC15
@@ -272,8 +270,7 @@ alimenta a matriz de rastreabilidade [`B5`](../B-requisitos/B5-matriz-rastreabil
 | **UC-58** | Dividir lote | 2 · Prod. | Gerência | RF-135 | **✔ sim** |
 | **UC-17** | Registrar perda | 2 · Prod. | Gerência | RF-26, RF-91 | **✔ sim** |
 | **UC-16** | Registrar contagem do lote | 2 · Prod. | Gerência | RF-23 | - |
-| **UC-49** | Consultar ocupação do viveiro | 2 · Prod. | Gerência | RF-85, RF-89 | - |
-| **UC-61** | Consultar mapa de lotes | 2 · Prod. | Gerência | RF-117, RF-118, RF-119, RF-120 | - |
+| **UC-61** | Consultar o mapa de lotes | 2 · Prod. | Gerência, Chefia | RF-85, RF-89, RF-117, RF-118, RF-119, RF-120 | - |
 | **UC-62** | Acompanhar protocolo do lote | 2 · Prod. | Gerência | RF-131, RF-132, RF-134 | - |
 | **UC-15** | Consultar estoque disponível | 2 · Prod. | Chefia, Gerência | RF-22 | - |
 | **UC-18** | Analisar perdas | 2 · Prod. | Gerência, Chefia | RF-27, RF-28, RF-29 | - |

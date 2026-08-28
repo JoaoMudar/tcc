@@ -252,18 +252,18 @@ a{color:inherit}
     <p class="eyebrow">F1 &middot; Bloco F, usabilidade &middot; Protótipo de telas</p>
     <h1>Prancha de telas do viveiro</h1>
     <p class="lede">
-      Os cinquenta e nove casos de uso do sistema, um a um, desenhados como a tela que
-      o usuário veria, mais três pranchas que não têm caso de uso próprio porque são
+      Os trinta e quatro casos de uso do sistema, um a um, desenhados como a tela que
+      o usuário veria, mais uma prancha que não tem caso de uso próprio porque é
       organização de interface. Cada prancha traz embaixo a sua ficha de engenharia: quem
       opera, quais requisitos ela satisfaz e se a tela <b>já existe no código</b> ou ainda é
-      especificação. É a peça que faltava entre o documento e o aparelho na mão do Rogério.
+      especificação. É a peça que faltava entre o documento e a tela.
     </p>
     <div class="meta">
-      <div>59 <b>casos de uso</b></div>
-      <div>138 <b>requisitos funcionais</b></div>
-      <div>4 <b>atores</b></div>
-      <div>21 <b>telas construídas</b></div>
-      <div>41 <b>a construir</b></div>
+      <div>34 <b>casos de uso</b></div>
+      <div>70 <b>requisitos funcionais</b></div>
+      <div>3 <b>atores</b></div>
+      <div>16 <b>telas construídas</b></div>
+      <div>19 <b>a construir</b></div>
       <div>Viveiro Mudar &middot; <b>UNIDAVI 2026</b></div>
     </div>
 
@@ -272,31 +272,31 @@ a{color:inherit}
         <div class="pan-bar" style="background:var(--a-todos)"></div>
         <div class="n">4</div>
         <div class="t">Acesso</div>
-        <div class="d">Transversal aos quatro módulos. Nenhuma outra tela abre sem passar por aqui.</div>
+        <div class="d">Transversal às três áreas. Nenhuma outra tela abre sem passar por aqui.</div>
       </div>
       <div class="pan-card">
         <div class="pan-bar"></div>
-        <div class="n">14</div>
-        <div class="t">1 &middot; Cadastros</div>
+        <div class="n">2</div>
+        <div class="t">Configurações</div>
+        <div class="d">Período de trabalho e os parâmetros que o mapa lê. Ninguém cria nem exclui: altera-se valor.</div>
+      </div>
+      <div class="pan-card">
+        <div class="pan-bar"></div>
+        <div class="n">12</div>
+        <div class="t">1 &middot; Cadastro único</div>
         <div class="d">O que o viveiro é: espécie, recipiente, insumo, canteiro, pessoa, protocolo.</div>
       </div>
       <div class="pan-card">
         <div class="pan-bar"></div>
-        <div class="n">25</div>
+        <div class="n">13</div>
         <div class="t">2 &middot; Produção</div>
-        <div class="d">O maior módulo. É onde o colaborador entra, e onde o dado nasce. As duas únicas telas de computador do sistema estão aqui.</div>
+        <div class="d">A maior área. É onde o dado nasce, e onde estão as duas únicas telas de computador do sistema.</div>
       </div>
       <div class="pan-card">
         <div class="pan-bar"></div>
-        <div class="n">10</div>
+        <div class="n">4</div>
         <div class="t">3 &middot; Comercial</div>
-        <div class="d">Do pedido no WhatsApp à carga confirmada na entrega.</div>
-      </div>
-      <div class="pan-card">
-        <div class="pan-bar"></div>
-        <div class="n">9</div>
-        <div class="t">4 &middot; Financeiro</div>
-        <div class="d">Custo, preço e extrato. Quase todo restrito à chefia por regra de negócio.</div>
+        <div class="d">O pedido negociado no WhatsApp, registrado com preço e com o saldo que a produção tem pronto.</div>
       </div>
     </div>
   </div>
@@ -309,7 +309,6 @@ a{color:inherit}
       <button class="chip" data-filter="actor" data-value="all" aria-pressed="true">todos</button>
       <button class="chip" data-filter="actor" data-value="chefia" aria-pressed="false">chefia</button>
       <button class="chip" data-filter="actor" data-value="gerencia" aria-pressed="false">gerência</button>
-      <button class="chip" data-filter="actor" data-value="colab" aria-pressed="false">colaborador</button>
       <button class="chip" data-filter="actor" data-value="todos" aria-pressed="false">acesso</button>
       <button class="chip" data-filter="actor" data-value="admin" aria-pressed="false">administrador</button>
     </div>
@@ -367,38 +366,37 @@ a{color:inherit}
         </p>
       </div>
       <div>
-        <h4>Três pranchas sem caso de uso</h4>
+        <h4>Uma prancha sem caso de uso</h4>
         <p>
-          <b>RF-108</b> (entrada do módulo), <b>RF-112</b> (tarefa para vários) e <b>RF-114</b> (tarefa
-          recorrente) trazem número de requisito no lugar do UC. Não é lacuna: escala de visualização,
-          lugar de botão e ordem de abas não têm ator praticando um objetivo de negócio, e forçar um
-          caso de uso para eles produziria um artefato que descreve cliques. A <b>B5</b> registra os
-          três como <i>sem caso de uso</i>, e não como pendentes.
+          <b>RF-108</b> (entrada da área Produção) traz número de requisito no lugar do UC. Não é
+          lacuna: ordem de abas não tem ator praticando um objetivo de negócio, e forçar um caso de
+          uso para ela produziria um artefato que descreve cliques. A <b>B5</b> a registra como
+          <i>sem caso de uso</i>, e não como pendente.
         </p>
       </div>
       <div>
-        <h4>Por que o colaborador tem tão poucas telas</h4>
+        <h4>Por que não há telas de campo</h4>
         <p>
-          Treze casos de uso: nove de registro e quatro de consulta operacional (estoque, ocupação,
-          saldo de insumo, pedidos). O que ele nunca vê é dinheiro. O §3.1 da matriz fecha custo,
-          preço, margem e indicador, e o §3.14 fecha até o gasto da própria tarefa que ele executou:
-          ele registra o que consumiu, e a conversão disso em reais acontece do outro lado.
+          Os seis colaboradores do viveiro <b>não operam o sistema</b>: o trabalho deles é planejado e
+          confirmado pela gerência. Não é restrição de permissão, é decisão de escopo
+          (<b>A1</b> §5), e é o que reduz o protótipo a três perfis e a estas pranchas.
         </p>
         <p>
-          Cada tela a mais nesse ator aumenta a chance de que <b>nenhuma</b> seja usada. Repicar lote e
-          lançar insumo da tarefa aparecem aqui como pranchas porque têm regra própria, mas na vida real
-          são gestos dentro do encerramento da tarefa, não itens de menu.
+          A consequência de projeto é que <b>quem registra é quem coordena</b>, de um aparelho só, e
+          com a leva na frente. Repicar lote e registrar perda continuam sendo formulários de campo,
+          sob as mesmas restrições de cinco campos e lista fechada: o que mudou foi de quem é o dedo
+          que toca a tela, e não o lugar em que ela é usada.
         </p>
       </div>
       <div>
         <h4>Onde a engenharia concentra o peso</h4>
         <p>
-          Quarenta das sessenta e duas pranchas admitem a chefia. O <b>C1</b> aponta vinte e sete, e a
-          diferença não é erro de nenhum dos dois: o C1 nomeia o <i>ator principal</i> do caso de uso, e
-          a matriz <b>D4</b> diz quem tem a permissão. Treze telas em que o principal é outro continuam
-          abertas à chefia, e três delas por emenda datada (§3.10), porque enquanto o colaborador não
-          usa o sistema alguém precisa registrar o consumo em campo. Não é falha de distribuição, é o
-          retrato de uma microempresa em que uma pessoa responde por venda, preço, compra e finanças.
+          A gerência aparece em mais pranchas do que a chefia, e a inversão é o retrato do escopo
+          reduzido: com o campo fora do sistema, quem coordena passou a ser quem registra. O
+          <b>C1</b> nomeia o <i>ator principal</i> do caso de uso e a matriz <b>D4</b> diz quem tem a
+          permissão, e os dois não são a mesma coisa: telas em que o principal é a gerência continuam
+          abertas à chefia em leitura, porque numa microempresa de nove pessoas quem vende também
+          precisa saber o que existe no viveiro.
         </p>
         <p>
           O módulo Financeiro toca um ator só pelo mesmo motivo: a base bancária mistura gasto do viveiro
@@ -413,9 +411,9 @@ a{color:inherit}
           que substitui o "ator principal" do C1 sempre que os dois discordam; linguagem visual de
           <code>globals.css</code> e <code>ModuleShell</code>. Conferido tela a tela contra B3 e D4
           em <b>26/08/2026</b>: 18 pranchas tiveram o perfil corrigido e 10 tiveram a regra ajustada.
-          As 59 telas satisfazem 111 dos 136 RF; os 25 restantes são motor e derivação sem tela própria
-          (o gerador de ordens do protocolo, RF-108 a RF-120 e RF-126 a RF-132, entre outros), e é por
-          isso que caso de uso e requisito não se contam um a um.
+          Cinco requisitos não têm tela porque descrevem o que o sistema faz sozinho, sem ninguém
+          acionar (RF-118 e RF-127 a RF-130): são o motor do protocolo, e é por isso que caso de uso
+          e requisito não se contam um a um. A lista está em <b>C1</b> §4.1.
           Os dados que aparecem nos mockups são plausíveis e ilustrativos, não vieram do banco.
           Espécies, recipientes, áreas e canteiros seguem o vocabulário do <b>A2</b>.
         </p>
@@ -426,18 +424,18 @@ a{color:inherit}
 
 <script>
 const MODULES = [
-  {id:'acesso', idx:'00', name:'Acesso', lead:'Transversal aos quatro módulos. Todo caso de uso do sistema tem como pré-condição uma sessão autenticada, e é por isso que estas quatro telas vêm antes de qualquer outra.'},
-  {id:'cadastros', idx:'01', name:'Cadastros', lead:'O que o viveiro é, antes de qualquer movimento. Espécie é a entidade central: recipiente, insumo, canteiro, protocolo e pessoa existem para qualificá-la. Errar aqui contamina os outros três módulos em silêncio.'},
-  {id:'producao', idx:'02', name:'Produção', lead:'O maior módulo, e o que o colaborador mais toca. Aqui o dado nasce, no celular, em pé, com a mão suja: cada campo a mais nesta seção é um registro a menos que acontece de verdade. As duas primeiras pranchas são a exceção, e as únicas telas de computador do sistema: agenda do dia e mapa de produção não registram nada, comparam, e comparar pede a tela inteira (RNF-27).'},
-  {id:'comercial', idx:'03', name:'Comercial', lead:'Do pedido que chega pelo WhatsApp à carga confirmada na entrega. O sistema não substitui a negociação, registra o que ela decidiu, e trava o que não pode sair sem preço aprovado.'},
-  {id:'financeiro', idx:'04', name:'Financeiro', lead:'Custo, preço e extrato. Quase todo restrito à chefia, porque a base bancária mistura gasto do viveiro com gasto pessoal da família. Custeio, precificação e indicadores derivam dela sem expô-la.'}
+  {id:'acesso', idx:'00', name:'Acesso', lead:'Transversal às três áreas de negócio. Todo caso de uso do sistema tem como pré-condição uma sessão autenticada, e é por isso que estas quatro telas vêm antes de qualquer outra.'},
+  {id:'config', idx:'01', name:'Configurações', lead:'Os parâmetros que o sistema lê e a operação ajusta: o período de trabalho do viveiro e os limites que pintam o lote no mapa. Ninguém cria e ninguém exclui parâmetro; o que se faz aqui é alterar valor.'},
+  {id:'cadastros', idx:'02', name:'Cadastro único', lead:'O que o viveiro é, antes de qualquer movimento. Espécie é a entidade central: recipiente, insumo, canteiro, protocolo e pessoa existem para qualificá-la. Errar aqui contamina as outras duas áreas em silêncio.'},
+  {id:'producao', idx:'03', name:'Produção', lead:'A maior área, e a que a gerência mais toca. Aqui o dado nasce, muitas vezes no celular, em pé, com a mão suja: cada campo a mais nesta seção é um registro a menos que acontece de verdade. As duas primeiras pranchas são a exceção, e as únicas telas de computador do sistema: agenda da semana e mapa de lotes não registram nada, comparam, e comparar pede a tela inteira (RNF-27).'},
+  {id:'comercial', idx:'04', name:'Comercial', lead:'O pedido que chega pelo WhatsApp, registrado com o que foi negociado. O sistema não substitui a negociação nem calcula preço: guarda o que foi vendido, por quanto, para quem, e mostra ao lado o que a produção tem pronto.'}
 ];
 const S = [];
 /* ============ 00 · ACESSO ============ */
 S.push({
   id:'UC-01', mod:'acesso', actors:['todos'], built:true, route:'/login',
   name:'Autenticar-se', rf:'RF-01',
-  why:'Nenhuma tela do sistema abre sem sessão. O identificador é curto de propósito: o colaborador digita no celular, com a mão suja de substrato.',
+  why:'Nenhuma tela do sistema abre sem sessão. O identificador é curto de propósito: quem entra digita no celular, em campo, com a mão suja de substrato.',
   ui:`<div class="mk-body" style="justify-content:center;gap:14px;background:#166534;padding:22px">
     <div style="text-align:center;color:#fff">
       <div style="font-size:38px">🌱</div>
@@ -581,7 +579,7 @@ S.push({
 });
 S.push({
   id:'UC-22', mod:'cadastros', actors:['chefia'], built:true, route:'/cadastros/pessoas/[id]',
-  name:'Manter cadastro completo de cliente', rf:'RF-37, RF-38, RF-40',
+  name:'Manter cadastro completo de cliente', rf:'RF-37, RF-38, RF-140',
   why:'É aqui que o cadastro rápido vira cadastro fiscal. O CPF e o CNPJ são validados na digitação, e a tela sinaliza o que falta quando o pedido exigir nota.',
   ui:`<div class="mk-hd"><div class="b">1 &middot; Cadastros</div><div class="t">Sítio Boa Vista</div><div class="r">Cliente &middot; desde 12/06/2026</div></div>
   <div class="mk-body tight">
@@ -676,22 +674,7 @@ S.push({
     <div class="mk-btn">Salvar</div>
   </div>`
 });
-S.push({
-  id:'UC-45', mod:'cadastros', actors:['chefia'], built:false, route:'',
-  name:'Manter centros de custo', rf:'RF-77, RF-78, RF-79',
-  why:'A natureza, negócio ou pessoal, é o que separa o gasto do viveiro do gasto da família no mesmo extrato bancário. Depois de existir lançamento classificado, ela trava.',
-  ui:`<div class="mk-hd"><div class="b">1 &middot; Cadastros</div><div class="t">Centros de custo</div></div>
-  <div class="mk-body tight">
-    <div class="mk-seg"><span class="on">Ativos</span><span>Inativos</span></div>
-    <div class="mk-card"><div class="mk-row"><span class="mk-nm">Produção de mudas</span><span class="mk-pill g">negócio</span></div><div style="font-size:9.5px;color:#6B7280">🔒 214 lançamentos &middot; natureza travada</div></div>
-    <div class="mk-card"><div class="mk-row"><span class="mk-nm">Manutenção do viveiro</span><span class="mk-pill g">negócio</span></div><div style="font-size:9.5px;color:#6B7280">🔒 61 lançamentos</div></div>
-    <div class="mk-card"><div class="mk-row"><span class="mk-nm">Casa</span><span class="mk-pill n">pessoal</span></div><div style="font-size:9.5px;color:#6B7280">🔒 138 lançamentos</div></div>
-    <div class="mk-card"><div class="mk-row"><span class="mk-nm">Veículo Saveiro</span><span class="mk-pill g">negócio</span></div><div style="font-size:9.5px;color:#6B7280">sem lançamentos &middot; pode ser alterado</div></div>
-    <div class="mk-info">Centro de custo não se exclui. Inativar tira das escolhas novas sem mexer no que já foi classificado.</div>
-    <div style="flex:1"></div>
-    <div class="mk-btn">+ Novo centro de custo</div>
-  </div>`
-});
+
 S.push({
   id:'UC-46', mod:'cadastros', actors:['gerencia'], built:false, route:'',
   name:'Manter áreas e canteiros', rf:'RF-80, RF-81',
@@ -713,7 +696,7 @@ S.push({
   </div>`
 });
 S.push({
-  id:'UC-54', mod:'cadastros', actors:['gerencia','chefia'], built:false, route:'',
+  id:'UC-54', mod:'config', actors:['gerencia','chefia'], built:false, route:'',
   name:'Manter período de trabalho', rf:'RF-83',
   why:'A jornada padrão da agenda. Quando ninguém aponta a hora de entrada, é este turno que o sistema assume para calcular as horas trabalhadas, registrando que assumiu.',
   ui:`<div class="mk-hd"><div class="b">1 &middot; Cadastros</div><div class="t">Período de trabalho</div></div>
@@ -739,8 +722,30 @@ S.push({
   </div>`
 });
 S.push({
+  id:'UC-60', mod:'config', actors:['chefia','admin'], built:false, route:'',
+  name:'Manter parâmetros do sistema', rf:'RF-139',
+  why:'Três números que mudam com a estação e hoje morariam em constante de código. Não há botão de criar nem de excluir: a chave nasce com o banco, porque existe consulta que a lê pelo nome, e o que a operação faz é alterar valor (D4 §3.7).',
+  ui:`<div class="mk-hd"><div class="b">Configurações</div><div class="t">Parâmetros do sistema</div></div>
+  <div class="mk-body">
+    <div class="mk-info">Estes valores mudam o que as telas mostram. Não é possível criar nem excluir parâmetro.</div>
+    <div class="mk-card">
+      <div class="mk-row"><span class="mk-nm">Limite de mortalidade</span><span class="mk-in v" style="width:62px;text-align:right">20 %</span></div>
+      <div class="s" style="font-size:9px">Acima disso o lote aparece destacado no mapa</div>
+    </div>
+    <div class="mk-card">
+      <div class="mk-row"><span class="mk-nm">Atraso: atenção</span><span class="mk-in v" style="width:62px;text-align:right">0 dias</span></div>
+      <div class="s" style="font-size:9px">A partir de quantos dias o lote fica amarelo</div>
+    </div>
+    <div class="mk-card">
+      <div class="mk-row"><span class="mk-nm">Atraso: crítico</span><span class="mk-in v" style="width:62px;text-align:right">3 dias</span></div>
+      <div class="s" style="font-size:9px">A partir de quantos dias o lote fica vermelho</div>
+    </div>
+    <div class="mk-btn">Salvar</div>
+  </div>`
+});
+S.push({
   id:'UC-57', mod:'cadastros', actors:['gerencia','chefia'], built:false, route:'',
-  name:'Manter protocolo de atividades', rf:'RF-121 a RF-125',
+  name:'Manter protocolo de atividades', rf:'RF-122 a RF-125',
   why:'A tela mais consequente do módulo, e a exceção em que a gerência mantém cadastro (D4 §3.16): quem sabe em quantos dias o ipê germina no tubete é quem está no viveiro. O erro aqui é silencioso e diferido, e protocolo não se exclui, desativa-se: excluir deixaria os lotes que o seguem sem receita, em silêncio.',
   ui:`<div class="mk-hd"><div class="b">1 &middot; Cadastros</div><div class="t">Protocolo &middot; Tubete</div><div class="r">Vigente desde 01/07/2026</div></div>
   <div class="mk-body tight">
@@ -790,7 +795,7 @@ S.push({
 /* ============ 02 · PRODUÇÃO ============ */
 S.push({
   id:'RF-108', mod:'producao', actors:['gerencia'], built:false, route:'', wide:true,
-  name:'Entrada do módulo Produção', rf:'RF-108, RF-109, RF-137, RF-138',
+  name:'Entrada da área Produção', rf:'RF-108',
   why:'A pergunta que a gerência faz ao entrar é sempre uma das duas: quem está fazendo o quê agora, e como está o viveiro. Por isso as duas visões abrem alternadas por aba, e as demais rotinas ficam listadas abaixo: são o que se procura depois de já ter olhado o dia. É tela de computador (RNF-27), e não porque a gerência esteja no escritório: nove faixas ao longo de um dia só mostram o buraco quando cabem juntas na tela.',
   ui:`<div class="mk-hd row"><div><div class="b">2 &middot; Produção</div><div class="t">Agenda do dia</div></div><div class="r" style="align-self:center">Terça, 01/09 &middot; 09:42</div></div>
   <div class="mk-tabs"><span class="on">Agenda do dia</span><span>Mapa de produção</span></div>
@@ -816,114 +821,15 @@ S.push({
     <div class="mk-rot"><span>🌱 Lotes e canteiros</span><span>📦 Estoque</span><span>🥀 Perdas</span><span>🧪 Insumos</span></div>
   </div>`
 });
+
+
+
+
+
 S.push({
-  id:'UC-09', mod:'producao', actors:['chefia'], built:false, route:'',
-  name:'Registrar coleta de sementes', rf:'RF-13',
-  why:'Distância, combustível e horas entram no custo da semente. Sem esse registro, a semente coletada pela família aparece no custeio como se fosse de graça. Deixou de ser tela avulsa em 26/08/2026: a coleta virou um tipo de tarefa, e este formulário é o que o apontamento dela pergunta ao encerrar.',
-  ui:`<div class="mk-hd"><div class="b">2 &middot; Produção</div><div class="t">Coleta de sementes</div></div>
-  <div class="mk-body tight">
-    <div><div class="mk-lbl">Espécie</div><div class="mk-in v" style="margin-top:3px">Ipê-amarelo</div></div>
-    <div><div class="mk-lbl">Região da coleta</div><div class="mk-in v" style="margin-top:3px">Serra do Itajaí, Ibirama</div></div>
-    <div class="mk-grid2">
-      <div><div class="mk-lbl">Distância</div><div class="mk-in v" style="margin-top:3px">62 km</div></div>
-      <div><div class="mk-lbl">Horas</div><div class="mk-in v" style="margin-top:3px">5,5 h</div></div>
-    </div>
-    <div class="mk-grid2">
-      <div><div class="mk-lbl">Combustível</div><div class="mk-in v" style="margin-top:3px">R$ 98,00</div></div>
-      <div><div class="mk-lbl">Quantidade</div><div class="mk-in f" style="margin-top:3px">1,4 kg</div></div>
-    </div>
-    <div class="mk-ok">Custo da coleta: R$ 98,00 de combustível mais 5,5 h de mão de obra, rateados sobre 1,4 kg de semente.</div>
-    <div style="flex:1"></div>
-    <div class="mk-btn">Registrar coleta</div>
-  </div>`
-});
-S.push({
-  id:'UC-10', mod:'producao', actors:['colab','chefia'], built:false, route:'',
-  name:'Registrar consumo de insumo', rf:'RF-14',
-  why:'Formulário de campo: quatro campos, tudo escolhido em lista, nada digitado. Deixou de ser tela avulsa em 26/08/2026, pelo mesmo motivo do consumo nunca ter acontecido: baixa em momento separado é baixa que ninguém faz. O formulário passou para dentro do encerramento da tarefa (UC-53), onde a pessoa já está registrando algo.',
-  ui:`<div class="mk-hd"><div class="b">2 &middot; Produção</div><div class="t">Consumo de insumo</div></div>
-  <div class="mk-body">
-    <div><div class="mk-lbl">Insumo</div><div class="mk-in v" style="margin-top:4px;padding:12px">Substrato casca de pinus</div></div>
-    <div><div class="mk-lbl">Espécie</div><div class="mk-in v" style="margin-top:4px;padding:12px">Jacatirão</div></div>
-    <div><div class="mk-lbl">Recipiente</div><div class="mk-in v" style="margin-top:4px;padding:12px">Saco 17&times;22</div></div>
-    <div><div class="mk-lbl">Quantidade</div><div class="mk-in f" style="margin-top:4px;padding:12px;font-size:17px;font-weight:700">180 L</div></div>
-    <div style="flex:1"></div>
-    <div class="mk-btn" style="padding:15px;font-size:15px">Registrar</div>
-  </div>`
-});
-S.push({
-  id:'UC-12', mod:'producao', actors:['colab','gerencia','chefia'], built:false, route:'',
-  name:'Registrar atividade de produção', rf:'RF-19',
-  why:'O registro solto, para o que acontece fora da agenda planejada. Só semeadura e repicagem somam ao estoque (RN-57): o manejo é registrado, mas não altera quantidade, e por isso nem pede o campo.',
-  ui:`<div class="mk-hd"><div class="b">2 &middot; Produção</div><div class="t">Registrar atividade</div></div>
-  <div class="mk-body">
-    <div class="mk-lbl">O que você fez</div>
-    <div class="mk-grid2">
-      <div class="mk-btn sec">🌱 Semeadura</div>
-      <div class="mk-btn" style="padding:9px;font-size:12px">✂️ Repicagem</div>
-      <div class="mk-btn sec">💧 Irrigação</div>
-      <div class="mk-btn sec">🧪 Adubação</div>
-    </div>
-    <div><div class="mk-lbl">Espécie</div><div class="mk-in v" style="margin-top:4px;padding:12px">Aroeira-vermelha</div></div>
-    <div><div class="mk-lbl">Recipiente</div><div class="mk-in v" style="margin-top:4px;padding:12px">Saco 10&times;18</div></div>
-    <div><div class="mk-lbl">Quantidade</div><div class="mk-in f" style="margin-top:4px;padding:12px;font-size:17px;font-weight:700">840</div></div>
-    <div class="mk-info">Irrigação e adubação são manejo: não perguntam quantidade porque não somam ao estoque.</div>
-    <div style="flex:1"></div>
-    <div class="mk-btn" style="padding:15px;font-size:15px">Registrar</div>
-  </div>`
-});
-S.push({
-  id:'UC-13', mod:'producao', actors:['gerencia'], built:false, route:'',
-  name:'Planejar e atribuir produção', rf:'RF-20',
-  why:'A gerência distribui a produção da semana entre as pessoas. Quem recebe a atribuição só vê a sua parte, na tela de tarefas do dia.',
-  ui:`<div class="mk-hd"><div class="b">2 &middot; Produção</div><div class="t">Planejar produção</div><div class="r">Semana de 31/08 a 04/09</div></div>
-  <div class="mk-body tight">
-    <div class="mk-card">
-      <div class="mk-row"><span class="mk-nm">Semeadura &middot; Ipê-amarelo</span><span class="mk-pill b">seg</span></div>
-      <div style="font-size:10px;color:#6B7280">6.000 tubetes &middot; Rogério, Marlene</div>
-      <div class="mk-bar"><i style="width:0%"></i></div>
-    </div>
-    <div class="mk-card">
-      <div class="mk-row"><span class="mk-nm">Repicagem &middot; Cedro-rosa</span><span class="mk-pill b">ter, qua</span></div>
-      <div style="font-size:10px;color:#6B7280">3.200 para saco 10&times;18 &middot; Valdir, Cleusa</div>
-      <div class="mk-bar"><i style="width:0%"></i></div>
-    </div>
-    <div class="mk-card" style="border-style:dashed">
-      <div class="mk-row"><span style="color:#6B7280">Adubação &middot; Canela-preta</span><span class="mk-pill n">sem responsável</span></div>
-      <div style="font-size:10px;color:#DC2626">Atribuir alguém antes de publicar</div>
-    </div>
-    <div style="flex:1"></div>
-    <div class="mk-btn">Atribuir e publicar</div>
-  </div>`
-});
-S.push({
-  id:'UC-14', mod:'producao', actors:['gerencia','chefia','colab'], built:false, route:'',
-  name:'Acompanhar ciclo produtivo', rf:'RF-21',
-  why:'A previsão de disponibilidade sai do tempo de produção da espécie somado à data de plantio do lote. É o que permite responder ao cliente sem ir ao viveiro contar.',
-  ui:`<div class="mk-hd"><div class="b">2 &middot; Produção</div><div class="t">Ciclo produtivo</div></div>
-  <div class="mk-body tight">
-    <div class="mk-seg"><span class="on">Por espécie</span><span>Por lote</span></div>
-    <div class="mk-card">
-      <div class="mk-row"><span class="mk-nm">Ipê-amarelo</span><span style="font-size:10.5px;color:#15803D;font-weight:700">out/2026</span></div>
-      <div class="mk-bar"><i style="width:78%"></i></div>
-      <div style="font-size:9.5px;color:#6B7280">6.200 mudas &middot; 78% do ciclo &middot; faltam 52 dias</div>
-    </div>
-    <div class="mk-card">
-      <div class="mk-row"><span class="mk-nm">Cedro-rosa</span><span style="font-size:10.5px;color:#D97706;font-weight:700">jan/2027</span></div>
-      <div class="mk-bar"><i class="a" style="width:41%"></i></div>
-      <div style="font-size:9.5px;color:#6B7280">3.150 mudas &middot; 41% do ciclo &middot; faltam 142 dias</div>
-    </div>
-    <div class="mk-card">
-      <div class="mk-row"><span class="mk-nm">Araucária</span><span style="font-size:10.5px;color:#DC2626;font-weight:700">mai/2027</span></div>
-      <div class="mk-bar"><i class="r" style="width:18%"></i></div>
-      <div style="font-size:9.5px;color:#6B7280">1.800 mudas &middot; 18% do ciclo &middot; faltam 268 dias</div>
-    </div>
-  </div>`
-});
-S.push({
-  id:'UC-15', mod:'producao', actors:['chefia','gerencia','colab'], built:false, route:'',
-  name:'Consultar estoque', rf:'RF-22, RF-24',
-  why:'A pergunta que hoje se responde de memória: quantas mudas de cada espécie e tamanho existem. É leitura para os três perfis, colaborador incluído, porque quantidade não é preço. A sinalização de mínimo (RN-15) evita vender o que já acabou.',
+  id:'UC-15', mod:'producao', actors:['chefia','gerencia'], built:false, route:'',
+  name:'Consultar estoque disponível', rf:'RF-22',
+  why:'A pergunta que hoje se responde de memória: quantas mudas de cada espécie e tamanho existem. É leitura para os dois perfis, e é o mesmo número que o item de pedido exibe (RF-42). Só a muda pronta entra na conta: o que está em produção aparece à parte (RN-06).',
   ui:`<div class="mk-hd"><div class="b">2 &middot; Produção</div><div class="t">Estoque</div></div>
   <div class="mk-body tight">
     <div class="mk-in">🔍 Buscar espécie</div>
@@ -948,7 +854,7 @@ S.push({
 });
 S.push({
   id:'UC-16', mod:'producao', actors:['gerencia'], built:false, route:'',
-  name:'Registrar contagem de estoque', rf:'RF-23, RF-25',
+  name:'Registrar contagem do lote', rf:'RF-23',
   why:'A contagem física substitui a calculada, e não a corrige por diferença. O sistema guarda as duas para que a divergência sobreviva ao ajuste.',
   ui:`<div class="mk-hd"><div class="b">2 &middot; Produção</div><div class="t">Contagem física</div><div class="r">Lote 214 &middot; Cedro-rosa</div></div>
   <div class="mk-body">
@@ -966,7 +872,7 @@ S.push({
   </div>`
 });
 S.push({
-  id:'UC-17', mod:'producao', actors:['colab','chefia'], built:false, route:'',
+  id:'UC-17', mod:'producao', actors:['gerencia','chefia'], built:false, route:'',
   name:'Registrar perda', rf:'RF-26',
   why:'RN-16 fixa as cinco causas, seca, praga, geada, manuseio e outro: texto livre não vira estatística por causa. Quatro toques e o registro está feito, no canteiro, sem voltar ao escritório.',
   ui:`<div class="mk-hd"><div class="b">2 &middot; Produção</div><div class="t">Registrar perda</div></div>
@@ -987,7 +893,7 @@ S.push({
 });
 S.push({
   id:'UC-18', mod:'producao', actors:['gerencia','chefia'], built:false, route:'',
-  name:'Analisar perdas', rf:'RF-27 a RF-30',
+  name:'Analisar perdas', rf:'RF-27 a RF-29',
   why:'Mortalidade acima de vinte por cento gera alerta. O impacto em reais usa o custo unitário do módulo financeiro: perder muda é perder dinheiro já gasto.',
   ui:`<div class="mk-hd"><div class="b">2 &middot; Produção</div><div class="t">Perdas</div><div class="r">Últimos 90 dias</div></div>
   <div class="mk-body tight">
@@ -1013,30 +919,10 @@ S.push({
     </div>
   </div>`
 });
-S.push({
-  id:'UC-40', mod:'producao', actors:['colab'], built:false, route:'',
-  name:'Consultar tarefas do dia', rf:'RF-74',
-  why:'O colaborador vê apenas o que foi atribuído a ele, hoje. Nenhuma navegação, nenhum filtro, nenhuma outra tela: para esse ator, o sistema é esta lista.',
-  ui:`<div class="mk-hd row"><div><div class="b">Terça, 01/09</div><div class="t">Olá, Rogério</div></div><div style="font-size:22px">🌱</div></div>
-  <div class="mk-body">
-    <div class="mk-lbl">Manhã &middot; 07:30 às 11:30</div>
-    <div class="mk-card pad" style="border-color:#166534;border-width:2px">
-      <div class="mk-row"><span class="mk-nm" style="font-size:14px">Repicagem</span><span class="mk-pill g">em curso</span></div>
-      <div style="font-size:11px;color:#4B5563">Cedro-rosa &middot; lote 214 &middot; canteiro A-07</div>
-      <div style="font-size:11px;color:#4B5563">Para saco 10&times;18</div>
-    </div>
-    <div class="mk-lbl">Tarde &middot; 13:00 às 17:00</div>
-    <div class="mk-card pad">
-      <div class="mk-row"><span class="mk-nm" style="font-size:14px">Irrigação</span><span class="mk-pill n">planejada</span></div>
-      <div style="font-size:11px;color:#4B5563">Área B, canteiros 1 a 8</div>
-    </div>
-    <div style="flex:1"></div>
-    <div class="mk-btn" style="padding:15px;font-size:15px">Concluir repicagem</div>
-  </div>`
-});
+
 S.push({
   id:'UC-43', mod:'producao', actors:['gerencia'], built:false, route:'', wide:true,
-  name:'Montar a agenda na escala de semana', rf:'RF-71 a RF-73, RF-75, RF-137',
+  name:'Montar a agenda da semana', rf:'RF-71 a RF-73, RF-92, RF-108',
   why:'Não é outra tela: é a mesma agenda da entrada do módulo, com o botão de escala em Semana. Muda a unidade da barra, turno em vez de hora, porque o viveiro planeja por turno e nunca por hora marcada. Copiar a semana anterior é o gesto principal: no viveiro a semana repete. A semana fechada trava, e a tarefa planejada não confirmada é assumida como realizada, com essa condição registrada.',
   ui:`<div class="mk-hd row"><div><div class="b">2 &middot; Produção</div><div class="t">Agenda &middot; 31/08 a 05/09</div></div><span class="mk-pill a" style="align-self:center">rascunho</span></div>
   <div class="mk-tabs"><span class="on">Agenda do dia</span><span>Mapa de produção</span></div>
@@ -1060,28 +946,11 @@ S.push({
     <div class="mk-grid2" style="max-width:340px"><div class="mk-btn sec">Salvar</div><div class="mk-btn">Publicar</div></div>
   </div>`
 });
-S.push({
-  id:'UC-44', mod:'producao', actors:['colab'], built:false, route:'',
-  name:'Concluir tarefa do dia', rf:'RF-74',
-  why:'Um número e um botão. Se o tipo de tarefa não for quantitativo, nem o número aparece: o formulário pede exatamente o que a tarefa declarou exigir, e nada mais.',
-  ui:`<div class="mk-hd"><div class="b">Terça, 01/09 &middot; manhã</div><div class="t">Repicagem</div><div class="r">Cedro-rosa &middot; lote 214 &middot; A-07</div></div>
-  <div class="mk-body">
-    <div class="mk-lbl">Quantas você repicou?</div>
-    <div class="mk-in f" style="font-size:34px;font-weight:800;text-align:center;padding:18px">1.240</div>
-    <div class="mk-grid3">
-      <div class="mk-btn sec" style="padding:12px;font-size:15px">−100</div>
-      <div class="mk-btn sec" style="padding:12px;font-size:15px">+100</div>
-      <div class="mk-btn sec" style="padding:12px;font-size:15px">+500</div>
-    </div>
-    <div class="mk-ok">O lote 214 tinha 3.200. Vai ficar com 1.960 no saco 10&times;18 e 1.240 no lote novo.</div>
-    <div style="flex:1"></div>
-    <div class="mk-btn" style="padding:16px;font-size:16px">Concluir tarefa</div>
-  </div>`
-});
+
 S.push({
   id:'UC-47', mod:'producao', actors:['gerencia'], built:false, route:'',
-  name:'Criar lote', rf:'RF-84, RF-90, RF-136',
-  why:'Ao nascer, o lote recebe o protocolo vigente do tipo de embalagem do seu recipiente. O canteiro comporta vários lotes (RN-76) e a capacidade avisa sem nunca travar (RN-92). O lote tem duas datas (RN-103): a de criação é hoje, a de plantio só existe quando a semeadura for concluída.',
+  name:'Criar lote', rf:'RF-84, RF-126',
+  why:'Ao nascer, o lote recebe o protocolo vigente do seu recipiente. O canteiro comporta vários lotes (RN-76) e a capacidade avisa sem nunca travar (RN-92). A data de plantio é a âncora das etapas do protocolo que contam da criação do lote (RN-99).',
   ui:`<div class="mk-hd"><div class="b">2 &middot; Produção</div><div class="t">Novo lote</div></div>
   <div class="mk-body tight">
     <div><div class="mk-lbl">Espécie</div><div class="mk-in v" style="margin-top:3px">Ipê-amarelo</div></div>
@@ -1098,9 +967,9 @@ S.push({
   </div>`
 });
 S.push({
-  id:'UC-48', mod:'producao', actors:['colab'], built:false, route:'',
+  id:'UC-48', mod:'producao', actors:['gerencia'], built:false, route:'',
   name:'Repicar lote', rf:'RF-86, RF-87, RF-88',
-  why:'A repicagem cria um lote novo apontando para o de origem, e é o único lote que o colaborador chega a criar. Saldo negativo é recusado, não avisado.',
+  why:'A repicagem cria um lote novo apontando para o de origem, e é o gesto que fecha a confirmação da tarefa. Saldo negativo é recusado, não avisado.',
   ui:`<div class="mk-hd"><div class="b">2 &middot; Produção</div><div class="t">Repicar lote 214</div><div class="r">Cedro-rosa &middot; tubete &middot; A-07</div></div>
   <div class="mk-body tight">
     <div class="mk-row"><span style="font-size:11px;color:#6B7280">Saldo do lote</span><span style="font-weight:700">3.200</span></div>
@@ -1119,8 +988,8 @@ S.push({
   </div>`
 });
 S.push({
-  id:'UC-49', mod:'producao', actors:['gerencia','chefia','colab'], built:false, route:'', wide:true,
-  name:'Consultar o mapa de produção', rf:'RF-85, RF-117 a RF-120',
+  id:'UC-61', mod:'producao', actors:['gerencia','chefia'], built:false, route:'', wide:true,
+  name:'Consultar o mapa de lotes', rf:'RF-85, RF-89, RF-117 a RF-120',
   why:'A segunda aba da entrada do módulo. O viveiro desenhado como ele é: a área é o quadro, o canteiro é a faixa dentro dela e o lote é o quadradinho dentro do canteiro, porque um canteiro comporta várias levas. Reconhece-se o lote pelo lugar antes de ler o rótulo, e por isso a posição dentro do canteiro é guardada. A cor não é digitada por ninguém, vem das etapas do protocolo vencidas ou a vencer. É tela de computador (RNF-27) porque o mapa existe para mostrar o viveiro inteiro de uma vez; no celular ele vira lista de áreas, com os críticos primeiro.',
   ui:`<div class="mk-hd row"><div><div class="b">2 &middot; Produção</div><div class="t">Mapa de produção</div></div><div class="r" style="align-self:center">133 lotes abertos em 27 canteiros</div></div>
   <div class="mk-tabs"><span>Agenda do dia</span><span class="on">Mapa de produção</span></div>
@@ -1181,93 +1050,12 @@ S.push({
     </div>
   </div>`
 });
-S.push({
-  id:'UC-50', mod:'producao', actors:['gerencia'], built:false, route:'', wide:true,
-  name:'Apontar início de tarefa', rf:'RF-94, RF-95, RF-97, RF-110, RF-137, RF-138',
-  why:'Uma pessoa coordena a equipe inteira de um aparelho só: toca na faixa de quem trocou de serviço e o lançamento abre ali mesmo, sem sair da tela. Iniciar uma tarefa encerra automaticamente a que estava aberta para aquele funcionário, e nunca há duas. Marcar agora pega a hora do relógio e é o gesto de todo dia; Já ocorreu pede início e fim, e serve para o que se lembra às onze.',
-  ui:`<div class="mk-hd row"><div><div class="b">2 &middot; Produção</div><div class="t">Agenda do dia</div></div><div class="r" style="align-self:center">Terça, 01/09 &middot; 09:42</div></div>
-  <div class="mk-tabs"><span class="on">Agenda do dia</span><span>Mapa de produção</span></div>
-  <div class="mk-body tight">
-    <div class="mk-row">
-      <div class="mk-seg" style="width:200px"><span class="on">Dia</span><span>Semana</span><span>Mês</span></div>
-      <div class="mk-lg"><span><i style="background:#15803D"></i>em curso</span><span><i style="background:#9CA3AF"></i>concluída</span><span><i style="background:#E5E7EB"></i>planejada</span></div>
-    </div>
-    <div class="mk-scale"><span>7h</span><span>9h</span><span>11h</span><span>13h</span><span>15h</span><span>17h</span></div>
-    <div class="mk-tl">
-      <div class="mk-tlrow"><span class="who">Rogério</span><div class="track"><i style="left:0;width:19%;background:#9CA3AF">Semeadura</i><i style="left:20%;width:22%;background:#15803D">Repicagem &#9656;</i></div></div>
-      <div class="mk-tlrow"><span class="who">Marlene</span><div class="track"><i style="left:0;width:44%;background:#15803D">Semeadura &#9656;</i></div></div>
-      <div class="mk-tlrow"><span class="who">Valdir</span><div class="track"><i style="left:0;width:48%;background:#E5E7EB;color:#6B7280">Adubação &middot; planejado</i></div></div>
-      <div class="mk-tlrow"><span class="who">Cleusa</span><div class="track"><i style="left:0;width:19%;background:#9CA3AF">Irrigação</i></div></div>
-    </div>
-    <div class="mk-card pad" style="border-color:#166534">
-      <div class="mk-row"><span class="mk-nm">Iniciar tarefa &middot; Valdir</span><span style="font-size:9.5px;color:#6B7280">aberto ao tocar na faixa dele</span></div>
-      <div class="mk-row" style="gap:10px;align-items:flex-end">
-        <div style="flex:1"><div class="mk-lbl">Tipo de tarefa</div><div class="mk-in v" style="margin-top:3px;padding:7px 9px">Repicar</div></div>
-        <div style="flex:1"><div class="mk-lbl">Lote</div><div class="mk-in v" style="margin-top:3px;padding:7px 9px">A-07 &middot; Cedro-rosa</div></div>
-        <div class="mk-seg" style="width:170px"><span class="on">Marcar agora</span><span>Já ocorreu</span></div>
-        <div class="mk-btn" style="width:125px;padding:9px;font-size:12px">Iniciar às 09:42</div>
-      </div>
-    </div>
-    <div style="flex:1"></div>
-    <div class="mk-grid2" style="max-width:340px">
-      <div class="mk-btn sec">+ Tarefa para vários</div>
-      <div class="mk-btn sec">+ Tarefa recorrente</div>
-    </div>
-  </div>`
-});
-S.push({
-  id:'RF-112', mod:'producao', actors:['gerencia'], built:false, route:'',
-  name:'Lançar a mesma tarefa para vários', rf:'RF-112, RF-138',
-  why:'Três pessoas largaram o que faziam para descarregar a carga de terra. Escolhe-se a tarefa, marcam-se os três e sai um apontamento para cada um, cada qual na sua faixa. Abrir três faixas para registrar o mesmo fato é o tipo de repetição que faz o registro parar de acontecer, e por isso o botão fica na própria agenda.',
-  ui:`<div class="mk-hd"><div class="b">Agenda do dia &middot; 01/09</div><div class="t">Tarefa para vários</div><div class="r">Sai um apontamento por pessoa</div></div>
-  <div class="mk-body tight">
-    <div><div class="mk-lbl">Tipo de tarefa</div><div class="mk-in v" style="margin-top:3px">Carregar</div></div>
-    <div><div class="mk-lbl">Onde &middot; esta tarefa não exige lote</div><div class="mk-in v" style="margin-top:3px">Área B</div></div>
-    <div class="mk-lbl">Quem estava junto</div>
-    <div class="mk-card"><div class="mk-row"><span class="mk-nm">Rogério</span><span class="mk-chk on"></span></div></div>
-    <div class="mk-card"><div class="mk-row"><span class="mk-nm">Valdir</span><span class="mk-chk on"></span></div></div>
-    <div class="mk-card"><div class="mk-row"><span class="mk-nm">Cleusa</span><span class="mk-chk on"></span></div></div>
-    <div class="mk-card" style="opacity:.6"><div class="mk-row"><span class="mk-it">Marlene &middot; semeadura em curso</span><span class="mk-chk"></span></div></div>
-    <div class="mk-seg"><span class="on">Marcar agora</span><span>Já ocorreu</span></div>
-    <div class="mk-warn">Rogério estava repicando. Iniciar aqui encerra aquele apontamento na hora, sem perguntar.</div>
-    <div style="flex:1"></div>
-    <div class="mk-btn">Iniciar para os três</div>
-  </div>`
-});
-S.push({
-  id:'RF-114', mod:'producao', actors:['gerencia'], built:false, route:'',
-  name:'Manter tarefa recorrente', rf:'RF-114, RF-115, RF-116, RF-138',
-  why:'A irrigação das sete às oito já tem horário na vida real, e é por tê-lo que não precisa ser lançada todo dia. É a única coisa do planejamento que declara hora, e declara turno junto, porque é do turno que saem as horas dos dias em que ninguém aponta. Encerrar a regra é preencher a data de fim, não apagá-la: os dias que ela gerou continuam na agenda e no custo.',
-  ui:`<div class="mk-hd"><div class="b">Agenda do dia &middot; 01/09</div><div class="t">Nova tarefa recorrente</div><div class="r">A agenda passa a nascer com ela dentro</div></div>
-  <div class="mk-body tight">
-    <div><div class="mk-lbl">Tarefa</div><div class="mk-in v" style="margin-top:3px">Irrigação</div></div>
-    <div><div class="mk-lbl">Quem</div><div class="mk-in v" style="margin-top:3px">Elias, Cleusa</div></div>
-    <div class="mk-lbl">Dias da semana</div>
-    <div class="mk-grid3" style="grid-template-columns:repeat(7,1fr);gap:4px">
-      <div class="mk-tile" style="padding:5px 2px;background:#DCFCE7;border-color:#166534"><div class="k" style="color:#166534">seg</div></div>
-      <div class="mk-tile" style="padding:5px 2px;background:#DCFCE7;border-color:#166534"><div class="k" style="color:#166534">ter</div></div>
-      <div class="mk-tile" style="padding:5px 2px;background:#DCFCE7;border-color:#166534"><div class="k" style="color:#166534">qua</div></div>
-      <div class="mk-tile" style="padding:5px 2px;background:#DCFCE7;border-color:#166534"><div class="k" style="color:#166534">qui</div></div>
-      <div class="mk-tile" style="padding:5px 2px;background:#DCFCE7;border-color:#166534"><div class="k" style="color:#166534">sex</div></div>
-      <div class="mk-tile" style="padding:5px 2px;background:#DCFCE7;border-color:#166534"><div class="k" style="color:#166534">sáb</div></div>
-      <div class="mk-tile" style="padding:5px 2px"><div class="k">dom</div></div>
-    </div>
-    <div class="mk-grid2">
-      <div><div class="mk-lbl">Turno</div><div class="mk-in v" style="margin-top:3px">Manhã</div></div>
-      <div><div class="mk-lbl">Horário</div><div class="mk-in f" style="margin-top:3px">07:00 às 08:00</div></div>
-    </div>
-    <div class="mk-grid2">
-      <div><div class="mk-lbl">Vale de</div><div class="mk-in v" style="margin-top:3px">01/09/2026</div></div>
-      <div><div class="mk-lbl">Até</div><div class="mk-in" style="margin-top:3px">sem prazo</div></div>
-    </div>
-    <div class="mk-info">Turno e hora convivem: a hora não diz qual é o turno, porque entre 11h e 13h não há turno nenhum.</div>
-    <div style="flex:1"></div>
-    <div class="mk-btn">Salvar recorrência</div>
-  </div>`
-});
+
+
+
 S.push({
   id:'UC-51', mod:'producao', actors:['gerencia'], built:false, route:'',
-  name:'Encerrar tarefa', rf:'RF-98 a RF-101, RF-107',
+  name:'Confirmar tarefa realizada', rf:'RF-98, RF-99, RF-107, RF-113',
   why:'Encerra o grupo inteiro de uma vez: o lote uma vez para a tarefa, a quantidade uma vez por participante. Os campos que aparecem são os que o tipo de tarefa declarou exigir.',
   ui:`<div class="mk-hd"><div class="b">2 &middot; Produção</div><div class="t">Encerrar repicagem</div><div class="r">Iniciada às 09:42 &middot; 3 participantes</div></div>
   <div class="mk-body tight">
@@ -1284,7 +1072,7 @@ S.push({
 });
 S.push({
   id:'UC-52', mod:'producao', actors:['gerencia'], built:false, route:'',
-  name:'Encerrar o dia do funcionário', rf:'RF-96, RF-100',
+  name:'Fechar a semana', rf:'RF-75',
   why:'Fecha o apontamento aberto sem iniciar outro. Quem não teve apontamento nenhum recebe a jornada do turno planejado, e o sistema registra que assumiu, em vez de fingir que mediu.',
   ui:`<div class="mk-hd"><div class="b">2 &middot; Produção</div><div class="t">Fechar o dia</div><div class="r">Terça, 01/09 &middot; 17:04</div></div>
   <div class="mk-body tight">
@@ -1298,68 +1086,9 @@ S.push({
     <div class="mk-btn">Encerrar o dia de todos</div>
   </div>`
 });
-S.push({
-  id:'UC-53', mod:'producao', actors:['colab','gerencia'], built:false, route:'',
-  name:'Registrar insumos e gastos da tarefa', rf:'RF-101, RF-104, RF-105',
-  why:'Não é tela de menu, é gesto dentro do encerramento. O insumo é do colaborador; o gasto em reais é da gerência, e o valor não aparece para quem executa (D4 §3.14). O saldo negativo de insumo é sinalizado e aceito, e essa é decisão de projeto: nenhuma RN a impõe, ao contrário do lote (RN-78).',
-  ui:`<div class="mk-hd"><div class="b">Encerrando repicagem</div><div class="t">Insumos e gastos</div><div class="r">Lote 214</div></div>
-  <div class="mk-body tight">
-    <div class="mk-lbl">Insumos consumidos</div>
-    <div class="mk-card"><div class="mk-row"><span class="mk-nm">Substrato casca de pinus</span><span style="font-weight:700">180 L</span></div><div style="font-size:9.5px;color:#6B7280">saldo depois: 1.420 L</div></div>
-    <div class="mk-card" style="border-color:#FDE68A;background:#FFFBEB">
-      <div class="mk-row"><span class="mk-nm">Osmocote 15-09-12</span><span style="font-weight:700">14 kg</span></div>
-      <div style="font-size:9.5px;color:#92400E">Saldo ficaria em −2 kg. Registre assim mesmo e ajuste a entrada depois.</div>
-    </div>
-    <div class="mk-btn sec">+ Adicionar insumo</div>
-    <div class="mk-lbl">Gasto extra <span style="font-weight:500;text-transform:none;letter-spacing:0">&middot; gerência e chefia</span></div>
-    <div class="mk-card" style="opacity:.7"><div class="mk-row"><span class="mk-it">Conserto da mangueira</span><span class="mk-pill n">valor não exibido</span></div></div>
-    <div class="mk-info">O colaborador registra o que consumiu; a conversão disso em dinheiro acontece do outro lado. Valor em reais não aparece na tela de campo.</div>
-    <div style="flex:1"></div>
-    <div class="mk-btn">Salvar e encerrar tarefa</div>
-  </div>`
-});
-S.push({
-  id:'UC-55', mod:'producao', actors:['gerencia','chefia','colab'], built:false, route:'',
-  name:'Consultar saldo de insumos', rf:'RF-102, RF-103',
-  why:'O saldo é derivado, não digitado: entradas menos consumo registrado nas tarefas. Se o número está errado, o que faltou foi registro, e é isso que a tela expõe.',
-  ui:`<div class="mk-hd"><div class="b">2 &middot; Produção</div><div class="t">Saldo de insumos</div></div>
-  <div class="mk-body tight">
-    <div class="mk-alert">1 insumo zerado e 1 abaixo do mínimo.</div>
-    <div class="mk-card">
-      <div class="mk-row"><span class="mk-nm">Substrato casca de pinus</span><span style="font-weight:700">1.420 L</span></div>
-      <div class="mk-bar"><i style="width:71%"></i></div>
-      <div style="font-size:9.5px;color:#6B7280">mínimo 500 L &middot; entradas 4.200 &minus; consumo 2.780</div>
-    </div>
-    <div class="mk-card" style="border-color:#FDE68A;background:#FFFBEB">
-      <div class="mk-row"><span class="mk-nm">Osmocote 15-09-12</span><span style="font-weight:700;color:#92400E">6 kg</span></div>
-      <div class="mk-bar"><i class="a" style="width:12%"></i></div>
-      <div style="font-size:9.5px;color:#92400E">abaixo do mínimo de 20 kg</div>
-    </div>
-    <div class="mk-card" style="border-color:#FECACA;background:#FEF2F2">
-      <div class="mk-row"><span class="mk-nm">Vermiculita</span><span style="font-weight:700;color:#991B1B">0 L</span></div>
-      <div style="font-size:9.5px;color:#991B1B">zerado desde 21/08</div>
-    </div>
-  </div>`
-});
-S.push({
-  id:'UC-56', mod:'producao', actors:['gerencia','chefia'], built:false, route:'',
-  name:'Registrar entrada de insumo', rf:'RF-106',
-  why:'O motivo separa compra de ajuste e de perda, e só a compra pede custo unitário. É por aqui que o preço novo entra no histórico e passa a valer no custeio.',
-  ui:`<div class="mk-hd"><div class="b">2 &middot; Produção</div><div class="t">Entrada de insumo</div></div>
-  <div class="mk-body">
-    <div><div class="mk-lbl">Insumo</div><div class="mk-in v" style="margin-top:4px">Vermiculita</div></div>
-    <div class="mk-lbl">Motivo</div>
-    <div class="mk-seg"><span class="on">Compra</span><span>Ajuste</span><span>Perda</span></div>
-    <div class="mk-grid2">
-      <div><div class="mk-lbl">Quantidade</div><div class="mk-in f" style="margin-top:3px;font-weight:700">600 L</div></div>
-      <div><div class="mk-lbl">Custo unitário</div><div class="mk-in v" style="margin-top:3px;font-weight:700">R$ 2,24</div></div>
-    </div>
-    <div class="mk-info">O preço novo entra no histórico da vermiculita e passa a valer para o custo dos próximos lotes.</div>
-    <div class="mk-row"><span style="font-size:11px;color:#6B7280">Total da compra</span><span class="mk-num sm">R$ 1.344</span></div>
-    <div style="flex:1"></div>
-    <div class="mk-btn">Registrar entrada</div>
-  </div>`
-});
+
+
+
 S.push({
   id:'UC-58', mod:'producao', actors:['gerencia'], built:false, route:'',
   name:'Dividir lote', rf:'RF-135',
@@ -1382,10 +1111,35 @@ S.push({
     <div class="mk-btn">Dividir</div>
   </div>`
 });
+S.push({
+  id:'UC-62', mod:'producao', actors:['gerencia'], built:false, route:'',
+  name:'Acompanhar o protocolo do lote', rf:'RF-131, RF-132, RF-134',
+  why:'A ficha responde o que o lote já recebeu e o que está por vencer. Nenhuma data aqui é digitada: a última execução vem da tarefa confirmada, e o vencimento sai da âncora mais o tempo da etapa (RN-110).',
+  ui:`<div class="mk-hd"><div class="b">Produção</div><div class="t">Lote 2026-0184 · tubete · A-3</div></div>
+  <div class="mk-body">
+    <div class="mk-card">
+      <div class="mk-row"><span class="mk-nm">Plantio</span><span class="mk-pill ok">feito</span></div>
+      <div class="s" style="font-size:9px">Executado em 14/03 · sequencial</div>
+    </div>
+    <div class="mk-card">
+      <div class="mk-row"><span class="mk-nm">Classificar pós-germinação</span><span class="mk-pill w">vence em 4 dias</span></div>
+      <div class="s" style="font-size:9px">Conta do plantio · 45 dias</div>
+    </div>
+    <div class="mk-card">
+      <div class="mk-row"><span class="mk-nm">Limpeza</span><span class="mk-pill e">atrasada 6 dias</span></div>
+      <div class="s" style="font-size:9px">Última em 12/06 · repete a cada 90 dias</div>
+    </div>
+    <div class="mk-card">
+      <div class="mk-row"><span class="mk-nm">Irrigação</span><span class="mk-nm" style="font-weight:400">sem alerta</span></div>
+      <div class="s" style="font-size:9px">Alerta desligado nesta etapa (RN-105)</div>
+    </div>
+    <div class="mk-info">Encerrar o lote cancela as ordens em aberto, sem removê-las.</div>
+  </div>`
+});
 /* ============ 03 · COMERCIAL ============ */
 S.push({
   id:'UC-24', mod:'comercial', actors:['chefia'], built:true, route:'/pedidos/novo',
-  name:'Cadastrar pedido', rf:'RF-41, RF-66, RF-67',
+  name:'Cadastrar pedido', rf:'RF-41, RF-141',
   why:'O item genérico é o que torna esta tela fiel ao negócio: o cliente pede "mil mudas nativas de 17×22", sem dizer quais. A espécie entra depois, na verificação.',
   ui:`<div class="mk-hd"><div class="b">3 &middot; Comercial</div><div class="t">Novo pedido</div></div>
   <div class="mk-body tight">
@@ -1404,385 +1158,81 @@ S.push({
   </div>`
 });
 S.push({
-  id:'UC-25', mod:'comercial', actors:['gerencia'], built:true, route:'/pedidos/[id]/verificar',
-  name:'Verificar disponibilidade', rf:'RF-42, RF-43, RF-68',
-  why:'Disponibilidade parcial é registrada como parcial (RN-34), não arredondada para cima, e oferecer recipiente diferente do pedido é permitido desde que registrado (RN-35). Não verificado e indisponível são estados opostos (RN-67), com selos diferentes.',
-  ui:`<div class="mk-hd"><div class="b">Pedido #418</div><div class="t">Verificar disponibilidade</div><div class="r">Prefeitura de Ibirama</div></div>
+  id:'UC-25', mod:'comercial', actors:['chefia'], built:false, route:'/pedidos/novo',
+  name:'Consultar disponibilidade no pedido', rf:'RF-42, RF-22',
+  why:'Não é uma tela: é o número que aparece ao lado do item enquanto ele é digitado. O saldo vem da soma dos lotes prontos daquela espécie e recipiente, e é a única aresta entre a Produção e o Comercial (RN-06, RN-13).',
+  ui:`<div class="mk-hd"><div class="b">Pedido #418</div><div class="t">Itens</div><div class="r">Prefeitura de Ibirama</div></div>
   <div class="mk-body tight">
     <div class="mk-card">
-      <div class="mk-row"><span class="mk-nm">Ipê-amarelo &middot; 10&times;18</span><span class="mk-pill g">integral</span></div>
-      <div class="mk-row"><span style="font-size:10px;color:#6B7280">pedido 800 &middot; estoque 1.100</span><span style="font-weight:700">800</span></div>
+      <div class="mk-row"><span class="mk-nm">Ipê-amarelo &middot; 10&times;18</span><span class="mk-pill g">tem</span></div>
+      <div class="mk-row"><span style="font-size:10px;color:#6B7280">pedido 800 &middot; pronto 1.100</span><span style="font-weight:700">R$ 3,90</span></div>
     </div>
     <div class="mk-card" style="border-color:#FDE68A;background:#FFFBEB">
-      <div class="mk-row"><span class="mk-nm">Nativa a definir &middot; 17&times;22</span><span class="mk-pill a">parcial</span></div>
-      <div style="font-size:9.5px;color:#4B5563">Cedro-rosa 620 &middot; Canela-preta 180</div>
-      <div class="mk-row"><span style="font-size:10px;color:#92400E">pedido 1.000</span><span style="font-weight:700;color:#92400E">800</span></div>
-      <div class="mk-btn gh" style="padding:7px;font-size:11px">Oferecer 200 em saco 20&times;26</div>
+      <div class="mk-row"><span class="mk-nm">Cedro-rosa &middot; 17&times;22</span><span class="mk-pill a">falta 200</span></div>
+      <div class="mk-row"><span style="font-size:10px;color:#92400E">pedido 1.000 &middot; pronto 800</span><span style="font-weight:700;color:#92400E">R$ 5,70</span></div>
     </div>
-    <div class="mk-card" style="opacity:.75">
-      <div class="mk-row"><span class="mk-nm">Canela-preta &middot; 20&times;26</span><span class="mk-pill n">não verificado</span></div>
-      <div style="font-size:9.5px;color:#6B7280">pedido 300 &middot; ninguém olhou ainda</div>
+    <div class="mk-card" style="opacity:.8">
+      <div class="mk-row"><span class="mk-nm">Canela-preta &middot; 20&times;26</span><span class="mk-pill n">nada pronto</span></div>
+      <div style="font-size:9.5px;color:#6B7280">pedido 300 &middot; 1.400 em produção, ainda não prontas</div>
     </div>
-    <div class="mk-info">Faltam 200 no item parcial. Cotar com fornecedor ou fechar parcial. Item não verificado não é item indisponível: um pede quem vá olhar, o outro pede cotação.</div>
-    <div style="flex:1"></div>
-    <div class="mk-btn">Confirmar disponibilidade</div>
+    <div class="mk-info">O saldo <b>informa</b>, não impede: o viveiro vende muda que ainda vai ficar pronta. Em produção não é estoque de venda (RN-06).</div>
   </div>`
 });
 S.push({
-  id:'UC-26', mod:'comercial', actors:['chefia'], built:true, route:'/pedidos/[id]',
-  name:'Fechar pedido', rf:'RF-44, RF-45, RF-46',
-  why:'Nenhum pedido fecha sem a chefia aprovar o preço. É a trava que o negócio não tinha: hoje o desconto é dado na conversa e ninguém sabe se ficou abaixo do custo.',
-  ui:`<div class="mk-hd row"><div><div class="b">Pedido #418</div><div class="t">Fechar pedido</div></div><span class="mk-pill a" style="align-self:center">aguarda preço</span></div>
+  id:'UC-26', mod:'comercial', actors:['chefia'], built:false, route:'/pedidos/[id]',
+  name:'Confirmar pedido', rf:'RF-142',
+  why:'Confirmar é o único estado que trava alguma coisa: depois dele o item não muda mais. É o que faz o registro servir de histórico, e é o único gesto do Comercial que o sistema recusa desfazer.',
+  ui:`<div class="mk-hd row"><div><div class="b">Pedido #418</div><div class="t">Confirmar pedido</div></div><span class="mk-pill n" style="align-self:center">rascunho</span></div>
   <div class="mk-body tight">
     <div class="mk-card">
-      <div class="mk-row"><span style="font-size:10.5px">Ipê-amarelo &middot; 800</span><span style="font-weight:700">R$ 3.120</span></div>
-      <div class="mk-row"><span style="font-size:10.5px">Cedro e canela &middot; 800</span><span style="font-weight:700">R$ 4.560</span></div>
-      <div class="mk-row"><span style="font-size:10.5px">Frete &middot; 34 km</span><span style="font-weight:700">R$ 238</span></div>
+      <div class="mk-row"><span style="font-size:10.5px">Ipê-amarelo &middot; 800 &times; R$ 3,90</span><span style="font-weight:700">R$ 3.120</span></div>
+      <div class="mk-row"><span style="font-size:10.5px">Cedro-rosa &middot; 1.000 &times; R$ 5,70</span><span style="font-weight:700">R$ 5.700</span></div>
+      <div class="mk-row"><span style="font-size:10.5px">Canela-preta &middot; 300 &times; R$ 8,20</span><span style="font-weight:700">R$ 2.460</span></div>
       <div class="mk-hr"></div>
-      <div class="mk-row"><span class="mk-nm">Total</span><span class="mk-num sm">R$ 7.918</span></div>
+      <div class="mk-row"><span class="mk-nm">Total</span><span class="mk-num sm">R$ 11.280</span></div>
     </div>
-    <div class="mk-ok">Margem do canal prefeitura: <b>31%</b>. Acima do piso mínimo.</div>
-    <div class="mk-card"><div class="mk-row"><span>Exige nota fiscal</span><i class="mk-sw on"></i></div>
-      <div><div class="mk-lbl" style="margin-top:4px">Nº da nota (sistema externo)</div><div class="mk-in" style="margin-top:3px">Preencher após emitir</div></div></div>
+    <div class="mk-card"><div class="mk-row"><span style="font-size:10.5px">Canal</span><span class="mk-pill b">prefeitura</span></div>
+      <div class="mk-row"><span style="font-size:10.5px">Entrega prevista</span><span style="font-weight:700">18/09</span></div></div>
+    <div class="mk-info">Depois de confirmado, o item não pode mais ser alterado. Para corrigir, cancele e registre outro pedido.</div>
     <div style="flex:1"></div>
-    <div class="mk-btn">Aprovar preço e fechar</div>
-  </div>`
-});
-S.push({
-  id:'UC-27', mod:'comercial', actors:['colab','gerencia'], built:true, route:'/pedidos/[id]/separar',
-  name:'Separar carga', rf:'RF-47',
-  why:'A carga nasce dos itens aprovados, e a conferência é item a item, no galpão. O colaborador marca o separado, mas não cria nem remove carga (D4 §3.5): erro de operação em campo não altera o que foi comercialmente acordado.',
-  ui:`<div class="mk-hd"><div class="b">Carga do pedido #418</div><div class="t">Separação</div><div class="r">Prefeitura de Ibirama</div></div>
-  <div class="mk-body tight">
-    <div class="mk-bar"><i style="width:66%"></i></div>
-    <div style="font-size:10px;color:#6B7280">2 de 3 itens separados</div>
-    <div class="mk-card" style="background:#F0FDF4;border-color:#BBF7D0">
-      <div class="mk-row" style="gap:9px"><i class="mk-chk on"></i><div style="flex:1"><div class="mk-nm">Ipê-amarelo</div><div style="font-size:9.5px;color:#6B7280">saco 10&times;18 &middot; A-02</div></div><span style="font-weight:700">800</span></div>
-    </div>
-    <div class="mk-card" style="background:#F0FDF4;border-color:#BBF7D0">
-      <div class="mk-row" style="gap:9px"><i class="mk-chk on"></i><div style="flex:1"><div class="mk-nm">Cedro-rosa</div><div style="font-size:9.5px;color:#6B7280">saco 17&times;22 &middot; A-11</div></div><span style="font-weight:700">620</span></div>
-    </div>
-    <div class="mk-card" style="border-color:#166534;border-width:2px">
-      <div class="mk-row" style="gap:9px"><i class="mk-chk"></i><div style="flex:1"><div class="mk-nm">Canela-preta</div><div style="font-size:9.5px;color:#6B7280">saco 17&times;22 &middot; B-06</div></div><span style="font-weight:700">180</span></div>
-    </div>
-    <div style="flex:1"></div>
-    <div class="mk-btn" style="padding:15px;font-size:15px">Carga separada</div>
-  </div>`
-});
-S.push({
-  id:'UC-28', mod:'comercial', actors:['chefia','gerencia','colab'], built:true, route:'/pedidos',
-  name:'Acompanhar pedidos', rf:'RF-48, RF-49',
-  why:'Cada transição notifica quem responde pela etapa seguinte. É o que substitui o "e aquele pedido da prefeitura?" perguntado no corredor.',
-  ui:`<div class="mk-hd"><div class="b">3 &middot; Comercial</div><div class="t">Pedidos</div></div>
-  <div class="mk-tabs"><span class="on">Abertos</span><span>Entregues</span><span>Todos</span></div>
-  <div class="mk-rel"><div class="mk-body tight">
-    <div class="mk-card"><div class="mk-row"><span class="mk-nm">#418 Prefeitura Ibirama</span><span class="mk-pill a">aguarda preço</span></div><div style="font-size:9.5px;color:#6B7280">R$ 7.918 &middot; você precisa aprovar</div></div>
-    <div class="mk-card"><div class="mk-row"><span class="mk-nm">#417 Sítio Boa Vista</span><span class="mk-pill b">separando</span></div><div style="font-size:9.5px;color:#6B7280">R$ 2.140 &middot; Rogério, desde 08:10</div></div>
-    <div class="mk-card"><div class="mk-row"><span class="mk-nm">#415 Reflora Ambiental</span><span class="mk-pill g">pronto</span></div><div style="font-size:9.5px;color:#6B7280">R$ 18.600 &middot; entrega 03/09</div></div>
-    <div class="mk-card"><div class="mk-row"><span class="mk-nm">#412 Paisagismo Vale</span><span class="mk-pill n">verificando</span></div><div style="font-size:9.5px;color:#6B7280">R$ 3.480 &middot; com a Débora</div></div>
-    <div class="mk-hr"></div>
-    <div class="mk-lbl">Histórico do #417</div>
-    <div style="font-size:9.5px;color:#4B5563;line-height:1.6">01/09 08:10 &nbsp; separando &nbsp;<span style="color:#6B7280">Rogério</span><br>31/08 16:22 &nbsp; fechado &nbsp;<span style="color:#6B7280">Gilberto</span></div>
-    </div><div class="mk-fab">+</div></div>`
-});
-S.push({
-  id:'UC-29', mod:'comercial', actors:['chefia'], built:false, route:'',
-  name:'Organizar agenda de entregas', rf:'RF-50',
-  why:'Cargas prontas e seus destinos no mesmo dia. Quem dirige é a mesma pessoa que vende: agrupar entrega por região é decisão de custo, não de conveniência.',
-  ui:`<div class="mk-hd"><div class="b">3 &middot; Comercial</div><div class="t">Agenda de entregas</div></div>
-  <div class="mk-body tight">
-    <div class="mk-lbl">Quarta, 03/09</div>
-    <div class="mk-card">
-      <div class="mk-row"><span class="mk-nm">Reflora Ambiental</span><span class="mk-pill g">pronto</span></div>
-      <div style="font-size:10px;color:#4B5563">Ibirama &middot; 34 km &middot; 3.400 mudas</div>
-    </div>
-    <div class="mk-card">
-      <div class="mk-row"><span class="mk-nm">Prefeitura de Ibirama</span><span class="mk-pill g">pronto</span></div>
-      <div style="font-size:10px;color:#4B5563">Ibirama &middot; 34 km &middot; 1.600 mudas</div>
-    </div>
-    <div class="mk-ok">Duas entregas em Ibirama no mesmo dia. Uma viagem serve as duas.</div>
-    <div class="mk-lbl">Sexta, 05/09</div>
-    <div class="mk-card">
-      <div class="mk-row"><span class="mk-nm">Sítio Boa Vista</span><span class="mk-pill b">separando</span></div>
-      <div style="font-size:10px;color:#4B5563">Lontras &middot; 18 km &middot; 900 mudas</div>
-    </div>
-  </div>`
-});
-S.push({
-  id:'UC-30', mod:'comercial', actors:['chefia'], built:false, route:'',
-  name:'Confirmar entrega', rf:'RF-51',
-  why:'Fecha o ciclo comercial e a saída do estoque, e não o ciclo do dinheiro: entregue não é pago (RN-70). Enquanto a entrega não é confirmada, a muda continua contando como disponível, e é assim que se vende duas vezes a mesma planta.',
-  ui:`<div class="mk-hd"><div class="b">Pedido #415</div><div class="t">Confirmar entrega</div><div class="r">Reflora Ambiental &middot; Ibirama</div></div>
-  <div class="mk-body tight">
-    <div class="mk-card pad">
-      <div class="mk-row"><span style="font-size:10.5px;color:#6B7280">Carga</span><span style="font-weight:700">3.400 mudas</span></div>
-      <div class="mk-row"><span style="font-size:10.5px;color:#6B7280">Valor</span><span style="font-weight:700">R$ 18.600</span></div>
-      <div class="mk-row"><span style="font-size:10.5px;color:#6B7280">Nota fiscal</span><span style="font-weight:700">nº 4.812</span></div>
-    </div>
-    <div><div class="mk-lbl">Data da entrega</div><div class="mk-in v" style="margin-top:3px">03/09/2026</div></div>
-    <div><div class="mk-lbl">Recebido por</div><div class="mk-in f" style="margin-top:3px">Cláudia Reinert</div></div>
-    <div class="mk-info">Ao confirmar, as 3.400 mudas saem do estoque e os lotes de origem são baixados.</div>
-    <div class="mk-warn">O ciclo do dinheiro continua aberto: o recebimento é evento próprio e só o extrato o comprova.</div>
-    <div style="flex:1"></div>
-    <div class="mk-btn">Confirmar entrega</div>
-  </div>`
-});
-S.push({
-  id:'UC-32', mod:'comercial', actors:['chefia'], built:true, route:'/fornecedores/cotar',
-  name:'Emitir cotação', rf:'RF-53',
-  why:'Quando o viveiro não tem, ele compra para revender. A cotação sai para vários fornecedores de uma vez, com espécie, recipiente e quantidade por item.',
-  ui:`<div class="mk-hd"><div class="b">3 &middot; Comercial</div><div class="t">Nova cotação</div><div class="r">Faltam 200 do pedido #418</div></div>
-  <div class="mk-body tight">
-    <div class="mk-lbl">Itens</div>
-    <div class="mk-card"><div class="mk-row"><span class="mk-nm">Canela-preta</span><span style="font-weight:700">200</span></div><div style="font-size:9.5px;color:#6B7280">saco 17&times;22 &middot; altura mínima 40 cm</div></div>
-    <div class="mk-lbl">Enviar para</div>
-    <div class="mk-card"><div class="mk-row" style="gap:9px"><i class="mk-chk on"></i><div style="flex:1"><div class="mk-nm">Viveiro Santa Clara</div><div style="font-size:9.5px;color:#6B7280">Curitibanos &middot; 148 km</div></div></div></div>
-    <div class="mk-card"><div class="mk-row" style="gap:9px"><i class="mk-chk on"></i><div style="flex:1"><div class="mk-nm">Mudas Rio Novo</div><div style="font-size:9.5px;color:#6B7280">Presidente Getúlio &middot; 41 km</div></div></div></div>
-    <div class="mk-card"><div class="mk-row" style="gap:9px"><i class="mk-chk"></i><div style="flex:1"><div class="mk-nm">Flora Vale</div><div style="font-size:9.5px;color:#6B7280">Blumenau &middot; 76 km</div></div></div></div>
-    <div style="flex:1"></div>
-    <div class="mk-btn">Enviar cotação por WhatsApp</div>
-  </div>`
-});
-S.push({
-  id:'UC-33', mod:'comercial', actors:['chefia'], built:true, route:'/fornecedores/cotacoes/[groupId]',
-  name:'Escolher proposta', rf:'RF-54',
-  why:'A escolha é por item, não por fornecedor: comprar cedro de um e canela de outro é o caso normal. Na revenda o piso mínimo continua valendo (RN-39), só que o custo de aquisição entra no lugar do custo de produção.',
-  ui:`<div class="mk-hd"><div class="b">Cotação #C-63</div><div class="t">Propostas recebidas</div><div class="r">Canela-preta 17&times;22 &middot; 200 un</div></div>
-  <div class="mk-body tight">
-    <div class="mk-card" style="border-color:#166534;border-width:2px;background:#F0FDF4">
-      <div class="mk-row"><span class="mk-nm">Mudas Rio Novo</span><span class="mk-pill g">escolhida</span></div>
-      <div class="mk-row"><span style="font-size:10.5px;color:#4B5563">R$ 5,40/un &middot; 41 km</span><span style="font-weight:700">R$ 1.080</span></div>
-      <div style="font-size:9.5px;color:#166534">Entrega em 4 dias</div>
-    </div>
-    <div class="mk-card">
-      <div class="mk-row"><span class="mk-nm">Viveiro Santa Clara</span><span style="font-size:10px;color:#15803D;font-weight:600">Escolher</span></div>
-      <div class="mk-row"><span style="font-size:10.5px;color:#4B5563">R$ 4,90/un &middot; 148 km</span><span style="font-weight:700">R$ 980</span></div>
-      <div style="font-size:9.5px;color:#92400E">Mais barato, mas 148 km de frete e entrega em 12 dias</div>
-    </div>
-    <div class="mk-ok">Revenda a R$ 9,80/un no atacado: <b>acima do piso</b> de R$ 6,05 que o custo de aquisição impõe.</div>
-    <div class="mk-card" style="opacity:.6">
-      <div class="mk-row"><span class="mk-nm">Flora Vale</span><span class="mk-pill n">sem resposta</span></div>
-    </div>
-    <div style="flex:1"></div>
-    <div class="mk-btn">Confirmar escolha</div>
-  </div>`
-});
-S.push({
-  id:'UC-34', mod:'comercial', actors:['chefia'], built:true, route:'/fornecedores/mapa',
-  name:'Consultar mapa de fornecedores', rf:'RF-55',
-  why:'A distância entra no preço da compra. Ver os fornecedores no mapa, com o viveiro no centro, torna óbvio o que a planilha escondia: quem é barato longe demais.',
-  ui:`<div class="mk-hd"><div class="b">3 &middot; Comercial</div><div class="t">Mapa de fornecedores</div></div>
-  <div class="mk-rel">
-    <div style="flex:1;background:#E7EDE6;position:relative;overflow:hidden">
-      <div style="position:absolute;inset:0;background-image:linear-gradient(#D6E0D5 1px,transparent 1px),linear-gradient(90deg,#D6E0D5 1px,transparent 1px);background-size:26px 26px"></div>
-      <div style="position:absolute;left:46%;top:48%;width:16px;height:16px;border-radius:50%;background:#15803D;border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.3)"></div>
-      <div style="position:absolute;left:52%;top:44%;font-size:9px;font-weight:700;color:#14532D">Viveiro</div>
-      <div style="position:absolute;left:26%;top:22%;width:9px;height:9px;border-radius:50%;background:#B45309"></div>
-      <div style="position:absolute;left:31%;top:19%;font-size:8.5px;color:#4B5563">Sta. Clara 148 km</div>
-      <div style="position:absolute;left:60%;top:36%;width:9px;height:9px;border-radius:50%;background:#B45309"></div>
-      <div style="position:absolute;left:65%;top:33%;font-size:8.5px;color:#4B5563">Rio Novo 41 km</div>
-      <div style="position:absolute;left:70%;top:66%;width:9px;height:9px;border-radius:50%;background:#B45309"></div>
-      <div style="position:absolute;left:40%;top:69%;font-size:8.5px;color:#4B5563">Flora Vale 76 km</div>
-    </div>
-    <div style="background:#fff;padding:10px;display:flex;flex-direction:column;gap:6px;border-top:1px solid #E5E7EB">
-      <div class="mk-row"><span class="mk-nm">Mudas Rio Novo</span><span style="font-weight:700">41 km</span></div>
-      <div style="font-size:9.5px;color:#6B7280">Canela-preta, Cedro-rosa, Ipê-amarelo &middot; +4</div>
-    </div>
+    <div class="mk-btn">Confirmar pedido</div>
   </div>`
 });
 
+S.push({
+  id:'UC-28', mod:'comercial', actors:['chefia'], built:true, route:'/pedidos',
+  name:'Acompanhar pedidos', rf:'RF-143',
+  why:'A lista responde o que foi vendido, para quem e por qual canal. Substitui o "e aquele pedido da prefeitura?" perguntado no corredor, e é o histórico que o viveiro nunca teve.',
+  ui:`<div class="mk-hd"><div class="b">3 &middot; Comercial</div><div class="t">Pedidos</div></div>
+  <div class="mk-tabs"><span class="on">Confirmados</span><span>Rascunhos</span><span>Todos</span></div>
+  <div class="mk-rel"><div class="mk-body tight">
+    <div class="mk-card"><div class="mk-row"><span class="mk-nm">#418 Prefeitura Ibirama</span><span class="mk-pill g">confirmado</span></div><div style="font-size:9.5px;color:#6B7280">R$ 11.280 &middot; 2.100 mudas &middot; 12/09</div></div>
+    <div class="mk-card"><div class="mk-row"><span class="mk-nm">#417 Sítio Boa Vista</span><span class="mk-pill g">confirmado</span></div><div style="font-size:9.5px;color:#6B7280">R$ 2.140 &middot; atacado &middot; 09/09</div></div>
+    <div class="mk-card"><div class="mk-row"><span class="mk-nm">#416 Reflora Ambiental</span><span class="mk-pill n">rascunho</span></div><div style="font-size:9.5px;color:#6B7280">R$ 8.900 &middot; compensação &middot; 05/09</div></div>
+    <div class="mk-card" style="opacity:.7"><div class="mk-row"><span class="mk-nm">#415 Paisagismo Vale</span><span class="mk-pill e">cancelado</span></div><div style="font-size:9.5px;color:#6B7280">R$ 1.320 &middot; paisagismo &middot; 02/09</div></div>
+    <div class="mk-info">Filtros por cliente, canal e período.</div>
+  </div></div>`
+});
+
+
+
+
+
+
 /* ============ 04 · FINANCEIRO ============ */
-S.push({
-  id:'UC-08', mod:'financeiro', actors:['chefia'], built:true, route:'/financeiro/custos-fixos',
-  name:'Registrar custos fixos', rf:'RF-12',
-  why:'Energia, água, salários e depreciação por mês de referência. É o número que o rateio joga sobre a produção do período, e sem ele o custo unitário fica só com o variável.',
-  ui:`<div class="mk-hd"><div class="b">4 &middot; Financeiro</div><div class="t">Custos fixos</div><div class="r">Agosto de 2026</div></div>
-  <div class="mk-body tight">
-    <div class="mk-card"><div class="mk-row"><span class="mk-nm">Salários e encargos</span><span style="font-weight:700">R$ 14.200</span></div></div>
-    <div class="mk-card"><div class="mk-row"><span class="mk-nm">Energia elétrica</span><span style="font-weight:700">R$ 1.840</span></div></div>
-    <div class="mk-card"><div class="mk-row"><span class="mk-nm">Água</span><span style="font-weight:700">R$ 320</span></div></div>
-    <div class="mk-card"><div class="mk-row"><span class="mk-nm">Combustível</span><span style="font-weight:700">R$ 980</span></div></div>
-    <div class="mk-card"><div class="mk-row"><span class="mk-nm">Depreciação</span><span style="font-weight:700">R$ 1.100</span></div></div>
-    <div class="mk-hr"></div>
-    <div class="mk-row"><span class="mk-nm">Total do mês</span><span class="mk-num sm">R$ 18.440</span></div>
-    <div class="mk-info">Rateado sobre 24.800 mudas produzidas em agosto: R$ 0,74 por muda.</div>
-    <div style="flex:1"></div>
-    <div class="mk-btn">+ Nova categoria</div>
-  </div>`
-});
-S.push({
-  id:'UC-11', mod:'financeiro', actors:['chefia','gerencia'], built:false, route:'',
-  name:'Consultar custo unitário', rf:'RF-15 a RF-18',
-  why:'A tela que responde a pergunta que abriu o projeto: quanto custa esta muda. Substrato, semente, recipiente, insumos e mão de obra, mais o fixo rateado.',
-  ui:`<div class="mk-hd"><div class="b">4 &middot; Financeiro</div><div class="t">Custo unitário</div><div class="r">Cedro-rosa &middot; saco 17&times;22</div></div>
-  <div class="mk-body tight">
-    <div class="mk-card pad">
-      <div class="mk-row"><span style="font-size:10.5px">Substrato 2,8 L</span><span style="font-weight:600">R$ 5,18</span></div>
-      <div class="mk-row"><span style="font-size:10.5px">Semente</span><span style="font-weight:600">R$ 0,42</span></div>
-      <div class="mk-row"><span style="font-size:10.5px">Recipiente</span><span style="font-weight:600">R$ 0,31</span></div>
-      <div class="mk-row"><span style="font-size:10.5px">Adubo e demais insumos</span><span style="font-weight:600">R$ 0,88</span></div>
-      <div class="mk-row"><span style="font-size:10.5px">Mão de obra 0,21 h</span><span style="font-weight:600">R$ 2,94</span></div>
-      <div class="mk-hr"></div>
-      <div class="mk-row"><span style="font-size:10.5px">Custo variável</span><span style="font-weight:700">R$ 9,73</span></div>
-      <div class="mk-row"><span style="font-size:10.5px">Fixo rateado</span><span style="font-weight:700">R$ 0,74</span></div>
-      <div class="mk-hr"></div>
-      <div class="mk-row"><span class="mk-nm">Custo unitário</span><span class="mk-num sm">R$ 10,47</span></div>
-    </div>
-    <div class="mk-info">Recalculado em 24/08, quando o substrato subiu para R$ 1,85/L.</div>
-  </div>`
-});
-S.push({
-  id:'UC-19', mod:'financeiro', actors:['chefia'], built:false, route:'',
-  name:'Definir margem por canal', rf:'RF-31',
-  why:'Os cinco canais de RN-20 não pagam o mesmo, e a margem de cada um é a regra que hoje mora na cabeça do Gilberto e some quando ele não está. O piso mínimo varia por canal e por espécie (RN-22).',
-  ui:`<div class="mk-hd"><div class="b">4 &middot; Financeiro</div><div class="t">Margem por canal</div></div>
-  <div class="mk-body tight">
-    <div class="mk-card"><div class="mk-row"><span class="mk-nm">Atacado</span><span class="mk-in v" style="width:66px;text-align:right;padding:5px 8px;font-weight:700">25%</span></div><div style="font-size:9.5px;color:#6B7280">canal padrão &middot; 68% do faturamento</div></div>
-    <div class="mk-card"><div class="mk-row"><span class="mk-nm">Compensação ambiental</span><span class="mk-in v" style="width:66px;text-align:right;padding:5px 8px;font-weight:700">35%</span></div></div>
-    <div class="mk-card"><div class="mk-row"><span class="mk-nm">Prefeitura</span><span class="mk-in f" style="width:66px;text-align:right;padding:5px 8px;font-weight:700">30%</span></div><div style="font-size:9.5px;color:#6B7280">licitação &middot; prazo de 60 dias</div></div>
-    <div class="mk-card"><div class="mk-row"><span class="mk-nm">Paisagismo</span><span class="mk-in v" style="width:66px;text-align:right;padding:5px 8px;font-weight:700">45%</span></div></div>
-    <div class="mk-card"><div class="mk-row"><span class="mk-nm">Varejo</span><span class="mk-in v" style="width:66px;text-align:right;padding:5px 8px;font-weight:700">80%</span></div><div style="font-size:9.5px;color:#6B7280">ainda não praticado</div></div>
-    <div class="mk-hr"></div>
-    <div class="mk-lbl">Piso mínimo de segurança</div>
-    <div class="mk-card"><div class="mk-row"><span class="mk-it">Atacado &middot; padrão do canal</span><span style="font-weight:700">custo + 12%</span></div><div class="mk-row"><span class="mk-it">Atacado &middot; Araucária</span><span style="font-weight:700">custo + 30%</span></div></div>
-    <div class="mk-info">O piso é por canal <b>e</b> por espécie, não é um número só do sistema. Sem exceção cadastrada, vale o do canal.</div>
-    <div style="flex:1"></div>
-    <div class="mk-btn">Salvar margens</div>
-  </div>`
-});
-S.push({
-  id:'UC-20', mod:'financeiro', actors:['chefia','gerencia'], built:false, route:'',
-  name:'Consultar preço por canal', rf:'RF-32 a RF-35',
-  why:'Preço sugerido é custo mais margem do canal, com o frete por quilômetro embutido. O piso mínimo não avisa, impede: abaixo dele o sistema não deixa praticar.',
-  ui:`<div class="mk-hd"><div class="b">4 &middot; Financeiro</div><div class="t">Preço por canal</div><div class="r">Cedro-rosa &middot; 17&times;22 &middot; custo R$ 10,47</div></div>
-  <div class="mk-body tight">
-    <div class="mk-card"><div class="mk-row"><span class="mk-nm">Atacado</span><span class="mk-num sm">R$ 13,09</span></div><div style="font-size:9.5px;color:#6B7280">margem 25%</div></div>
-    <div class="mk-card"><div class="mk-row"><span class="mk-nm">Prefeitura</span><span class="mk-num sm">R$ 13,61</span></div><div style="font-size:9.5px;color:#6B7280">margem 30%</div></div>
-    <div class="mk-card"><div class="mk-row"><span class="mk-nm">Paisagismo</span><span class="mk-num sm">R$ 15,18</span></div><div style="font-size:9.5px;color:#6B7280">margem 45%</div></div>
-    <div class="mk-hr"></div>
-    <div><div class="mk-lbl">Preço a praticar neste pedido</div><div class="mk-in f" style="margin-top:3px;border-color:#DC2626;font-weight:700">R$ 11,20</div></div>
-    <div class="mk-alert">Abaixo do piso de R$ 11,73. Não é possível fechar com este preço.</div>
-    <div class="mk-info">Frete: R$ 1,80/km, 34 km, rateado em 1.600 mudas.</div>
-  </div>`
-});
-S.push({
-  id:'UC-35', mod:'financeiro', actors:['chefia'], built:false, route:'',
-  name:'Importar extrato bancário', rf:'RF-56',
-  why:'Sem digitação de lançamento. O extrato é a fonte, e é ela que alimenta o custeio: enquanto este módulo não roda, o preço do viveiro é estimativa.',
-  ui:`<div class="mk-hd"><div class="b">4 &middot; Financeiro</div><div class="t">Importar extrato</div></div>
-  <div class="mk-body tight">
-    <div><div class="mk-lbl">Conta</div><div class="mk-in v" style="margin-top:3px">Sicredi &middot; conta 12.408-3</div></div>
-    <div style="border:2px dashed #D1D5DB;border-radius:12px;padding:20px;text-align:center;color:#6B7280">
-      <div style="font-size:26px">📄</div>
-      <div style="font-size:11px;margin-top:5px;font-weight:600">extrato-agosto.ofx</div>
-      <div style="font-size:9.5px">184 lançamentos lidos</div>
-    </div>
-    <div class="mk-ok">142 lançamentos são novos. 42 já existiam e foram ignorados.</div>
-    <div class="mk-card">
-      <div class="mk-row"><span style="font-size:10.5px;color:#6B7280">Período</span><span style="font-weight:600;font-size:11px">01/08 a 31/08</span></div>
-      <div class="mk-row"><span style="font-size:10.5px;color:#6B7280">Saldo final do extrato</span><span style="font-weight:700">R$ 32.184,50</span></div>
-    </div>
-    <div style="flex:1"></div>
-    <div class="mk-btn">Importar 142 lançamentos</div>
-  </div>`
-});
-S.push({
-  id:'UC-36', mod:'financeiro', actors:['chefia'], built:false, route:'',
-  name:'Classificar lançamentos', rf:'RF-57, RF-58, RF-59',
-  why:'Tudo escolhido de lista, nada digitado, porque texto livre não vira relatório. O que já foi classificado uma vez volta classificado sozinho (RN-42). Um gasto pode servir a mais de um centro e se reparte (RN-69); transferência entre contas próprias não é gasto nenhum (RN-68).',
-  ui:`<div class="mk-hd row"><div><div class="b">4 &middot; Financeiro</div><div class="t">Classificar</div></div><span style="font-size:11px;color:#BBF7D0;align-self:center">18 restantes</span></div>
-  <div class="mk-body tight">
-    <div class="mk-card pad">
-      <div class="mk-row"><span class="mk-nm">AGRO INSUMOS LTDA</span><span style="font-weight:700;color:#991B1B">−R$ 2.480</span></div>
-      <div style="font-size:9.5px;color:#6B7280">18/08/2026 &middot; débito em conta</div>
-      <div class="mk-hr"></div>
-      <div><div class="mk-lbl">Centro de custo</div><div class="mk-in v" style="margin-top:3px">Produção de mudas</div></div>
-      <div><div class="mk-lbl">Categoria</div><div class="mk-in v" style="margin-top:3px">Insumos</div></div>
-      <div><div class="mk-lbl">Contraparte</div><div class="mk-in v" style="margin-top:3px">Agro Insumos Ltda</div></div>
-      <div><div class="mk-lbl">Competência</div><div class="mk-in f" style="margin-top:3px">07/2026</div></div>
-      <div class="mk-btn gh" style="padding:7px;font-size:11px">Repartir entre centros de custo</div>
-    </div>
-    <div class="mk-ok">Classificação sugerida a partir de 6 lançamentos iguais anteriores.</div>
-    <div class="mk-info">Transferência entre contas do viveiro não é despesa nem receita: aparece já pareada e sai da fila.</div>
-    <div style="flex:1"></div>
-    <div class="mk-grid2"><div class="mk-btn sec">Pular</div><div class="mk-btn" style="padding:9px;font-size:12px">Confirmar</div></div>
-  </div>`
-});
-S.push({
-  id:'UC-37', mod:'financeiro', actors:['chefia'], built:false, route:'',
-  name:'Fechar o mês', rf:'RF-60, RF-61',
-  why:'Confere o saldo calculado contra o do extrato e trava o período. É a trava que dá confiança ao indicador: nenhum número financeiro é publicado sobre mês aberto.',
-  ui:`<div class="mk-hd"><div class="b">4 &middot; Financeiro</div><div class="t">Fechar agosto/2026</div></div>
-  <div class="mk-body tight">
-    <div class="mk-card pad">
-      <div class="mk-row"><span style="font-size:10.5px;color:#6B7280">Saldo calculado</span><span style="font-weight:700">R$ 32.184,50</span></div>
-      <div class="mk-row"><span style="font-size:10.5px;color:#6B7280">Saldo do extrato</span><span style="font-weight:700">R$ 32.184,50</span></div>
-      <div class="mk-hr"></div>
-      <div class="mk-row"><span class="mk-nm">Diferença</span><span style="font-weight:800;color:#166534">R$ 0,00</span></div>
-    </div>
-    <div class="mk-ok">Conferido. O mês pode ser fechado.</div>
-    <div class="mk-card">
-      <div class="mk-row"><span style="font-size:10.5px">Lançamentos classificados</span><span style="font-weight:600">184 de 184</span></div>
-      <div class="mk-row"><span style="font-size:10.5px">Custos fixos lançados</span><span style="font-weight:600">5 categorias</span></div>
-    </div>
-    <div class="mk-warn">Depois de fechado, nenhum lançamento de agosto pode ser alterado.</div>
-    <div style="flex:1"></div>
-    <div class="mk-btn">Fechar o mês</div>
-  </div>`
-});
-S.push({
-  id:'UC-38', mod:'financeiro', actors:['chefia'], built:false, route:'',
-  name:'Consultar faturamento', rf:'RF-61, RF-62',
-  why:'Restrita à chefia por regra de negócio, não por hierarquia: a base bancária mistura o gasto do viveiro com o da família. Mês aberto aparece, mas marcado como parcial.',
-  ui:`<div class="mk-hd"><div class="b">4 &middot; Financeiro</div><div class="t">Faturamento</div><div class="r">2026</div></div>
-  <div class="mk-body tight">
-    <div class="mk-grid2">
-      <div class="mk-tile"><div class="k">No ano</div><div class="mk-num">R$ 418k</div></div>
-      <div class="mk-tile"><div class="k">Agosto</div><div class="mk-num">R$ 61k</div></div>
-    </div>
-    <div class="mk-lbl">Por mês</div>
-    <div style="display:flex;align-items:flex-end;gap:4px;height:78px">
-      <div style="flex:1;background:#BBF7D0;height:38%;border-radius:3px 3px 0 0"></div>
-      <div style="flex:1;background:#BBF7D0;height:52%;border-radius:3px 3px 0 0"></div>
-      <div style="flex:1;background:#BBF7D0;height:44%;border-radius:3px 3px 0 0"></div>
-      <div style="flex:1;background:#BBF7D0;height:71%;border-radius:3px 3px 0 0"></div>
-      <div style="flex:1;background:#BBF7D0;height:63%;border-radius:3px 3px 0 0"></div>
-      <div style="flex:1;background:#BBF7D0;height:58%;border-radius:3px 3px 0 0"></div>
-      <div style="flex:1;background:#15803D;height:88%;border-radius:3px 3px 0 0"></div>
-      <div style="flex:1;background:#E5E7EB;height:34%;border-radius:3px 3px 0 0"></div>
-    </div>
-    <div class="mk-scale" style="padding-left:0"><span>jan</span><span>mar</span><span>mai</span><span>jul</span><span>set</span></div>
-    <div class="mk-warn">Setembro ainda não foi fechado. O valor é parcial e não entra nos indicadores.</div>
-  </div>`
-});
-S.push({
-  id:'UC-39', mod:'financeiro', actors:['chefia','gerencia'], built:false, route:'',
-  name:'Acompanhar indicadores', rf:'RF-63, RF-64, RF-65',
-  why:'O conteúdo muda conforme o perfil: a gerência vê produção e mortalidade, a chefia vê também margem e faturamento. Cada número vem contra o período anterior e contra a meta.',
-  ui:`<div class="mk-hd"><div class="b">4 &middot; Financeiro</div><div class="t">Indicadores</div><div class="r">Agosto &middot; perfil chefia</div></div>
-  <div class="mk-body tight">
-    <div class="mk-card">
-      <div class="mk-row"><span class="mk-lbl">Margem média</span><span class="mk-pill g">▲ favorável</span></div>
-      <div class="mk-row"><span class="mk-num">28,4%</span><span style="font-size:10px;color:#6B7280;text-align:right">meta 25%<br>jul: 26,1%</span></div>
-    </div>
-    <div class="mk-card">
-      <div class="mk-row"><span class="mk-lbl">Mortalidade</span><span class="mk-pill r">▲ desfavorável</span></div>
-      <div class="mk-row"><span class="mk-num" style="color:#991B1B">21,3%</span><span style="font-size:10px;color:#6B7280;text-align:right">meta 15%<br>jul: 17,8%</span></div>
-    </div>
-    <div class="mk-card">
-      <div class="mk-row"><span class="mk-lbl">Mudas produzidas</span><span class="mk-pill g">▲ favorável</span></div>
-      <div class="mk-row"><span class="mk-num">24.800</span><span style="font-size:10px;color:#6B7280;text-align:right">meta 22.000<br>jul: 21.400</span></div>
-    </div>
-    <div class="mk-card">
-      <div class="mk-row"><span class="mk-lbl">Custo médio da muda</span><span class="mk-pill a">▲ atenção</span></div>
-      <div class="mk-row"><span class="mk-num">R$ 8,12</span><span style="font-size:10px;color:#6B7280;text-align:right">meta R$ 7,50<br>jul: R$ 7,89</span></div>
-    </div>
-  </div>`
-});
+
+
+
+
+
+
+
+
+
 /*NEXT*/
 </script>
 <script>
-const ACTOR_LABEL = {chefia:'Chefia', gerencia:'Gerência', colab:'Colaborador', todos:'Todos', admin:'Administrador'};
+const ACTOR_LABEL = {chefia:'Chefia', gerencia:'Gerência', todos:'Todos', admin:'Administrador'};
 
 function plate(s){
   const el = document.createElement('article');
