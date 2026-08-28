@@ -31,9 +31,10 @@ Este documento converte os cinco atributos em **números coletáveis com cronôm
 | **Chefia** | 1 | Sem formação técnica | Celular e computador |
 | **Gerência** | 2 | Sem formação técnica | Celular e computador |
 
-**Três sujeitos.** O uso do sistema em campo pelos colaboradores está previsto para iteração
-posterior, conforme registrado em [`A1`](../A-fundacao/A1-documento-de-visao.md), e por isso eles não
-integram esta avaliação.
+**Três sujeitos, e são todos os usuários do sistema.** Os colaboradores de campo não operam o
+sistema, por decisão de escopo registrada em [`A1` §5](../A-fundacao/A1-documento-de-visao.md), e
+por isso não integram esta avaliação. A amostra não é um recorte da população de usuários: é a
+população inteira.
 
 Nielsen observa que a maior parte dos problemas de usabilidade é revelada por um número pequeno de
 usuários, o que torna três sujeitos suficientes para o propósito **diagnóstico**, identificar onde a
@@ -88,18 +89,18 @@ especificados em [`C2`](../C-modelagem/C2-especificacao-casos-de-uso.md).
 
 | # | Tarefa | Caso de uso | Frequência real |
 |---|---|---|---|
-| **T-01** | Registrar um pedido de três itens para cliente novo | UC-24 | Diária |
-| **T-02** | Fechar um pedido verificado, definindo preço e nota fiscal | UC-26 | Diária |
-| **T-03** | Consultar o custo unitário e a margem de uma espécie | UC-11 | Semanal |
-| **T-04** | Classificar cinco lançamentos financeiros pendentes | UC-36 | Semanal |
-| **T-05** | Emitir uma cotação a dois fornecedores | UC-32 | Semanal |
+| **T-01** | Registrar um pedido de três itens para cliente novo, com preço | UC-24 | Diária |
+| **T-02** | Confirmar um pedido e tentar alterar um item depois | UC-26 | Diária |
+| **T-03** | Descobrir quanto há de muda pronta de uma espécie em dois recipientes | UC-15 | Semanal |
+| **T-04** | Cadastrar uma espécie com dois nomes populares e localizá-la pelo segundo | UC-05 | Mensal |
+| **T-05** | Alterar o limite de mortalidade e conferir o efeito no mapa | UC-60 | Raro |
 
 ### Gerência
 
 | # | Tarefa | Caso de uso | Frequência real |
 |---|---|---|---|
-| **T-06** | Verificar a disponibilidade de um pedido com item parcial | UC-25 | Diária |
-| **T-07** | Registrar uma contagem de estoque | UC-16 | Semanal |
+| **T-06** | Montar a semana de trabalho para três funcionários e publicá-la | UC-43 | Semanal |
+| **T-07** | Registrar uma contagem física de um lote | UC-16 | Semanal |
 | **T-08** | Registrar uma perda em campo | UC-17 | Diária |
 | **T-09** | Consultar as perdas do mês e identificar a espécie com maior mortalidade | UC-18 | Mensal |
 
