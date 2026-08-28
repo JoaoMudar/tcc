@@ -266,10 +266,10 @@ existem na agenda mesmo sem nunca terem feito login.
 
 | Artefato | O que esta rotina acrescentou |
 |---|---|
-| [`A2`](../../engenharia/A-fundacao/A2-glossario-dominio.md) | §6 nova: Turno, Tipo de tarefa, Atribuição, Apontamento |
-| [`B3`](../../engenharia/B-requisitos/B3-regras-de-negocio.md) | RN-80 a RN-86; RN-48 e RN-51 emendadas; ressalvas §2.4 de três para cinco |
-| [`B2`](../../engenharia/B-requisitos/B2-especificacao-requisitos.md) | §2.2.4 nova (RF-70 movido, RF-82, RF-83); RF-92 a RF-100; RF-108, RF-114 a RF-116 e RF-94 emendado em 26/08/2026; RF-137 (escala) e RF-138 (botões), com **RNF-27** e a emenda de RNF-06, na mesma data |
-| [`C1`](../../engenharia/C-modelagem/C1-diagrama-casos-de-uso.md) / [`C2`](../../engenharia/C-modelagem/C2-especificacao-casos-de-uso.md) | UC-50, UC-51, UC-52 e UC-54; os dois primeiros detalhados |
-| [`C6`](../../engenharia/C-modelagem/C6-modelo-entidade-relacionamento.md) / [`C8`](../../engenharia/C-modelagem/C8-dicionario-de-dados.md) | `work_shifts`, `assignment_members`, `task_expenses`; `production_activities` virou `task_executions`; `assignments` perdeu `party_id` e ganhou `shift_id` |
-| [`D4`](../../engenharia/D-arquitetura/D4-matriz-rbac.md) | recursos **Apontamento**, **Período de trabalho** e **Gastos de tarefa**; §3.14 |
-| [`E2`](../../engenharia/E-qualidade/E2-casos-de-teste-de-aceite.md) | TA-60 a TA-62 e TA-69 a TA-84, que fecham a lacuna declarada em `B5` §5.5; TA-99 a TA-101 em 26/08/2026 |
+| [`A2`](../../engenharia/A-fundacao/A2-glossario-dominio.md) | §5 nova: Turno, Período de trabalho, Tipo de tarefa, Atribuição, Situação da atribuição, Semana |
+| [`B3`](../../engenharia/B-requisitos/B3-regras-de-negocio.md) | RN-80 a RN-82, RN-84, RN-85, RN-91, RN-95; RN-48 e RN-51 emendadas; ressalvas em §2.4 |
+| [`B2`](../../engenharia/B-requisitos/B2-especificacao-requisitos.md) | RF-70, RF-82 e RF-83; RF-71 a RF-75, RF-92, RF-98, RF-99, RF-107 e RF-113; RF-108 na entrada da área, com **RNF-27** e a emenda de RNF-06 |
+| [`C1`](../../engenharia/C-modelagem/C1-diagrama-casos-de-uso.md) / [`C2`](../../engenharia/C-modelagem/C2-especificacao-casos-de-uso.md) | UC-42, UC-43, UC-51, UC-52 e UC-54; UC-51 detalhado |
+| [`C6`](../../engenharia/C-modelagem/C6-modelo-entidade-relacionamento.md) / [`C8`](../../engenharia/C-modelagem/C8-dicionario-de-dados.md) | `week_plans`, `assignments`, `assignment_members`, `work_shifts` e `task_types`; `assignments` guarda o planejado e o confirmado na mesma linha, e por isso não há entidade de apontamento |
+| [`D4`](../../engenharia/D-arquitetura/D4-matriz-rbac.md) | recursos **Agenda da semana**, **Confirmação de tarefa**, **Fechamento da semana** e **Período de trabalho**; §3.3 |
+| [`E2`](../../engenharia/E-qualidade/E2-casos-de-teste-de-aceite.md) | TA-60 a TA-62, TA-69, TA-71, TA-72, TA-101 e TA-109 a TA-113 |

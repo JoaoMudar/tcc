@@ -1,9 +1,8 @@
 # Rotina: Produção, visão geral
 
-> Substitui e absorve a antiga `rotina-tarefas.md` (hoje [`99-tarefas-diarias-historico.md`](99-tarefas-diarias-historico.md)). Tarefa diária **não é uma rotina
-> separada**: é como a produção é executada. Os documentos de engenharia já tratavam assim
-> (UC-40 "Consultar tarefas do dia" aponta para RF-20, de atribuição de atividade de
-> produção); esta reorganização alinha o domínio ao que a engenharia já dizia.
+> **Tarefa diária não é uma rotina separada**: é como a produção é executada, e é a agenda da
+> semana que a organiza. Os documentos de engenharia sempre trataram assim, e esta pasta alinha o
+> domínio ao que a engenharia já dizia.
 
 ## Situação atual
 

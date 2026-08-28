@@ -1,14 +1,12 @@
 # Mapa de Rotinas
 
-> **O sistema tem quatro módulos**: Cadastros, Produção, Comercial, Financeiro.
-> Acesso (login, senha, aparelhos, usuários, notificações) é **transversal**, atravessa os
-> quatro e não é módulo de negócio.
+> **O sistema tem três áreas de negócio**: Cadastro único, Produção e Comercial.
+> Acesso (login, senha, aparelhos, usuários) e Configurações (período de trabalho,
+> parâmetros) são **transversais**: atravessam as três e não são áreas de negócio.
 >
-> Esta é a taxonomia única. Ela está espelhada em quatro lugares que não podem divergir:
-> os diagramas desta página, as pastas desta própria pasta (`1-cadastros/` … `4-financeiro/`),
-> `src/lib/modules.ts` (a navegação do app) e os comentários de seção de
-> `src/lib/permissions.ts` (a matriz do D4). O teste `src/lib/__tests__/modules.test.ts`
-> quebra se a navegação sair de linha.
+> Esta é a taxonomia única. Ela está espelhada nos diagramas desta página, nas pastas desta
+> própria pasta (`1-cadastros/` … `3-comercial/`), na navegação do app e nos comentários de
+> seção da matriz de permissões.
 >
 > Nos artefatos de engenharia, o mesmo agrupamento organiza os requisitos
 > ([`B2 §2`](../engenharia/B-requisitos/B2-especificacao-requisitos.md)), a rastreabilidade
@@ -22,41 +20,40 @@
 
 | Perfil | Quem | Foco |
 |--------|------|------|
-| **Chefia** | Gilberto | Vendas, finanças, decisões, entregas |
-| **Gerência** | Débora, João | Operação, coordenação, estoque, tarefas |
-| **Colaborador** | Rogério, Amélia, Jaison, Mathias, Santilha, Carolayne | Execução no campo |
+| **Chefia** | Gilberto | Vendas, pedidos, parâmetros, decisões |
+| **Gerência** | Débora, João | Operação, agenda, lotes, produção |
+| **Administrador** | acumulado pela gerência | Usuários, perfis e sessões |
+
+**Os seis colaboradores de campo não operam o sistema.** Rogério, Amélia, Jaison, Mathias,
+Santilha e Carolayne aparecem no cadastro como **funcionário**, recebem tarefa na agenda e têm a
+quantidade produzida registrada, e nunca abrem uma tela: quem planeja e confirma o trabalho deles é
+a gerência. É decisão de escopo, registrada em
+[`A1` §5](../engenharia/A-fundacao/A1-documento-de-visao.md).
 
 ---
 
-## Como os quatro módulos se relacionam
+## Como as três áreas se relacionam
 
-![Mapa do sistema: quatro módulos](img/mapa-sistema-v2.png)
+![Mapa do sistema: três áreas](img/mapa-sistema-v2.png)
 
-**Como ler o status.** O critério é contado sobre a tabela de etapas de cada módulo, mais
-abaixo nesta página: **cinza sólido** = toda etapa tem tela · **tracejado largo** = parte tem ·
-**tracejado fino, sem preenchimento** = nenhuma tem. A fração aparece no próprio nó, porque
-"parte tem" cobre tanto o Comercial (6 de 8) quanto o Financeiro (1 de 9).
+**Como ler o status.** O critério é contado sobre a tabela de etapas de cada área, mais abaixo
+nesta página: **cinza sólido** = toda etapa tem tela · **tracejado largo** = parte tem ·
+**tracejado fino, sem preenchimento** = nenhuma tem. A fração aparece no próprio nó.
 
 **Três leituras que o diagrama torna imediatas:**
 
-- **Cadastros não consome nada e alimenta todo mundo.** É o único módulo sem entrada. Por
-  isso é rotina própria, e não um canto do `/admin`.
-- **O fluxo entre os módulos é um ciclo, não uma fila.** A compra nasce no Financeiro e volta
-  para a Produção; o consumo e as horas voltam para o custeio; o preço volta para o Comercial
-  na hora de aprovar. Quebrar qualquer elo faz o preço voltar a ser chute.
-- **Estoque não é tabela.** É produção menos perdas menos vendas; por isso mora na Produção,
-  como resultado, e não em Cadastros.
-
-### O ciclo do dinheiro
-
-O único anel fechado do sistema: hoje quebrado na agenda de pessoal e no apontamento, que são a
-única fonte possível de horas. Sem eles, custeio e precificação continuam sendo estimativa.
-
-![Ciclo do dinheiro](img/ciclo-dinheiro.png)
+- **O Cadastro único não consome nada e alimenta as duas outras.** É a única área sem entrada.
+  Por isso é rotina própria, e não um canto do `/admin`.
+- **O fluxo não é um ciclo, é uma linha.** Cadastro alimenta Produção e Comercial; a Produção
+  entrega ao Comercial um número, o saldo de muda pronta; e nada volta. É a diferença mais visível
+  em relação ao desenho anterior, que tinha o Financeiro fechando um anel: sem custeio, não há
+  volta a fazer.
+- **Estoque não é tabela.** É a soma dos lotes prontos; por isso mora na Produção, como resultado,
+  e não em Cadastros.
 
 ### A visão do dono
 
-![As 4 áreas do sistema](img/mapa-4-areas.png)
+![As três áreas do sistema](img/mapa-4-areas.png)
 
 <details>
 <summary>Fonte dos diagramas (Mermaid)</summary>
@@ -64,8 +61,8 @@ O único anel fechado do sistema: hoje quebrado na agenda de pessoal e no aponta
 Os arquivos `.mmd` ficam em [`img/`](img/). Para regenerar:
 
 ```bash
-npm run docs:mapas                    # todos
-npm run docs:mapas mapa-2-producao    # só um
+node scripts/render-mapas.mjs                    # todos
+node scripts/render-mapas.mjs mapa-2-producao    # só um
 ```
 
 **A cor mora no `.mmd`; o cinza mora no `.png`.** Os arquivos-fonte usam verde, amarelo e
@@ -75,38 +72,44 @@ de cinza numa cópia temporária, renderiza e joga a cópia fora. O que vai para
 para o TCC é o cinza, que sobrevive à impressão em preto e branco; o que se edita continua
 colorido.
 
-As três classes de status chamam-se `ok`, `meio` e `falta` nos oito diagramas: quem
-acrescentar um mapa deve usar os mesmos nomes, senão o script não encontra o que trocar. A
-largura também mora no script, uma só para todos: antes disso cada mapa tinha sido gerado com
-um `-w` diferente, e regerar com o valor errado reescalava a figura sem ninguém perceber.
+As três classes de status chamam-se `ok`, `meio` e `falta` nos seis diagramas: quem acrescentar um
+mapa deve usar os mesmos nomes, senão o script não encontra o que trocar. A largura também mora no
+script, uma só para todos: antes disso cada mapa tinha sido gerado com um `-w` diferente, e regerar
+com o valor errado reescalava a figura sem ninguém perceber.
 
 O PNG é a fonte para leitura e para o TCC; o `.mmd` é a fonte para edição.
-
-`img/mapa-sistema.mmd` é a versão anterior, mantida só como registro do que o mapa dizia antes
-da reconciliação dos quatro módulos, e o próprio arquivo abre declarando isso. **Não editar.**
-Atenção a um detalhe do gerador: `npm run docs:mapas` sem argumento rerenderiza *todos* os `.mmd`
-da pasta, este inclusive, então o PNG superado continua nascendo junto. Ele não é referenciado por
-nenhum documento; quem quiser gerar só os vivos passa os nomes na linha de comando.
 
 </details>
 
 ---
 
-## 0 · Acesso: transversal
+## 0 · Acesso e Configurações: transversais
 
-![Acesso](img/mapa-0-acesso.png)
+![Acesso e configurações](img/mapa-0-acesso.png)
 
-Login, definição e troca de senha, aparelhos conectados, usuários e permissões, notificações
-e painel inicial. Não é módulo de negócio: guarda os quatro.
+Login, definição e troca de senha, aparelhos conectados, usuários e permissões. Ao lado, os dois
+ajustes que o sistema lê e a operação altera: o **período de trabalho** do viveiro e os
+**parâmetros** que pintam o lote no mapa.
 
-Telas em `/login`, `/trocar-senha`, `/conta/sessoes`, `/notificacoes` e `/admin/usuarios`.
+| Etapa | Perfil |
+|-------|--------|
+| Entrar, trocar a senha, encerrar a própria sessão | Todos |
+| Ver e encerrar aparelhos conectados | Todos |
+| Criar usuário e atribuir perfil | Administrador |
+| Definir o período de trabalho (turnos) | Chefia |
+| Alterar limites de atraso e de mortalidade | Chefia |
+
+Telas em `/login`, `/trocar-senha`, `/conta/sessoes`, `/admin/usuarios` e `/configuracoes`.
 `/admin` ficou **só** com administração de sistema, usuários e sessões.
+
+**Ninguém cria e ninguém exclui parâmetro.** A chave nasce com a estrutura do banco, porque existe
+consulta que a lê pelo nome: o que a operação faz é alterar o valor.
 
 ---
 
-## 1 · Cadastros ([`1-cadastros/`](1-cadastros/00-visao-geral.md))
+## 1 · Cadastro único ([`1-cadastros/`](1-cadastros/00-visao-geral.md))
 
-![Cadastros](img/mapa-1-cadastros.png)
+![Cadastro único](img/mapa-1-cadastros.png)
 
 Rotina **agrupadora**, sem processo próprio. Reúne o que é estável e se repete.
 
@@ -114,116 +117,83 @@ Rotina **agrupadora**, sem processo próprio. Reúne o que é estável e se repe
 
 | Etapa | Perfil |
 |-------|--------|
-| Cadastrar/editar espécie, recipiente, insumo | Gerência |
-| Consultar pessoas por papel (`/cadastros/pessoas`) | Chefia / Gerência |
-| Cadastrar/editar cliente ([`1-cadastros/clientes.md`](1-cadastros/clientes.md)) | Chefia / Gerência |
+| Cadastrar/editar espécie, com nomes populares e foto | Chefia |
+| Cadastrar/editar recipiente e insumo | Chefia |
+| Consultar pessoas por papel (`/cadastros/pessoas`) | Chefia |
+| Cadastrar/editar cliente ([`1-cadastros/clientes.md`](1-cadastros/clientes.md)) | Chefia |
 | Cadastrar/editar fornecedor | Chefia |
 | Cadastrar/editar funcionário | Chefia |
 | Cadastrar/editar tipo de tarefa | Gerência |
 | Cadastrar/editar área e canteiro ([`2-producao/04-lotes-e-canteiros.md`](2-producao/04-lotes-e-canteiros.md)) | Gerência |
-| Definir o período de trabalho ([`2-producao/01-agenda-de-pessoal.md`](2-producao/01-agenda-de-pessoal.md)) | Gerência |
-| Cadastrar/inativar centro de custo ([`1-cadastros/centros-de-custo.md`](1-cadastros/centros-de-custo.md)) | Chefia |
+| Montar o protocolo de atividades ([`2-producao/06-protocolo-de-atividades.md`](2-producao/06-protocolo-de-atividades.md)) | Gerência / Chefia |
 
 **Pessoas são uma identidade só.** Cliente, fornecedor e funcionário são papéis de
-`cadastro.parties`: quem vende muda e às vezes compra é um cadastro só. Por isso
+`cadastro.parties`: quem vende muda e às vezes compra é um cadastro só
+([`1-cadastros/01-cadastro-unico.md`](1-cadastros/01-cadastro-unico.md)). Por isso
 `/cadastros/pessoas` é **uma lista com filtro por papel**, e não uma aba por papel: a pessoa
 aparece uma vez, com um selo por papel que leva à tela daquele papel. O nome abre a **ficha**
-(`/cadastros/pessoas/[id]`), com o histórico dos dois lados, é onde o *quanto compramos e
-quanto vendemos* vai aparecer quando o Financeiro existir.
+(`/cadastros/pessoas/[id]`), com o histórico dos dois lados.
 
-Os papéis vêm filtrados do servidor pelo que o usuário pode ler, `fornecedor:ler` é só de
-chefia e admin, então a gerência não vê a rede de fornecedores nem de relance. Funcionário
-é filtro sem tela até o P13 T13.3/T13.7.
+**A ficha fiscal é fechada para a gerência**, e é a única restrição de privacidade da matriz
+([`D4` §3.1](../engenharia/D-arquitetura/D4-matriz-rbac.md)): a gerência lê nome, telefone e papéis,
+que é o que ela precisa para escalar funcionário na agenda, e não lê CPF, CNPJ nem endereço.
 
-Área `/cadastros`. As telas de papel mantiveram as URLs antigas (`/clientes`,
-`/fornecedores`) porque a rotina de pedidos aponta para elas e `notifications.link` guarda
-caminho gravado no banco; o agrupamento é de navegação, não de rota.
+Área `/cadastros`. As telas de papel mantiveram as URLs antigas (`/clientes`, `/fornecedores`)
+porque a rotina de pedidos aponta para elas; o agrupamento é de navegação, não de rota.
 
 ## 2 · Produção ([`2-producao/`](2-producao/00-visao-geral.md))
 
 ![Produção](img/mapa-2-producao.png)
 
-Registro de atividade de campo. Absorve a antiga rotina de Tarefas Diárias e recebe do
-Financeiro as compras que ficam disponíveis para uso.
+O trabalho da semana e a muda no canteiro. **A área abre em duas visões**, e não numa lista: a
+pergunta que a gerência faz ao entrar é sempre uma das duas, *quem está fazendo o quê esta semana*
+e *como está o viveiro*.
 
 | Etapa | Perfil |
 |-------|--------|
-| Registrar consumo de insumo (funciona offline) | Colaborador |
-| Registrar coleta de sementes | Gerência |
 | Montar a agenda da semana ([`2-producao/01-agenda-de-pessoal.md`](2-producao/01-agenda-de-pessoal.md)) | Gerência |
-| Ver minhas tarefas de hoje / concluir | Colaborador |
-| Apontar início e fim de tarefa na agenda do dia ([`2-producao/05-apontamento-de-tarefas.md`](2-producao/05-apontamento-de-tarefas.md)) | Gerência |
-| Montar o protocolo de atividades por tipo de embalagem ([`2-producao/06-protocolo-de-atividades.md`](2-producao/06-protocolo-de-atividades.md)) | Gerência |
-| Registro de atividade (semeadura, repicagem, irrigação, adubação) | Colaborador |
-| Criar lote e consultar a ocupação do viveiro ([`2-producao/04-lotes-e-canteiros.md`](2-producao/04-lotes-e-canteiros.md)) | Gerência |
-| Repicar lote, gerando o lote de destino | Colaborador |
-| Registrar entrada de insumo e consultar saldo | Gerência |
-| Registro de perda no campo ([`2-producao/03-perdas.md`](2-producao/03-perdas.md)) | Colaborador |
-| Análise de perdas por espécie/causa | Gerência |
-| Visão geral de estoque por espécie ([`2-producao/02-estoque.md`](2-producao/02-estoque.md)) | Chefia |
-| Contagem e atualização de estoque | Gerência |
+| Confirmar tarefa realizada, com a quantidade de cada participante | Gerência |
+| Fechar a semana | Gerência |
+| Criar lote e consultar a ocupação ([`2-producao/04-lotes-e-canteiros.md`](2-producao/04-lotes-e-canteiros.md)) | Gerência |
+| Repicar lote, gerando o lote de destino | Gerência |
+| Dividir lote | Gerência |
+| Registrar perda e contagem física sobre o lote | Gerência |
+| Acompanhar o protocolo do lote ([`2-producao/06-protocolo-de-atividades.md`](2-producao/06-protocolo-de-atividades.md)) | Gerência |
+| Consultar o mapa de lotes: atraso, mortalidade e ocupação | Gerência / Chefia |
+| Analisar perdas por espécie e causa | Gerência / Chefia |
 
 Área `/producao`.
+
+**O relógio ficou de fora.** A agenda registra que a tarefa planejada foi feita, e quanto rendeu.
+Não há hora de início nem de fim: medir a entrada e a saída de cada pessoa seria controle de ponto,
+e está fora do escopo.
 
 ## 3 · Comercial ([`3-comercial/`](3-comercial/00-visao-geral.md))
 
 ![Comercial](img/mapa-3-comercial.png)
 
-| Etapa | Perfil |
-|-------|--------|
-| Cadastro de pedido (recebe via WhatsApp) | Chefia |
-| Verificação de disponibilidade (checklist) | Gerência |
-| Aprovação de venda / preço | Chefia |
-| Cargas e separação física das mudas | Colaborador |
-| Cotação com fornecedor quando falta muda | Chefia |
-| Comparação de propostas e escolha | Chefia |
-| Agenda de entregas / roteiro | Chefia |
-| Confirmação de entrega | Chefia |
-
-Área `/comercial`; as telas continuam em `/pedidos` e `/fornecedores/*`.
-
-## 4 · Financeiro ([`4-financeiro/`](4-financeiro/00-visao-geral.md))
-
-![Financeiro](img/mapa-4-financeiro.png)
-
-**Este é o módulo restrito do sistema.** A base bancária mistura gasto do viveiro com gasto
-pessoal da família e da clínica: extrato, lançamento, compra, custo fixo e fechamento são
-de chefia/admin, e a gerência não os abre nem em leitura.
-
-A restrição vale para a **base**, não para tudo que mora aqui. Com os quatro módulos,
-custeio, precificação e os painéis vieram para cá, são dinheiro, e quem os alimenta é o
-extrato. Mas são números **derivados**: não expõem lançamento nenhum, a gerência precisa
-deles para operar e sempre pôde lê-los. É por isso que a matriz do
-[`D4`](../engenharia/D-arquitetura/D4-matriz-rbac.md) restringe **por recurso**, e não pela
-porta do módulo.
+O pedido é negociado por WhatsApp e registrado depois. O sistema guarda o que foi vendido, por
+quanto e para quem, e mostra ao lado o que a produção tem pronto.
 
 | Etapa | Perfil |
 |-------|--------|
-| Lançar compra (nota de insumo, mudas de terceiros) | Chefia |
-| Classificar a fila de lançamentos (semanal, sexta) | Chefia |
-| Importar extrato bancário (mensal, dia 1) | Chefia |
-| Fechar o mês (conferir saldo × extrato e travar) | Chefia |
-| Manter custos fixos | Chefia |
-| Emissão de nota fiscal (sistema do Sebrae; app registra o número) | Chefia |
-| Ver faturamento e margem (só sobre mês fechado) | Chefia |
-| Consulta de preço, custo unitário e margem por canal | Gerência *(leitura)* |
-| Painel de indicadores operacionais: IND-01, 02, 03, 05 | Gerência *(leitura)* |
+| Cadastro de pedido, com cliente, canal e itens | Chefia |
+| Informar o preço unitário de cada item | Chefia |
+| Consultar o saldo de muda pronta ao lado do item | Chefia |
+| Confirmar o pedido, travando os itens | Chefia |
+| Acompanhar pedidos, com filtro por cliente, canal e período | Chefia |
 
-Área `/financeiro`. **É aqui que a compra nasce**, e é de onde ela fica disponível para a
-Produção usar.
+Área `/comercial`; as telas continuam em `/pedidos`.
 
----
-
-> **Rotina de Tarefas Diárias:** absorvida pela Produção.
-> [`2-producao/99-tarefas-diarias-historico.md`](2-producao/99-tarefas-diarias-historico.md)
-> permanece apenas como registro histórico.
+**A consulta de saldo é a única ligação entre as duas áreas de movimento**, e ela é de leitura: o
+pedido não reserva, não baixa e não move lote. É o que o trabalho existe para demonstrar, e custa
+uma seta no diagrama.
 
 ---
 
 ## Onde cada rotina mora
 
-As pastas seguem os módulos: uma por módulo, na ordem em que o fluxo os percorre. Antes os
-arquivos eram `rotina-*.md` soltos na raiz, herança das oito rotinas planas.
+As pastas seguem as áreas: uma por área, na ordem em que o fluxo as percorre.
 
 ```
 docs/rotinas/
@@ -231,28 +201,18 @@ docs/rotinas/
 ├── img/                            ← os diagramas (.mmd é a fonte, .png é a leitura)
 ├── 1-cadastros/
 │   ├── 00-visao-geral.md           a rotina agrupadora e a regra de corte
-│   ├── clientes.md  +  clientes/   cadastro fiscal e o portão da nota
-│   ├── centros-de-custo.md         cadastro daqui, tabela no schema `financeiro`
-│   └── (fornecedores: plano P11)
+│   ├── 01-cadastro-unico.md        o schema `cadastro`: pessoa, papel, endereço
+│   └── clientes.md  +  clientes/   cadastro fiscal e o portão da nota
 ├── 2-producao/
-│   ├── 00-visao-geral.md           as três subrotinas e o ciclo
-│   ├── 01-agenda-de-pessoal.md     o planejamento da semana
-│   ├── 02-estoque.md               derivado: produção − perdas − vendas
-│   ├── 03-perdas.md
+│   ├── 00-visao-geral.md           as subrotinas e o fluxo
+│   ├── 01-agenda-de-pessoal.md     o planejamento da semana e a confirmação
 │   ├── 04-lotes-e-canteiros.md     onde a muda está e de que leva veio
-│   ├── 05-apontamento-de-tarefas.md  a fonte das horas
-│   ├── 06-protocolo-de-atividades.md  o que o lote tem de receber
-│   └── 99-tarefas-diarias-historico.md   absorvida; fica como registro
-├── 3-comercial/
-│   ├── 00-visao-geral.md           pedidos + cotação + entregas
-│   ├── pedidos.md  +  pedidos/     as quatro etapas, uma por documento
-│   └── entregas.md                 cada carga é uma viagem
-└── 4-financeiro/
-    ├── 00-visao-geral.md           o extrato é a verdade; quem vê o quê
-    ├── 01-cadastro-unico.md        o schema `cadastro`
-    ├── 02-schema-financeiro.md     tabelas, listas fechadas e as 8 regras
-    └── 03-relacao-com-rotinas.md   como amarra nos outros três módulos
+│   └── 06-protocolo-de-atividades.md  o que o lote tem de receber
+└── 3-comercial/
+    ├── 00-visao-geral.md           o cadastro de pedidos
+    └── pedidos.md  +  pedidos/     as etapas, uma por documento
 ```
 
-**Acesso não tem pasta.** É transversal e não tem rotina de negócio própria: está descrito na
-seção 0 desta página e especificado em [`D4`](../engenharia/D-arquitetura/D4-matriz-rbac.md).
+**Acesso e Configurações não têm pasta.** São transversais e não têm rotina de negócio própria:
+estão descritos na seção 0 desta página e especificados em
+[`D4`](../engenharia/D-arquitetura/D4-matriz-rbac.md).

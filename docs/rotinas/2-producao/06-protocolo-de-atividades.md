@@ -160,9 +160,8 @@ Amarelo é "está chegando a hora". Vermelho é "passou". Sem cor é "isto é ro
 
 ### 4. A ordem gerada é atribuição comum, e alterar o dia não altera a regra
 
-Mesma decisão que a recorrência de calendário já tomou (RN-96), e pelo mesmo motivo. A ordem cai na
-agenda como qualquer outra tarefa: aparece na grade da semana, no Gantt do dia, na tela do
-colaborador e no apontamento. **Nenhuma tela precisa aprender um conceito novo.**
+A ordem cai na agenda como qualquer outra tarefa: aparece na grade da semana e na confirmação.
+**Nenhuma tela precisa aprender um conceito novo** (RN-111).
 
 Débora pode mudar o dia, mudar o turno, excluir a ordem daquele dia. Nada disso mexe na etapa. E
 mexer na etapa não reescreve ordem já emitida nem dia já trabalhado: **o passado não se reescreve.**
@@ -294,10 +293,10 @@ A ordem do protocolo é atribuição comum e aparece onde as atribuições apare
 
 | Artefato | O que esta rotina acrescentou |
 |---|---|
-| [`B2`](../../engenharia/B-requisitos/B2-especificacao-requisitos.md) | RF-121 a RF-125 em §2.2.4; §2.3.8 nova (RF-126 a RF-136) |
-| [`B3`](../../engenharia/B-requisitos/B3-regras-de-negocio.md) | RN-98 a RN-111; RN-75 e RN-93 emendadas |
+| [`B2`](../../engenharia/B-requisitos/B2-especificacao-requisitos.md) | RF-122 a RF-125 e RF-133 no cadastro; RF-126 a RF-134 na operação |
+| [`B3`](../../engenharia/B-requisitos/B3-regras-de-negocio.md) | RN-98 a RN-113; RN-75 e RN-93 emendadas |
 | [`C2`](../../engenharia/C-modelagem/C2-especificacao-casos-de-uso.md) | UC-57, UC-58 e UC-59 |
-| [`C6`](../../engenharia/C-modelagem/C6-modelo-entidade-relacionamento.md) / [`C8`](../../engenharia/C-modelagem/C8-dicionario-de-dados.md) | `container_types`, `protocols`, `protocol_steps`, `species_protocol_overrides`, `batch_protocol_steps` e a visão `batch_protocol_due`; `batches`, `assignments`, `containers`, `batch_movements` e `settings` emendadas |
+| [`C6`](../../engenharia/C-modelagem/C6-modelo-entidade-relacionamento.md) / [`C8`](../../engenharia/C-modelagem/C8-dicionario-de-dados.md) | `protocols`, `protocol_steps`, `species_protocol_overrides`, `batch_protocol_steps` e a visão `batch_protocol_due`; `batches`, `assignments` e `containers` emendadas. O protocolo pendura-se no **recipiente**, e `container_types` deixou de existir |
 | [`B5`](../../engenharia/B-requisitos/B5-matriz-rastreabilidade.md) | 16 linhas novas |
 | [`D4`](../../engenharia/D-arquitetura/D4-matriz-rbac.md) | recursos **Tipos de embalagem** e **Protocolo de atividades** |
 | [`E2`](../../engenharia/E-qualidade/E2-casos-de-teste-de-aceite.md) | TA-87 a TA-98 |
