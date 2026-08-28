@@ -1,2 +1,0 @@
--- RLS removido — projeto usa PostgreSQL local sem autenticação Supabase.
--- Controle de acesso será feito na camada de aplicação (Next.js) quando necessário.

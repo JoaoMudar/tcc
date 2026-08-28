@@ -46,7 +46,7 @@ quatro módulos do sistema, com o Acesso à frente por atravessar os quatro.
 ## Recorte implementado
 
 Este dicionário descreve o **modelo especificado**, que é maior que o protótipo construído. Das 27
-entidades, **21 existem no banco** (mais a visão `batch_health`) e **6 estão especificadas e ainda
+entidades, **23 existem no banco** (mais a visão `batch_health`) e **4 estão especificadas e ainda
 não implementadas** (mais a visão `batch_protocol_due`). A distinção é registrada entidade por
 entidade, e não é defeito de modelagem: o modelo responde à especificação completa de requisitos, e
 a construção segue a priorização declarada em
@@ -55,13 +55,13 @@ a construção segue a priorização declarada em
 | Área | No banco | Só especificadas |
 |---|---:|---:|
 | *(transversal)* Acesso e configurações | 4 | 0 |
-| 1 · Cadastro único | 11 | 4 |
+| 1 · Cadastro único | 12 | 3 |
 | 2 · Produção | 5 | 1 |
 | 3 · Comercial | 2 | 0 |
-| **Total** | **21** | **6** |
+| **Total** | **23** | **4** |
 
-As 4 do Cadastro único são as do **protocolo de atividades**: `protocols`, `protocol_steps` e
-`species_protocol_overrides`, mais o vínculo do protocolo ao recipiente. A 1 da Produção é
+As 3 do Cadastro único são as do **protocolo de atividades**: `protocols`, `protocol_steps` e
+`species_protocol_overrides`. A 1 da Produção é
 `batch_protocol_steps`, o percurso de cada lote pelo protocolo, mais a visão
 `batch_protocol_due`.
 
@@ -174,11 +174,6 @@ exige uma implantação.
 > tempo por espécie é a customização de etapa do protocolo (`species_protocol_overrides`), que é
 > mais precisa e tem uso: ela diz em quantos dias **aquela** etapa vence naquela espécie, em vez de
 > um número único para o ciclo inteiro.
-
-> **Coluna legada.** O banco ainda tem `category`, classificação única que precedeu `tags`. Deixou
-> de ser obrigatória e nenhuma consulta do sistema a usa; permanece apenas para não quebrar dados
-> históricos, e sai numa migração futura. A classificação vigente é `tags`, que admite mais de uma
-> característica por espécie.
 
 ## `species_popular_names`: nome popular adicional
 

@@ -133,17 +133,17 @@ Seis leituras que o modelo conceitual já entrega:
 
 ### 2.1 Recorte implementado
 
-O modelo descrito aqui é o **especificado**. Das 27 entidades, **21 existem no banco** (mais a
-visão `batch_health`) e **6 permanecem só especificadas**: as três do protocolo, a customização por
-espécie, o percurso do lote pelo protocolo e a visão que dele deriva.
+O modelo descrito aqui é o **especificado**. Das 27 entidades, **23 existem no banco** (mais a
+visão `batch_health`) e **4 permanecem só especificadas**: as três do protocolo, mais o percurso do
+lote por ele e a visão que daí deriva.
 
 | Área | No banco | Só especificadas | Quais faltam |
 |---|---:|---:|---|
 | *(transversal)* Acesso e configurações | 4 | 0 | - |
-| 1 · Cadastro único | 11 | 4 | `protocols`, `protocol_steps`, `species_protocol_overrides` |
+| 1 · Cadastro único | 12 | 3 | `protocols`, `protocol_steps`, `species_protocol_overrides` |
 | 2 · Produção | 5 | 1 | `batch_protocol_steps`, mais a visão `batch_protocol_due` |
 | 3 · Comercial | 2 | 0 | - |
-| **Total** | **21** | **6** | |
+| **Total** | **23** | **4** | |
 
 O [`C8`](C8-dicionario-de-dados.md) marca a condição entidade por entidade.
 
