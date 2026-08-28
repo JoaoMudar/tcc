@@ -16,29 +16,30 @@
 | **Organização** | Viveiro Mudar: Agrolândia, Santa Catarina |
 | **Natureza** | Protótipo funcional, desenvolvido como Trabalho de Conclusão de Curso |
 | **Domínio** | Produção e comercialização de mudas de árvores nativas |
-| **Usuários previstos** | 9 pessoas, distribuídas em 3 perfis de acesso |
+| **Usuários previstos** | 3 pessoas, distribuídas em 3 perfis de acesso |
 
 ---
 
 ## 2. O problema
 
 O Viveiro Mudar produz e comercializa mudas de espécies nativas desde 1990. Ao longo de mais de três
-décadas, a operação consolidou-se sem qualquer estrutura de dados: **não há registro de perdas, de
-custo por espécie, de margem por canal de venda nem de estoque.**
+décadas, a operação consolidou-se sem qualquer estrutura de dados: **não há registro do que foi
+plantado, de onde está, do que se perdeu nem do que foi vendido.**
 
-O conhecimento operacional está distribuído na memória de duas pessoas. A precificação é definida
-intuitivamente pelo gestor, sem qualquer apuração de custo. O único sistema em uso restringe-se à
-emissão de notas fiscais, e os dados dele exportados vêm em planilhas de campos genéricos,
-insuficientes para subsidiar decisão. A comercialização ocorre majoritariamente por WhatsApp, sem
-registro estruturado do pedido.
+O conhecimento operacional está distribuído na memória de duas pessoas. O trabalho da semana é
+combinado verbalmente e não sobrevive ao próprio dia. O único sistema em uso restringe-se à emissão
+de notas fiscais, e os dados dele exportados vêm em planilhas de campos genéricos, insuficientes
+para subsidiar decisão. A comercialização ocorre majoritariamente por WhatsApp, sem registro
+estruturado do pedido.
 
 Duas consequências decorrem diretamente desse quadro:
 
-1. **A empresa pode estar comercializando abaixo do custo sem ter como perceber.** Sem custo
-   apurado por espécie e recipiente, a margem é desconhecida, e uma margem negativa é
-   indistinguível de uma positiva.
-2. **Não há previsibilidade de receita.** Sem histórico estruturado de pedidos, de tempo de produção
-   e de estoque, não é possível projetar o que estará disponível para venda nem quando.
+1. **Ninguém sabe dizer o que o viveiro tem.** Sem registro do lote, a leva plantada em cada
+   canteiro, não se responde quantas mudas de uma espécie existem, em que recipiente estão nem
+   quanto daquela leva morreu. A resposta é uma caminhada pelo viveiro, refeita a cada pergunta.
+2. **O que foi combinado não se verifica.** Sem registro da tarefa planejada, não há como saber se
+   a irrigação daquele canteiro aconteceu, nem como o pedido consultar se existe muda pronta
+   para atendê-lo.
 
 O problema não é de escala nem de tecnologia disponível, é de **ausência de registro**. Todo dado
 necessário à gestão é gerado diariamente pela operação e descartado no mesmo dia.
@@ -54,7 +55,7 @@ geração de valor: para as quais a adoção de tecnologia da informação é fa
 frequentemente, de sobrevivência.
 
 A oportunidade consiste em capturar, no ponto em que ela ocorre, a informação que a operação já
-produz: e convertê-la em custo apurado, margem visível e previsão de disponibilidade.
+produz: e convertê-la em trabalho organizado, viveiro visível e pedido rastreável.
 
 ---
 
@@ -64,11 +65,11 @@ Derivados dos objetivos específicos do trabalho:
 
 | # | Objetivo | Verificação |
 |---|---|---|
-| **OP-1** | Estruturar o registro de produção, clientes, vendas e compras, hoje inexistente | Dados das oito rotinas persistidos e consultáveis |
-| **OP-2** | Apurar o custo unitário real por espécie e recipiente, substituindo a estimativa intuitiva | Custo calculado e conferido contra apuração manual |
-| **OP-3** | Tornar visível a margem por canal de venda, com piso mínimo que impeça venda com prejuízo | Relatório de margem com destaque para valores negativos |
-| **OP-4** | Automatizar processos comerciais recorrentes, hoje conduzidos manualmente por WhatsApp | Pedido registrado no sistema em vez de em conversa |
-| **OP-5** | Definir e disponibilizar indicadores de desempenho para monitoramento da eficiência operacional | Indicadores especificados e apresentados em painel |
+| **OP-1** | Estruturar um cadastro único de espécies, recipientes, insumos, pessoas e endereços do viveiro, hoje inexistente | Cadastro persistido e consultável, reaproveitado pela produção e pelo comercial |
+| **OP-2** | Organizar o trabalho da semana, atribuindo tarefas por pessoa, por dia e por turno | Semana montada, publicada e fechada, com o realizado distinguível do planejado |
+| **OP-3** | Registrar a leva de mudas como lote endereçado a um canteiro, com todo movimento que altera seu saldo | Saldo do lote reconstituível a partir dos seus movimentos |
+| **OP-4** | Tornar o estado do viveiro visível numa tela só, com atraso de tarefa, mortalidade e ocupação | Mapa de lotes exibindo as três leituras sobre dado real |
+| **OP-5** | Registrar o pedido no sistema, ligado ao que a produção efetivamente tem pronto | Pedido registrado exibindo, por item, o saldo disponível da espécie e do recipiente |
 
 ---
 
@@ -76,26 +77,24 @@ Derivados dos objetivos específicos do trabalho:
 
 | Perfil | Quantidade | Responsabilidades no sistema | Nível técnico | Dispositivo |
 |---|---|---|---|---|
-| **Chefia** | 1 | Vendas, aprovação de preço, finanças, entregas, decisões | Baixo | Celular e computador |
-| **Gerência** | 2 | Operação, coordenação, estoque, planejamento de produção, tarefas | Baixo a médio | Celular e computador |
-| **Colaborador** | 6 | Execução em campo: produção, perdas, separação de cargas | Baixo, sem formação técnica | Celular |
+| **Chefia** | 1 | Vendas, pedidos, parâmetros do sistema, decisões | Baixo | Celular e computador |
+| **Gerência** | 2 | Operação, coordenação, agenda da semana, lotes, planejamento de produção | Baixo a médio | Celular e computador |
+| **Administrador** | 1, acumulado pela gerência | Usuários, perfis e sessões | Médio | Computador |
 
 **A gerência ganhou o computador em 26/08/2026.** Ela registrava em campo, como todo mundo, e por
-isso constava só com celular. Ao desenhar a agenda do dia e o mapa de produção ficou claro que ela
+isso constava só com celular. Ao desenhar a agenda da semana e o mapa de lotes ficou claro que ela
 também faz uma coisa que ninguém mais faz: **olhar a equipe inteira e o viveiro inteiro de uma vez**,
 que é leitura de mesa. O registro em campo continua no celular, e é ele que RE-2 protege.
 
-**Alcance da primeira implantação.** Os usuários efetivos da primeira etapa são a **chefia e a
-gerência**: três pessoas. O uso do sistema em campo pelos colaboradores está previsto para iteração
-posterior. Os requisitos e casos de uso desse perfil permanecem especificados, porque o projeto
-antecede a implantação, mas a avaliação de usabilidade
-([`F3`](../F-ux/F3-plano-avaliacao-usabilidade.md)) tem chefia e gerência como sujeitos. A condição
-exigida pela metodologia (usuários sem formação técnica) permanece atendida: nenhum dos três a
-possui.
+**Alcance da implantação.** Os usuários do sistema são a **chefia e a gerência**: três pessoas, uma
+delas acumulando o papel técnico de administrador. Os seis colaboradores de campo **não operam o
+sistema**: o trabalho deles é planejado e registrado pela gerência, que é quem monta a agenda e
+aponta o que foi feito. A condição exigida pela metodologia (usuários sem formação técnica)
+permanece atendida: nenhum dos três a possui.
 
-**Stakeholders sem acesso ao sistema, mas com influência sobre os requisitos:** o contador da
-empresa (formato dos dados fiscais), os clientes de compensação ambiental (exigência de nota fiscal
-e de nome científico) e os órgãos ambientais (rastreabilidade de espécies nativas).
+**Stakeholders sem acesso ao sistema, mas com influência sobre os requisitos:** os colaboradores de
+campo, cujo trabalho a agenda organiza; os clientes de compensação ambiental (exigência de nome
+científico) e os órgãos ambientais (rastreabilidade de espécies nativas).
 
 **Condição do autor:** o autor do trabalho integra a gerência da empresa. A imersão no domínio é uma
 vantagem de elicitação e, simultaneamente, um risco metodológico de viés, tratado explicitamente em
@@ -105,22 +104,21 @@ vantagem de elicitação e, simultaneamente, um risco metodológico de viés, tr
 
 ## 6. Escopo: o que o sistema fará
 
-Organizado pelos **quatro módulos** do sistema, com Acesso à frente por atravessar os quatro
-([`00-mapa-de-rotinas`](../../rotinas/00-mapa-de-rotinas.md)).
+Organizado pelas **cinco áreas** do sistema, com Acesso e Configurações à frente por atravessarem as
+demais ([`00-mapa-de-rotinas`](../../rotinas/00-mapa-de-rotinas.md)).
 
-| Módulo | Entrega |
+| Área | Entrega |
 |---|---|
-| *(transversal)* **Acesso** | Autenticação, quatro perfis de acesso e controle de permissão por operação |
-| **1 · Cadastros** | Espécies, recipientes e insumos; pessoas (cliente, fornecedor e funcionário como papéis de uma identidade só), com dados fiscais de pessoa física e jurídica e cadastro rápido durante o pedido; tipos de tarefa |
-| **2 · Produção** | Registro de semeadura, repicagem e demais atividades; coleta de sementes; consumo de insumo em campo; agenda semanal de pessoal; acompanhamento do ciclo produtivo; registro de perda com causa, com alerta acima do limite de mortalidade; estoque disponível por espécie e recipiente, derivado de produção, perdas e vendas |
-| **3 · Comercial** | Pedido do registro à separação, passando por verificação de disponibilidade e aprovação; cotação e comparação de propostas de fornecedor para complementar a produção própria; calendário de entregas por carga |
-| **4 · Financeiro** *(restrito)* | Importação de extrato bancário, classificação de lançamentos, compras, custos fixos e fechamento mensal; cálculo do custo unitário por espécie e recipiente; preço por canal de venda com piso mínimo e frete incorporado; painel de indicadores por perfil |
+| *(transversal)* **Acesso** | Autenticação, três perfis de acesso, sessões ativas e controle de permissão por operação |
+| *(transversal)* **Configurações do sistema** | Período de trabalho padrão do viveiro e os parâmetros que o mapa de lotes lê: limites de atraso e limite de mortalidade |
+| **1 · Cadastro único** | Espécies, com nomes populares e foto; recipientes; insumos; pessoas (cliente, fornecedor e funcionário como papéis de uma identidade só), com cadastro rápido durante o pedido; tipos de tarefa; áreas e canteiros; protocolos de atividade por espécie e recipiente |
+| **2 · Produção** | Agenda semanal de pessoal, com rascunho, publicação e fechamento; lotes endereçados a canteiro, com semeadura, repicagem, transferência, perda, ajuste e venda; etapas do protocolo que o lote deve cumprir; mapa de lotes com atraso de tarefa, mortalidade e ocupação |
+| **3 · Comercial** | Cadastro de pedidos, com cliente, canal de venda e itens de espécie, recipiente, quantidade e preço, exibindo o saldo que a produção tem pronto |
 
-**A ordem de construção não é a da tabela.** Ela reflete dependência, e a dependência aponta
-para trás: o custo unitário é fundacional para preço e margem, mas ele próprio depende do
-consumo e das horas registrados na Produção, e do custo fixo real vindo do extrato. O
-encadeamento por projeto está em
-[`docs/contexto-projeto.md`](../../contexto-projeto.md).
+**A interconexão é o argumento do sistema.** O que se cadastra na área 1 é o que a Produção usa para
+montar tarefa e criar lote, e é o que o Comercial usa para montar pedido. O que a Produção registra
+como pronto é o que o Comercial consegue vender. Nenhuma das três áreas se sustenta sozinha, e é
+essa dependência que o modelo de dados materializa.
 
 ---
 
@@ -130,10 +128,8 @@ Delimitação deliberada. Cada exclusão tem motivo declarado.
 
 | Fora do escopo | Motivo |
 |---|---|
-| **Emissão de nota fiscal** | Permanece no sistema fiscal externo já em uso. O sistema registra a necessidade de emissão e o número da nota, mas não gera o documento, emissão fiscal exige certificação e homologação fora do alcance de um protótipo. |
-| **Contabilidade** | Não substitui o contador nem gera obrigação acessória. O módulo financeiro é gerencial, não contábil. |
-| **Folha de pagamento e gestão de pessoal** | Fora do problema de pesquisa. |
-| **Reconstituição do histórico financeiro anterior a 2026** | O sistema parte de um marco zero. Dados anteriores servem a análise de tendência, não a conciliação. |
+| **Emissão de nota fiscal** | Permanece no sistema fiscal externo já em uso. Emissão fiscal exige certificação e homologação fora do alcance de um protótipo. |
+| **Folha de pagamento e gestão de pessoal** | Fora do problema de pesquisa. A pessoa entra no sistema como quem executa tarefa, não como vínculo empregatício a administrar. |
 | **Rastreamento individual da muda** | Cada muda com identidade própria exigiria etiqueta e leitura unitária, incompatível com a operação. O rastreamento vai até o **lote**, a leva plantada junta num canteiro, e para aí. |
 | **Venda direta ao consumidor final (comércio eletrônico)** | Depende de catálogo, meio de pagamento e logística de varejo. Previsto como evolução, não como entrega do protótipo. |
 | **Integração automática com o WhatsApp para fechar pedidos sem intervenção humana** | A negociação por WhatsApp é conduzida por pessoa e assim permanece. O sistema recebe o pedido já negociado. |
@@ -168,11 +164,10 @@ Condições assumidas como verdadeiras. Se alguma se mostrar falsa, o escopo pre
 
 | # | Premissa |
 |---|---|
-| **PR-1** | A equipe fornecerá os dados primários necessários, catálogo de espécies, mapa de recipientes, consumo de insumos, tempos de produção e custos fixos. Sem eles, o sistema funciona vazio. |
+| **PR-1** | A equipe fornecerá os dados primários necessários, catálogo de espécies, mapa de recipientes, áreas e canteiros do viveiro e protocolos por espécie. Sem eles, o sistema funciona vazio. |
 | **PR-2** | Os usuários dispõem de celular com navegador atualizado e acesso à internet, ainda que instável. |
-| **PR-3** | A chefia manterá a rotina de classificação financeira semanal e o fechamento mensal. |
-| **PR-4** | A negociação comercial continuará ocorrendo por WhatsApp, com registro posterior no sistema. |
-| **PR-5** | O extrato bancário estará disponível para exportação nos formatos oferecidos pelas instituições. |
+| **PR-3** | A negociação comercial continuará ocorrendo por WhatsApp, com registro posterior no sistema. |
+| **PR-4** | A gerência montará a agenda da semana no sistema antes de a semana começar, e a fechará ao final. É dela que sai todo o registro de trabalho. |
 
 ---
 
@@ -188,8 +183,7 @@ Limites impostos ao projeto, não escolhidos por ele.
 | **RE-4** | Uso com as mãos sujas, sob sol e chuva | Ambiente físico | Alvos de toque grandes, contraste alto, resposta visual imediata a cada ação |
 | **RE-5** | Orçamento de microempresa | Porte da organização | Adoção de serviços de custo baixo ou nulo; sem licenças proprietárias |
 | **RE-6** | Prazo até novembro de 2026 | Calendário acadêmico | Escopo entregue de forma incremental, com projetos priorizados por dependência |
-| **RE-7** | Base financeira mistura gasto de negócio e gasto pessoal | Histórico da empresa | Acesso à base bancária restrito à chefia: o que dela deriva (custo, preço, indicador) a gerência lê; separação por centro de custo é pré-requisito de qualquer indicador |
-| **RE-8** | Dados pessoais de clientes sujeitos à legislação de proteção de dados | Legal | Tratamento mapeado, acesso controlado e retenção definida |
+| **RE-7** | Dados pessoais de clientes e de funcionários sujeitos à legislação de proteção de dados | Legal | Tratamento mapeado, acesso controlado e retenção definida |
 
 ---
 
@@ -200,22 +194,22 @@ Verificáveis. O detalhamento de cada verificação está em
 
 | # | Critério | Como se verifica |
 |---|---|---|
-| **CS-1** | Custo unitário apurado para o conjunto inicial de espécies | Comparação do valor calculado pelo sistema com apuração manual independente |
-| **CS-2** | Margem por canal visível, com margens negativas destacadas | Relatório de margem exibindo ao menos um caso real de margem negativa antes desconhecido |
-| **CS-3** | Registro em campo executável por colaborador sem treinamento formal | Colaborador conclui o registro de uma perda sem auxílio, em observação assistida |
+| **CS-1** | O cadastro único alimenta as três áreas sem redigitação | Uma espécie cadastrada uma vez aparece na tarefa, no lote e no item de pedido |
+| **CS-2** | A semana de trabalho percorre o ciclo completo dentro do sistema | Semana montada, publicada, apontada e fechada, com o realizado distinguível do planejado |
+| **CS-3** | Registro de perda do lote executável sem treinamento formal | A gerência conclui o registro de uma perda sem auxílio, em observação assistida |
 | **CS-4** | Dados persistem e sobrevivem a falha de conexão | Registro feito sem rede aparece no sistema após reconexão |
-| **CS-5** | Pedido percorre o ciclo completo dentro do sistema | Um pedido real vai de registro a entrega sem sair para planilha ou papel |
-| **CS-6** | Indicadores definidos e apresentados sobre dado real | Painel exibe os indicadores especificados em [`G2`](../G-gestao/G2-fichas-de-indicadores.md) |
+| **CS-5** | O saldo do lote é reconstituível | A soma dos movimentos do lote reproduz o saldo exibido, sem divergência |
+| **CS-6** | O mapa de lotes responde às três perguntas sobre dado real | Tela exibe atraso de tarefa, mortalidade acima do limite e ocupação dos canteiros |
 | **CS-7** | Usabilidade avaliada segundo os cinco atributos de Nielsen | Aplicação do instrumento definido em [`F3`](../F-ux/F3-plano-avaliacao-usabilidade.md) |
 
 ---
 
 ## 11. Visão do produto em uma frase
 
-> Para a **chefia, a gerência e os colaboradores do Viveiro Mudar**, que hoje operam sem qualquer
-> registro estruturado de produção, custo e venda, o **sistema de gestão do viveiro** é uma
+> Para a **chefia e a gerência do Viveiro Mudar**, que hoje operam sem qualquer registro estruturado
+> do trabalho, do que está plantado e do que foi vendido, o **sistema de gestão do viveiro** é uma
 > aplicação web de uso móvel que **captura a informação no ponto em que ela é gerada** e a converte
-> em custo apurado, margem visível e previsão de disponibilidade.
+> em trabalho organizado, viveiro visível e pedido rastreável.
 > Diferentemente da **planilha de notas fiscais hoje utilizada**, que registra o passado em campos
 > genéricos e depende de digitação, o sistema **é alimentado pela própria rotina de trabalho** e
 > devolve à operação a informação de que ela precisa para decidir.
