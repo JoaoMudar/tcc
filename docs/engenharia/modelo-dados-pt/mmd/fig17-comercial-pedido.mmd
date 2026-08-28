@@ -1,0 +1,31 @@
+erDiagram
+  pedidos {
+    uuid   id PK
+    serial numero_pedido UK
+    uuid   cliente_id FK
+    text   canal_venda
+    text   situacao
+    date   data_entrega
+    text   observacoes
+    uuid   criado_por FK
+  }
+  pedidos_itens {
+    uuid    id PK
+    uuid    pedido_id FK
+    uuid    especie_id FK
+    uuid    recipiente_id FK
+    int     quantidade
+    numeric preco_unitario
+  }
+  pessoas {}
+  especies {}
+  recipientes {}
+  usuarios {}
+  lotes {}
+
+  pedidos ||--o{ pedidos_itens : "compoe-se de"
+  pessoas ||--o{ pedidos       : "faz como cliente"
+  usuarios||--o{ pedidos       : "registra"
+  especies    ||--o{ pedidos_itens : "e vendida em"
+  recipientes ||--o{ pedidos_itens : "define porte de"
+  lotes       ||--o{ pedidos_itens : "da saldo a"

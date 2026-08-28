@@ -27,15 +27,7 @@ erDiagram
     text ip
     text agente_usuario
   }
-  notificacoes {
-    uuid id PK
-    uuid usuario_id FK
-    text tipo
-    text titulo
-    text mensagem
-    boolean lida
-  }
-  configuracoes {
+  parametros {
     uuid id PK
     text chave UK
     text valor
@@ -44,11 +36,9 @@ erDiagram
     timestamptz atualizado_em
     uuid atualizado_por FK
   }
-  pessoas {
-  }
+  pessoas {}
 
-  usuarios ||--o{ sessoes       : "mantém"
+  usuarios ||--o{ sessoes       : "mantem"
   usuarios ||--o{ eventos_login : "gera"
-  usuarios ||--o{ notificacoes  : "recebe"
+  usuarios ||--o{ parametros    : "ajusta"
   pessoas  ||--o| usuarios      : "pode ter login"
-  usuarios ||--o{ configuracoes : "ajusta"

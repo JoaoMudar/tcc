@@ -1,0 +1,43 @@
+erDiagram
+  lotes {
+    uuid        id PK
+    text        codigo UK
+    uuid        especie_id FK
+    uuid        recipiente_id FK
+    uuid        canteiro_id FK
+    uuid        lote_origem_id FK
+    uuid        protocolo_id FK
+    int         quantidade_inicial
+    int         quantidade_atual
+    text        fase
+    date        data_plantio
+    int         posicao
+    timestamptz encerrado_em
+    text        motivo_encerramento
+  }
+  movimentos_lote {
+    uuid id PK
+    uuid lote_id FK
+    enum tipo_movimento
+    int  quantidade
+    date data_movimento
+    uuid canteiro_origem_id FK
+    uuid canteiro_destino_id FK
+    text causa_perda
+    uuid atribuicao_id FK
+    uuid registrado_por FK
+    text observacoes
+  }
+  especies {}
+  recipientes {}
+  canteiros {}
+  usuarios {}
+  atribuicoes {}
+
+  lotes ||--o{ movimentos_lote : "e explicado por"
+  lotes ||--o{ lotes           : "da origem a"
+  especies    ||--o{ lotes : "e plantada em"
+  recipientes ||--o{ lotes : "define o porte de"
+  canteiros   ||--o{ lotes : "abriga"
+  usuarios    ||--o{ movimentos_lote : "registra"
+  atribuicoes ||--o| movimentos_lote : "produz"

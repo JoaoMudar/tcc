@@ -1,0 +1,16 @@
+erDiagram
+  lotes_etapas {
+    uuid id PK
+    uuid lote_id FK
+    uuid protocolo_etapa_id FK
+    date ultima_execucao_em
+    date vence_em
+    enum situacao
+  }
+  lotes {}
+  protocolos_etapas {}
+  atribuicoes {}
+
+  lotes             ||--o{ lotes_etapas : "percorre"
+  protocolos_etapas ||--o{ lotes_etapas : "materializa-se em"
+  lotes_etapas      ||--o| atribuicoes  : "gera ordem de"

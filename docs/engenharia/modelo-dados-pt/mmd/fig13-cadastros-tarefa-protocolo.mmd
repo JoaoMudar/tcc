@@ -1,0 +1,50 @@
+erDiagram
+  tipos_tarefa {
+    uuid    id PK
+    text    nome UK
+    text    categoria
+    boolean e_quantitativa
+    boolean exige_lote
+    boolean exige_especie
+    boolean exige_recipiente
+    boolean ativo
+  }
+  protocolos {
+    uuid    id PK
+    uuid    recipiente_id FK
+    text    nome
+    boolean ativo
+  }
+  protocolos_etapas {
+    uuid    id PK
+    uuid    protocolo_id FK
+    uuid    tipo_tarefa_id FK
+    text    rotulo
+    int     posicao
+    enum    tipo_agendamento
+    int     dias
+    int     intervalo_dias
+    uuid    etapa_ancora_id FK
+    boolean alerta_ligado
+    numeric janela_aviso_pct
+    text    fase_resultante
+  }
+  especies_protocolos_tempos {
+    uuid id PK
+    uuid especie_id FK
+    uuid protocolo_etapa_id FK
+    int  dias
+  }
+  recipientes {}
+  especies {}
+  atribuicoes {}
+  lotes_etapas {}
+
+  recipientes ||--o| protocolos        : "define o manejo de"
+  protocolos  ||--o{ protocolos_etapas : "compoe-se de"
+  protocolos_etapas ||--o{ protocolos_etapas : "e ancora de"
+  tipos_tarefa ||--o{ protocolos_etapas : "e executada em"
+  tipos_tarefa ||--o{ atribuicoes       : "classifica"
+  especies    ||--o{ especies_protocolos_tempos : "customiza o tempo de"
+  protocolos_etapas ||--o{ especies_protocolos_tempos : "tem tempo sobrescrito em"
+  protocolos_etapas ||--o{ lotes_etapas : "materializa-se em"

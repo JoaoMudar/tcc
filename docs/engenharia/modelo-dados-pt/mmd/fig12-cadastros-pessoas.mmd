@@ -1,76 +1,34 @@
 erDiagram
   pessoas {
-    uuid id PK
-    text tipo
-    text documento
-    text nome
-    text razao_social
-    text nome_fantasia
-    text email
-    text telefone
-    text whatsapp
-    bool ativo
+    uuid    id PK
+    enum    tipo
+    text    nome
+    text    documento UK
+    text    telefone
+    text    email
+    boolean ativa
   }
   pessoas_papeis {
-    uuid pessoa_id FK
-    text papel
+    uuid    pessoa_id PK
+    enum    papel PK
+    text    tipo_vinculo
+    boolean ativo
   }
-  enderecos {
+  pessoas_enderecos {
     uuid id PK
     uuid pessoa_id FK
-    text rotulo
-    text cep
+    enum tipo
     text logradouro
-    text numero
     text cidade
-    text uf
-    numeric lat
-    numeric lng
-    bool e_principal
-  }
-  clientes {
-    uuid id PK
-    uuid pessoa_id FK
-    text nome
-    text telefone
-    text tipo_pessoa
-    text documento UK
-    text razao_social
-    text inscricao_estadual
+    char uf
     text cep
-    text cidade
-    text uf
   }
-  fornecedores {
-    uuid id PK
-    uuid pessoa_id FK
-    text nome
-    text nome_contato
-    text whatsapp
-    text cidade
-    text uf
-    smallint nota_confiabilidade
-    text situacao
-    numeric lat
-    numeric lng
-    timestamptz geocodificado_em
-  }
-  fornecedores_especies {
-    uuid id PK
-    uuid fornecedor_id FK
-    uuid especie_id FK
-    text porte
-    text recipiente
-    numeric preco_unitario
-    int quantidade_minima
-    text disponibilidade
-  }
-  especies {
-  }
+  usuarios {}
+  pedidos {}
+  atribuicoes_participantes {}
 
-  pessoas      ||--o{ pessoas_papeis        : "acumula"
-  pessoas      ||--o{ enderecos             : "tem"
-  pessoas      ||--o| clientes              : "é, no papel de cliente"
-  pessoas      ||--o| fornecedores          : "é, no papel de fornecedor"
-  fornecedores ||--o{ fornecedores_especies : "oferece"
-  especies     ||--o{ fornecedores_especies : "é ofertada em"
+  pessoas ||--o{ pessoas_papeis    : "exerce"
+  pessoas ||--o{ pessoas_enderecos : "reside em"
+  pessoas ||--o| usuarios          : "pode ter login"
+  pessoas ||--o{ pedidos           : "faz como cliente"
+  pessoas ||--o{ atribuicoes_participantes : "executa"
