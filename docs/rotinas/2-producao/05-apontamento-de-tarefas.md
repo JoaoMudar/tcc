@@ -1,0 +1,318 @@
+# Subrotina: Apontamento de tarefas
+
+> Onde se registra **o que cada funcionário está fazendo agora e quanto tempo levou**. É a metade
+> de execução da [agenda de pessoal](01-agenda-de-pessoal.md), que cuida do planejamento. Ver
+> [`00-visao-geral.md`](00-visao-geral.md).
+
+## A ideia em 1 frase
+
+**Uma pessoa coordena a equipe inteira de um aparelho só**, tocando na faixa de quem trocou de
+serviço.
+
+## Situação atual
+
+O dia começa com o plano da manhã e termina diferente dele. Chega uma carga de terra e três
+pessoas param o que estavam fazendo para descarregar; o irrigador quebra e a irrigação vira
+conserto; a repicagem termina antes da hora e sobra meio turno.
+
+Nada disso fica registrado. No fim do mês existe o que foi **planejado**, e a diferença entre
+isso e o que aconteceu é exatamente o que ninguém sabe medir.
+
+## As 6 decisões de desenho
+
+### 1. Quem aponta é quem coordena, não quem executa
+
+O funcionário **não** registra a própria entrada e saída. Quem toca no botão é a Débora, ou quem
+estiver coordenando, na faixa da pessoa.
+
+> **Por que não o próprio funcionário.** Seria controle de ponto, e o
+> [`B2` §4](../../engenharia/B-requisitos/B2-especificacao-requisitos.md) descartou isso ao
+> resolver o conflito entre precisão do custo e esforço de apuração. Nove pessoas registrando a
+> própria hora muda a relação da equipe com o app: ele deixa de ser onde se vê a tarefa do dia e
+> vira onde se é vigiado. Um aparelho coordenando o dia é a mesma informação sem esse custo.
+
+### 2. Começar uma tarefa encerra a anterior
+
+Uma pessoa faz uma tarefa por vez. Tocar em "começar" numa tarefa nova **fecha a que estava
+aberta**, na hora, sem perguntar nada.
+
+> **Por que sem confirmação.** O gesto de começar outra tarefa já declara que saiu da anterior.
+> Perguntar "deseja encerrar a tarefa atual?" acrescentaria um toque a algo que se repete dezenas
+> de vezes por dia, para confirmar o que o próprio gesto disse. A alternativa oposta, exigir que
+> se encerre antes de começar, produziria tarefas eternamente abertas justamente nos dias corridos,
+> que são os dias em que a troca acontece.
+
+**O banco garante isso, não a tela.** Duas telas abertas ao mesmo tempo burlariam uma validação de
+interface, e dois apontamentos abertos contariam a mesma hora duas vezes, inflando o custo de mão
+de obra: que é o número que o sistema existe para apurar.
+
+### 3. Toda tarefa mede tempo; algumas medem também quantidade
+
+O relógio corre em toda tarefa, porque início e fim existem sempre. O que muda é se, **além**
+disso, se pergunta quanto foi feito:
+
+| Tipo de tarefa | O encerramento pergunta | Exemplos |
+|---|---|---|
+| **não quantitativa** | nada | irrigação, adubação, fazer substrato, carregar |
+| **quantitativa por unidade** | quantos cada um fez | encher saquinho, plantar no tubete, repicar, classificar |
+
+É a pergunta que o viveiro já faz: **"quantos você fez hoje?"**, que só tem sentido junto com
+"em quanto tempo". Quem declara isso é o catálogo de tipos de tarefa, nos Cadastros, com um
+booleano só: "é quantitativa por unidade".
+
+**Qual unidade se conta não precisa ser declarada.** Antes o catálogo distinguia "por saco" de
+"por tubete", mas o recipiente já vem do lote e do próprio nome da tarefa: "Encher tubete" não
+conta sacos. Duas listas dizendo a mesma coisa acabam divergindo.
+
+**A contagem é de cada pessoa.** Quatro pessoas na mesma tarefa produzem quatro números, e não um
+total dividido por quatro: o que liga a tarefa ao custo é quanto se faz por hora, e um total
+rateado inventaria um rendimento que ninguém teve.
+
+**Deixar em branco é aceito**, com o apontamento marcado como sem contagem. Hora sem contagem vale
+mais do que nenhum registro.
+
+### 4. O dia termina explicitamente
+
+Há um botão "encerrar o dia" na faixa. Sem ele, um apontamento esquecido aberto produziria
+jornada de dezoito horas e custo de mão de obra falso: por isso apontamento aberto **não conta
+hora além do fim do turno**.
+
+Encerrar por engano é comum, e reabrir o dia é um toque: recusar seria garantir que o resto do
+dia não fosse registrado.
+
+### 5. O relógio é o caminho normal, e o horário digitado é o remendo
+
+Quem coordena está no campo, e nem sempre aponta na hora. Às onze, lembra que a repicagem começou
+às sete. Por isso o lançamento tem dois botões:
+
+```
+  [ Iniciar agora ]        [ Escolher horário ]
+```
+
+**"Iniciar agora" pega a hora do relógio** e é o gesto de todo dia. **"Escolher horário" pede
+início e fim** e serve para o que já aconteceu: sem ele, o lançamento das onze mentiria em quatro
+horas.
+
+> **O que o horário digitado trouxe junto.** Enquanto tudo nascia do relógio, bastava impedir dois
+> apontamentos **abertos** para a mesma pessoa. Com horário digitado dá para gravar 7h-11h e
+> 9h-12h para o mesmo funcionário: duas linhas legítimas, cada uma com fim, somando quatro horas
+> que ninguém trabalhou. **O sistema recusa intervalos que se cruzam**, e a garantia é do banco,
+> não da tela.
+
+**E a recusa precisa ter para onde ir.** O registro feito sem rede entra numa fila que reenvia
+sozinha quando a conexão volta; se aquele reenvio for recusado por cruzar com outro apontamento, a
+fila não pode ficar tentando para sempre. O recusado vai para uma **lista de pendências**, e quem
+coordena resolve escolhendo qual dos dois horários vale. Fila que trava num item para de enviar o
+resto, e aí o dia inteiro se perde por causa de um lançamento.
+
+**E dá para lançar a mesma tarefa para vários de uma vez.** Três pessoas descarregaram a carga de
+terra: escolhe-se a tarefa, marcam-se os três, e sai um apontamento para cada um. Abrir três
+faixas para registrar o mesmo fato é o tipo de repetição que faz o registro parar de acontecer.
+
+### 6. É tela de mesa, e a escala é de quem olha
+
+Esta tela e o [mapa de produção](04-lotes-e-canteiros.md) são as duas únicas do sistema
+**concebidas para computador**. Todo o resto nasceu para o celular, e continua lá.
+
+> **Por que a exceção.** Estas duas telas não registram nada: elas **comparam**. Nove faixas ao
+> longo de um dia existem para que se enxergue o buraco, e o buraco só aparece quando o dia inteiro
+> está na tela de uma vez. Espremer isso na largura de um celular não encolhe a tela, desfaz a
+> comparação. E quem opera não está com a mão suja: está sentado, de manhã, montando o dia.
+
+**No celular as duas viram lista**, e não o mesmo desenho apertado: uma linha por pessoa, com a
+tarefa de agora e o botão de apontar. É o que serve para tocar quando alguém troca de serviço no
+meio do pátio, e é tudo o que se faz de pé. Nada de rolagem horizontal.
+
+**A escala muda, a tela não.** Dia, semana e mês são a mesma agenda vista de mais perto ou de mais
+longe. O que muda é a unidade da barra:
+
+| Escala | Unidade da barra | Para que serve |
+|---|---|---|
+| **Dia** | hora | apontar: quem está fazendo o quê agora, e desde quando |
+| **Semana** | turno (manhã / tarde) | planejar: é a grade da segunda de manhã |
+| **Mês** | dia | conferir: onde a semana repetida deixou de repetir |
+
+```
+Semana de 10/08 a 15/08          [ Dia | Semana | Mês ]
+
+            SEG     TER     QUA     QUI     SEX     SÁB
+Rogério   ██████  ██████  ███░░░  ██████  ███░░░  ███░░░
+Amélia    ██████  ███░░░  ███░░░  ██████  ███░░░
+Jaison    ███░░░  ██████  ███░░░  ░░░███  ██████
+
+          ██████ manhã e tarde    ███░░░ só a manhã    ░░░███ só a tarde
+```
+
+> **Por que não três telas.** A grade da semana e a linha do tempo do dia são o mesmo desenho:
+> linhas são pessoas, o eixo horizontal é o tempo. Manter duas rotas para isso garantiria que uma
+> das duas ficasse para trás: uma ganharia o filtro por pessoa, a outra não, e em dois meses a
+> equipe estaria usando só uma. O botão de escala custa uma linha na tela e resolve o mesmo.
+
+> **E por que o mês existe.** Porque a pergunta que ninguém consegue responder hoje não é do dia,
+> é do mês: *a irrigação de segunda a sábado aconteceu todas as semanas?* No dia isso não se vê, e
+> na semana se vê uma de cada vez.
+
+## As telas
+
+### Gerência: agenda do dia (tela principal)
+
+É a **primeira aba da tela inicial da Produção**, e a segunda é o mapa
+([`04`](04-lotes-e-canteiros.md)).
+
+```
+Segunda, 10 de agosto            [ Dia | Semana | Mês ]          ⏱ 09:42
+
+           06h   07h   08h   09h   10h   11h   12h   13h   14h
+Rogério          ├── Repicagem · A-3 ────────┤
+Amélia           ├── Repicagem · A-3 ────────┤
+Jaison     ├─ Irrigação ─┤   ├── Carregar · Ped. #124 ──▸
+Mathias    (sem tarefa)
+
+■ em curso   ■ concluído   □ planejado, não iniciado
+
+                                    [+ Atividade para vários funcionários]
+                                    [+ Tarefa recorrente]
+```
+
+**Uma faixa por pessoa, e a barra ocupa o tempo que a tarefa levou.** É o cartão esticado sobre o
+dia: mostra o que a pessoa faz agora, desde quando, o que veio antes, e **onde ficou o buraco**. O
+buraco é a informação que o cartão não tinha como dar, e é a que se procura antes de o mês fechar.
+
+Jaison estava escalado para irrigação e está carregando: a faixa mostra o que ele **faz**, e
+sinaliza que não é o planejado. **O planejado não é alterado**: a comparação entre um e outro é
+justamente o que se quer enxergar no fim do mês.
+
+Tocar na faixa de alguém abre o lançamento ali mesmo, sem sair da tela.
+
+**Os dois botões de baixo são os lançamentos que não são de uma pessoa só.** Tarefa para vários e
+tarefa recorrente se lançam olhando o dia inteiro, e não a faixa de alguém: por isso ficam abaixo da
+grade, e não dentro dela. Esconder as duas atrás de um menu faria o gesto normal do viveiro, metade
+da equipe numa tarefa e metade em outra, custar mais toques do que o excepcional.
+
+### Começar uma tarefa: o que a tela pergunta
+
+```
+Rogério · começar tarefa
+
+  Tipo de tarefa      [ Repicar                    ▾ ]   ← planejadas para o turno vêm primeiro
+
+  Lote                [ A-3 · Ipê-amarelo · tubete ▾ ]   ← só aparece porque "Repicar" exige lote
+
+  [ Iniciar agora ]   [ Escolher horário ]
+```
+
+Se o tipo de tarefa fosse "Irrigação", a segunda linha seria **Área**, e não Lote. **O catálogo
+comanda o formulário**, e a tela não sabe nada por conta própria: tarefa que exige lote pede o
+lote, que já traz o canteiro; tarefa que não exige pede **onde foi feita**, porque irrigação sem
+lugar é registro que não serve para nada depois.
+
+### Encerrar: o que a tela pergunta
+
+```
+Repicar · manhã · 3 pessoas
+07:15 → 11:30   ·   4h15
+
+  Lote                [ A-3 · ipê-amarelo · tubete ▾ ]   ← só porque "Repicar" tem lote específico
+
+  Quantos cada um fez?                                   ← só porque "Repicar" é quantitativa
+     Rogério         [  420  ]
+     Débora          [  380  ]
+     Marcos          [  355  ]
+
+  Para onde foram as mudas?              ← só porque "Repicar" movimenta lote
+     Recipiente  [ saco 10x18 ▾ ]
+     Canteiro    [ B-1 (livre) ▾ ]
+     Morreram    [  20  ]  causa [ manuseio ▾ ]
+
+  ▸ Insumos usados        (opcional)
+  ▸ Gasto extra           (opcional)
+
+  [ Encerrar ]
+```
+
+Encerrar uma repicagem é o caso mais pesado da tela, e mesmo ele cabe numa página: os dois
+últimos blocos vêm fechados, e a maioria das tarefas não abre nenhum.
+
+**O lote é pedido uma vez, e a quantidade uma vez por pessoa.** É a diferença entre o que pertence
+à tarefa e o que pertence a quem a executou. O canteiro não é perguntado: vem do lote escolhido.
+
+**Há dois encerramentos, e este é o do grupo.** O outro é o da faixa individual, quando alguém
+sai de um serviço e começa outro no meio do turno: ali fecha-se uma pessoa só. O do grupo fecha
+todos de uma vez, que é como a manhã inteira de uma equipe normalmente termina.
+
+## Insumos e gastos
+
+**O insumo sai do estoque no mesmo gesto do apontamento.** Baixa em momento separado é baixa que
+não acontece, e foi assim que o consumo deixou de ser conhecido até aqui.
+
+**O saldo de insumo é derivado**: entradas menos consumo. Não existe campo de saldo, pelo mesmo
+motivo que não existe para muda.
+
+**Saldo negativo é gravado e sinalizado, não recusado.**
+
+> **Por que aqui o sistema não recusa, e no lote recusa.** O saldo do lote é apurado pelo próprio
+> sistema desde a entrada: negativo ali é contradição interna. O saldo de insumo depende de toda
+> compra ter sido lançada, e o histórico do viveiro diz que nem toda foi. Recusar o consumo real
+> por causa de uma compra não lançada faria o campo parar de registrar consumo, que é o dado mais
+> caro de obter. **O negativo aqui é o alerta** de que falta lançar compra.
+
+**Gasto extra é custo direto do lote**, não custo fixo rateado: quem pagou por ele foi aquela
+leva. E **não aparece na tela do colaborador**: valor em reais não se mostra a quem executa.
+
+## Do relógio ao custo
+
+```
+horas apontadas (fim − início)          quando houve apontamento
+turnos planejados × duração do turno    quando não houve, marcado como não confirmado
+                    ↓
+horas  ×  valor-hora médio da equipe  =  custo de mão de obra
+```
+
+**Mede quando há medida, estima quando não há, e diz qual é qual.** O valor-hora continua sendo
+médio da equipe: o apontamento mede o tempo da **tarefa**, não o rendimento da **pessoa**, e é
+essa distinção que mantém a ferramenta sendo de planejamento e não de avaliação.
+
+## Regras invioláveis
+
+1. **Uma pessoa faz uma tarefa por vez.** Começar outra encerra a anterior, sem perguntar.
+2. **Dois apontamentos abertos para a mesma pessoa é impossível**, e a garantia é do banco.
+3. **O dia termina explicitamente**; apontamento aberto não conta hora além do fim do turno.
+4. **Tarefa com lote específico exige o lote no encerramento**, e o canteiro vem dele.
+5. **A quantidade só é pedida quando a tarefa for quantitativa por unidade**, e nunca é obrigatória.
+6. **A quantidade é de cada participante**, e não da tarefa: quatro pessoas, quatro números.
+7. **O planejado não é reescrito pelo realizado.** Os dois convivem, e a diferença é informação.
+8. **Valor em reais não aparece para o colaborador.**
+9. **Dois apontamentos da mesma pessoa não se cruzam no tempo**, nem os abertos nem os já
+   encerrados. Hora contada em dobro corrompe o custo em silêncio.
+
+## Dependências com outras rotinas
+
+| Rotina | Relação |
+|---|---|
+| **Agenda de pessoal** | fornece o planejado do dia e o grupo escalado |
+| **Lotes e canteiros** | o lote é escolhido aqui, e a repicagem cria lote de dentro do encerramento |
+| **Cadastros** | tipo de tarefa, período de trabalho, insumo, espécie e recipiente |
+| **Perdas** | a perda da repicagem é registrada no mesmo gesto |
+| **Custeio (P1)** | horas e gastos apontados viram custo de mão de obra por espécie e por lote |
+| **Financeiro** | o gasto extra classificado por centro de custo |
+
+## O que isso destrava
+
+| Destrava | Como |
+|---|---|
+| **Custo de mão de obra real** | hora medida, e não estimada pelo turno, nos dias em que se apontou |
+| **Planejado × realizado** | a diferença entre a agenda e o dia vira número, pela primeira vez |
+| **Consumo de insumo conhecido** | a baixa acontece no gesto em que já se está registrando algo |
+| **Tempo médio por tarefa** | quantos tubetes por hora, por pessoa e por espécie: alimenta o próprio planejamento |
+
+## Engenharia
+
+| Artefato | O que esta rotina acrescentou |
+|---|---|
+| [`A2`](../../engenharia/A-fundacao/A2-glossario-dominio.md) | §6: Apontamento, Atribuição, Tipo de tarefa, Turno |
+| [`B3`](../../engenharia/B-requisitos/B3-regras-de-negocio.md) | RN-81 a RN-83, RN-86 a RN-89; RN-48 e RN-51 emendadas; RN-97 em 26/08/2026 |
+| [`B2`](../../engenharia/B-requisitos/B2-especificacao-requisitos.md) | §2.3.5 e §2.3.6 novas: RF-94 a RF-105; RF-109 a RF-113 em 26/08/2026; RF-137 e RF-138, e **RNF-27** com a emenda de RNF-06, na mesma data |
+| [`C1`](../../engenharia/C-modelagem/C1-diagrama-casos-de-uso.md) / [`C2`](../../engenharia/C-modelagem/C2-especificacao-casos-de-uso.md) | UC-50 a UC-53 e UC-55; UC-50 e UC-51 detalhados |
+| [`C6`](../../engenharia/C-modelagem/C6-modelo-entidade-relacionamento.md) / [`C8`](../../engenharia/C-modelagem/C8-dicionario-de-dados.md) | `task_executions`, `task_expenses`, `input_stock_entries` e a visão `input_stock_balance`; `input_usages` ganhou `task_execution_id` e `batch_id`; `task_executions` ganhou `area_id`, `bed_id` e a restrição de não sobreposição |
+| [`D4`](../../engenharia/D-arquitetura/D4-matriz-rbac.md) | recursos **Apontamento**, **Estoque de insumo** e **Gastos de tarefa**; §3.11 estendido e §3.14 |
+| [`E2`](../../engenharia/E-qualidade/E2-casos-de-teste-de-aceite.md) | TA-74 a TA-84; TA-99 a TA-101 em 26/08/2026 |

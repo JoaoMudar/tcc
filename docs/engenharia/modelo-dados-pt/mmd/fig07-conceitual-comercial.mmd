@@ -1,0 +1,20 @@
+erDiagram
+  CUSTO_PRODUCAO ||--o{ PRECO     : "é a base de"
+  ESPECIE      ||--o{ PRECO       : "é precificada em"
+  CANAL_VENDA  ||--o{ PRECO       : "aplica margem a"
+  PRECO        ||--o{ ITEM_PEDIDO : "sugere valor de"
+
+  ESPECIE      ||--o{ ITEM_PEDIDO : "é vendida em"
+  RECIPIENTE   ||--o{ ITEM_PEDIDO : "define porte de"
+  CLIENTE      ||--o{ PEDIDO      : "faz"
+  PEDIDO       ||--o{ ITEM_PEDIDO : "compõe-se de"
+  PEDIDO       ||--o{ CARGA       : "é entregue em"
+
+  ESPECIE      ||--o{ COTACAO     : "é cotada em"
+  FORNECEDOR   ||--o{ COTACAO     : "responde"
+  COTACAO      }o--o| PEDIDO      : "complementa"
+
+  USUARIO      ||--o{ PEDIDO      : "registra"
+  CONTA        ||--o{ LANCAMENTO  : "movimenta"
+  CENTRO_CUSTO ||--o{ LANCAMENTO  : "destina"
+  PEDIDO       ||--o| LANCAMENTO  : "é conciliado com"

@@ -1,0 +1,53 @@
+erDiagram
+  tipos_embalagem {
+    uuid id PK
+    text codigo UK
+    text nome
+    int ordem
+    boolean ativo
+  }
+  recipientes {
+    uuid id PK
+    text nome UK
+    uuid tipo_embalagem_id FK
+    numeric volume_litros
+    numeric substrato_por_unidade_litros
+    numeric custo_unitario
+  }
+  insumos {
+    uuid id PK
+    text nome
+    enum categoria
+    text unidade_medida
+    numeric custo_por_unidade
+    numeric quantidade_comprada
+    date data_ultima_compra
+  }
+  insumos_historico_precos {
+    uuid id PK
+    uuid insumo_id FK
+    numeric custo_por_unidade
+    timestamptz alterado_em
+  }
+  tipos_tarefa {
+    uuid id PK
+    text nome UK
+    text categoria
+    boolean quantitativa_por_unidade
+    boolean exige_lote
+    boolean exige_especie
+    boolean exige_recipiente
+    boolean ativo
+  }
+  atribuicoes {
+  }
+  protocolos {
+  }
+  etapas_protocolo {
+  }
+
+  insumos         ||--o{ insumos_historico_precos : "histórico de"
+  tipos_tarefa    ||--o{ atribuicoes              : "classifica"
+  tipos_embalagem ||--o{ recipientes              : "classifica"
+  tipos_embalagem ||--o| protocolos               : "tem protocolo vigente"
+  tipos_tarefa    ||--o{ etapas_protocolo         : "é executada em"

@@ -1,0 +1,90 @@
+%% Modulo 4 de 4. Ganhou o que antes estava espalhado: COMPRAS (a compra do
+%% insumo nasce aqui e fica disponivel para a Producao usar), CUSTOS FIXOS
+%% (vieram de /admin), CUSTEIO e PRECIFICACAO — que sao dinheiro, nao campo.
+%% Indicadores deixou de ser modulo proprio: viraram os dashboards daqui.
+%% A restricao de acesso e do RECURSO, nao da porta do modulo: fica restrito o
+%% que expoe a base bancaria; o que dela deriva (custo, preco, indicadores) a
+%% gerencia le, e sempre leu. Regra em D4 §3.2 — nao dizer "modulo restrito a
+%% chefia" aqui, que foi o que este no dizia antes de 19/08/2026.
+flowchart TB
+  BAN(["Instituições bancárias<br/>9 contas · arquivo de extrato"])
+  ACE["<b>Base bancária &mdash; só chefia e admin</b><br/>reúne gasto do viveiro e gasto pessoal<br/><i>o que dela deriva — custo, preço, indicadores —<br/>a gerência lê (D4 §3.2)</i>"]
+
+  IMP["<b>Importação de extrato</b> &mdash; mensal<br/>o arquivo entra inteiro, sem digitação"]
+  AUT["<b>Classificação automática</b><br/>aplica as regras aprendidas<br/>nas classificações dos meses anteriores"]
+  FIL["<b>Fila de lançamentos</b> &mdash; semanal<br/>só o que não foi reconhecido"]
+
+  subgraph CLA["Classificação &mdash; três toques por lançamento"]
+    direction LR
+    C1["<b>Centro de custo</b><br/>viveiro · sítio · clínica · casa · floricultura"]
+    C2["<b>Categoria</b><br/>35 categorias em 14 grupos"]
+    C3["<b>Contraparte</b><br/>com quem foi o dinheiro &mdash; uma <i>party</i> do cadastro"]
+    C1 ~~~ C2 ~~~ C3
+  end
+
+  DAT["<b>Duas datas por lançamento</b><br/>caixa: quando o dinheiro saiu<br/>competência: a que mês pertence"]
+  REG["<b>Nova regra</b><br/>cada classificação vira regra<br/>e encurta a fila do mês seguinte"]
+
+  FEC["<b>Fechamento mensal</b><br/>saldo calculado &times; saldo do extrato<br/>conferido e travado"]
+
+  CPR["<b>Compras</b> &mdash; lançamento na origem<br/>nota de insumo e de mudas de terceiros<br/><i>o extrato diz R$3.400 para Agro Comercial;<br/>a nota diz 40 sacos a R$85</i>"]
+  CFX["<b>Custos fixos</b><br/>energia · folha · contabilidade · combustível<br/>hoje digitados; passam a vir do mês fechado"]
+
+  subgraph PRECO["Do custo ao preço"]
+    direction LR
+    CUS["<b>Custeio por espécie</b><br/>insumo + mão de obra + fixo rateado<br/>custo unitário por espécie e recipiente"]
+    PRE["<b>Precificação</b><br/>custo + margem por canal<br/>piso mínimo · frete por quilômetro"]
+    CUS --> PRE
+  end
+
+  DSH["<b>Dashboards</b><br/>faturamento por período, cliente e canal<br/>margem por espécie · painel por perfil<br/><i>apenas sobre mês fechado</i>"]
+
+  NF["<b>Nota fiscal</b><br/>emitida no sistema fiscal externo<br/>o sistema registra apenas o número"]
+  PRO["<b>2 · Produção</b><br/>consumo de insumos · horas da agenda"]
+  COM["<b>3 · Comercial</b><br/>vendas · compra de fornecedor"]
+
+  ACE -.-> IMP
+  BAN --> IMP --> AUT --> FIL --> C1
+  C3 --> DAT
+  C3 --> REG
+  DAT --> FEC
+
+  CPR --> FEC
+  FEC ==> CFX
+  CFX ==> CUS
+  CPR ==>|"custo real do insumo"| CUS
+  PRO ==>|"quanto se consumiu · horas &times; valor-hora"| CUS
+  CPR ==>|"compra disponível para uso"| PRO
+  PRE ==>|"preço por canal na aprovação"| COM
+  COM --> FIL
+  COM --> NF
+  FEC --> DSH
+  PRE --> DSH
+
+  subgraph LEG["Legenda"]
+    direction LR
+    L1["implementado no protótipo"]
+    L2["parcialmente implementado"]
+    L3["especificado, não implementado"]
+    L1 ~~~ L2 ~~~ L3
+  end
+  DSH ~~~ LEG
+
+  %% Paleta de STATUS — a fonte e colorida de proposito; o PNG sai em cinza.
+  %% Quem troca a cor pelo cinza e `npm run docs:mapas` (scripts/render-mapas.mjs).
+  %% Criterio: ok = toda etapa do modulo tem tela · meio = parte tem · falta = nenhuma tem.
+  classDef ok fill:#dcfce7,stroke:#16a34a,stroke-width:2px,color:#111
+  classDef meio fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#111
+  classDef falta fill:#fee2e2,stroke:#dc2626,stroke-width:2px,color:#111
+  classDef grupo fill:#f8fafc,stroke:#cbd5e1,stroke-width:1px,color:#334155
+  classDef ator fill:#374151,stroke:#111827,stroke-width:2px,color:#f9fafb
+  classDef decisao fill:#e2e8f0,stroke:#475569,stroke-width:2px,color:#111
+
+  %% Uma das nove etapas tem tela (custos fixos). A regra de acesso, sim,
+  %% ja esta implementada — e por isso que ACE nao e "falta".
+  class ACE,CFX,L1 ok
+  class COM,PRO,NF,L2 meio
+  class IMP,AUT,FIL,C1,C2,C3,DAT,REG,FEC,CPR,CUS,PRE,DSH,L3 falta
+  class BAN ator
+  class CLA,PRECO,LEG grupo
+
