@@ -15,27 +15,23 @@
 graph TB
   subgraph campo["Viveiro: Agrolândia, SC"]
     CEL["<b>Celulares da equipe</b><br/>Navegador móvel<br/>Aplicação instalada como app<br/>Fila local de sincronização"]
-    PC["<b>Computador da chefia e da gerência</b><br/>Navegador<br/>Financeiro e relatórios<br/>Agenda do dia e mapa de produção"]
+    PC["<b>Computador da chefia e da gerência</b><br/>Navegador<br/>Agenda da semana e mapa de lotes<br/>Cadastros e pedidos"]
   end
 
   subgraph nuvem["Infraestrutura em nuvem"]
     APP["<b>Servidor de aplicação</b><br/>Renderização e ações de servidor<br/>Publicação automática a cada versão"]
-    IMG["<b>Armazenamento de imagens</b><br/>Fotografias das espécies"]
-    BD[("<b>Banco de dados relacional</b><br/>Serviço gerenciado<br/>Região brasileira")]
+    BD[("<b>Banco de dados relacional</b><br/>Serviço gerenciado<br/>Região brasileira<br/>Inclui as fotografias das espécies")]
   end
 
   subgraph ext["Serviços externos"]
     WA["Mensageria<br/><i>WhatsApp</i>"]
-    GEO["Geocodificação"]
     NF["Emissor de nota fiscal"]
   end
 
   CEL -->|"HTTPS"| APP
   PC  -->|"HTTPS"| APP
   APP -->|"conexão cifrada<br/>via pool"| BD
-  APP --> IMG
   CEL -.->|"abre conversa<br/>por ação do usuário"| WA
-  APP -.->|"consulta sob demanda,<br/>resultado armazenado"| GEO
   PC  -.->|"acesso pelo navegador,<br/>fora do sistema"| NF
 ```
 
@@ -50,10 +46,9 @@ equipamento no viveiro seria o ponto único de falha e o alvo mais exposto.
 | Nó | Papel | Justificativa |
 |---|---|---|
 | **Celulares da equipe** | Camada de apresentação em campo; guarda a fila local de registros feitos sem rede | É o dispositivo que a equipe já possui e usa. Restrição RE-2 |
-| **Computador da chefia e da gerência** | Mesma aplicação, em tela maior, para financeiro, relatórios e as duas telas de coordenação da produção | Classificação de lançamentos e leitura de relatório são tarefas de mesa, não de campo. A agenda do dia e o mapa entraram em 26/08/2026 pelo mesmo motivo: comparar nove faixas ou trinta canteiros de uma vez pede tela larga. Restrição RE-2 com a exceção de RNF-27 |
+| **Computador da chefia e da gerência** | Mesma aplicação, em tela maior, para as duas telas de coordenação da produção, os cadastros e os pedidos | Comparar nove faixas de uma semana ou trinta canteiros de uma vez pede tela larga, e montar catálogo é tarefa de mesa. Restrição RE-2 com a exceção de RNF-27 |
 | **Servidor de aplicação** | Camadas de apresentação e de lógica; publicação automática a cada versão | Elimina administração de servidor. Restrição RE-5 |
-| **Banco de dados** | Camada de persistência, em serviço gerenciado com região brasileira | Latência menor para usuários no Brasil, e backup gerenciado sem operação manual |
-| **Armazenamento de imagens** | Fotografias das espécies, servidas estaticamente | Imagem não pertence ao banco: infla o backup e encarece a consulta |
+| **Banco de dados** | Camada de persistência, em serviço gerenciado com região brasileira. Guarda também as fotografias das espécies | Latência menor para usuários no Brasil, e backup gerenciado sem operação manual |
 
 ---
 

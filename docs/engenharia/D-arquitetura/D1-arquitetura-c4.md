@@ -36,33 +36,32 @@ Quem usa o sistema e com que sistemas externos ele troca informação.
 ```mermaid
 graph TB
   subgraph usuarios["Usuários do viveiro"]
-    CH["Chefia<br/>vendas, finanças, decisões"]
+    CH["Chefia<br/>vendas, pedidos, decisões"]
     GE["Gerência<br/>operação e coordenação"]
-    CO["Colaborador<br/>execução em campo"]
   end
 
-  SIS["<b>Sistema de gestão do viveiro</b><br/>Custeio, produção, estoque, perdas,<br/>pedidos, fornecedores e financeiro"]
+  SIS["<b>Sistema de gestão do viveiro</b><br/>Cadastro único, agenda da semana,<br/>lotes e pedidos"]
 
   NF["Emissor de nota fiscal<br/><i>sistema externo</i>"]
   WA["Serviço de mensageria<br/><i>WhatsApp</i>"]
-  GEO["Serviço de geocodificação<br/><i>externo</i>"]
-  BCO["Instituições bancárias<br/><i>arquivo de extrato</i>"]
 
   CH --> SIS
   GE --> SIS
-  CO --> SIS
 
-  SIS -.->|"dados da venda;<br/>recebe o número da nota"| NF
-  SIS -.->|"mensagem de cotação,<br/>enviada por ação do usuário"| WA
-  SIS -.->|"cidade e estado do fornecedor"| GEO
-  BCO -.->|"arquivo de extrato,<br/>importado manualmente"| SIS
+  SIS -.->|"dados cadastrais do cliente"| NF
+  WA -.->|"pedido negociado,<br/>registrado à mão depois"| SIS
 ```
 
-**Nenhuma das integrações externas é automática.** O envio da cotação é sempre clique do usuário; o
-extrato é arquivo que a chefia baixa e importa; a nota fiscal é emitida no sistema externo e o número
-é informado de volta. É decisão de projeto compatível com a restrição de orçamento e com a
-inexistência de interface programática nos sistemas envolvidos, e, no caso da mensageria, também de
-conformidade (ver [`E5`](../E-qualidade/E5-mapeamento-lgpd.md)).
+**Nenhuma das duas integrações é automática, e as setas pontilhadas dizem isso.** A nota fiscal é
+emitida no sistema externo, que apenas consome o cadastro que este mantém; a negociação por
+WhatsApp é conduzida por pessoa, e o pedido chega ao sistema digitado por quem vendeu. É decisão de
+projeto compatível com a restrição de orçamento e com a inexistência de interface programática nos
+sistemas envolvidos, e, no caso da mensageria, também de conformidade (ver
+[`E5`](../E-qualidade/E5-mapeamento-lgpd.md)).
+
+**Os colaboradores de campo não aparecem porque não são usuários do sistema.** O trabalho deles é
+planejado e confirmado pela gerência ([`A1` §5](../A-fundacao/A1-documento-de-visao.md)), e um
+diagrama de contexto que os desenhasse estaria descrevendo a empresa, e não o software.
 
 ---
 
@@ -116,86 +115,75 @@ graph TB
 
 ## 4. Nível 3: Componentes da camada de lógica
 
-Decomposição interna do servidor, organizada pelos **quatro módulos** do sistema 
-(`docs/rotinas/00-mapa-de-rotinas.md`), com Acesso transversal.
+Decomposição interna do servidor, organizada pelas **três áreas de negócio** do sistema
+(`docs/rotinas/00-mapa-de-rotinas.md`), com Acesso e Configurações transversais.
 
 ```mermaid
 graph TB
-  subgraph acesso["Acesso: transversal"]
+  subgraph acesso["Acesso e configurações: transversais"]
     A1["Autenticação de sessão"]
     A2["Autorização por perfil"]
     A3["Auditoria de acesso"]
+    A4["Parâmetros do sistema"]
   end
 
-  subgraph cadastros["1 · Cadastros"]
+  subgraph cadastros["1 · Cadastro único"]
     N1["Catálogo de espécies"]
     N2["Cadastro de recipientes e insumos"]
     N3["Identidade única de pessoas"]
+    N4["Áreas, canteiros e tipos de tarefa"]
+    N5["Protocolo de atividades"]
   end
 
   subgraph producao["2 · Produção"]
-    O1["Registro de produção"]
-    O2["Registro de perdas"]
-    O3["Apuração de estoque"]
+    O1["Agenda da semana"]
+    O2["Lotes e movimentos"]
+    O3["Motor do protocolo"]
+    O4["Mapa e estatísticas do lote"]
   end
 
   subgraph comercial["3 · Comercial"]
-    C2["Ciclo de pedidos"]
-    C3["Separação e cargas"]
-    C5["Entregas"]
-    F2["Cotações"]
+    C2["Cadastro de pedidos"]
   end
 
-  subgraph fin["4 · Financeiro"]
-    FI1["Importação de extrato"]
-    FI2["Classificação de lançamentos"]
-    FI3["Fechamento de período"]
-    FI4["Compras"]
-    FI5["Motor de custeio"]
-    FI6["Precificação"]
-  end
-
-  FI5 --> N1
-  FI5 --> N2
-  FI6 --> FI5
-  C2 --> N3
-  C2 --> O3
-  C3 --> C2
-  C5 --> C3
-  O3 --> O1
+  O1 --> N4
+  O2 --> N1
+  O2 --> N2
+  O3 --> N5
   O3 --> O2
-  F2 --> N3
-  F2 --> C2
-  FI2 --> FI1
-  FI3 --> FI2
-  FI2 -.->|"custo fixo real"| FI5
-  FI4 -.->|"compra disponível"| O1
-  FI4 --> FI5
-  FI6 -.->|"preço por canal"| C2
+  O3 -.->|"gera ordem na agenda"| O1
+  O4 --> O2
+  O4 --> O1
+  O4 --> A4
+  O1 --> N3
+  C2 --> N3
+  C2 --> N1
+  C2 -.->|"saldo de muda pronta"| O2
 
   A2 -.->|"protege"| cadastros
   A2 -.->|"protege"| producao
   A2 -.->|"protege"| comercial
-  A2 -.->|"protege"| fin
 ```
 
 ### O que o grafo de dependências revela
 
-**O motor de custeio é a raiz, e ele mora no Financeiro.** Precificação depende dele, e ele
-depende apenas do catálogo de Cadastros e das compras. É a tradução arquitetural da ordem de
-implementação declarada no §3.5 da metodologia: o custeio é o primeiro projeto porque nada mais
-funciona sem ele. Custo e preço são dinheiro, ficam no módulo do dinheiro, não num "núcleo"
-à parte.
+**O Cadastro único é a raiz, e nada nele depende de nada.** Todas as setas apontam para ele, e
+nenhuma sai. É a tradução arquitetural do que o sistema afirma: o catálogo é o que as outras duas
+áreas consomem, e é por isso que ele é a primeira coisa a existir.
 
-**A apuração de estoque depende de produção e perdas, e o ciclo de pedidos depende dela.** A cadeia
-explica por que a verificação de disponibilidade não pode ser confiável antes de os registros de
-campo estarem em uso: o estoque é derivado, não digitado.
+**O motor do protocolo é o único componente que escreve numa área que não é a sua.** Ele lê a
+etapa em Cadastro único, lê o lote em Produção e **gera ordem na agenda**, que também é Produção.
+A seta pontilhada marca que a escrita é automática: nenhum usuário a aciona, e é justamente essa
+a razão de o componente existir (RF-127).
 
-**O Financeiro alimenta a Produção de volta**, por dois caminhos: a compra de insumo, que nasce
-lá e fica disponível para uso no campo, e o custo fixo efetivamente saído da conta, em lugar de
-um valor estimado. São as dependências que atravessam a fronteira do módulo restrito, e por
-isso são de leitura agregada: o custeio recebe o total do período, nunca o lançamento
-individual. É esse retorno que fecha o ciclo; sem ele, o preço volta a ser estimativa.
+**O Comercial depende da Produção por uma única aresta, e ela é de leitura.** O cadastro de
+pedidos consulta o saldo de muda pronta e não escreve nada lá: o pedido não reserva, não baixa e
+não move lote. É a interconexão que o trabalho existe para demonstrar, e o diagrama mostra que ela
+custa uma seta.
+
+**O mapa depende de três coisas, e uma delas é parâmetro.** Ele lê lote, lê agenda e lê os limites
+de atraso e de mortalidade. É o que torna a cor da tela ajustável sem implantação (RN-94), e é a
+razão de Configurações ser transversal e não um canto do Cadastro único.
 
 ---
 
@@ -206,7 +194,7 @@ individual. É esse retorno que fecha o ciclo; sem ele, o preço volta a ser est
 | Lógica e autorização exclusivamente no servidor | Toda operação exige ida ao servidor; mitigado pela fila local nas operações de campo |
 | Aplicação web progressiva em vez de aplicativo nativo | Sem acesso a recursos nativos avançados; em troca, distribuição imediata e sem loja |
 | Banco relacional com integridade declarativa | Alterações de esquema exigem migração versionada (RNF-19); em troca, o dado inconsistente é impedido pelo banco e não apenas pela aplicação |
-| Esquema separado para o financeiro | Consultas precisam qualificar o esquema; em troca, a fronteira de acesso é estrutural |
+| Esquema separado para o cadastro de pessoas | Consultas precisam qualificar o esquema; em troca, a identidade única fica visivelmente fora das três áreas de negócio, que é o que ela é |
 | Sincronização por fila local, e não banco replicado no dispositivo | Consultas agregadas exigem conexão; em troca, não há conflito de escrita a resolver |
 
 > O registro formal de cada decisão, com alternativas descartadas, corresponderia ao item **D2** do
