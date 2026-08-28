@@ -11,16 +11,16 @@
 
 ## Como ler
 
-Quinze casos de uso, dos cinquenta e nove catalogados em [`C1`](C1-diagrama-casos-de-uso.md), estão
+Dez casos de uso, dos trinta e quatro catalogados em [`C1`](C1-diagrama-casos-de-uso.md), estão
 especificados aqui. O critério de seleção foi duplo: **concentração de fluxos alternativos** e
-**custo operacional do erro**. Cadastrar um insumo errado corrige-se em segundos; separar a carga
-errada põe um caminhão na estrada com a muda errada.
+**custo operacional do erro**. Cadastrar um insumo errado corrige-se em segundos; repicar para o
+canteiro errado põe a leva num lugar em que ninguém vai procurá-la.
 
-**Os três últimos, UC-57 a UC-59, entraram em 26/08/2026 e esticam o critério.** Dois deles são
-manutenção de cadastro, e pela regra acima ficariam de fora. Entram porque o **custo do erro é
-diferido**: âncora escolhida errada no protocolo não produz sintoma nenhum na hora, e aparece
-semanas depois no lote que foi classificado cedo demais. Erro que não se manifesta quando é
-cometido precisa de fluxo de exceção escrito, e não de tela de cadastro genérica.
+**UC-57 e UC-59 esticam o critério.** Os dois são manutenção de cadastro, e pela regra acima
+ficariam de fora. Entram porque o **custo do erro é diferido**: âncora escolhida errada no
+protocolo não produz sintoma nenhum na hora, e aparece semanas depois no lote que foi classificado
+cedo demais. Erro que não se manifesta quando é cometido precisa de fluxo de exceção escrito, e
+não de tela de cadastro genérica.
 
 Todos têm como pré-condição comum uma **sessão autenticada** cujo perfil autoriza a operação, a
 verificação ocorre a cada ação, e não apenas na entrada da tela (RF-06).
@@ -35,10 +35,10 @@ Notação dos fluxos: **FP** fluxo principal, **FA** fluxo alternativo, **FE** f
 |---|---|
 | **Ator principal** | Chefia |
 | **Objetivo** | Registrar no sistema um pedido já negociado por WhatsApp, antes que o detalhe se perca |
-| **Requisitos** | RF-41, RF-66, RF-67, RF-36 |
+| **Requisitos** | RF-41, RF-141, RF-36 |
 | **Frequência** | Diária |
 | **Pré-condições** | Existe ao menos uma espécie e um recipiente cadastrados |
-| **Pós-condições** | Pedido criado no estado *cadastrado*, com ao menos um item; gerência notificada |
+| **Pós-condições** | Pedido criado no estado *rascunho*, com ao menos um item e o preço unitário de cada um |
 
 ### FP: Fluxo principal
 
@@ -47,12 +47,12 @@ Notação dos fluxos: **FP** fluxo principal, **FA** fluxo alternativo, **FE** f
 3. A chefia seleciona um cliente existente.
 4. O sistema solicita o canal de venda e apresenta *atacado* como opção padrão.
 5. A chefia confirma ou altera o canal.
-6. A chefia adiciona um item informando espécie, recipiente e quantidade.
-7. O sistema valida que a quantidade é positiva e acrescenta o item ao pedido.
+6. A chefia adiciona um item informando espécie, recipiente, quantidade e **preço unitário**.
+7. O sistema valida que a quantidade e o preço são positivos, apresenta ao lado do item o saldo de muda pronta daquela espécie e recipiente (UC-25) e acrescenta o item ao pedido.
 8. A chefia repete os passos 6 e 7 para os demais itens.
 9. A chefia informa, opcionalmente, a data prevista de entrega e observações.
 10. A chefia conclui o cadastro.
-11. O sistema registra o pedido no estado *cadastrado*, atribui-lhe número sequencial e notifica a gerência de que há disponibilidade a verificar.
+11. O sistema registra o pedido no estado *rascunho*, atribui-lhe número sequencial e apresenta o total do pedido.
 
 ### FA-1: Cliente ainda não cadastrado
 
@@ -64,178 +64,103 @@ No passo 3, a chefia não localiza o cliente.
 
 > O cadastro fiscal completo não é exigido aqui. Exigi-lo interromperia a única
 > etapa do processo que compete com uma conversa de WhatsApp em andamento: a complementação ocorre
-> no fechamento, e apenas se houver nota fiscal a emitir (UC-26, FA-1).
+> depois, pelo cadastro de cliente (UC-22), e só quando houver nota a emitir no sistema externo.
 
-### FA-2: Item genérico
+### FA-2: Saldo menor que a quantidade pedida
 
-No passo 6, o cliente não especificou as espécies, pediu quantidade e porte.
+No passo 7, o saldo de muda pronta é menor do que a quantidade que o cliente pediu.
 
-1. A chefia marca o item como **genérico** e informa recipiente e quantidade, sem espécie.
-2. O sistema, opcionalmente, aceita a lista de espécies que o cliente admite.
-3. O sistema, opcionalmente, aceita a especificação de qualidade em texto livre.
-4. O sistema registra o item genérico e retorna ao passo 8.
+1. O sistema **sinaliza** a diferença ao lado do item, sem recusá-lo.
+2. A chefia decide manter o item como está e prossegue para o passo 8.
 
-> Item genérico sem lista de espécies significa **aberto**: qualquer espécie o atende. É o caso
-> corrente em compensação ambiental, onde a exigência é de quantidade e diversidade, não de espécies
-> nomeadas.
+> O sistema informa, e não impede. O pedido registra o que foi negociado, e o viveiro vende com
+> frequência muda que ainda vai ficar pronta: bloquear o item pelo saldo de hoje transformaria uma
+> venda normal em erro de sistema. O saldo existe para que a chefia decida sabendo, e é essa a
+> diferença entre informar e barrar.
 
-### FE-1: Quantidade inválida
+### FE-1: Quantidade ou preço inválido
 
-No passo 7, a quantidade informada é zero ou negativa. O sistema recusa o item, informa o motivo e
-mantém o pedido em edição, sem perder os itens já lançados.
-
----
-
-## UC-25 · Verificar disponibilidade
-
-| | |
-|---|---|
-| **Ator principal** | Gerência |
-| **Objetivo** | Conferir, contra o estoque físico, se o pedido pode ser atendido |
-| **Requisitos** | RF-42, RF-43, RF-68 |
-| **Frequência** | Diária |
-| **Pré-condições** | Pedido no estado *cadastrado* |
-| **Pós-condições** | Cada item classificado como disponível, parcial ou indisponível; pedido em *verificado*; chefia notificada |
-
-### FP: Fluxo principal
-
-1. A gerência abre um pedido pendente de verificação.
-2. O sistema apresenta os itens em formato de lista de conferência, com espécie, recipiente e quantidade pedida.
-3. O sistema registra o pedido como *verificando disponibilidade*.
-4. Para cada item, a gerência confirma que há quantidade suficiente.
-5. O sistema marca o item como **disponível**.
-6. Concluídos todos os itens, a gerência encerra a verificação.
-7. O sistema registra o pedido como *verificado* e notifica a chefia.
-
-### FA-1: Disponibilidade parcial
-
-No passo 4, existe menos do que o pedido.
-
-1. A gerência informa a **quantidade efetivamente disponível**.
-2. O sistema valida que o valor está entre 1 e a quantidade pedida.
-3. O sistema marca o item como **parcial**, preservando as duas quantidades, e retorna ao passo 4.
-
-### FA-2: Disponível em outro recipiente
-
-No passo 4, a espécie existe, mas em recipiente diferente do pedido.
-
-1. A gerência informa a quantidade disponível e **qual recipiente** de fato existe.
-2. O sistema registra ambos e retorna ao passo 4.
-
-> Trata-se de negociação, não de erro: um cliente que pediu saco 17x22 frequentemente aceita 20x26
-> por outro preço. Reduzir esse caso a "indisponível" descartaria uma venda que ocorreria.
-
-### FA-3: Item indisponível
-
-No passo 4, não há nenhuma unidade. A gerência informa quantidade zero, o sistema marca o item como
-**indisponível** e retorna ao passo 4. O pedido segue: a decisão de cancelar, substituir ou cotar com
-fornecedor cabe à chefia (UC-26) ou origina uma cotação (UC-32).
-
-### FA-4: Item genérico
-
-No passo 4, o item não tem espécie definida. A gerência indica as espécies com que pretende atendê-lo,
-respeitada a lista de espécies aceitas quando houver. O sistema valida a restrição e retorna ao passo 4.
-
-### FE-1: Espécie fora da lista aceita
-
-Em FA-4, a espécie escolhida não consta da lista definida pelo cliente. O sistema recusa a escolha e
-informa quais espécies são aceitas.
+No passo 7, a quantidade ou o preço informado é zero ou negativo. O sistema recusa o item, informa o
+motivo e mantém o pedido em edição, sem perder os itens já lançados.
 
 ---
 
-## UC-26 · Fechar pedido
+## UC-25 · Consultar disponibilidade no pedido
 
 | | |
 |---|---|
 | **Ator principal** | Chefia |
-| **Objetivo** | Decidir sobre o pedido verificado, aprovar preço e liberá-lo para separação |
-| **Requisitos** | RF-44, RF-45, RF-46, RF-40, RF-33 |
-| **Frequência** | Diária |
-| **Pré-condições** | Pedido no estado *verificado* |
-| **Pós-condições** | Pedido *aprovado*, carga de separação criada, colaboradores notificados |
+| **Objetivo** | Saber, no momento em que o item é lançado, quanta muda pronta a produção tem daquela espécie e recipiente |
+| **Requisitos** | RF-42, RF-22 |
+| **Frequência** | Diária, dentro de UC-24 |
+| **Pré-condições** | Existe ao menos um lote aberto |
+| **Pós-condições** | Nenhuma: o caso de uso é de leitura e não altera dado nenhum |
 
 ### FP: Fluxo principal
 
-1. A chefia abre um pedido verificado.
-2. O sistema apresenta a análise: itens disponíveis, parciais e indisponíveis, com as quantidades de cada caso.
-3. O sistema apresenta, por item, o preço sugerido do canal de venda do pedido.
-4. A chefia confirma ou ajusta o preço de cada item.
-5. O sistema valida que nenhum preço está abaixo do piso mínimo.
-6. A chefia informa se o pedido exige nota fiscal.
-7. A chefia aprova o pedido.
-8. O sistema registra o pedido como *aprovado*, gera a carga de separação com os itens e quantidades aprovados, e notifica os colaboradores.
+1. A chefia informa espécie e recipiente num item de pedido.
+2. O sistema soma o saldo dos lotes abertos daquela espécie e recipiente que estão na fase de **muda pronta**.
+3. O sistema apresenta o saldo ao lado do item, com a data da consulta.
 
-### FA-1: Nota fiscal exigida e cliente com cadastro incompleto
+### FA-1: Nenhum lote pronto
 
-No passo 6, a chefia indica que há nota a emitir, mas o cliente possui apenas nome e telefone.
+No passo 2, não há lote na fase de muda pronta. O sistema apresenta saldo zero e indica, quando
+houver, a quantidade em produção daquela espécie e recipiente, que **não compõe** o saldo
+disponível (RN-06).
 
-1. O sistema sinaliza a pendência e solicita os dados fiscais, tipo de pessoa, documento, razão social quando pessoa jurídica, endereço.
-2. A chefia completa os dados **na própria tela de fechamento**.
-3. O sistema valida o documento informado e retorna ao passo 7.
+> Distinguir "não tenho" de "tenho, mas ainda não está pronto" é o que permite à chefia responder
+> ao cliente com uma data em vez de uma recusa. Somar as duas quantidades num número só faria o
+> sistema prometer muda que não existe.
 
-### FA-2: Atendimento parcial aceito
+### FE-1: Espécie sem recipiente correspondente
 
-No passo 4, há itens parciais e a chefia decide faturar o que existe.
+No passo 1, a combinação de espécie e recipiente nunca foi produzida. O sistema apresenta saldo
+zero, sem tratar o caso como erro: é pedido de algo que o viveiro ainda não faz, e essa é uma
+informação comercial legítima.
 
-1. A chefia confirma as quantidades disponíveis como quantidades aprovadas.
-2. O sistema registra a diferença e retorna ao passo 7.
-
-### FA-3: Complementação por fornecedor
-
-No passo 2, há itens indisponíveis que a chefia decide comprar de terceiro. O caso de uso é suspenso
-e origina uma cotação (UC-32). O pedido permanece *verificado* até que a cotação se resolva.
-
-### FE-1: Preço abaixo do piso mínimo
-
-No passo 5, o preço informado é inferior ao piso. O sistema **recusa** a aprovação, indica o piso
-aplicável e mantém o pedido em edição.
-
-> O piso é bloqueio, não alerta. A regra existe justamente porque a venda com prejuízo hoje ocorre
-> sem que ninguém perceba: um aviso que pode ser ignorado não altera esse quadro.
-
-### FE-2: Documento fiscal inválido
-
-Em FA-1, o CPF ou CNPJ informado não é válido. O sistema recusa o dado no momento da digitação e
-indica o erro, sem descartar os demais campos já preenchidos.
+> **Este caso de uso é a interconexão que o trabalho existe para demonstrar.** Ele não tem tela
+> própria, não grava nada e não tem pós-condição: é uma leitura da Produção dentro de uma tela do
+> Comercial. Especificá-lo em separado registra que o número exibido é **derivado**, e não
+> digitado, que é exatamente o que distingue este sistema da planilha que ele substitui.
 
 ---
 
-## UC-27 · Separar carga
+## UC-26 · Confirmar pedido
 
 | | |
 |---|---|
-| **Ator principal** | Colaborador |
-| **Objetivo** | Recolher fisicamente as mudas da carga e registrar o que foi separado |
-| **Requisitos** | RF-47 |
+| **Ator principal** | Chefia |
+| **Objetivo** | Encerrar a edição do pedido, fixando itens, quantidades e preços |
+| **Requisitos** | RF-142 |
 | **Frequência** | Diária |
-| **Pré-condições** | Existe carga no estado *pendente* |
-| **Pós-condições** | Carga *pronta*; pedido em *pronto para envio*; chefia notificada |
+| **Pré-condições** | Pedido no estado *rascunho*, com ao menos um item |
+| **Pós-condições** | Pedido *confirmado*; itens não admitem mais alteração |
 
 ### FP: Fluxo principal
 
-1. O colaborador abre a lista de cargas a separar.
-2. O sistema apresenta os itens da carga com espécie, recipiente e quantidade, em lista de conferência.
-3. O sistema registra a carga como *separando*.
-4. O colaborador separa fisicamente um item e o marca como separado.
-5. O sistema registra a marcação e apresenta confirmação visual imediata.
-6. O colaborador repete os passos 4 e 5 até o último item.
-7. O sistema registra a carga como *pronta*, atualiza o pedido para *pronto para envio* e notifica a chefia.
+1. A chefia abre um pedido em rascunho.
+2. O sistema apresenta os itens com espécie, recipiente, quantidade, preço unitário, total do item e o saldo disponível de cada um.
+3. O sistema apresenta o total do pedido.
+4. A chefia confirma o pedido.
+5. O sistema registra o pedido como *confirmado* e passa a recusar inclusão e alteração de item.
 
-### FA-1: Sem conexão
+### FA-1: Pedido cancelado
 
-Nos passos 4 e 5, o dispositivo está sem rede.
+No passo 4, a chefia cancela em vez de confirmar. O sistema registra o pedido como *cancelado*,
+preservando os itens para consulta.
 
-1. O sistema registra a marcação localmente e confirma ao colaborador.
-2. O sistema envia os registros pendentes assim que a conexão se restabelece.
+### FE-1: Pedido sem itens
 
-> Este fluxo alternativo é o mais executado de todos os aqui descritos, e não a exceção: a área de
-> separação é onde a conexão falha com mais frequência. Um sistema que exija rede nesse ponto será
-> substituído por papel no primeiro dia.
+No passo 4, o pedido não tem nenhum item. O sistema recusa a confirmação e informa o motivo.
 
-### FA-2: Divergência entre carga e estoque físico
+### FE-2: Alteração depois de confirmado
 
-No passo 4, o item não existe na quantidade indicada. O colaborador registra a quantidade
-efetivamente separada, e o sistema notifica a gerência da divergência para nova verificação.
+A chefia tenta alterar um item de pedido já confirmado. O sistema recusa a operação.
+
+> **Confirmar é o único estado que trava alguma coisa, e é de propósito.** O pedido não percorre
+> aprovação de preço, verificação, separação nem entrega: essas etapas existem na operação e
+> continuam acontecendo fora do sistema. O que o sistema garante é que o registro do que foi
+> vendido não mude depois de fechado, que é a condição para ele servir de histórico.
 
 ---
 
@@ -243,35 +168,35 @@ efetivamente separada, e o sistema notifica a gerência da divergência para nov
 
 | | |
 |---|---|
-| **Ator principal** | Colaborador |
+| **Ator principal** | Gerência |
 | **Objetivo** | Registrar mudas perdidas no momento e no local em que a perda é constatada |
 | **Requisitos** | RF-26, RF-28, RF-29, RF-91 |
 | **Frequência** | Diária |
-| **Pré-condições** | Nenhuma além da sessão autenticada |
-| **Pós-condições** | Perda registrada; mortalidade da espécie recalculada; alerta emitido se ultrapassar o limite |
+| **Pré-condições** | Existe lote aberto com saldo |
+| **Pós-condições** | Movimento de perda gravado no lote; mortalidade do lote recalculada; alerta emitido se ultrapassar o limite |
 
 ### FP: Fluxo principal
 
-1. O colaborador aciona o registro de perda.
+1. A gerência aciona o registro de perda.
 2. O sistema apresenta um formulário de **quatro campos**: lote, quantidade, causa e observação.
-3. O colaborador seleciona o lote, de uma lista dos canteiros ocupados.
+3. A gerência seleciona o lote, de uma lista dos canteiros ocupados.
 4. O sistema exibe a espécie, o recipiente e o canteiro do lote escolhido, sem pedi-los.
-5. O colaborador informa a quantidade perdida.
-6. O colaborador seleciona a causa em lista fechada, seca, praga, geada, manuseio ou outro.
-7. O colaborador confirma.
-8. O sistema grava a perda, exibe confirmação visual e retorna ao formulário vazio, pronto para o próximo registro.
-9. O sistema baixa a quantidade do saldo do lote e recalcula a taxa de mortalidade da espécie no período.
+5. A gerência informa a quantidade perdida.
+6. A gerência seleciona a causa em lista fechada, seca, praga, geada, manuseio ou outro.
+7. A gerência confirma.
+8. O sistema grava o movimento de perda, exibe confirmação visual e retorna ao formulário vazio, pronto para o próximo registro.
+9. O sistema baixa a quantidade do saldo do lote e recalcula a taxa de mortalidade do lote.
 
 ### FA-1: Mortalidade acima do limite
 
-No passo 9, a taxa recalculada ultrapassa 20%. O sistema emite alerta à gerência identificando
-espécie, taxa e causa predominante. **O colaborador não é interrompido**: o alerta é dirigido a quem
-pode agir sobre ele.
+No passo 9, a taxa recalculada ultrapassa o limite mantido em Configurações, inicialmente 20%. O
+sistema destaca o lote no mapa (UC-61), identificando taxa e causa predominante. **O registro não é
+interrompido**: o alerta é uma leitura da tela seguinte, e não uma caixa a fechar.
 
 ### FA-2: Sem conexão
 
-Nos passos 7 e 8, não há rede. O sistema grava localmente, confirma ao colaborador e envia ao
-restabelecer a conexão. O recálculo do passo 9 ocorre na sincronização.
+Nos passos 7 e 8, não há rede. O sistema grava localmente, confirma e envia ao restabelecer a
+conexão. O recálculo do passo 9 ocorre na sincronização.
 
 ### FE-1: Quantidade inválida
 
@@ -286,10 +211,10 @@ propagaria o erro para o estoque. A correção é uma contagem física (UC-16), 
 
 > **Nota de projeto: como o quinto campo entrou sem virar campo.** Até 24/08/2026 este caso
 > registrava que localizar a perda dentro do viveiro melhoraria a análise e **foi descartado**, por
-> ser o campo que faria o colaborador deixar de registrar. Com o lote, a decisão **não foi
+> ser o campo que faria quem registra desistir de registrar. Com o lote, a decisão **não foi
 > revertida, foi resolvida**: o formulário continua com quatro campos, e um deles deixou de ser
-> "espécie" e "recipiente" para ser "lote", que carrega os dois **e mais o canteiro**. O
-> colaborador passou a informar **menos**, e o sistema a saber mais. Ver
+> "espécie" e "recipiente" para ser "lote", que carrega os dois **e mais o canteiro**. Passou-se a
+> informar **menos**, e o sistema a saber mais. Ver
 > [`B2`, seção 5](../B-requisitos/B2-especificacao-requisitos.md) e o achado L de
 > [`auditoria-divergencias.md`](../../auditoria-divergencias.md).
 
@@ -301,10 +226,10 @@ propagaria o erro para o estoque. A correção é uma contagem física (UC-16), 
 |---|---|
 | **Ator principal** | Gerência |
 | **Objetivo** | Registrar uma leva de mudas plantada junta e o canteiro que ela passa a ocupar |
-| **Requisitos** | RF-84, RF-90 |
+| **Requisitos** | RF-84, RF-126 |
 | **Frequência** | Semanal |
 | **Pré-condições** | Existem espécie, recipiente e ao menos um canteiro livre cadastrados |
-| **Pós-condições** | Lote aberto ocupando o canteiro, com saldo igual à quantidade inicial e um movimento de entrada |
+| **Pós-condições** | Lote aberto ocupando o canteiro, com saldo igual à quantidade inicial, um movimento de entrada e o protocolo do recipiente atribuído |
 
 ### FP: Fluxo principal
 
@@ -315,7 +240,7 @@ propagaria o erro para o estoque. A correção é uma contagem física (UC-16), 
 5. A gerência seleciona a área e o canteiro.
 6. A gerência informa a data de plantio, que assume o dia corrente.
 7. A gerência confirma.
-8. O sistema cria o lote, gera o código, grava o movimento de entrada e calcula a previsão de disponibilidade a partir do tempo de produção da espécie.
+8. O sistema cria o lote, gera o código, grava o movimento de entrada e atribui a ele o protocolo vigente do recipiente escolhido (RF-126).
 
 ### FA-1: A leva não cabe em um canteiro
 
@@ -328,11 +253,12 @@ lotes**, um por canteiro, em vez de um lote em dois lugares (RN-76).
 > operação faz é "o que tem neste canteiro", que o lote inteiro num canteiro só responde direto.
 > **O canteiro comporta vários lotes** desde 26/08/2026: o que não existe é o lote espalhado.
 
-### FA-2: Espécie sem tempo de produção cadastrado
+### FA-2: Recipiente sem protocolo cadastrado
 
-No passo 8, a espécie não tem tempo de produção. O lote é criado normalmente e a previsão fica
-**em branco**, não em zero: previsão ausente é informação, previsão zerada é erro disfarçado de
-dado.
+No passo 8, o recipiente escolhido ainda não tem protocolo. O lote é criado normalmente e **sem
+etapas**: ele aparece no mapa como saudável e nunca cobra tarefa nenhuma. É estado válido e
+visível, e não erro, porque o protocolo é cadastro que se monta uma vez por safra e o lote não pode
+esperar por ele.
 
 ### FE-1: Canteiro já ocupado
 
@@ -345,7 +271,7 @@ e recarrega a lista de canteiros livres.
 
 | | |
 |---|---|
-| **Ator principal** | Colaborador |
+| **Ator principal** | Gerência |
 | **Objetivo** | Passar mudas de um lote para recipiente maior, preservando a ligação com a leva de origem |
 | **Requisitos** | RF-86, RF-87, RF-88 |
 | **Frequência** | Semanal |
@@ -354,11 +280,11 @@ e recarrega a lista de canteiros livres.
 
 ### FP: Fluxo principal
 
-1. O colaborador encerra a tarefa de repicagem (UC-51) e o sistema pede o destino das mudas.
+1. A gerência confirma a tarefa de repicagem (UC-51) e o sistema pede o destino das mudas.
 2. O sistema exibe o lote de origem, com espécie, recipiente e saldo.
-3. O colaborador informa a quantidade repicada e o recipiente de destino.
-4. O colaborador seleciona a área e o canteiro de destino, entre os livres.
-5. O colaborador confirma.
+3. A gerência informa a quantidade repicada e o recipiente de destino.
+4. A gerência seleciona a área e o canteiro de destino, entre os livres.
+5. A gerência confirma.
 6. O sistema grava um movimento de saída no lote de origem e cria o lote de destino com o movimento de entrada correspondente, apontando para a origem.
 7. O sistema encerra o lote de origem se o saldo dele chegar a zero, liberando o canteiro.
 
@@ -389,84 +315,26 @@ recusa e apresenta o saldo disponível (RN-78).
 
 ---
 
-## UC-50 · Apontar início de tarefa
+## UC-51 · Confirmar tarefa realizada
 
 | | |
 |---|---|
 | **Ator principal** | Gerência |
-| **Objetivo** | Marcar que um funcionário começou uma tarefa, a partir da faixa dele na agenda do dia |
-| **Requisitos** | RF-94, RF-95, RF-97, RF-99 |
+| **Objetivo** | Registrar que a tarefa planejada foi feita, e o que ela produziu |
+| **Requisitos** | RF-98, RF-99, RF-107, RF-113 |
 | **Frequência** | Várias vezes ao dia |
-| **Pré-condições** | O funcionário está ativo e o dia dele não foi encerrado |
-| **Pós-condições** | Um apontamento aberto para o funcionário; o anterior, se havia, fechado no mesmo instante |
+| **Pré-condições** | Existe atribuição planejada na semana corrente, e a semana não está fechada |
+| **Pós-condições** | Atribuição marcada como *confirmada*, com a quantidade de cada participante; movimento gravado no lote quando a tarefa moveu mudas |
 
 ### FP: Fluxo principal
 
-1. A gerência abre a agenda do dia e vê as tarefas planejadas e uma faixa por funcionário.
-2. A gerência aciona "começar tarefa" na faixa de um funcionário.
-3. O sistema apresenta os tipos de tarefa, com os planejados para aquele turno em primeiro lugar.
-4. A gerência escolhe o tipo de tarefa.
-5. O sistema pede **apenas** o que aquele tipo de tarefa declara exigir: espécie, recipiente, lote e canteiro (RF-82).
-6. A gerência informa o que foi pedido.
-7. A gerência confirma.
-8. O sistema fecha o apontamento que estiver aberto para aquele funcionário, registrando o instante como fim, e abre o novo.
-9. A faixa do funcionário passa a exibir a tarefa em curso e desde quando.
-
-### FA-1: Tarefa fora do planejado
-
-No passo 4, a tarefa escolhida não estava na agenda daquele turno. O sistema aceita e registra o
-apontamento **sem atribuição vinculada**, marcando-o como avulso. O planejado não é alterado: a
-comparação entre planejado e realizado é justamente o que se quer enxergar.
-
-### FA-2: Vários funcionários na mesma tarefa
-
-No passo 2, a gerência seleciona mais de uma faixa antes de acionar. O sistema abre **um
-apontamento por pessoa**, todos ligados à mesma atribuição, porque cada um pode sair dela em
-momento diferente (RN-83, RN-84).
-
-### FA-3: O funcionário já estava em outra tarefa
-
-No passo 8, havia apontamento aberto. É o **caso normal**, e não exceção: o gesto de começar
-outra tarefa é o gesto de dizer que saiu da anterior. O sistema não pergunta nada e não pede
-confirmação.
-
-> **Por que sem confirmação.** Perguntar "deseja encerrar a tarefa atual?" a cada troca
-> acrescentaria um toque a um gesto que se repete dezenas de vezes por dia, para confirmar o que o
-> próprio gesto já declarou. A alternativa, exigir encerrar antes de começar, produziria tarefas
-> eternamente abertas nos dias corridos, que são justamente os dias em que a troca ocorre.
-
-### FE-1: Tipo de tarefa exige lote e nenhum foi informado
-
-No passo 7, o tipo exige lote e o campo está vazio. O sistema recusa e indica o campo (RN-82).
-
-### FE-2: Dia do funcionário já encerrado
-
-No passo 2, o dia daquele funcionário foi encerrado (UC-52). O sistema informa e oferece
-**reabrir o dia**, em vez de recusar em silêncio: encerramento por engano é comum, e recusar faria
-a gerência deixar de registrar o resto do dia.
-
----
-
-## UC-51 · Encerrar tarefa
-
-| | |
-|---|---|
-| **Ator principal** | Gerência |
-| **Objetivo** | Fechar o apontamento e registrar o que a tarefa produziu e consumiu |
-| **Requisitos** | RF-98, RF-99, RF-100, RF-101, RF-107 |
-| **Frequência** | Várias vezes ao dia |
-| **Pré-condições** | Existe apontamento aberto para o funcionário |
-| **Pós-condições** | Apontamento fechado com hora de fim; horas calculadas; consumo de insumo abatido do saldo |
-
-### FP: Fluxo principal
-
-1. A gerência aciona "encerrar" na tarefa, ou na faixa de um funcionário, ou inicia outra tarefa (UC-50 FA-3), ou encerra o dia (UC-52).
-2. O sistema grava a hora de fim e calcula o intervalo trabalhado de cada participante.
-3. Se o tipo de tarefa declarar **lote específico**, o sistema pede o lote, uma vez para a tarefa, e não pede canteiro, que vem do lote (RF-99).
+1. A gerência aciona "confirmar" na célula da agenda.
+2. Se o tipo de tarefa declarar **lote específico**, o sistema pede o lote, uma vez para a tarefa, e não pede canteiro, que vem do lote (RF-99).
+3. Se o tipo de tarefa **não** exigir lote, o sistema oferece registrar a área ou o canteiro em que a tarefa foi feita (RF-113).
 4. Se o tipo de tarefa for **quantitativo por unidade**, o sistema pede **um número por participante**: quanto cada um fez (RF-98, RF-107).
 5. Se o tipo de tarefa não for quantitativo, o passo 4 não ocorre e o sistema não pede número algum.
-6. O sistema oferece, de forma opcional, registrar insumos consumidos e gasto extra (UC-53).
-7. O sistema fecha o apontamento de todos os participantes e abate do saldo os insumos informados.
+6. A gerência confirma.
+7. O sistema marca a atribuição como *confirmada* para todos os participantes.
 8. Se a tarefa movimentou mudas, o sistema grava o movimento no lote correspondente.
 
 ### FA-1: Tarefa de repicagem
@@ -474,168 +342,53 @@ a gerência deixar de registrar o resto do dia.
 No passo 8, a tarefa é repicagem. O sistema encaminha para UC-48, porque o destino das mudas
 precisa ser informado antes que o movimento possa ser gravado.
 
-### FA-2: Sem conexão
+### FA-2: Tarefa de classificação
+
+No passo 8, a tarefa é classificação. O sistema pede, no mesmo formulário, quantas mudas foram
+descartadas, e grava a perda como movimento do lote (RN-90). Separar os dois gestos faria a perda
+ser esquecida.
+
+### FA-3: Sem conexão
 
 Nos passos 7 e 8, não há rede. O sistema grava localmente com a chave gerada no aparelho, confirma
-e envia ao restabelecer a conexão (RNF-05). O reenvio não duplica o apontamento nem o consumo.
+e envia ao restabelecer a conexão (RNF-05). O reenvio não duplica a confirmação nem o movimento.
 
-### FA-3: Encerramento sem quantidade
+### FA-4: Confirmação sem quantidade
 
 No passo 4, a gerência não sabe quantos um dos participantes fez e deixa o campo dele em branco. O
-sistema aceita e marca **aquele** apontamento como sem contagem, sem afetar os demais: as horas
-ficam registradas de qualquer modo, e hora sem contagem vale mais do que nenhum registro.
+sistema aceita e marca **aquele** participante como sem contagem, sem afetar os demais: a tarefa
+fica registrada como feita de qualquer modo, e tarefa feita sem contagem vale mais do que nenhum
+registro.
 
-### FA-4: Encerramento de uma pessoa só
+### FA-5: Ordem do protocolo
 
-No passo 1, quem encerra é a faixa individual, e não a tarefa: alguém saiu do serviço no meio do
-turno. O fluxo é o mesmo, com um único participante, e a tarefa continua aberta para os demais.
+No passo 1, a célula é uma ordem gerada pelo protocolo (RF-127), e não um lançamento manual. O lote
+**já vem preenchido** pela ordem, e o passo 2 não pergunta nada: campo já respondido pela origem da
+tarefa não é campo a pedir. A conclusão realimenta o protocolo, que passa a contar a ocorrência
+seguinte a partir desta data (RF-129).
 
 ### FE-1: Quantidade inválida
 
-No passo 4, um dos números é negativo ou não numérico. O sistema recusa e mantém o apontamento
-aberto, sem gravar os demais participantes: ou encerra a tarefa inteira, ou não encerra nenhuma
-parte dela.
+No passo 4, um dos números é negativo ou não numérico. O sistema recusa e mantém a atribuição
+planejada, sem gravar os demais participantes: ou confirma a tarefa inteira, ou não confirma parte
+alguma dela.
 
 ### FE-2: Lote não informado
 
-No passo 3, o tipo de tarefa declara lote específico e o lote não foi informado. O sistema recusa o
-encerramento e mantém a tarefa aberta (RF-99): sem lote a atividade não se liga à leva, e nem a
-perda nem o custo encontram destino.
+No passo 2, o tipo de tarefa declara lote específico e o lote não foi informado. O sistema recusa a
+confirmação e mantém a atribuição planejada (RF-99): sem lote a atividade não se liga à leva, e a
+perda não encontra destino.
 
-### FE-3: Consumo maior que o saldo do insumo
+### FE-3: Semana já fechada
 
-No passo 7, o consumo deixaria o saldo do insumo negativo. O sistema **grava assim mesmo** e
-sinaliza o saldo negativo (RF-105).
+No passo 6, a semana da atribuição foi fechada enquanto a tela estava aberta. O sistema recusa a
+confirmação e informa o motivo (RF-73, RN-50): semana fechada não se altera, e o que ficou por
+confirmar já entrou no realizado com a marca de não confirmado (RF-75).
 
-> **Por que aqui o sistema não recusa, e no lote recusa.** O saldo do lote é apurado pelo próprio
-> sistema desde a entrada, e saldo negativo ali é contradição interna. O saldo de insumo depende
-> de toda compra ter sido lançada, e o histórico do viveiro diz que nem toda foi: recusar o
-> consumo real por causa de uma compra não lançada faria o campo parar de registrar consumo, que
-> é o dado mais caro de obter. O negativo aqui **é o alerta** de que falta lançar compra.
-
----
-
-## UC-32 · Emitir cotação
-
-| | |
-|---|---|
-| **Ator principal** | Chefia |
-| **Objetivo** | Consultar preço e disponibilidade junto a fornecedores para o que a produção própria não atende |
-| **Requisitos** | RF-53 |
-| **Frequência** | Semanal |
-| **Pré-condições** | Existe ao menos um fornecedor cadastrado e apto a ser contatado |
-| **Pós-condições** | Uma cotação por fornecedor, agrupadas sob a mesma consulta, no estado *na fila* |
-
-### FP: Fluxo principal
-
-1. A gerência inicia uma cotação, opcionalmente vinculada a um pedido de cliente.
-2. A gerência informa os itens: espécie, quantidade e tamanho desejado.
-3. O sistema sugere os fornecedores que declaram fornecer aquelas espécies.
-4. A gerência seleciona os fornecedores a consultar.
-5. O sistema compõe a mensagem de consulta e a apresenta para revisão.
-6. A gerência revisa e ajusta o texto.
-7. A gerência confirma.
-8. O sistema cria uma cotação por fornecedor, todas vinculadas à mesma consulta, e registra o texto enviado.
-9. A gerência aciona o envio a cada fornecedor pelo canal escolhido.
-
-### FA-1: Cotação avulsa
-
-No passo 1, a gerência não vincula a cotação a pedido algum, é sondagem de mercado ou reposição de
-estoque. O fluxo segue idêntico, sem o vínculo.
-
-### FE-1: Fornecedor que solicitou não ser contatado
-
-No passo 4, um fornecedor selecionado está marcado como *não contatar*. O sistema **o exclui da
-seleção** e informa o motivo.
-
-> O envio é sempre ação manual do usuário, nunca disparo automático do sistema. Essa decisão é de
-> conformidade, não de conveniência: aliada à marcação de *não contatar*, sustenta o direito de
-> oposição previsto na legislação de proteção de dados, ver
-> [`E5`](../E-qualidade/E5-mapeamento-lgpd.md).
-
----
-
-## UC-33 · Escolher proposta
-
-| | |
-|---|---|
-| **Ator principal** | Chefia |
-| **Objetivo** | Comparar as respostas recebidas e definir de quem comprar cada espécie |
-| **Requisitos** | RF-54, RF-33 |
-| **Frequência** | Semanal |
-| **Pré-condições** | Existe consulta com ao menos duas respostas registradas |
-| **Pós-condições** | Uma proposta escolhida por espécie; preço de revenda definido |
-
-### FP: Fluxo principal
-
-1. A gerência registra as respostas recebidas, informando preço unitário e observações por item.
-2. O sistema marca as cotações respondidas e apresenta o comparativo por espécie, com os fornecedores lado a lado.
-3. A chefia escolhe, para cada espécie, a proposta vencedora.
-4. O sistema registra a escolha, admitindo **uma única** por espécie dentro da consulta.
-5. A chefia define o preço de revenda ao cliente.
-6. O sistema valida o preço contra o piso mínimo.
-7. O sistema registra o preço de revenda.
-
-### FA-1: Fornecedor sem resposta
-
-No passo 1, decorrido o prazo, um fornecedor não respondeu. A gerência marca a cotação como *sem
-retorno*, e ela é excluída do comparativo sem ser apagada: o histórico de quem responde alimenta o
-grau de confiabilidade do fornecedor.
-
-### FE-1: Preço de revenda abaixo do piso
-
-No passo 6, o preço informado não cobre o custo de aquisição acrescido da margem mínima. O sistema
-recusa e apresenta o piso aplicável.
-
----
-
-## UC-36 · Classificar lançamentos
-
-| | |
-|---|---|
-| **Ator principal** | Chefia |
-| **Objetivo** | Atribuir significado aos lançamentos importados do extrato, enquanto a memória do gasto ainda existe |
-| **Requisitos** | RF-57, RF-58, RF-59 |
-| **Frequência** | Semanal |
-| **Pré-condições** | Existem lançamentos importados e não classificados |
-| **Pós-condições** | Fila reduzida; classificações convertidas em regra para os meses seguintes |
-
-### FP: Fluxo principal
-
-1. A chefia abre a fila de lançamentos pendentes.
-2. O sistema apresenta os lançamentos que **não** reconheceu, com data, valor e descrição do banco.
-3. Para cada lançamento, a chefia informa centro de custo, categoria e contraparte, escolhendo de
-   lista, sem digitação livre. A lista de centros oferece só os **ativos**, mantidos em UC-45.
-4. O sistema registra a classificação e a converte em regra para lançamentos equivalentes futuros.
-5. O sistema remove o lançamento da fila.
-6. A chefia repete até esvaziar a fila.
-
-### FA-1: Competência distinta da movimentação
-
-No passo 3, o gasto pertence economicamente a outro mês, insumo comprado em fevereiro e pago em
-abril.
-
-1. A chefia informa a **data de competência**.
-2. O sistema registra as duas datas, e o custeio passa a considerar a competência.
-
-> Sem essa distinção, o mês de semeadura pesada aparece barato e o mês do pagamento aparece caro.
-> e o custo por muda mente nos dois.
-
-### FA-2: Gasto que serve a mais de um centro de custo
-
-No passo 3, o lançamento é compartilhado: a energia de um imóvel que abriga casa e clínica. A chefia
-divide o valor entre centros, e o sistema valida que a soma das partes iguala o total.
-
-### FA-3: Lançamento já reconhecido
-
-No passo 2, o sistema identifica lançamento equivalente a outro já classificado, aplica a
-classificação automaticamente e o mantém fora da fila.
-
-### FE-1: Mês já fechado
-
-No passo 3, o lançamento pertence a mês travado. O sistema recusa a alteração e informa que é
-necessário reabrir o período.
-
+> **Confirmar não é apontar hora.** A tarefa registra que foi feita e quanto rendeu, e nada mais.
+> Medir a hora de entrada e de saída de cada pessoa seria controle de ponto, que está fora do
+> escopo declarado em [`A1` §7](../A-fundacao/A1-documento-de-visao.md), e a agenda continua sendo
+> planejada por turno (RN-48), que é como o viveiro sempre trabalhou.
 
 ---
 
@@ -644,16 +397,16 @@ necessário reabrir o período.
 | | |
 |---|---|
 | **Ator principal** | Gerência |
-| **Objetivo** | Definir, por tipo de embalagem, a sequência de etapas que todo lote daquele tipo passa a seguir sozinho |
-| **Requisitos** | RF-121, RF-122, RF-123, RF-124, RF-125 |
-| **Frequência** | Raríssima: uma vez por tipo de embalagem, revista por safra |
-| **Pré-condições** | Existem tipos de tarefa no catálogo e ao menos um tipo de embalagem |
-| **Pós-condições** | Protocolo vigente para o tipo; lotes criados a partir daí passam a segui-lo |
+| **Objetivo** | Definir, por recipiente, a sequência de etapas que todo lote daquele recipiente passa a seguir sozinho |
+| **Requisitos** | RF-122, RF-123, RF-124, RF-125 |
+| **Frequência** | Raríssima: uma vez por recipiente, revista por safra |
+| **Pré-condições** | Existem tipos de tarefa no catálogo e ao menos um recipiente |
+| **Pós-condições** | Protocolo vigente para o recipiente; lotes criados a partir daí passam a segui-lo |
 
 ### FP: Fluxo principal
 
-1. A gerência abre Configurações e escolhe o tipo de embalagem, ou cria um novo (RF-121).
-2. O sistema apresenta o protocolo vigente do tipo, ou um protocolo vazio quando não há.
+1. A gerência abre o cadastro de protocolos e escolhe o recipiente.
+2. O sistema apresenta o protocolo vigente do recipiente, ou um protocolo vazio quando não há.
 3. A gerência acrescenta uma etapa, escolhendo o tipo de tarefa no catálogo e dando-lhe um rótulo.
 4. A gerência declara o agendamento: **sequencial**, que ocorre uma vez, ou **recorrente**, que repete (RF-123).
 5. A gerência declara o **evento de referência**: a criação do lote, ou a conclusão de uma etapa já existente no protocolo, escolhida numa lista (RF-124).
@@ -678,8 +431,8 @@ em percentual do intervalo, e ela prevalece sobre o parâmetro geral (RN-104).
 
 No passo 10, existem lotes seguindo o protocolo. O sistema **não** reescreve as ordens já emitidas
 nem as datas já cumpridas: a alteração vale para a próxima geração de cada lote (RN-107). É a
-mesma garantia que a recorrência de calendário dá em RN-96, e a razão é a mesma: regra que
-reescrevesse o passado apagaria dia já trabalhado.
+mesma garantia que a ordem já gerada tem em RN-111, e a razão é a mesma: regra que reescrevesse o
+passado apagaria dia já trabalhado.
 
 ### FE-1: Âncora circular
 
@@ -696,9 +449,9 @@ vez e se apresenta como se repetisse.
 
 ### FE-3: Segundo protocolo vigente para o mesmo tipo
 
-No passo 2, já existe protocolo vigente e a gerência tenta criar outro para o mesmo tipo de
-embalagem. O sistema recusa e oferece editar o existente: dois vigentes tornariam indeterminado
-qual deles o lote novo segue.
+No passo 2, já existe protocolo vigente e a gerência tenta criar outro para o mesmo recipiente. O
+sistema recusa e oferece editar o existente: dois vigentes tornariam indeterminado qual deles o
+lote novo segue.
 
 ---
 
@@ -790,10 +543,12 @@ afetados na próxima geração, para que a gerência saiba o alcance antes de co
 
 ## Casos de uso não especificados
 
-Os quarenta e quatro casos restantes de [`C1`](C1-diagrama-casos-de-uso.md) são operações de manutenção
+Os vinte e quatro casos restantes de [`C1`](C1-diagrama-casos-de-uso.md) são operações de manutenção
 de cadastro e de consulta, cujo fluxo se resume a selecionar, preencher e confirmar, sem alternativas
 relevantes. Especificá-los produziria repetição sem ganho analítico.
 
-Dois merecem registro por já estarem descritos em linguagem de negócio na documentação de domínio:
-**UC-35 (importar extrato)** e **UC-37 (fechar o mês)**, ambos em
-[`docs/rotinas/4-financeiro/`](../../rotinas/4-financeiro/).
+Três merecem registro por já estarem descritos em linguagem de negócio na documentação de domínio:
+**UC-43 (montar a agenda da semana)** e **UC-52 (fechar a semana)**, em
+[`docs/rotinas/2-producao/01-agenda-de-pessoal.md`](../../rotinas/2-producao/01-agenda-de-pessoal.md),
+e **UC-61 (consultar mapa de lotes)**, em
+[`docs/rotinas/2-producao/04-lotes-e-canteiros.md`](../../rotinas/2-producao/04-lotes-e-canteiros.md).
