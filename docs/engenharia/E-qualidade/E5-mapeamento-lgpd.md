@@ -10,15 +10,16 @@
 
 ## 1. Por que este artefato existe
 
-O sistema trata dados pessoais de três grupos distintos, clientes, fornecedores e os próprios
-usuários: e um deles inclui **pessoas que não são usuárias do sistema nem clientes da empresa**: as
-contrapartes que aparecem nos lançamentos financeiros, incluindo membros da família e pacientes
-identificáveis por transferência recebida na conta da clínica.
+O sistema trata dados pessoais de quatro grupos, clientes, fornecedores, usuários e funcionários,
+e um deles é composto por **pessoas que não operam o sistema**: os seis colaboradores de campo, que
+aparecem na agenda, recebem tarefa e têm a quantidade produzida registrada individualmente, sem
+nunca abrir uma tela.
 
-Essa última categoria é a que torna o mapeamento necessário e não meramente formal. Um sistema que
-importa nove extratos bancários pessoais e empresariais trata dado pessoal de terceiros que jamais
-consentiram nada: e a análise de quem são, para quê e por quanto tempo precisa ser feita antes de o
-sistema entrar em operação, não depois.
+Esse grupo é o que torna o mapeamento necessário e não meramente formal. Nos outros três, o titular
+está diante de quem digita: o cliente negocia, o fornecedor é contatado, o usuário vê a própria
+tela. O funcionário sem login é o único sobre quem o sistema registra sem que ele veja o registro,
+e a análise de o que se guarda, para quê e por quanto tempo precisa ser feita antes de o sistema
+entrar em operação, não depois.
 
 ---
 
@@ -38,34 +39,28 @@ sistema entrar em operação, não depois.
 **Titulares:** clientes pessoa física. Clientes pessoa jurídica não são titulares, mas o nome do
 contato e o documento do responsável, quando informados, são dado pessoal.
 
-**Minimização aplicada:** os campos fiscais são **todos opcionais** no cadastro. Só são exigidos
-quando há nota fiscal a emitir (RF-40). O cliente de atacado que não pede nota permanece cadastrado
-apenas com nome e telefone: coleta-se o mínimo necessário à finalidade, e apenas quando a finalidade
-existe.
+**Minimização aplicada:** os campos fiscais são **todos opcionais** no cadastro. O cliente de
+atacado que não pede nota permanece cadastrado apenas com nome e telefone (RF-36), e a ficha
+completa só é preenchida quando há nota a emitir no sistema externo (RF-37): coleta-se o mínimo
+necessário à finalidade, e apenas quando a finalidade existe.
 
 ### 2.2 Dados de fornecedores
 
 | Dado | Finalidade | Base legal | Retenção |
 |---|---|---|---|
-| Nome, contato, telefone, mensageria | Consulta de preço e disponibilidade | **Legítimo interesse** (art. 7º, IX) | Enquanto houver relação, ou até oposição do titular |
-| Correio eletrônico, perfil em rede social | Idem | Legítimo interesse (art. 7º, IX) | Idem |
-| Cidade e estado | Cálculo de distância e apresentação em mapa | Legítimo interesse (art. 7º, IX) | Idem |
-| Coordenadas geográficas | Idem: obtidas por geocodificação da cidade | Legítimo interesse (art. 7º, IX) | Idem |
+| Nome, contato, telefone | Relação comercial de compra | **Legítimo interesse** (art. 7º, IX) | Enquanto houver relação, ou até oposição do titular |
+| Correio eletrônico | Idem | Legítimo interesse (art. 7º, IX) | Idem |
+| Cidade e estado | Identificação da origem da muda ou do insumo | Legítimo interesse (art. 7º, IX) | Idem |
 
-**Ponto de atenção: legítimo interesse exige contrapartida.** O contato comercial com fornecedores
-apoia-se em legítimo interesse, e não em consentimento. A lei condiciona essa base à garantia do
-**direito de oposição** do titular, e o sistema o implementa de forma estrutural:
+**Ponto de atenção: legítimo interesse exige contrapartida.** O cadastro de fornecedor apoia-se em
+legítimo interesse, e não em consentimento. A lei condiciona essa base à garantia do **direito de
+oposição** do titular, e o sistema o atende de forma estrutural: o cadastro se **inativa**, e o
+fornecedor inativo deixa de ser oferecido em qualquer seleção.
 
-- O cadastro de fornecedor tem um estado **"não contatar"**, que registra a oposição manifestada.
-- Fornecedor nesse estado é **excluído da seleção de cotação pelo sistema**, e não apenas sinalizado
-: ver [`C2`, UC-32, FE-1](../C-modelagem/C2-especificacao-casos-de-uso.md).
-- O envio de qualquer mensagem é **ação manual do usuário**, jamais disparo automático. Não existe
-  caminho pelo qual o sistema contate alguém sozinho.
-
-> A geocodificação merece registro específico: cidade e estado do fornecedor são enviados a serviço
-> externo para obter coordenadas. É **transferência de dado a terceiro**, ainda que de granularidade
-> municipal e não de endereço. O resultado é armazenado localmente justamente para que a consulta
-> ocorra uma única vez por fornecedor, e não a cada exibição do mapa.
+> **O sistema não envia mensagem a fornecedor.** Não há disparo automático, nem integração com
+> mensageria: a comunicação continua sendo conversa entre pessoas, fora do sistema. É o que reduz
+> este tratamento a um cadastro de contato, e é a razão de ele não exigir mais controles do que os
+> descritos acima.
 
 ### 2.3 Dados de usuários do sistema
 
@@ -81,47 +76,46 @@ pessoa identificada, ainda que com finalidade de segurança. Os usuários devem 
 esse registro existe, do que ele contém e de por quanto tempo é mantido. A tela de sessões ativas
 cumpre parte dessa transparência ao exibir ao próprio usuário os dados registrados sobre ele.
 
-### 2.4 Dados de contrapartes financeiras: **o caso mais sensível**
+### 2.4 Dados de funcionários que não usam o sistema: **o caso mais sensível**
 
 | Dado | Finalidade | Base legal | Retenção |
 |---|---|---|---|
-| Nome da contraparte do lançamento | Classificação do gasto por destinatário | Legítimo interesse e obrigação legal contábil | 5 anos |
-| Documento da contraparte, quando informado | Identificação inequívoca | Legítimo interesse (art. 7º, IX) | 5 anos |
-| Descrição original do lançamento bancário | **Prova de origem**: jamais editada | Obrigação legal (art. 7º, II) | 5 anos |
+| Nome e contato do funcionário | Escala de trabalho e identificação na agenda | Execução de contrato de trabalho (art. 7º, V) | Enquanto durar o vínculo, e 5 anos depois, por prazo prescricional trabalhista |
+| Vínculo (fixo ou diarista) | Distinguir quem está na escala permanente de quem aparece por temporada | Execução de contrato (art. 7º, V) | Idem |
+| Tarefa atribuída, dia e turno | Planejamento e registro do trabalho | Execução de contrato (art. 7º, V) | Idem |
+| Quantidade realizada por pessoa | Registro do que foi produzido | **Legítimo interesse** (art. 7º, IX) | Idem |
 
-Três características tornam este o tratamento de maior risco do sistema:
+**Três características tornam este o tratamento mais delicado do sistema.**
 
-1. **A coleta não é declarada pelo titular.** O nome entra pela importação do extrato, escrito pelo
-   banco. Ninguém preencheu formulário algum.
-2. **O escopo excede a atividade empresarial.** A base cobre nove contas, das quais parte é pessoal.
-   Aparecem nela pessoas sem qualquer relação com o viveiro, familiares, prestadores de serviço
-   pessoal, e transferências recebidas na conta da clínica de fonoaudiologia, que podem identificar
-   pacientes.
-3. **Dado de paciente é dado sensível.** Informação referente à saúde recebe proteção reforçada pelo
-   art. 11 da lei. Uma transferência recebida de pessoa física na conta da clínica, ainda que o
-   sistema não registre diagnóstico algum, associa uma pessoa a um serviço de saúde.
+1. **O titular não é usuário.** Seis das nove pessoas cadastradas como funcionário **não têm login**
+   e nunca abrem uma tela. Elas não veem o que o sistema registra sobre elas, não são notificadas
+   quando um registro é feito, e não têm, pela própria interface, como exercer o direito de acesso.
+   É o oposto da situação do cliente, que ao menos negocia diretamente com quem digita.
+2. **O dado é sobre desempenho individual, e não sobre a equipe.** A quantidade realizada é gravada
+   **por pessoa**, e não por tarefa (RN-91): é a granularidade que o negócio pediu, e é também a
+   que permite comparar pessoas entre si. O sistema não faz essa comparação em tela nenhuma, mas o
+   dado a permite, e é isso que precisa estar declarado.
+3. **A finalidade declarada é planejamento, não avaliação.** O registro existe para responder o que
+   foi feito no viveiro, e não para medir quem produz mais. Usá-lo para avaliação de desempenho
+   seria **desvio de finalidade**, vedado pelo art. 6º, I, e exigiria nova base legal e nova
+   informação ao titular.
 
 **Controles aplicados:**
 
-- **Acesso exclusivo da chefia e do administrador à base bancária** (RF-62): extrato, lançamento,
-  compra, custo fixo e fechamento. Gerência e colaborador não abrem nenhuma dessas telas, nem em
-  leitura: é a restrição mais rígida do sistema, e sua motivação é de privacidade, não de escopo
-  funcional. O que **deriva** dessa base sem expô-la, custo unitário, margem, preço, indicadores
-  operacionais: permanece legível para a gerência: são agregados que não dizem para quem se pagou
-  (ver [`D4 §3.2`](../D-arquitetura/D4-matriz-rbac.md)).
-- **Esquema de banco separado**, o que torna a fronteira de acesso estrutural e não apenas
-  procedimental (ver [`C6`, §3.5](../C-modelagem/C6-modelo-entidade-relacionamento.md)).
-- **Separação por centro de custo**, que permite distinguir o que é da empresa do que é pessoal, e
-  é pré-requisito para qualquer decisão futura de restringir ou eliminar o tratamento do que não é
-  empresarial.
+- **O relógio ficou de fora.** O sistema não registra hora de entrada, de saída nem duração de
+  tarefa por pessoa ([`A1` §7](../A-fundacao/A1-documento-de-visao.md)). É a decisão de escopo que
+  mais reduz a superfície de dado pessoal: sem ela, o cadastro de funcionário viraria controle de
+  ponto, com tudo o que isso exige de base legal e de transparência.
+- **Nenhum dado de remuneração é tratado.** Não há salário, folha, valor-hora nem custo de mão de
+  obra no sistema.
+- **Acesso restrito a três pessoas**, chefia, gerência e administrador, todas com vínculo direto de
+  supervisão sobre os titulares ([`D4`](../D-arquitetura/D4-matriz-rbac.md)).
 
-> **Recomendação registrada:** a conta da clínica deveria ficar **fora do escopo de importação**. Sua
-> presença acrescenta dado potencialmente sensível a um sistema de gestão de viveiro, sem
-> contrapartida: a clínica não é objeto deste trabalho, e sua exclusão não prejudica nenhum
-> indicador do viveiro. É decisão do titular do negócio, e fica aqui documentada como recomendação
-> técnica.
-
----
+> **Transparência devida, e ainda não atendida.** Os seis funcionários sem login precisam ser
+> **informados** de que o sistema registra a tarefa atribuída a eles e a quantidade que produziram,
+> com que finalidade e por quanto tempo. Como não há tela pela qual informá-los, a comunicação tem
+> de ser feita fora do sistema, por aviso escrito entregue à equipe. Fica aqui registrada como
+> pendência de implantação, e não como controle já existente.
 
 ## 3. Direitos dos titulares e como o sistema os atende
 
@@ -131,9 +125,9 @@ Três características tornam este o tratamento de maior risco do sistema:
 | **Correção** | Cadastros de cliente e fornecedor são editáveis |
 | **Anonimização ou eliminação** | Parcialmente atendido. O arquivamento lógico preserva o dado; a eliminação efetiva depende de operação manual no banco |
 | **Portabilidade** | Não implementado. Registrado como pendência |
-| **Informação sobre compartilhamento** | Este documento identifica o único compartilhamento: cidade e estado enviados ao serviço de geocodificação |
+| **Informação sobre compartilhamento** | Este documento identifica o único compartilhamento: os dados cadastrais do cliente, transcritos no emissor fiscal externo pela própria chefia |
 | **Revogação de consentimento** | Não aplicável: nenhum tratamento se apoia em consentimento |
-| **Oposição** | Atendido para fornecedores, pelo estado "não contatar" |
+| **Oposição** | Atendido para fornecedores, pela inativação do cadastro |
 
 ### Pendências reconhecidas
 
@@ -142,7 +136,8 @@ Registrá-las é preferível a declarar conformidade que não existe:
 1. **Não há rotina de eliminação por prazo de retenção.** Os prazos estão declarados neste documento;
    sua aplicação é manual.
 2. **Não há aviso de privacidade apresentado aos titulares.** Clientes e fornecedores não são
-   informados formalmente sobre o tratamento.
+   informados formalmente sobre o tratamento, e os **funcionários sem login** são o caso mais
+   grave, porque não há tela pela qual informá-los (§2.4).
 3. **Portabilidade não implementada.**
 4. **A transparência aos usuários sobre o registro de acesso é parcial**, limitada à tela de sessões
    ativas.
@@ -157,8 +152,8 @@ como escopo de continuidade.
 | Base legal | Onde se aplica |
 |---|---|
 | **Obrigação legal** (art. 7º, II) | Documento fiscal do cliente, dados de nota fiscal, guarda de registro contábil |
-| **Execução de contrato** (art. 7º, V) | Nome, contato e endereço de cliente; dados de usuário do sistema |
-| **Legítimo interesse** (art. 7º, IX) | Contato de fornecedor, registro de acesso, classificação de contraparte financeira |
+| **Execução de contrato** (art. 7º, V) | Nome, contato e endereço de cliente; dados de usuário do sistema; cadastro e escala de funcionário |
+| **Legítimo interesse** (art. 7º, IX) | Contato de fornecedor, registro de acesso, quantidade produzida por funcionário |
 | **Consentimento** | **Não utilizado em nenhum tratamento** |
 
 A ausência de consentimento como base é deliberada e vale explicitar: consentimento exige coleta,

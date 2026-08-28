@@ -19,15 +19,16 @@ irreproduzível**.
 
 | Conjunto de dados | Reprodutível? | Custo de reconstituição |
 |---|---|---|
-| **Levantamento primário**: consumo de insumo por espécie, tempos de produção, custos de coleta | **Não** | Meses de nova medição em campo |
-| **Histórico de perdas e produção** | **Não** | Impossível. O evento passou |
-| **Classificação financeira** | **Não** | A memória do gasto se perde em semanas: é a razão da rotina semanal |
+| **Movimentos de lote**: perda, repicagem, venda, ajuste | **Não** | Impossível. O evento passou, e o saldo de hoje não o reconstitui |
+| **Semanas de trabalho já fechadas** | **Não** | Impossível. Ninguém lembra quem fez o quê há dois meses |
+| **Percurso do lote pelo protocolo** | **Não** | A data real de cada etapa executada não está em lugar nenhum fora do sistema |
 | **Pedidos e clientes** | Parcialmente | Reconstituível a partir de conversas e notas fiscais, a custo alto |
-| **Cadastro de fornecedores** | Parcialmente | Rede construída ao longo de anos |
+| **Cadastro de pessoas** | Parcialmente | Rede construída ao longo de anos |
 | **Catálogo de espécies e recipientes** | Sim | Recadastramento trabalhoso, mas viável |
 
-**As três primeiras linhas são o que este plano protege.** Perdê-las não significa refazer trabalho.
-significa que o dado deixa de existir, e com ele o objetivo do trabalho.
+**As três primeiras linhas são o que este plano protege.** Perdê-las não significa refazer
+trabalho: significa que o dado deixa de existir, e com ele o objetivo do trabalho. As três têm em
+comum o fato de registrarem **eventos**, e evento não se recadastra.
 
 ---
 
@@ -100,16 +101,17 @@ executar estará sob pressão.
 |---|---|---|
 | 1 | **Identificar o momento a restaurar.** Em desastre, a cópia mais recente. Em corrupção, a última cópia anterior ao erro | Momento escolhido é anterior ao primeiro registro corrompido |
 | 2 | **Restaurar em instância nova**, sem sobrescrever a existente | A instância original permanece intacta e disponível para comparação |
-| 3 | **Conferir a integridade** contando registros das entidades críticas: espécies, lançamentos, pedidos, perdas | As contagens são compatíveis com o esperado para a data |
-| 4 | **Conferir o saldo financeiro** do último mês fechado contra o extrato bancário | Os saldos coincidem: é a verificação mais forte, porque confronta o sistema com fonte externa |
+| 3 | **Conferir a integridade** contando registros das entidades críticas: espécies, lotes, movimentos, atribuições, pedidos | As contagens são compatíveis com o esperado para a data |
+| 4 | **Conferir o saldo dos lotes abertos** contra uma contagem física no viveiro, em ao menos três canteiros | Os saldos coincidem: é a verificação mais forte, porque confronta o sistema com fonte externa |
 | 5 | **Apontar a aplicação** para a instância restaurada | Sistema responde e autentica |
 | 6 | **Verificar as migrações pendentes** e aplicá-las, se a cópia for anterior a alguma alteração de esquema | Estrutura compatível com a versão do código em produção |
 | 7 | **Comunicar a equipe** sobre o intervalo perdido, para relançamento manual | Equipe sabe o que precisa relançar |
 
 **O passo 4 é o que valida a restauração.** As contagens do passo 3 detectam perda grosseira; a
-conferência do saldo contra o extrato é a única verificação que confronta o sistema com uma fonte
-externa e independente. É, não por acaso, o mesmo princípio que sustenta todo o subsistema
-financeiro.
+conferência do saldo do lote contra a muda que está no canteiro é a única verificação que confronta
+o sistema com uma fonte externa e independente. É, não por acaso, o mesmo princípio que sustenta o
+próprio modelo: o saldo do lote existe para ser conferível contra a soma dos seus movimentos, e
+contra o viveiro.
 
 ---
 

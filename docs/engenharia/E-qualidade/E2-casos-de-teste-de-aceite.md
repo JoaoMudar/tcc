@@ -208,9 +208,9 @@ requisitos de prioridade *deve ter* sem verificação correspondente.
 | **TA-53** | RF-27 | Perdas registradas em datas distintas | 1. Filtrar as perdas por um intervalo de datas | Retorna somente os registros do intervalo | Não executado |
 | **TA-54** | RF-39 | Cliente cadastrado com nome, telefone e documento | 1. Buscar por parte do nome<br>2. Buscar pelo telefone<br>3. Buscar pelo documento | As três buscas retornam o mesmo cliente | Não executado |
 
-> **TA-51 tem a mesma natureza de TA-09**: confronta o número do sistema com uma apuração manual
-> independente. É o que valida a decisão de manter o estoque como quantidade derivada em vez de
-> entidade armazenada: se os valores divergirem, a derivação está errada.
+> **TA-51 confronta o número do sistema com uma apuração manual independente.** É o que valida a
+> decisão de manter o saldo disponível como quantidade derivada, e não como entidade armazenada:
+> se os dois valores divergirem, a derivação está errada.
 
 ---
 

@@ -18,7 +18,7 @@ Antes das ameaças, o que há a perder. A coluna de sensibilidade orienta a prio
 
 | Ativo | Conteúdo | Sensibilidade |
 |---|---|---|
-| **Dados financeiros** | Lançamentos de nove contas, incluindo gasto pessoal da família e da clínica | **Máxima**: dado pessoal de terceiros não usuários do sistema |
+| **Dados pessoais de terceiros** | Nome, telefone, documento e endereço de clientes e de funcionários | **Máxima**: dado pessoal de pessoas que não usam o sistema e não o autorizaram diretamente |
 | **Dados pessoais de clientes** | Nome, documento, telefone, endereço, correio eletrônico | **Alta**: sujeitos à legislação de proteção de dados |
 | **Estrutura de custo e margem** | Custo unitário por espécie e margem por canal | **Alta**: informação concorrencialmente sensível |
 | **Cadastro de fornecedores** | Contatos e preços da rede de terceiros | **Alta**: construída ao longo de anos, de difícil reconstituição |
@@ -38,7 +38,7 @@ pelo tipo de controle de Sommerville.
 |---|---|
 | **Tipo de ameaça** | Confidencialidade |
 | **Vulnerabilidade** | Usuários sem formação técnica tendem a escolher senha curta e previsível |
-| **Impacto** | Acesso completo ao perfil comprometido. Se for a chefia, inclui o financeiro |
+| **Impacto** | Acesso completo ao perfil comprometido. Se for a chefia, inclui a ficha fiscal dos clientes |
 | **Probabilidade** | Alta |
 
 **Controles:**
@@ -80,7 +80,7 @@ pelo tipo de controle de Sommerville.
   administrador (RF-07).
 - *Detecção*: registro de dispositivo e origem em cada sessão, que permite reconhecer o aparelho na
   lista.
-- *Prevenção*: o perfil colaborador não acessa preço, custo nem financeiro (ver
+- *Prevenção*: o perfil gerência não acessa dado fiscal de pessoa (ver
   [`D4`](../D-arquitetura/D4-matriz-rbac.md)), o que limita o alcance de um aparelho de campo
   comprometido.
 
@@ -93,7 +93,7 @@ pelo tipo de controle de Sommerville.
 |---|---|
 | **Tipo de ameaça** | Confidencialidade e integridade |
 | **Vulnerabilidade** | Verificação de permissão feita apenas na interface, e não na operação |
-| **Impacto** | Perfil operacional alcançando dados financeiros ou de margem |
+| **Impacto** | Perfil operacional alcançando dado pessoal que o seu trabalho não exige |
 | **Probabilidade** | Baixa, dado o controle adotado |
 
 **Controles:**
@@ -163,26 +163,34 @@ pelo tipo de controle de Sommerville.
 **Controles:**
 - *Prevenção*: a fila local retém **apenas registros pendentes de envio**, e não cópia do banco. Um
   registro de perda em fila não revela custo, margem nem dado de cliente.
-- *Prevenção*: o dispositivo do colaborador não recebe dado financeiro nem de precificação, por
+- *Prevenção*: o dispositivo da gerência não recebe dado fiscal de pessoa, por
   decisão da matriz de acesso.
 
 > É a razão de a sincronização ser por fila e não por réplica local do banco. A réplica seria mais
 > confortável de programar e colocaria a base inteira em seis celulares que circulam em campo.
 
-### A-09 · Alteração indevida de dado financeiro consolidado
+### A-09 · Alteração indevida de registro já consolidado
 
 | | |
 |---|---|
-| **Tipo de ameaça** | Integridade |
-| **Vulnerabilidade** | Edição de lançamento de período já conferido |
-| **Impacto** | Divergência entre saldo do sistema e saldo do banco, que invalida os indicadores |
-| **Probabilidade** | Média: o risco é de erro, não de má-fé |
+| **Elemento STRIDE** | Adulteração |
+| **Ativo** | Semana de trabalho fechada, movimento de lote, pedido confirmado |
+| **Probabilidade** | Baixa |
+| **Impacto** | **Alto**: o histórico deixa de servir de histórico |
+
+Alterar uma semana já fechada, apagar um movimento de lote ou mudar o item de um pedido confirmado
+destrói justamente a propriedade que faz esses registros valerem alguma coisa: a de não terem
+mudado depois de fechados.
 
 **Controles:**
-- *Prevenção*: mês fechado não aceita alteração (RF-60). A reabertura é ato explícito e registrado.
-- *Prevenção*: descrição e data de movimentação nunca são editáveis: são a prova de que a linha veio
-  do banco.
-- *Detecção*: conferência do saldo calculado contra o saldo do extrato no fechamento.
+
+- *Prevenção*: semana fechada recusa alteração (RF-73, RN-50); pedido confirmado recusa alteração
+  de item (RF-142, RN-31); nenhum perfil tem permissão de exclusão sobre movimento de lote
+  ([`D4` §3.6](../D-arquitetura/D4-matriz-rbac.md)).
+- *Prevenção*: a correção de saldo é um movimento de `ajuste_contagem`, que **registra** a correção
+  em vez de esconder o erro (RN-14).
+- *Detecção*: a soma dos movimentos tem de reproduzir o saldo do lote; divergência é defeito
+  detectável por consulta (RN-78).
 
 ### A-10 · Perda de dados por falha de infraestrutura
 
@@ -221,7 +229,7 @@ pelo tipo de controle de Sommerville.
 | **Disponibilidade** | A-10, A-11 | Limitação e recuperação; nenhuma prevenção, por decisão de custo |
 
 **Oito das onze ameaças são de confidencialidade.** A concentração reflete a natureza do sistema:
-seu ativo mais sensível não é a operação, é o dado financeiro que mistura empresa e família, e o
+seu ativo mais sensível não é a operação, é o dado pessoal de quem compra e de quem trabalha, e o
 risco predominante é de acesso indevido, não de destruição.
 
 ---
@@ -256,12 +264,12 @@ Registrar os controles **descartados** e o motivo evita que a ausência seja lid
 |---|---|
 | A-01 | RF-02, RNF-09 |
 | A-02 | RF-04, RF-07, RNF-09 |
-| A-03 | RF-07, RF-04, RF-62 |
+| A-03 | RF-07, RF-04, RF-06 |
 | A-04 | RF-06, RNF-12 |
 | A-05 | RNF-12 |
 | A-06 | RNF-12, RNF-21, RNF-22 |
 | A-07 | RNF-11, RNF-13 |
-| A-08 | RNF-05, RF-62 |
-| A-09 | RF-59, RF-60, RF-61 |
+| A-08 | RNF-05, RF-06 |
+| A-09 | RF-73, RF-88, RF-142 |
 | A-10 | RNF-14 |
 | A-11 | RNF-05 |
