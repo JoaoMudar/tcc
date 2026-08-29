@@ -1,7 +1,7 @@
 -- Migration: 20260901000005_producao_agenda.sql
 -- Descricao: A agenda da semana: o planejado e o confirmado, na mesma linha.
 --
--- Requisitos: RF-31 a RF-39, RF-34, RF-36, RF-37, RF-35, RF-38 · Regras: RN-12, RN-13, RN-14, RN-25, RN-26, RN-29, RN-33
+-- Requisitos: RF-31 a RF-39 · Regras: RN-12 a RN-14, RN-24 a RN-26, RN-33
 -- Entidades: C8 `week_plans`, `assignments`, `assignment_members`
 --
 -- NAO HA APONTAMENTO POR RELOGIO. `assignments.status` percorre planejada,
