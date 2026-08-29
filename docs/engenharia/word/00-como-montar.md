@@ -1,10 +1,10 @@
 # Como montar o TCC a partir desta pasta
 
 > **Pasta gerada automaticamente.** Não edite nada aqui, edite o artefato de origem em
-> `docs/engenharia/` e rode `npm run docs:tcc`. Qualquer edição feita nesta pasta é perdida
-> na próxima geração.
+> `docs/engenharia/` e rode `node scripts/build-word.mjs`. Qualquer edição feita nesta pasta é
+> perdida na próxima geração.
 
-Gerado em 2026-08-26 · 16 arquivos · 18 figuras.
+Gerado a partir dos artefatos vigentes · 16 arquivos · 15 figuras.
 
 ## Ordem de colagem no Capítulo 4
 
@@ -28,8 +28,8 @@ Gerado em 2026-08-26 · 16 arquivos · 18 figuras.
 > de backup apresentam, nos resultados, conteúdo que o referencial atual não fundamenta. Sem esse
 > acréscimo, o Capítulo 4 afirma o que o Capítulo 2 não sustenta.
 >
-> **`cap3-analise-de-riscos.md` não pertence ao Capítulo 4.** Análise de riscos do projeto é
-> elemento de metodologia: cabe como seção nova no Capítulo 3.
+> **Análise de riscos não pertence ao Capítulo 4.** É elemento de metodologia: cabe como seção
+> nova no Capítulo 3.
 
 ## Apêndices
 
@@ -38,13 +38,20 @@ Gerado em 2026-08-26 · 16 arquivos · 18 figuras.
 - `apendice-C-casos-de-teste.md` → Apêndice C, Casos de teste de aceite
 - `apendice-D-quadros.md` → Apêndice D, Quadros de regras de negócio e requisitos
 
-Estes quatro são longos demais para o corpo do texto. A recomendação é apresentar, no capítulo, uma
-amostra de duas ou três tabelas e remeter ao apêndice para o restante.
+Estes quatro são longos demais para o corpo do texto. A recomendação é apresentar, no capítulo,
+uma amostra de duas ou três tabelas e remeter ao apêndice para o restante.
 
 ## Figuras
 
-Todas em `img/`, numeradas em sequência contínua (Figura 1 a Figura 18) e já referenciadas no
-texto de cada arquivo, com legenda no padrão ABNT abaixo da imagem.
+Todas em `img/`, numeradas em sequência contínua (Figura 1 a Figura 15) e já referenciadas
+no texto de cada arquivo, com legenda no padrão ABNT abaixo da imagem.
+
+> **As figuras da seção 4.5 são substituídas à mão.** As que este script gera saem do Mermaid do
+> `C6`, com nomes de tabela em inglês. Para o trabalho impresso, use as de
+> [`modelo-dados-pt/img/`](../modelo-dados-pt/img/), que são o mesmo modelo com nomes em português
+> e recortes que cabem na mancha de 16 x 24 cm. São doze no lugar das do C6, e o
+> [`README`](../modelo-dados-pt/README.md) de lá traz a fonte útil medida de cada uma e o
+> deslocamento de numeração que a troca causa nas seções seguintes.
 
 Ao colar no Word:
 
@@ -54,8 +61,8 @@ Ao colar no Word:
 3. Confira a largura: as imagens foram geradas a 1400 px e devem ser reduzidas à largura da mancha
    de texto.
 
-> A **Lista de Figuras** do trabalho hoje traz apenas os títulos de exemplo. Com 18 figuras,
-> ela passa a ser obrigatória: o próprio modelo indica que a lista é exigida acima de cinco figuras.
+> A **Lista de Figuras** do trabalho passa a ser obrigatória: o próprio modelo indica que a lista é
+> exigida acima de cinco figuras.
 
 ## Tabelas
 
@@ -73,8 +80,8 @@ Alternativa mais rápida, se houver Pandoc instalado: converter o arquivo inteir
 ## Conferência antes de entregar
 
 - [ ] Numeração das figuras contínua e coerente com a Lista de Figuras
+- [ ] Figuras da seção 4.5 trocadas pelas de `modelo-dados-pt/`, e a numeração seguinte ajustada
 - [ ] Todas as tabelas cabem na largura da página, sem corte
 - [ ] Figuras legíveis em escala de cinza, caso a impressão seja monocromática
-- [ ] Acréscimos ao Capítulo 2.5 colados **antes** do Capítulo 4
 - [ ] Referência da Lei nº 13.709/2018 inserida na seção REFERÊNCIAS
 - [ ] Análise de riscos posicionada no Capítulo 3, não no 4

@@ -1,12 +1,12 @@
 # Guia de Execução
 
-> Reescrito em **10/08/2026**. A versão anterior descrevia um cronograma de 4 meses (P1→P10,
-> sessão por sessão) que a realidade não seguiu: o que se construiu primeiro foi
-> Pedidos/Clientes/Fornecedores, que nem constava do roadmap. Este guia parte de onde o projeto
-> **está**, não de onde se planejou que estivesse.
+> Reescrito em **28/08/2026**, com a redução de escopo. As duas versões anteriores descreviam
+> cronogramas que a realidade não seguiu: a primeira, quatro meses de P1 a P10; a segunda, uma
+> ordem de quinze projetos em que o custeio deixou de ser o primeiro. Este guia parte de onde o
+> projeto **está**, não de onde se planejou que estivesse.
 >
-> O planejamento original está preservado no histórico do git, caso sirva ao TCC como material
-> sobre a diferença entre planejado e executado.
+> O planejamento original está preservado no histórico do git, e serve ao TCC como material sobre
+> a diferença entre planejado e executado, que é um resultado do trabalho e não um acidente dele.
 
 ## Estrutura real do repositório
 
@@ -15,8 +15,8 @@ viveiro-mudar/
 ├── CLAUDE.md                  ← regras, carregado em toda sessão
 ├── docs/
 │   ├── README.md              ← mapa da documentação (entrada)
-│   ├── auditoria-divergencias.md  ← divergências conhecidas (ler antes de implementar)
-│   ├── contexto-projeto.md    ← roadmap e estado de cada projeto
+│   ├── auditoria-divergencias.md  ← registro histórico das divergências e do corte de escopo
+│   ├── contexto-projeto.md    ← as três áreas, o corte e o estado do projeto
 │   ├── rotinas/               ← domínio, em linguagem de negócio
 │   └── engenharia/            ← artefatos formais (base do Cap. 4 do TCC)
 ├── plans/                     ← P1…P13, roadmaps de implementação
@@ -28,33 +28,35 @@ viveiro-mudar/
 
 ## Onde o projeto está
 
-| | Projeto | Estado |
+| | Fase | Estado |
 |---|---|---|
-| ✅ | **P11** Fornecedores e cotação | concluído, em produção |
-| ✅ | Pedidos, Clientes, Acesso | concluídos (fora do roadmap original) |
-| 🟡 | **P1** Custeio | cadastros e view prontos; falta o motor de cálculo |
-| 🟡 | **P12** Financeiro sobre extratos | Fase 0 (decisões) fechada |
-| 📐 | **P13** Cadastro único + agenda de pessoal | desenhado, não implementado |
-| ⬜ | P2, P3, P4, P5, P6, P7, P8, P9, P10 | não iniciados |
+| 🟡 | **Fase 1** Acesso e cadastro único | acesso, catálogo e pessoas prontos; faltam áreas e canteiros, tipos de tarefa e Configurações |
+| ⬜ | **Fase 2** Lotes e movimentos | modelo no banco, nenhuma tela |
+| ⬜ | **Fase 3** Agenda da semana e protocolo | agenda no banco; protocolo só especificado |
+| 🟡 | **Fase 4** Mapa de lotes e pedidos | pedido cadastra e lista; falta preço, confirmação, saldo e o mapa inteiro |
+
+**A redução de escopo de 28/08/2026 é o que mudou o quadro.** Custeio, precificação, financeiro,
+cotação e superfície pública saíram da especificação, e com eles a maior parte do que este guia
+listava como não iniciado. O que restou está detalhado, tarefa a tarefa, em
+[`plans/P1-sistema-reduzido.md`](../plans/P1-sistema-reduzido.md).
 
 ## Ordem recomendada a partir daqui
 
-A ordem mudou por um motivo concreto: **o custo unitário depende da mão de obra, e a mão de
-obra só existe quando a agenda de pessoal estiver registrando horas.** P1 deixou de ser o
-primeiro da fila.
+A ordem tem um motivo concreto: **o Cadastro único alimenta as outras duas áreas e não consome
+nada**, e o mapa de lotes depende das duas fontes de pendência, a atribuição lançada à mão e a
+ordem gerada pelo protocolo. Construir o mapa antes produz uma tela que mostra todo lote como
+saudável, que é o contrário do que ela existe para fazer.
 
 ```
-1. P13 Fase 1  ─ schema cadastro + parties        ← compartilhada com P12; fazer uma vez só
-2. P13 Fases 2-4  ─ /cadastros, agenda, execução
-3. P13 Fase 5  ─ custo de mão de obra
-4. P1  T1.18-T1.20  ─ motor de cálculo de custo   ← agora tem todos os insumos do cálculo
-5. P12 Fases 1-6  ─ financeiro sobre extratos
-6. P3  ─ precificação                              ← só faz sentido com custo real
-7. P2  ─ perdas          |  8. P6 ─ dashboard (pelas fichas do G2)
+1. Fase 1  - areas e canteiros, tipos de tarefa, Configuracoes
+2. Fase 2  - lote, movimentos, perda, contagem, saldo disponivel
+3. Fase 3  - agenda da semana, confirmacao, protocolo e o motor de ordens
+4. Fase 4  - mapa de lotes, preco no item, confirmacao do pedido
 ```
 
-P4, P5, P7, P8, P9 e P10 seguem depois, na ordem do
-[`contexto-projeto.md`](contexto-projeto.md).
+As fases 2 e 3 podem correr em paralelo depois da 1: a agenda depende de pessoas e tipos de
+tarefa, e o lote depende de espécie e canteiro, e as duas coisas saem da Fase 1. O detalhamento
+por tarefa está em [`plans/P1-sistema-reduzido.md`](../plans/P1-sistema-reduzido.md).
 
 ## Como conduzir uma sessão
 

@@ -1,9 +1,7 @@
 # Capítulo 3, Análise de riscos do projeto
 
 > Gerado a partir de `E-qualidade/E3-analise-de-riscos.md`.
-> **Não edite este arquivo**: edite o artefato de origem e rode `npm run docs:tcc`.
-
----
+> **Não edite este arquivo**: edite o artefato de origem e rode `node scripts/build-word.mjs`.
 
 ## 1. Escala adotada
 
@@ -55,7 +53,7 @@ tem o que exibir. É o único risco cuja materialização inviabiliza o objetivo
 > A estimativa declarada é preferível ao campo vazio. Um custo aproximado revela margem negativa
 > grosseira, que é o que se busca; um custo ausente não revela nada.
 
-### R-02 · Dados históricos financeiros inconsistentes
+### R-02 · Escopo do protótipo maior do que o prazo comporta
 
 | | |
 |---|---|
@@ -63,13 +61,19 @@ tem o que exibir. É o único risco cuja materialização inviabiliza o objetivo
 | **Impacto** | **Médio** |
 | **Exposição** | **Média** |
 
-A base financeira anterior mistura gasto de negócio com gasto pessoal, contém meses inteiros
-ausentes e categorias digitadas à mão. Reconstituí-la consumiria o prazo do trabalho sem produzir
-dado confiável.
+O sistema foi especificado para a empresa e para o trabalho ao mesmo tempo, e a especificação
+cresceu além do que um protótipo entrega no prazo acadêmico: quatro módulos, custeio, precificação,
+conciliação bancária, cotação com fornecedores e apontamento por relógio.
 
-**Mitigação:** marco zero declarado. O sistema não reconstitui o passado, o histórico anterior serve
-a análise de tendência, nunca a conciliação. Registrado como fora de escopo em
-[`A1`](../A-fundacao/A1-documento-de-visao.md).
+**Mitigação:** redução deliberada de escopo, aplicada a todos os artefatos. O sistema passou a ter
+três áreas de negócio (cadastro único, produção e comercial), três perfis de acesso e vinte e sete
+entidades, e o que ficou de fora foi **removido da especificação**, e não adiado dentro dela. O
+critério do corte foi a interconexão: sobreviveu o que liga cadastro a produção e produção a
+comercial.
+
+> **Escopo declarado menor é preferível a escopo grande não entregue.** A especificação que
+> descreve o que não vai existir não delimita nada: ela transfere para a banca o trabalho de
+> descobrir o que foi efetivamente construído.
 
 ---
 
@@ -233,7 +237,7 @@ registrado como não entregue, e não como entrega parcial.
 |---|---|:--:|:--:|:--:|
 | **R-01** | Levantamento de dados primários incompleto | Alta | Crítico | **Máxima** |
 | **R-03** | Viés do pesquisador-gestor | Alta | Alto | **Alta** |
-| **R-02** | Histórico financeiro inconsistente | Alta | Médio | Média |
+| **R-02** | Escopo maior que o prazo | Alta | Médio | Média |
 | **R-04** | Indisponibilidade dos usuários | Média | Alto | Média |
 | **R-05** | Rejeição do sistema pela equipe | Média | Alto | Média |
 | **R-06** | Dependência de serviços externos | Média | Médio | Média |
@@ -253,4 +257,3 @@ achado mais relevante desta análise para um trabalho cujo produto é software.
 Este documento trata dos riscos **do projeto**: o que pode impedir que o trabalho alcance seu
 objetivo. Os riscos **do sistema em operação** (ameaças, vulnerabilidades e controles) são objeto
 de [`E4`](E4-modelagem-de-ameacas.md), com método e escala próprios.
-

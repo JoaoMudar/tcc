@@ -1,9 +1,7 @@
 # Capítulo 2.5, Acréscimos ao referencial teórico
 
 > Gerado a partir de `E-qualidade/E5-E6-referencial-cap2.md`.
-> **Não edite este arquivo**: edite o artefato de origem e rode `npm run docs:tcc`.
-
----
+> **Não edite este arquivo**: edite o artefato de origem e rode `node scripts/build-word.mjs`.
 
 ## Onde entra
 
@@ -88,4 +86,3 @@ manualmente. Sendo automático, basta atualizá-lo. As demais subseções de 2.5
 2.5.2 Autenticação e controle de acesso
 2.5.3 Proteção de dados pessoais          ← nova
 ```
-

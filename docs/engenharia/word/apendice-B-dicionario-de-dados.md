@@ -1,9 +1,7 @@
 # Apêndice B, Dicionário de dados
 
 > Gerado a partir de `C-modelagem/C8-dicionario-de-dados.md`.
-> **Não edite este arquivo**: edite o artefato de origem e rode `npm run docs:tcc`.
-
----
+> **Não edite este arquivo**: edite o artefato de origem e rode `node scripts/build-word.mjs`.
 
 ## Como ler
 
@@ -37,64 +35,43 @@ quatro módulos do sistema, com o Acesso à frente por atravessar os quatro.
 
 ## Recorte implementado
 
-Este dicionário descreve o **modelo especificado**, que é maior que o protótipo construído. Das 62
-entidades, **46 existem no banco** (mais as três visões, `species_unit_cost`,
-`input_stock_balance` e `batch_health`) e **16 estão especificadas e ainda não implementadas**
-(mais a visão `batch_protocol_due`). A distinção é
-registrada entidade por entidade, e não é defeito de modelagem: o modelo responde à especificação
-completa de requisitos, e a construção segue a priorização declarada em
+Este dicionário descreve o **modelo especificado**, que é maior que o protótipo construído. Das 27
+entidades, **23 existem no banco** (mais a visão `batch_health`) e **4 estão especificadas e ainda
+não implementadas** (mais a visão `batch_protocol_due`). A distinção é registrada entidade por
+entidade, e não é defeito de modelagem: o modelo responde à especificação completa de requisitos, e
+a construção segue a priorização declarada em
 [`B2`](../B-requisitos/B2-especificacao-requisitos.md).
 
-| Módulo | No banco | Só especificadas |
+| Área | No banco | Só especificadas |
 |---|---:|---:|
-| *(transversal)* Acesso | 5 | 0 |
-| 1 · Cadastros | 16 | 4 |
-| 2 · Produção | 14 | 1 |
-| 3 · Comercial | 8 | 0 |
-| 4 · Financeiro | 3 | 11 |
-| **Total** | **46** | **16** |
+| *(transversal)* Acesso e configurações | 4 | 0 |
+| 1 · Cadastro único | 12 | 3 |
+| 2 · Produção | 5 | 1 |
+| 3 · Comercial | 2 | 0 |
+| **Total** | **23** | **4** |
 
-As 11 do Financeiro são `sale_channels`, `sale_prices` e as nove do esquema `financeiro`
-(`accounts`, `cost_centers`, `category_groups`, `categories`, `statement_imports`, `transactions`,
-`transaction_splits`, `classification_rules`, `periods`).
-
-As 4 dos Cadastros são as do **protocolo de atividades por lote**: `container_types`, `protocols`,
-`protocol_steps` e `species_protocol_overrides`. A 1 da Produção é `batch_protocol_steps`, o
-percurso de cada lote pelo protocolo, mais a visão `batch_protocol_due`.
+As 3 do Cadastro único são as do **protocolo de atividades**: `protocols`, `protocol_steps` e
+`species_protocol_overrides`. A 1 da Produção é
+`batch_protocol_steps`, o percurso de cada lote pelo protocolo, mais a visão
+`batch_protocol_due`.
 
 > **O protocolo é cadastro, e não produção.** É mantido uma vez e consultado sempre, como
-> `task_types` e `work_shifts`, e por isso mora no módulo 1 ainda que só a Produção o consuma. O que
+> `task_types` e `work_shifts`, e por isso mora na área 1 ainda que só a Produção o consuma. O que
 > a Produção guarda é o **movimento**: por onde cada lote já passou.
 
-**A Produção deixou de ser o módulo mais especificado e menos construído em 24/08/2026**, quando as
-migrations `20260824000001` a `20260824000007` criaram as dezesseis entidades do lote, da agenda,
-do apontamento e do estoque de insumo. Em 26/08/2026 as migrations `20260826000001` a
-`20260826000004` acrescentaram a tarefa recorrente (`task_recurrences`,
-`task_recurrence_members`) e a visão `batch_health`, e emendaram `batches`, `assignments` e
-`task_executions`: são as entidades que o protótipo da tela inicial do módulo exigiu. O que ainda não existe ali é **tela**: as tabelas estão no
-banco, com a carga inicial dos vinte e dois tipos de tarefa e dos dois turnos, e a construção da
-aplicação está planejada em [`plans/P14`](../../../plans/P14-producao-lotes-apontamento.md).
-
-**A Produção voltou a ter entidade no papel em 26/08/2026, e desta vez por escolha.** O protocolo
-de atividades por lote foi especificado inteiro **antes de qualquer migration**, porque envolve um
+**O protocolo foi especificado inteiro antes de qualquer migration, e por escolha.** Ele envolve um
 motor de geração automática de ordens: a regra de contagem a partir da execução real (RN-100) e a
 de uma ocorrência em aberto por vez (RN-101) atravessam tabela, visão e Server Action, e modelar
-depois de construir custaria reescrevê-las em três lugares. O domínio está em
-[`rotinas/2-producao/06`](../../rotinas/2-producao/06-protocolo-de-atividades.md) e a construção em
-[`plans/P15`](../../../plans/P15-protocolo-de-atividades.md).
+depois de construir custaria reescrevê-las em três lugares.
 
-**Nove das 27 entraram em 24/08/2026**, com a revisão de escopo que trouxe o lote
-([`A1`](../A-fundacao/A1-documento-de-visao.md) §7). A Produção passou a ser o módulo mais
-especificado e o menos construído, dez de doze no papel: é o módulo cuja construção depende de a
-equipe mudar de hábito, e não só de haver tela.
-
-Quatro atributos de entidade já existente estão na mesma condição: `users.party_id`, o par
-`order_items.unit_price` / `order_items.sale_price_id`, que depende de `sale_prices`, e o par
-`input_usages.task_execution_id` / `input_usages.batch_id`.
+**Um atributo de entidade já existente está na mesma condição**: `batches.protocol_id`, que só passa
+a ser preenchido quando `protocols` existir. Enquanto isso, o lote é criado sem protocolo e não
+cobra etapa nenhuma, que é o comportamento descrito em [`C2`](C2-especificacao-casos-de-uso.md)
+UC-47 FA-2.
 
 ---
 
-# Acesso: transversal aos quatro módulos
+# Acesso e configurações: transversal às três áreas
 
 ## `users`: usuário do sistema
 
@@ -104,12 +81,12 @@ Quatro atributos de entidade já existente estão na mesma condição: `users.pa
 | `username` | text | ● | UK | Identificador de acesso, único |
 | `display_name` | text | ● | | Nome exibido na interface |
 | `password_hash` | text | ● | | Resumo criptográfico da senha. **A senha em si nunca é armazenada** (RNF-09) |
-| `role` | enum | ● | | Perfil de acesso: `admin`, `chefia`, `gerencia`, `colaborador` |
+| `role` | enum | ● | | Perfil de acesso: `admin`, `chefia`, `gerencia`. **Não há perfil de campo**: os colaboradores não operam o sistema ([`A1` §5](../A-fundacao/A1-documento-de-visao.md)) |
 | `must_change_password` | boolean | ● | | Obriga a definir senha própria no próximo acesso (RF-02) |
 | `active` | boolean | ● | | Usuário habilitado |
 | `failed_login_attempts` | integer | ● | | Tentativas malsucedidas consecutivas |
 | `locked_until` | timestamptz | ○ | | Bloqueio temporário após tentativas sucessivas |
-| `party_id` | uuid | ○ | FK → `cadastro.parties` | Pessoa do cadastro a que esta credencial pertence. **Especificado, não implementado.** **Opcional:** há funcionário sem login e administrador sem vínculo |
+| `party_id` | uuid | ○ | FK → `cadastro.parties` | Pessoa do cadastro a que esta credencial pertence. **Opcional:** há funcionário sem login (seis dos nove) e administrador sem vínculo |
 
 ## `sessions`: sessão ativa
 
@@ -168,21 +145,7 @@ exige uma implantação.
 > mesma razão dos demais: emitir um ano de limpezas trimestrais encheria a grade de tarefas que
 > ninguém olha por nove meses, e o número certo muda com a estação.
 
-## `notifications`: notificação interna
-
-| Atributo | Tipo | Ob. | Chave | Descrição |
-|---|---|:--:|:--:|---|
-| `id` | uuid | ● | PK | Identificador |
-| `user_id` | uuid | ● | FK → `users` | Destinatário |
-| `type` | varchar(30) | ● | | Natureza do evento notificado |
-| `title` | varchar(255) | ● | | Título |
-| `message` | text | ○ | | Corpo |
-| `link` | varchar(255) | ○ | | Destino ao acionar a notificação |
-| `read` | boolean | ● | | Marcada como lida |
-
----
-
-# Módulo 1 · Cadastros
+# Área 1 · Cadastro único
 
 ## `species`: espécie *(entidade central)*
 
@@ -192,16 +155,15 @@ exige uma implantação.
 | `common_name` | text | ● | | Nome popular principal |
 | `scientific_name` | text | ○ | | Nome científico binomial, exigido em projetos de compensação ambiental (RNF-25) |
 | `tags` | text[] | ● | | Características da espécie: nativa, exótica, frutífera, ornamental, madeireira, forrageira. **Múltiplas por espécie** |
-| `germination_time_days` | integer | ○ | | Dias da semeadura à emergência |
-| `growth_time_months` | integer | ○ | | Meses da plântula à muda pronta. Base da previsão de disponibilidade |
 | `notes` | text | ○ | | Observações de manejo |
 | `photo_url` | text | ○ | | Referência da fotografia, no formato `/api/fotos/<uuid>`, que aponta para `species_photos` |
 | `active` | boolean | ● | | Espécie em catálogo |
 
-> **Coluna legada.** O banco ainda tem `category`, classificação única que precedeu `tags`. Deixou
-> de ser obrigatória e nenhuma consulta do sistema a usa; permanece apenas para não quebrar dados
-> históricos, e sai numa migração futura. A classificação vigente é `tags`, que admite mais de uma
-> característica por espécie.
+> **O tempo de ciclo saiu da espécie.** `germination_time_days` e `growth_time_months` existiam
+> para calcular a previsão de disponibilidade do lote, que ficou fora do escopo. O que restou de
+> tempo por espécie é a customização de etapa do protocolo (`species_protocol_overrides`), que é
+> mais precisa e tem uso: ela diz em quantos dias **aquela** etapa vence naquela espécie, em vez de
+> um número único para o ciclo inteiro.
 
 ## `species_popular_names`: nome popular adicional
 
@@ -233,11 +195,13 @@ exige uma implantação.
 |---|---|:--:|:--:|---|
 | `id` | uuid | ● | PK | Identificador |
 | `name` | text | ● | UK | Designação: tubete, 10x18, 17x22, 20x26, 28x32, balde |
-| `container_type_id` | uuid | ● | FK → `container_types` | Tipo de embalagem. É por ele que o protocolo de atividades chega ao lote (RN-98). **Especificado, não implementado.** |
 | `volume_liters` | numeric(6,3) | ○ | | Volume do recipiente |
-| `substrate_per_unit_liters` | numeric(6,3) | ○ | | Substrato consumido por unidade. Entrada direta do custeio |
-| `unit_cost` | numeric(10,2) | ○ | | Custo do recipiente vazio |
 | `active` | boolean | ● | | Em uso |
+
+> **O protocolo pendura-se aqui.** É o recipiente que determina o manejo (RN-98), e é dele que
+> `protocols` sai. A entidade intermediária `container_types`, que agrupava os quatro sacos num tipo
+> só, foi descartada: com seis recipientes no catálogo, ela custava uma tabela e uma tela para
+> poupar a repetição de três protocolos.
 
 ## `inputs`: insumo
 
@@ -247,99 +211,12 @@ exige uma implantação.
 | `name` | text | ● | | Designação comercial |
 | `category` | enum | ● | | `substrato`, `adubo`, `defensivo`, `recipiente`, `outros` |
 | `unit_of_measure` | text | ● | | Unidade de medida: kg, L, saco, unidade |
-| `cost_per_unit` | numeric(10,2) | ○ | | Custo unitário vigente |
-| `quantity_purchased` | numeric(10,2) | ○ | | Quantidade da última compra |
-| `supplier` | text | ○ | | Fornecedor do insumo, em texto livre |
-| `last_purchase_date` | date | ○ | | Data da última compra |
 | `active` | boolean | ● | | Em uso |
 
-## `input_price_history`: histórico de preço de insumo
-
-| Atributo | Tipo | Ob. | Chave | Descrição |
-|---|---|:--:|:--:|---|
-| `id` | uuid | ● | PK | Identificador |
-| `input_id` | uuid | ● | FK → `inputs` | Insumo |
-| `cost_per_unit` | numeric(10,2) | ● | | Custo vigente à época |
-| `changed_at` | timestamptz | ● | | Momento da alteração |
-| `notes` | text | ○ | | Motivo |
-
-> Existe para impedir que a atualização de preço reescreva retroativamente o custo já apurado.
-> anomalia de atualização que a normalização busca evitar.
-
-## `customers`: cliente
-
-| Atributo | Tipo | Ob. | Chave | Descrição |
-|---|---|:--:|:--:|---|
-| `id` | uuid | ● | PK | Identificador |
-| `name` | varchar(255) | ● | | Nome de tratamento. **Único campo exigido no cadastro rápido**, junto ao telefone |
-| `phone` | varchar(20) | ○ | | Telefone, canal principal de contato |
-| `person_type` | varchar(2) | ○ | | `pf` ou `pj`. Nulo indica cadastro simples ainda não completado |
-| `document` | varchar(14) | ○ | UK parcial | CPF ou CNPJ, apenas dígitos. Único **quando informado** |
-| `email` | varchar(255) | ○ | | Correio eletrônico |
-| `legal_name` | varchar(255) | ○ | | Razão social, quando pessoa jurídica |
-| `trade_name` | varchar(255) | ○ | | Nome fantasia |
-| `state_registration` | varchar(20) | ○ | | Inscrição estadual |
-| `ie_exempt` | boolean | ○ | | Isento de inscrição estadual |
-| `zip_code` | varchar(8) | ○ | | Código postal |
-| `street` | varchar(255) | ○ | | Logradouro |
-| `address_number` | varchar(20) | ○ | | Número |
-| `complement` | varchar(255) | ○ | | Complemento |
-| `neighborhood` | varchar(100) | ○ | | Bairro |
-| `city` | varchar(100) | ○ | | Município |
-| `state` | varchar(2) | ○ | | Unidade federativa |
-| `notes` | text | ○ | | Observações |
-| `active` | boolean | ○ | | Cliente ativo |
-| `party_id` | uuid | ○ | FK → `cadastro.parties` | Identidade do cadastro único. **Opcional:** o cadastro legado é anterior ao esquema `cadastro`, e a ligação foi feita por preenchimento retroativo |
-
-> **Todos os campos fiscais são opcionais.** É decisão de projeto, não omissão: exigi-los no cadastro
-> rápido interromperia o registro do pedido durante a negociação. A complementação ocorre no
-> fechamento, e apenas quando há nota fiscal a emitir (RF-40).
-
-## `suppliers`: fornecedor
-
-| Atributo | Tipo | Ob. | Chave | Descrição |
-|---|---|:--:|:--:|---|
-| `id` | uuid | ● | PK | Identificador |
-| `name` | text | ● | | Nome do viveiro ou produtor |
-| `contact_name` | text | ○ | | Pessoa de contato |
-| `whatsapp` | varchar(20) | ○ | | Número de mensageria, apenas dígitos |
-| `phone` | varchar(20) | ○ | | Telefone secundário |
-| `email` | text | ○ | | Correio eletrônico |
-| `instagram` | text | ○ | | Perfil em rede social |
-| `city` | text | ○ | | Município |
-| `state` | varchar(2) | ○ | | Unidade federativa. **Sem valor padrão**: fornecedor é de qualquer estado |
-| `reliability_score` | smallint | ○ | | Grau de confiabilidade, de 0 a 5 |
-| `status` | varchar(20) | ● | | `lead`, `active`, `inactive`, `do_not_contact` |
-| `last_contacted_at` | timestamptz | ○ | | Último contato |
-| `lat` | numeric(9,6) | ○ | | Latitude, obtida por geocodificação sob demanda |
-| `lng` | numeric(9,6) | ○ | | Longitude |
-| `geocoded_at` | timestamptz | ○ | | Momento da tentativa de geocodificação. Preenchido com coordenadas nulas significa **não localizado**, e evita nova tentativa automática |
-| `active` | boolean | ● | | Registro arquivado por exclusão lógica |
-| `notes` | text | ○ | | Observações |
-| `party_id` | uuid | ○ | FK → `cadastro.parties` | Identidade do cadastro único, com a mesma opcionalidade de `customers.party_id` |
-
-> **`active` e `status` são informações distintas**, não redundância acidental: `active` falso é
-> arquivamento do registro; `status` inativo é fornecedor que parou de vender, mas cujo histórico
-> interessa. `do_not_contact` registra **oposição do titular** ao contato comercial e o exclui de
-> qualquer cotação: ver [`E5`](../E-qualidade/E5-mapeamento-lgpd.md).
-
-## `supplier_species`: oferta do fornecedor
-
-| Atributo | Tipo | Ob. | Chave | Descrição |
-|---|---|:--:|:--:|---|
-| `id` | uuid | ● | PK | Identificador |
-| `supplier_id` | uuid | ● | FK → `suppliers` | Fornecedor |
-| `species_id` | uuid | ● | FK → `species` | Espécie ofertada, do catálogo canônico |
-| `size` | text | ○ | | Porte ofertado, em texto livre |
-| `container` | text | ○ | | Embalagem do fornecedor, em **texto livre**, raiz nua, lata, saco de um metro |
-| `unit_price` | numeric(10,2) | ○ | | Preço unitário informado |
-| `min_quantity` | integer | ○ | | Quantidade mínima de compra |
-| `availability` | varchar(15) | ● | | `in_stock`, `on_order`, `unknown` |
-| `source` | varchar(15) | ● | | Origem do dado: `manual`, `paste`, `quote` |
-| `notes` | text | ○ | | Observações da oferta |
-
-> **Sem restrição de unicidade por fornecedor e espécie:** o mesmo fornecedor oferece a espécie em
-> portes e preços diferentes, e cada combinação é uma oferta distinta.
+> **O insumo é catálogo, e nada o consome.** O custo por unidade, o histórico de preço, o saldo em
+> estoque e o consumo por tarefa saíram com o custeio. O que resta é a lista do que o viveiro
+> aplica na produção, com unidade e categoria: é o que permite que a tarefa passe a referenciá-lo
+> quando o consumo voltar ao escopo, sem que o catálogo precise ser refeito.
 
 ## `cadastro.parties`: identidade
 
@@ -413,9 +290,8 @@ deixa de pedir (RF-82).
 > três valores (`tempo`, `saco`, `tubete`), e os dois últimos diziam qual recipiente se contava;
 > mas o recipiente já vem do lote e do próprio nome da tarefa, de modo que os três respondiam uma
 > pergunta de dois estados, e alguém acabaria escrevendo a condição para `'saco'` esquecendo
-> `'tubete'`. O segundo saiu porque nunca teve fonte: ninguém cronometrou tempo por unidade, e o
-> custo de mão de obra (RF-76) sai das **horas apontadas**, não de estimativa. Coluna sem fonte
-> fica nula para sempre, e um dia alguém a confunde com dado real. Migração:
+> `'tubete'`. O segundo saiu porque nunca teve fonte: ninguém cronometrou tempo por unidade.
+> Coluna sem fonte fica nula para sempre, e um dia alguém a confunde com dado real. Migração:
 > `20260825000001_tipos_tarefa_simplificacao.sql`.
 
 > **`unit_of_measure` saiu antes, pelo mesmo raciocínio.** Era texto livre ("muda", "bandeja",
@@ -511,53 +387,30 @@ estação e com a combinação da equipe é dado, não constante (RN-85).
 > `shift_id`, mas relatório e carga inicial precisam de um identificador que sobreviva a alguém
 > renomear "Manhã" para "Manhã (verão)".
 
-## `container_types`: tipo de embalagem
-
-**Especificada, não implementada.**
-
-O que separa um protocolo de atividades do outro. Saco e tubete têm manejos diferentes, e é isso
-que o tipo representa. Os quatro sacos (10x18, 17x22, 20x26, 28x32) são quatro linhas de
-`containers` e **um** tipo (RN-98).
-
-| Atributo | Tipo | Ob. | Chave | Descrição |
-|---|---|:--:|:--:|---|
-| `id` | uuid | ● | PK | Identificador |
-| `code` | text | ● | UK | Chave estável em minúsculas: `saco`, `tubete`, `balde` |
-| `name` | text | ● | | Rótulo editável, apresentado na tela |
-| `sort_order` | integer | ● | | Ordem de apresentação em Configurações |
-| `active` | boolean | ● | | Em uso |
-
-> **É tabela, e não lista fechada no código.** "Outros tipos a criar" é requisito (RF-121): o dia
-> em que o viveiro adotar bandeja, a gerência cria a bandeja e monta o protocolo dela, sem
-> implantação. É a mesma razão de `task_types` ser catálogo, e não campo digitado.
-
-> **`code` é estável e `name` é editável**, mesmo par de `work_shifts`. Relatório e carga inicial
-> precisam de um identificador que sobreviva a alguém renomear "Saco" para "Saco (novo padrão)".
-
 ## `protocols`: protocolo de atividades
 
 **Especificada, não implementada.**
 
-A receita de manejo de um tipo de embalagem: a sequência de etapas que todo lote daquele tipo passa
+A receita de manejo de um recipiente: a sequência de etapas que todo lote daquele recipiente passa
 a seguir sozinho (RF-122).
 
 | Atributo | Tipo | Ob. | Chave | Descrição |
 |---|---|:--:|:--:|---|
 | `id` | uuid | ● | PK | Identificador |
-| `container_type_id` | uuid | ● | FK → `container_types` | Tipo de embalagem que o protocolo rege |
+| `container_id` | uuid | ● | FK → `containers` | Recipiente que o protocolo rege (RN-98) |
 | `name` | text | ● | | Designação: "Protocolo do tubete" |
-| `active` | boolean | ● | | Vigente. Restrição: **um vigente por tipo de embalagem**, por índice único parcial |
+| `active` | boolean | ● | | Vigente. Restrição: **um vigente por recipiente**, por índice único parcial |
 | `notes` | text | ○ | | Observação |
 | `created_by` | uuid | ● | FK → `users` | Quem montou |
 
 > **O protocolo não é versionado, e a edição não retroage** (RN-107). Vale um vigente por tipo, e
 > a alteração é lida apenas na próxima geração de ordens: ordem já emitida e dia já trabalhado
-> permanecem como estão, pela mesma razão da RN-96. Versionar exigiria fotografar a árvore de
+> permanecem como estão, pela mesma razão da RN-111. Versionar exigiria fotografar a árvore de
 > etapas dentro de cada lote, e o viveiro muda o protocolo raramente. **A suposição está declarada
 > aqui de propósito**, porque é a que mais custaria reverter depois.
 
-> **`batches.protocol_id` fotografa o protocolo na criação**, em vez de o lote consultá-lo pelo
-> recipiente a cada leitura. Sem isso, trocar o recipiente de um lote trocaria a receita dele no
+> **`batches.protocol_id` fotografa o protocolo na criação**, em vez de o lote consultá-lo a cada
+> leitura. Sem isso, trocar o recipiente de um lote trocaria a receita dele no
 > meio do caminho, e as datas já cumpridas passariam a pertencer a um protocolo que ele nunca
 > seguiu.
 
@@ -635,7 +488,7 @@ sem duplicar a receita inteira (RF-133, RN-106).
 > exigiria migration em `species`. É a mesma regra de corte que separa `settings` de entidade.
 
 
-# Módulo 2 · Produção
+# Área 2 · Produção
 
 ## `batches`: lote
 
@@ -647,20 +500,18 @@ respondia o que a muda era e não onde estava. A revisão de escopo está justif
 | Atributo | Tipo | Ob. | Chave | Descrição |
 |---|---|:--:|:--:|---|
 | `id` | uuid | ● | PK | Identificador |
-| `code` | text | ● | UK | Código legível, gerado pelo sistema, no formato `AAAA-NNNN`: ano de **criação** do lote (`filled_at`) e sequência de quatro dígitos dentro do ano |
+| `code` | text | ● | UK | Código legível, gerado pelo sistema, no formato `AAAA-NNNN`: ano de plantio e sequência de quatro dígitos dentro do ano |
 | `species_id` | uuid | ● | FK → `species` | Espécie da leva |
 | `container_id` | uuid | ● | FK → `containers` | Recipiente, que define o porte da muda |
 | `bed_id` | uuid | ○ | FK → `beds` | Canteiro ocupado. Nulo quando o lote está encerrado |
 | `parent_batch_id` | uuid | ○ | FK → `batches` | Lote de origem, quando este nasceu de uma repicagem (RN-77) ou de uma divisão (RN-109) |
-| `protocol_id` | uuid | ○ | FK → `protocols` | Protocolo que rege o lote, fotografado na criação a partir do tipo de embalagem do recipiente (RF-126). **Especificado, não implementado.** |
+| `protocol_id` | uuid | ○ | FK → `protocols` | Protocolo que rege o lote, fotografado na criação a partir do recipiente (RF-126). Nulo quando o recipiente ainda não tem protocolo. **Especificado, não implementado.** |
 | `initial_quantity` | integer | ● | | Quantidade que entrou. Restrição: maior que zero |
 | `current_quantity` | integer | ● | | Saldo vivo. Restrição de banco: não negativo (RN-78). **Mantido pela aplicação** na mesma transação do movimento |
 | `stage` | text | ● | | Fase em **lista fechada**: `semeado`, `germinado`, `repicado`, `crescimento`, `rustificacao`, `pronto`, `encerrado` |
-| `filled_at` | date | ● | | **Data de criação**: quando o recipiente foi preenchido ou encanteirado. É quando o lote passa a ocupar canteiro (RN-103). **Especificado, não implementado.** |
-| `planted_at` | date | ○ | | **Data de plantio**: quando a etapa de plantio do protocolo foi concluída de fato. **Passa a ser nula** enquanto a semente espera plantio (RN-103) |
-| `expected_ready_at` | date | ○ | | **Derivado**: `planted_at` mais o tempo de produção da espécie. Fica nulo quando a espécie não o tem cadastrado, e também enquanto o plantio não ocorre |
+| `planted_at` | date | ● | | Data em que a leva foi plantada e passou a ocupar o canteiro. É a âncora das etapas do protocolo que contam da criação do lote (RN-99) |
 | `closed_at` | timestamptz | ○ | | Momento do encerramento; a partir dele o lote sai da ocupação |
-| `closed_reason` | text | ○ | | Motivo do encerramento em **lista fechada**: `saldo_zero`, `expedido`, `dividido`. Preenchido se e somente se `closed_at` o estiver (RN-108). **Especificado, não implementado.** |
+| `closed_reason` | text | ○ | | Motivo do encerramento em **lista fechada**: `saldo_zero`, `expedido`, `dividido`. Preenchido se e somente se `closed_at` o estiver (RN-108) |
 | `position` | integer | ○ | | Ordem do lote dentro do canteiro, a partir de 1. Dá ao mapa um desenho estável (RF-117) |
 | `notes` | text | ○ | | Observação |
 
@@ -742,179 +593,6 @@ aqui, com motivo e origem.
 > identidade. `quantity` é zero nesse movimento, e `from_bed_id` e `to_bed_id` carregam o que
 > mudou.
 
-## `input_usages`: consumo de insumo
-
-| Atributo | Tipo | Ob. | Chave | Descrição |
-|---|---|:--:|:--:|---|
-| `id` | uuid | ● | PK | Identificador |
-| `input_id` | uuid | ● | FK → `inputs` | Insumo aplicado |
-| `task_execution_id` | uuid | ○ | FK → `task_executions` | Apontamento em que o insumo foi gasto |
-| `batch_id` | uuid | ○ | FK → `batches` | Lote que o recebeu |
-| `species_id` | uuid | ○ | FK → `species` | Espécie que o recebeu. Dispensável quando há lote, que a determina |
-| `container_id` | uuid | ○ | FK → `containers` | Recipiente em que foi aplicado. Dispensável quando há lote |
-| `quantity` | numeric(10,3) | ● | | Quantidade consumida. Restrição: maior que zero |
-| `usage_date` | date | ● | | Data do consumo |
-| `notes` | text | ○ | | Observação |
-| `client_id` | uuid | ○ | UK | Chave gerada **pelo aparelho** antes do primeiro envio e mantida em todos os reenvios. É o que torna o registro idempotente (RNF-05) |
-
-> Alimentado pelo formulário de campo do colaborador (RF-14) e, a partir desta revisão, também
-> pelo encerramento da tarefa (RF-101). É a entidade de maior volume de escrita do sistema e a que
-> mais depende do funcionamento sem conexão.
-
-> **`species_id` e `container_id` afrouxaram para opcionais.** Eram obrigatórios porque não havia
-> outro jeito de saber onde o insumo foi aplicado. Com lote, os dois vêm dele, e pedi-los de novo
-> seria pedir duas vezes o mesmo dado. Continuam existindo para o registro avulso, que é como a
-> tela de campo funciona hoje e continua funcionando. A migração é aditiva: as linhas existentes
-> permanecem com os dois preenchidos.
-
-> **Um dos dois lados tem de existir**: ou o lote, ou o par espécie e recipiente. Consumo sem
-> destino não entra no custeio, e é o custeio que a entidade existe para alimentar.
-
-> **Como o funcionamento sem conexão não duplica consumo.** Quando o envio falha, o formulário
-> guarda o registro no aparelho e reenvia depois. Sem uma chave gerada na origem, o caso "o servidor
-> gravou mas a resposta se perdeu" seria indistinguível de "não gravou", e o reenvio criaria uma
-> segunda linha. Consumo duplicado inflaciona o custo por espécie, que é exatamente o número que o
-> sistema existe para apurar. `client_id` é essa chave, e a restrição de unicidade sobre ela faz o
-> reenvio ser ignorado em vez de duplicado. É nulo nos registros que não vêm do formulário de campo,
-> como carga inicial e importação, e a unicidade do banco admite vários nulos.
-
-## `input_stock_entries`: entrada de estoque de insumo
-
-O que **entra** no estoque de insumo. A saída é o próprio `input_usages`, e o saldo é a visão
-`input_stock_balance`: não há campo de saldo em `inputs` (RN-88).
-
-| Atributo | Tipo | Ob. | Chave | Descrição |
-|---|---|:--:|:--:|---|
-| `id` | uuid | ● | PK | Identificador |
-| `input_id` | uuid | ● | FK → `inputs` | Insumo |
-| `entry_type` | text | ● | | Motivo em **lista fechada**: `compra`, `ajuste`, `perda` |
-| `quantity` | numeric(12,3) | ● | | Quantidade, com sinal: negativa em `perda` e em ajuste para baixo |
-| `unit_cost` | numeric(12,4) | ○ | | Custo unitário da entrada, quando `compra` |
-| `entry_date` | date | ● | | Data da entrada |
-| `transaction_id` | uuid | ○ | FK → `financeiro.transactions` | Lançamento que a pagou, quando conciliado. **Especificado, não implementado**: a coluna entra junto com o esquema `financeiro`, como `task_expenses.cost_center_id` |
-| `recorded_by` | uuid | ● | FK → `users` | Quem registrou |
-| `notes` | text | ○ | | Observação |
-
-> **Só entradas, e a razão é evitar duplicação.** O desenho alternativo, um razão único com
-> entradas e saídas, obrigaria cada `input_usages` a gerar uma segunda linha dizendo o mesmo, e as
-> duas divergiriam ao primeiro registro que falhasse pela metade. Aqui `input_usages` é a saída, e
-> não há espelho.
-
-> **`inputs.quantity_purchased` fica obsoleta e não é removida.** Ela guarda a última compra, e
-> sobrescrevê-la a cada compra apagava o histórico. A migração é aditiva, e a coluna permanece até
-> que as telas que a leem passem a usar a visão.
-
-## `input_stock_balance`: saldo de insumo *(não é tabela)*
-
-Visão derivada: soma de `input_stock_entries` menos soma de `input_usages`, por insumo (RF-102).
-
-| Atributo | Origem |
-|---|---|
-| `input_id` | `inputs.id` |
-| `input_name` | `inputs.name` |
-| `unit_of_measure` | `inputs.unit_of_measure` |
-| `total_in` | Soma de `input_stock_entries.quantity` |
-| `total_used` | Soma de `input_usages.quantity` |
-| `balance` | `total_in` menos `total_used` |
-| `last_entry_date` | Maior `entry_date` do insumo |
-
-> **Saldo negativo é permitido e sinalizado, não recusado** (RF-105). O saldo depende de toda
-> compra ter sido lançada, e o histórico do viveiro diz que nem toda foi: recusar o consumo real
-> por causa de uma compra não lançada faria o campo parar de registrar consumo, que é o dado mais
-> caro de obter. **O negativo aqui é o alerta** de que falta lançar compra.
-
-> **É a segunda visão do modelo**, ao lado de `species_unit_cost`, e pelo mesmo motivo: o número é
-> derivado e guardá-lo criaria uma segunda verdade sobre ele.
-
-## `seed_collection_costs`: custo de coleta de sementes
-
-| Atributo | Tipo | Ob. | Chave | Descrição |
-|---|---|:--:|:--:|---|
-| `id` | uuid | ● | PK | Identificador |
-| `species_id` | uuid | ● | FK → `species` | Espécie coletada |
-| `collection_region` | text | ○ | | Região da coleta |
-| `distance_km` | numeric(8,2) | ○ | | Distância percorrida |
-| `fuel_cost` | numeric(10,2) | ○ | | Combustível |
-| `labor_hours` | numeric(8,2) | ○ | | Horas empregadas |
-| `labor_cost_per_hour` | numeric(10,2) | ○ | | Custo da hora |
-| `total_cost` | numeric(12,2) | ● | | Custo total da coleta |
-| `seeds_collected_qty` | integer | ○ | | Sementes obtidas |
-| `cost_per_seed` | numeric(10,4) | ○ | | **Derivado**: custo total dividido pelas sementes obtidas. Mantido pelo banco |
-| `collection_date` | date | ● | | Data da coleta |
-
-## `task_executions`: apontamento de tarefa
-
-**O realizado, contra `assignments`, que é o planejado.** Uma linha por funcionário e por tarefa,
-com hora de início e de fim: é dela que saem as horas do período (RF-100) e é ela que sustenta a
-faixa do funcionário na linha do tempo do dia (RF-94, RF-109).
-
-| Atributo | Tipo | Ob. | Chave | Descrição |
-|---|---|:--:|:--:|---|
-| `id` | uuid | ● | PK | Identificador |
-| `assignment_id` | uuid | ○ | FK → `assignments` | Tarefa planejada que a originou. **Opcional:** apontamento avulso não nasce da agenda |
-| `task_type_id` | uuid | ● | FK → `task_types` | Tipo de tarefa executado |
-| `party_id` | uuid | ● | FK → `cadastro.parties` | Quem executou: pessoa com papel `funcionario`, com ou sem usuário |
-| `work_date` | date | ● | | Dia de trabalho a que o apontamento pertence |
-| `started_at` | timestamptz | ● | | Momento em que a tarefa começou |
-| `ended_at` | timestamptz | ○ | | Momento em que terminou. **Nulo significa tarefa em curso** |
-| `batch_id` | uuid | ○ | FK → `batches` | Lote trabalhado, exigido no encerramento quando o tipo declarar lote específico (RN-82, RF-99) |
-| `species_id` | uuid | ○ | FK → `species` | Espécie, quando o tipo de tarefa a exigir e não houver lote |
-| `container_id` | uuid | ○ | FK → `containers` | Recipiente, nas mesmas condições |
-| `area_id` | uuid | ○ | FK → `areas` | Área onde a tarefa foi feita, quando ela não tem lote (RF-113) |
-| `bed_id` | uuid | ○ | FK → `beds` | Canteiro onde a tarefa foi feita, quando ela não tem lote (RF-113) |
-| `quantity` | integer | ○ | | Quantos **esta pessoa** fez. Pedido apenas quando o tipo de tarefa for quantitativo por unidade (RN-81, RN-91) |
-| `status` | text | ● | | Situação em **lista fechada**: `em_andamento`, `concluida`, `interrompida` |
-| `recorded_by` | uuid | ● | FK → `users` | Quem registrou o apontamento, distinto de quem o executou |
-| `notes` | text | ○ | | Observação |
-| `client_id` | uuid | ○ | UK | Chave gerada **pelo aparelho** antes do primeiro envio. Torna o reenvio idempotente (RNF-05) |
-
-> **Substituiu `production_activities`, e não é renomeação cosmética.** A entidade anterior
-> registrava um fato consumado (espécie, recipiente, quantidade, data) e o classificava por
-> `activity_type`, uma segunda lista fechada que duplicava o catálogo de `task_types`: manter as
-> duas garantiria que divergiriam. A nova registra um **intervalo de trabalho de uma pessoa**,
-> classificado pelo próprio catálogo. Nunca chegou ao banco: a troca não custou migração de dado.
-
-> **Uma pessoa faz uma tarefa por vez** (RN-83), e o banco garante isso com **índice único parcial
-> sobre `party_id` onde `ended_at` é nulo**. Não é validação de aplicação de propósito: duas telas
-> abertas ao mesmo tempo a burlariam, e dois apontamentos abertos contariam a mesma hora duas
-> vezes, inflando o custo de mão de obra, que é o número que o sistema existe para apurar.
-
-> **E dois apontamentos encerrados também não se cruzam** (RN-97), garantido pela restrição de
-> exclusão `task_executions_sem_sobreposicao`, sobre `party_id` e o intervalo entre `started_at` e
-> `ended_at`. O índice parcial acima cobria só o par de **abertos**, e isso bastava enquanto todo
-> apontamento nascia do relógio. Com o horário informado (RF-110), quem coordena lança às onze o
-> que começou às sete, e nada impedia gravar 7h-11h e 9h-12h para a mesma pessoa: duas linhas
-> legítimas, cada uma com fim, somando quatro horas que ninguém trabalhou. **O apontamento aberto
-> entra na mesma restrição** como intervalo sem fim, de modo que ela cobre os dois casos; o índice
-> parcial fica por ser a garantia que RN-83 cita, e porque a segunda barreira sobre o caso comum
-> não custa nada.
-
-> **Lugar e lote são alternativos, nunca redundantes.** `area_id` e `bed_id` só aparecem na tela
-> quando o tipo de tarefa **não** exige lote (RF-82, RF-113): "Irrigação" tem
-> `requires_batch = FALSE` e, até 26/08/2026, não havia onde registrar *onde* ela foi feita. Tarefa
-> com lote herda o canteiro dele, e pedir os dois seria pedir a mesma informação duas vezes, que é
-> como formulário de campo deixa de ser preenchido.
-
-> **Começar outra tarefa encerra a anterior**, na mesma transação e sem perguntar. O gesto de
-> começar já declara que saiu da anterior; pedir confirmação acrescentaria um toque a algo que se
-> repete dezenas de vezes por dia. A alternativa, exigir encerrar antes de começar, produziria
-> tarefas eternamente abertas justamente nos dias corridos.
-
-> **`quantity` é opcional e quem decide é o catálogo.** Tarefa não quantitativa encerra sem número
-> algum; tarefa quantitativa por unidade pede a contagem. E mesmo nessas, deixar em branco é
-> aceito, com o apontamento marcado como sem contagem: hora sem contagem vale mais do que nenhum
-> registro.
-
-> **`quantity` é da pessoa, e é por isso que mora aqui e não em `assignments`** (RN-91). A tabela
-> já tem **uma linha por participante**: o encerramento do grupo (RF-107) escreve `ended_at` e
-> `quantity` em cada uma delas, e não precisa de entidade nova. Um total único na atribuição
-> obrigaria a dividir pelo tamanho do grupo para saber o rendimento por hora, inventando um número
-> que ninguém produziu.
-
-> **`recorded_by` e `party_id` são pessoas diferentes, e a distinção é o ponto.** Quem opera a tela
-> é uma pessoa só, coordenando a equipe inteira de um aparelho: é ela quem marca que Rogério saiu
-> da repicagem e foi para a irrigação. `party_id` é Rogério; `recorded_by` é quem clicou.
-
 ## `assignment_members`: participante da tarefa
 
 Quem foi escalado numa atribuição. Existe porque uma tarefa admite vários executores, e o mesmo
@@ -933,86 +611,6 @@ turno admite duas tarefas com grupos diferentes (RN-84).
 > **A tabela não guarda hora.** Quem sai da tarefa em momento diferente do grupo é registrado em
 > `task_executions`, uma linha por pessoa: aqui fica só o planejado.
 
-## `task_expenses`: gasto extra da tarefa
-
-Despesa incorrida na execução e não coberta pelos insumos: frete de uma carga de terra, diária de
-maquinário, compra de emergência (RF-104).
-
-| Atributo | Tipo | Ob. | Chave | Descrição |
-|---|---|:--:|:--:|---|
-| `id` | uuid | ● | PK | Identificador |
-| `task_execution_id` | uuid | ○ | FK → `task_executions` | Apontamento em que o gasto ocorreu |
-| `assignment_id` | uuid | ○ | FK → `assignments` | Atribuição, quando o gasto é do grupo e não de um executor |
-| `description` | text | ● | | O que foi gasto |
-| `amount` | numeric(12,2) | ● | | Valor. Restrição: maior que zero |
-| `expense_date` | date | ● | | Data do gasto |
-| `cost_center_id` | uuid | ○ | FK → `financeiro.cost_centers` | Centro de custo, quando classificado |
-| `recorded_by` | uuid | ● | FK → `users` | Quem registrou |
-| `notes` | text | ○ | | Observação |
-
-> **É custo direto do lote, não custo fixo rateado** (RN-89): quem pagou por ele foi aquela leva, e
-> diluí-lo no rateio geral esconderia justamente a leva cara. O lote vem por
-> `task_execution_id`, e não por coluna própria, para que não existam dois caminhos até ele.
-
-> **Um dos dois vínculos tem de existir.** Gasto sem tarefa não é gasto de tarefa: é lançamento do
-> Financeiro, e o lugar dele é `financeiro.transactions`.
-
-## `loss_events`: perda
-
-| Atributo | Tipo | Ob. | Chave | Descrição |
-|---|---|:--:|:--:|---|
-| `id` | uuid | ● | PK | Identificador |
-| `batch_id` | uuid | ○ | FK → `batches` | Lote que sofreu a perda. Determina espécie, recipiente e canteiro |
-| `species_id` | uuid | ○ | FK → `species` | Espécie perdida. Dispensável quando há lote |
-| `container_id` | uuid | ○ | FK → `containers` | Recipiente. Dispensável quando há lote |
-| `quantity` | integer | ● | | Quantidade perdida. Restrição: maior que zero e não maior que o saldo do lote (RN-78) |
-| `cause` | text | ● | | Causa em **lista fechada**: `seca`, `praga`, `geada`, `manuseio`, `outro` |
-| `loss_date` | date | ● | | Data da constatação |
-| `reported_by` | uuid | ● | FK → `users` | Quem registrou |
-| `client_id` | uuid | ○ | UK | Identificador gerado no aparelho antes do envio, mesmo padrão de `input_usages` (RNF-05). Perda duplicada infla a mortalidade, que dispara alerta a 20% |
-| `notes` | text | ○ | | Observação |
-
-> **Continuam quatro campos no formulário de campo**, e agora são lote, quantidade, causa e
-> observação. A data assume o dia corrente e o autor vem da sessão.
->
-> **É a resolução da nota de projeto de [`C2`, UC-17](C2-especificacao-casos-de-uso.md), e não a
-> reversão dela.** Aquele caso rejeitava pedir o *local* da perda por ser o quinto campo que faria
-> o colaborador deixar de registrar. Com lote, o local **vem de graça**: um campo deixou de ser
-> "espécie" e "recipiente" para ser "lote", que carrega os dois **e mais o canteiro**. O
-> colaborador passou a informar menos, e o sistema a saber mais.
->
-> **A perda gera um movimento no lote**, em `batch_movements`, e é isso que faz a mortalidade
-> passar a ser calculável **por leva**, e não só por espécie: é onde a regra dos 20% (RN-17) ganha
-> poder de apontar qual plantio deu errado.
->
-> A causa é lista fechada porque causa digitada à mão inviabiliza a análise por causa, que é
-> justamente o que o indicador de mortalidade precisa produzir.
-
-## `stock_counts`: contagem física de estoque
-
-| Atributo | Tipo | Ob. | Chave | Descrição |
-|---|---|:--:|:--:|---|
-| `id` | uuid | ● | PK | Identificador |
-| `batch_id` | uuid | ○ | FK → `batches` | Lote contado. Determina espécie, recipiente e canteiro |
-| `species_id` | uuid | ○ | FK → `species` | Espécie contada. Dispensável quando há lote |
-| `container_id` | uuid | ○ | FK → `containers` | Recipiente. Dispensável quando há lote |
-| `counted_quantity` | integer | ● | | Quantidade efetivamente contada. Restrição: não negativa |
-| `counted_at` | date | ● | | Data da contagem |
-| `counted_by` | uuid | ● | FK → `users` | Quem contou |
-| `notes` | text | ○ | | Observação |
-
-> **Não armazena o estoque**: armazena o evento de contagem. O estoque permanece derivado de
-> produção menos perdas menos saídas; quando a contagem diverge do calculado, prevalece a contagem, e
-> a divergência é ela própria informação: indica registro de produção ou de perda não realizado.
-
-> **`batch_id` entrou porque se conta um canteiro, não uma espécie.** Ninguém percorre o viveiro
-> somando ipês espalhados por seis canteiros: conta-se canteiro por canteiro, que é a leva. A
-> divergência entre o contado e o saldo do lote gera um movimento `ajuste_contagem` em
-> `batch_movements`, e é assim que a contagem prevalece sem que exista um segundo lugar guardando
-> estoque.
-
----
-
 ## `week_plans`: semana de trabalho
 
 A semana é a unidade real de decisão do viveiro (RF-71, RF-73). Fechada, não se altera: sem isso
@@ -1028,8 +626,9 @@ o custo do período mudaria depois de apurado (RN-50).
 
 ## `assignments`: atribuição de tarefa
 
-A célula da grade: um dia, um turno, um tipo de tarefa e o grupo escalado. É daqui que saem as
-horas dos dias sem apontamento (RF-100), e a duração do turno vem de `work_shifts` (RN-48, RN-85).
+A célula da grade: um dia, um turno, um tipo de tarefa e o grupo escalado. **É o planejado e o
+confirmado na mesma linha**: `status` é o que distingue os dois, e é o que dispensa uma entidade de
+execução separada. A duração do turno vem de `work_shifts` (RN-48, RN-85).
 
 | Atributo | Tipo | Ob. | Chave | Descrição |
 |---|---|:--:|:--:|---|
@@ -1043,14 +642,11 @@ horas dos dias sem apontamento (RF-100), e a duração do turno vem de `work_shi
 | `batch_id` | uuid | ○ | FK → `batches` | Lote, quando o tipo de tarefa o exigir (RN-82) |
 | `area_id` | uuid | ○ | FK → `areas` | Área da tarefa que não exige lote (RF-113) |
 | `bed_id` | uuid | ○ | FK → `beds` | Canteiro da tarefa que não exige lote (RF-113) |
-| `start_time` | time | ○ | | Hora de início, quando a atribuição a declara. Nula = vale o turno inteiro |
-| `end_time` | time | ○ | | Hora de fim, nas mesmas condições. As duas são preenchidas juntas ou nenhuma |
 | `planned_quantity` | integer | ○ | | Quantidade planejada, quando aplicável |
-| `recurrence_id` | uuid | ○ | FK → `task_recurrences` | Regra de calendário que gerou esta ocorrência. Nula = atribuição lançada à mão ou vinda do protocolo (RN-96) |
-| `protocol_step_id` | uuid | ○ | FK → `protocol_steps` | Etapa do protocolo que gerou esta ordem. Nula = atribuição lançada à mão ou vinda de recorrência (RN-111). **Especificado, não implementado.** |
-| `protocol_occurrence` | integer | ○ | | Número da ocorrência da etapa neste lote, a partir de 1. **Especificado, não implementado.** |
+| `is_recurring` | boolean | ● | | Marca a atribuição como parte da rotina fixa: ao copiar a semana anterior, ela já vem preenchida (RF-72, RN-95) |
+| `batch_protocol_step_id` | uuid | ○ | FK → `batch_protocol_steps` | Etapa do protocolo daquele lote que gerou esta ordem. Nula = atribuição lançada à mão (RN-111). **Especificado, não implementado.** |
 | `protocol_due_on` | date | ○ | | Vencimento que esta ordem representa, congelado na geração. Distingue-se de `work_date`, que a gerência pode remarcar. **Especificado, não implementado.** |
-| `status` | text | ● | | `planejada`, `confirmada`, `nao_confirmada`, `cancelada`: a terceira é a que o fechamento assume como realizada (RN-51), e a quarta é a ordem que o encerramento do lote invalidou (RN-108). `cancelada` é **especificada, não implementada** |
+| `status` | text | ● | | `planejada`, `confirmada`, `nao_confirmada`, `cancelada`: a segunda é a que a gerência marca ao registrar que a tarefa foi feita, a terceira é a que o fechamento assume como realizada (RN-51), e a quarta é a ordem que o encerramento do lote invalidou (RN-108). `cancelada` é **especificada, não implementada** |
 | `notes` | text | ○ | | Observação livre; único campo aberto da agenda |
 
 > **`party_id` saiu para `assignment_members`.** Quem executa deixou de ser coluna e virou lista:
@@ -1058,9 +654,14 @@ horas dos dias sem apontamento (RF-100), e a duração do turno vem de `work_shi
 
 > **A ordem do protocolo nasce sem nenhuma linha em `assignment_members`** (RN-113), e é
 > intencional. O protocolo responde o que fazer e quando; quem faz continua sendo de quem monta a
-> agenda. Enquanto não houver ninguém escalado, ela é pendência do lote e **não entra no cálculo de
-> horas** do dia sem apontamento (RN-51): assumir como feita uma tarefa que ninguém pegou inflaria o
-> custo de mão de obra com trabalho que não houve.
+> agenda. Enquanto não houver ninguém escalado, ela é pendência do lote, e o fechamento da semana
+> **não a assume como realizada** (RN-51): dar por feita uma tarefa que ninguém pegou apagaria
+> exatamente o esquecimento que o protocolo existe para denunciar.
+
+> **A recorrência é uma marca, e não uma entidade.** `is_recurring` diz que a atribuição pertence à
+> rotina fixa e, por isso, vem preenchida na cópia da semana. Uma tabela de recorrência, com dias
+> da semana, hora e vigência, existiria para gerar dias sozinha: neste modelo, o que gera dia
+> sozinho é o protocolo, cujo sujeito é o lote e não a equipe.
 
 > **`week_plan_id` é `NOT NULL`, e a ordem gerada precisa de um** (RN-112). O motor usa a semana do
 > vencimento e a abre em `rascunho` se ela não existir; se a semana do vencimento estiver
@@ -1082,94 +683,16 @@ horas dos dias sem apontamento (RF-100), e a duração do turno vem de `work_shi
 > A agenda planeja por turno porque é assim que o viveiro pensa a semana, e pedir horário exato no
 > planejamento garantiria agenda não preenchida.
 
-> **`start_time` e `end_time` são acréscimo sobre o turno, não substituição dele**, e é isso que
-> preserva a RN-48. `shift_id` continua obrigatório: a atribuição sem hora vale o turno inteiro,
-> que é o que RF-100 usa nos dias sem apontamento, e a atribuição com hora vale a janela declarada.
-> Quem traz hora para o planejamento é a **tarefa recorrente** (RN-95), e ela é a única: a rotina
-> fixa já tem hora na vida real, e é por tê-la que não precisa ser lançada todo dia.
->
-> **Não se exige que a janela caiba dentro do turno.** A carga de terra que chega às 11h40
-> atravessa o almoço, e uma trava aqui faria registrar hora errada para conseguir registrar alguma
-> coisa.
+> **Não há hora de início nem de fim, e é decisão de escopo.** A agenda registra o turno, e a
+> confirmação registra que a tarefa foi feita e quanto rendeu. Medir a hora de entrada e de saída
+> de cada pessoa seria controle de ponto, que está fora do escopo declarado em
+> [`A1` §7](../A-fundacao/A1-documento-de-visao.md), e nada no sistema depende desse número.
 
-> **`is_recurring` saiu, substituído por `recurrence_id`** (26/08/2026), pelo mesmo motivo que
-> `measurement_type` saiu de `task_types`: o booleano dizia que a tarefa era fixa **sem dizer de
-> que regra vinha**, em que dias valia nem até quando. `recurrence_id IS NOT NULL` responde a
-> pergunta inteira, e leva junto o endereço da regra. Nenhuma linha existia e nenhuma tela lia a
-> coluna: a troca não custou migração de dado.
-
-> **A ocorrência é atribuição comum, e é isso que a torna editável** (RN-96). Ela nasce da regra e
-> guarda de qual, mas dali em diante vive por conta própria: excluir a ocorrência de uma quarta não
-> altera a regra, e alterar a regra não reescreve o dia já trabalhado. O índice
-> `assignments_uma_ocorrencia_por_dia` é a idempotência da geração, que acontece ao abrir a agenda
-> do dia e não por tarefa agendada: sem ele, abrir a tela duas vezes geraria a atribuição duas
-> vezes, e as horas de RF-100 dobrariam.
-
-## `task_recurrences`: tarefa recorrente
-
-**A rotina fixa que não se lança todo dia.** A irrigação das 7h às 8h, de segunda a sábado, até o
-fim do verão: dias, hora e vigência declarados uma vez, e a agenda passa a nascer com ela dentro
-(RF-114). Substituiu o booleano `assignments.is_recurring`, que dizia que a tarefa era fixa sem
-dizer de que regra vinha.
-
-| Atributo | Tipo | Ob. | Chave | Descrição |
-|---|---|:--:|:--:|---|
-| `id` | uuid | ● | PK | Identificador |
-| `task_type_id` | uuid | ● | FK → `task_types` | Tipo de tarefa que se repete |
-| `shift_id` | uuid | ● | FK → `work_shifts` | Turno que a ocorrência gerada herda (RN-48). Obrigatório: a hora não o determina |
-| `weekdays` | smallint[] | ● | | Dias em que a regra vale, ISO: 1 = segunda a 7 = domingo. Restrição: de um a sete dias, todos na faixa e nenhum nulo |
-| `start_time` | time | ● | | Hora de início. Obrigatória, ao contrário da atribuição comum (RN-95) |
-| `end_time` | time | ● | | Hora de fim. Restrição: posterior ao início |
-| `species_id` | uuid | ○ | FK → `species` | Espécie, quando o tipo de tarefa a exigir |
-| `container_id` | uuid | ○ | FK → `containers` | Recipiente, quando o tipo de tarefa o exigir |
-| `batch_id` | uuid | ○ | FK → `batches` | Lote, quando o tipo de tarefa declarar lote específico |
-| `area_id` | uuid | ○ | FK → `areas` | Área, quando a tarefa não tem lote |
-| `bed_id` | uuid | ○ | FK → `beds` | Canteiro, nas mesmas condições |
-| `valid_from` | date | ● | | Início da vigência |
-| `valid_until` | date | ○ | | Fim da vigência. **Nula = sem prazo**. Restrição: não anterior ao início |
-| `active` | boolean | ● | | Regra ativa |
-| `notes` | text | ○ | | Observação |
-| `created_by` | uuid | ● | FK → `users` | Quem criou a regra |
-
-> **`weekdays` é array, e não sete colunas booleanas.** A pergunta que se faz é sempre "esta regra
-> vale na quarta?", que uma busca de valor no array responde direto; sete colunas obrigariam a
-> nomear cada dia em toda consulta e a manter sete restrições onde uma basta.
-
-> **A restrição de dias usa `cardinality`, e não `array_length`.** Para o array vazio,
-> `array_length` devolve nulo, e nulo comparado a uma faixa continua nulo, que a restrição aceita:
-> escrita do jeito óbvio, ela deixava passar exatamente o caso que existia para barrar, e a falha
-> só apareceu ao testar a migration. `cardinality` devolve zero, que é falso de verdade. O elemento
-> nulo é barrado à parte, porque o operador de contenção sozinho não o pega.
-
-> **`shift_id` é obrigatório porque a hora não determina o turno.** `assignments.shift_id` é
-> `NOT NULL`, e a ocorrência gerada precisa de um. Os turnos cadastrados são `07:00-11:00` e
-> `13:00-17:00`, com o almoço entre eles: a recorrência das 11:30 às 12:30 **não cai em nenhum**.
-> Derivar o turno da hora obrigaria a escolher entre errar e recusar, e a pergunta que resolve
-> ("esta rotina conta como manhã ou como tarde?") a gerência responde sem pensar. A coluna entrou
-> em 26/08/2026, depois de a auditoria mostrar que RF-115 não era implementável sem ela.
-
-> **Uma recorrência gera no máximo uma ocorrência por dia**, e o índice
-> `assignments_uma_ocorrencia_por_dia`, sobre `(recurrence_id, work_date)`, garante isso. Irrigar de
-> manhã **e** de tarde são **duas regras**, não uma com dois horários: é o que mantém a geração
-> idempotente, e é o que permite encerrar a vigência de uma sem mexer na outra.
-
-> **Encerrar a recorrência é preencher `valid_until`, nunca apagar a linha** (RF-116, RN-96). As
-> ocorrências já geradas apontam para ela, e apagá-la apagaria o vínculo de dias já trabalhados. A
-> regra para de gerar dias novos e o passado permanece explicável.
-
-## `task_recurrence_members`: participante da recorrência
-
-Quem a regra escala. Mesma forma de `assignment_members`, e pelo mesmo motivo (RN-84): a
-recorrência vale para **um funcionário ou um grupo**, e "a equipe inteira irriga de manhã" é uma
-regra só, não nove regras parecidas.
-
-| Atributo | Tipo | Ob. | Chave | Descrição |
-|---|---|:--:|:--:|---|
-| `recurrence_id` | uuid | ● | PK, FK → `task_recurrences` | Regra |
-| `party_id` | uuid | ● | PK, FK → `cadastro.parties` | Funcionário escalado |
-
-> **O apagamento em cascata é dos membros, e nunca das atribuições.** Apagar a regra apaga quem
-> estava nela; apagar o dia que já foi trabalhado, jamais.
+> **A ordem do protocolo é atribuição comum, e é isso que a torna editável** (RN-111). Ela nasce da
+> etapa e guarda de qual, mas dali em diante vive por conta própria: excluir a ordem de uma quarta
+> não altera o protocolo nem as ordens dos demais lotes. Um índice único sobre
+> `(batch_protocol_step_id, protocol_due_on)` dá a idempotência da geração: sem ele, abrir a agenda
+> duas vezes geraria a ordem duas vezes.
 
 ## `batch_health`: situação do lote *(não é tabela)*
 
@@ -1184,8 +707,7 @@ decorre: `saudavel`, `atencao` ou `critico`. É o que pinta o mapa de produção
 | `days_late` | a data de hoje menos `pending_since`; zero quando não há pendência |
 | `health` | `days_late` comparado aos parâmetros `producao.atraso_atencao_dias` e `producao.atraso_critico_dias` de `settings` |
 
-> **É visão e não coluna** (RN-93), pela mesma razão de `input_stock_balance` e
-> `species_unit_cost`: situação gravada envelhece sozinha, e o lote marcado como saudável ontem
+> **É visão e não coluna** (RN-93): situação gravada envelhece sozinha, e o lote marcado como saudável ontem
 > continuaria saudável hoje, que é o contrário do que a tela mostra.
 
 > **A mais antiga manda.** Havendo três pendências no mesmo lote, quem determina a cor é a que
@@ -1193,8 +715,8 @@ decorre: `saudavel`, `atencao` ou `critico`. É o que pinta o mapa de produção
 > que o mapa está pedindo.
 
 > **Pendência é o que segue `planejada`, e a condição é positiva de propósito.** Os outros dois
-> status saem, cada um pelo seu motivo: `confirmada` é a tarefa que o colaborador deu por concluída
-> (RF-74), e `nao_confirmada` é a que o fechamento da semana assumiu como feita (RF-75, RN-51). Sem
+> status saem, cada um pelo seu motivo: `confirmada` é a tarefa que a gerência registrou como feita
+> (RF-107), e `nao_confirmada` é a que o fechamento da semana assumiu como feita (RF-75, RN-51). Sem
 > a segunda, toda semana fechada deixaria um vermelho permanente atrás de si.
 >
 > **A primeira versão da visão enumerava pela exclusão** (`status <> 'nao_confirmada'`) e deixava
@@ -1226,8 +748,7 @@ Uma linha por par lote e etapa, criada quando o lote nasce. **Guarda fatos, e nu
 
 > **`next_due_on` não é coluna, e a ausência é a decisão.** O vencimento é função do que já está
 > aqui: âncora, última execução e tempo efetivo. Gravá-lo criaria um número que depende da data de
-> hoje e que envelhece sozinho, pela mesma razão de `batch_health`, `input_stock_balance` e
-> `species_unit_cost` não serem tabelas (RN-110).
+> hoje e que envelhece sozinho, pela mesma razão de `batch_health` não ser tabela (RN-110).
 
 > **`anchor_date` nula é informação, e não dado faltando.** É o estado de "Classificar
 > pós-germinação" enquanto o plantio não foi concluído: a etapa existe, está acompanhada, e não
@@ -1279,26 +800,30 @@ e a situação que dele decorre (RF-131, RF-132).
 > conjunto de tarefas.
 
 
-# Módulo 3 · Comercial
+# Área 3 · Comercial
 
 ## `orders`: pedido
 
 | Atributo | Tipo | Ob. | Chave | Descrição |
 |---|---|:--:|:--:|---|
 | `id` | uuid | ● | PK | Identificador |
-| `order_number` | serial | ● | | Número sequencial legível, usado na comunicação com o cliente |
-| `customer_id` | uuid | ● | FK → `customers` | Cliente |
-| `sale_channel` | varchar(50) | ● | | Canal de venda. Determina a margem aplicada |
-| `status` | varchar(30) | ● | | Estado no ciclo. Lista fechada: ver abaixo |
-| `needs_invoice` | boolean | ● | | Exige nota fiscal. Definido no fechamento |
+| `order_number` | serial | ● | UK | Número sequencial legível, usado na comunicação com o cliente |
+| `customer_id` | uuid | ● | FK → `cadastro.parties` | Cliente. Aponta para a **identidade única**, e não para uma tabela de clientes: quem compra e às vezes vende é um cadastro só (RN-27) |
+| `sale_channel` | varchar(50) | ● | | Canal de venda, em lista fechada de cinco: `atacado`, `compensacao`, `paisagismo`, `prefeitura`, `varejo` (RN-20) |
+| `status` | varchar(30) | ● | | `rascunho`, `confirmado`, `cancelado` (RN-31) |
 | `delivery_date` | date | ○ | | Data prevista de entrega |
 | `notes` | text | ○ | | Observações |
-| `created_by` | uuid | ● | FK → `users` | Autor do registro |
-| `price_approved_by` | uuid | ○ | FK → `users` | Chefia que aprovou o preço antes do fechamento (RF-44). **Especificado, não implementado.** |
-| `price_approved_at` | timestamptz | ○ | | Momento da aprovação. Nulo enquanto o pedido não teve o preço aprovado. **Especificado, não implementado.** |
+| `created_by` | uuid | ● | FK → `users` | Autor do registro (RN-46) |
 
-**Estados admitidos:** `cadastrado`, `verificando_disponibilidade`, `verificado`,
-`pendente_alteracao`, `aprovado`, `separando`, `pronto_envio`, `cancelado`.
+**Restrição:** pedido em `confirmado` ou `cancelado` não admite alteração de item (RF-142).
+
+> **Não há tabela de histórico de estados.** São três situações e o que o negócio precisa saber é
+> em qual delas o pedido está. Uma tabela de histórico existiria para responder quem mudou o quê e
+> quando, pergunta que um viveiro de nove pessoas resolve perguntando.
+
+> **`sale_channel` é enumeração, e não chave estrangeira.** Canal de venda é lista fechada de cinco
+> valores sem atributos próprios: virar entidade só se justificaria se o canal carregasse margem ou
+> preço, que é justamente o que saiu do escopo.
 
 ## `order_items`: item de pedido
 
@@ -1306,403 +831,27 @@ e a situação que dele decorre (RF-131, RF-132).
 |---|---|:--:|:--:|---|
 | `id` | uuid | ● | PK | Identificador |
 | `order_id` | uuid | ● | FK → `orders` | Pedido |
-| `species_id` | uuid | ○ | FK → `species` | Espécie. **Nulo em item genérico** |
+| `species_id` | uuid | ● | FK → `species` | Espécie |
 | `container_id` | uuid | ● | FK → `containers` | Recipiente solicitado |
 | `quantity` | integer | ● | | Quantidade pedida. Restrição: maior que zero |
-| `is_generic` | boolean | ● | | Item sem espécie definida |
-| `parent_item_id` | uuid | ○ | FK → `order_items` | Item genérico que este especializa |
-| `specification` | text | ○ | | Exigência de qualidade do cliente. Único texto livre do fluxo de pedido |
-| `sale_price_id` | uuid | ○ | FK → `sale_prices` | Preço vigente tomado como base. Dele saem o valor sugerido e o piso contra o qual o acordado é validado. **Especificado, não implementado.** |
-| `unit_price` | numeric(10,2) | ○ | | **Preço unitário acordado com o cliente.** Pode diferir do sugerido e nunca desce abaixo do piso (RN-59, RF-33). Nulo enquanto o item não foi precificado. **Especificado, não implementado.** |
-| `is_available` | boolean | ○ | | Resultado da verificação. **Nulo significa não verificado** |
-| `available_quantity` | integer | ○ | | Quantidade efetivamente disponível, quando parcial |
-| `available_container_id` | uuid | ○ | FK → `containers` | Recipiente realmente disponível, quando difere do solicitado |
-| `availability_notes` | text | ○ | | Justificativa da verificação: por que faltou, ou o que foi oferecido no lugar |
-
-**Restrições de integridade:**
-
-- Item genérico não pode ter espécie.
-- Item específico precisa ter espécie, salvo quando é filho de um genérico.
-- Preço acordado não pode ser menor que o piso do preço vigente referenciado (RF-33).
-
-> **O valor negociado fica no item, não no pedido:** cada espécie e recipiente tem preço próprio, e
-> um pedido mistura vários. Também não se copia aqui o valor sugerido nem o piso: `sale_prices`
-> guarda vigência fechada, então a referência à linha vigente recupera os dois sem duplicar dado
-> (RN-58). É essa referência que sustenta o relatório de custo contra preço praticado (RF-35).
-
-**Os quatro estados de disponibilidade**, e como se distinguem:
-
-| Estado | `is_available` | `available_quantity` | `available_container_id` |
-|---|:--:|:--:|:--:|
-| Não verificado | nulo | nulo | nulo |
-| Disponível | verdadeiro | nulo | nulo |
-| Parcial | falso | 1 até a quantidade pedida | recipiente real |
-| Indisponível | falso | 0 | nulo |
-
-## `order_item_allowed_species`: espécies aceitas em item genérico
-
-| Atributo | Tipo | Ob. | Chave | Descrição |
-|---|---|:--:|:--:|---|
-| `order_item_id` | uuid | ● | PK, FK → `order_items` | Item genérico |
-| `species_id` | uuid | ● | PK, FK → `species` | Espécie aceita pelo cliente |
-
-> Tabela associativa de chave composta. **Ausência de linhas significa aberto**, qualquer espécie
-> atende o item.
-
-## `order_loads`: carga
-
-| Atributo | Tipo | Ob. | Chave | Descrição |
-|---|---|:--:|:--:|---|
-| `id` | uuid | ● | PK | Identificador |
-| `order_id` | uuid | ● | FK → `orders` | Pedido |
-| `load_number` | integer | ● | | Número da carga dentro do pedido |
-| `status` | varchar(20) | ● | | `pendente`, `separando`, `pronto` |
-| `notes` | text | ○ | | Observações |
-
-**Restrição de unicidade:** número de carga único dentro do pedido.
-
-## `order_load_items`: item de carga
-
-| Atributo | Tipo | Ob. | Chave | Descrição |
-|---|---|:--:|:--:|---|
-| `id` | uuid | ● | PK | Identificador |
-| `load_id` | uuid | ● | FK → `order_loads` | Carga |
-| `order_item_id` | uuid | ● | FK → `order_items` | Item do pedido |
-| `quantity` | integer | ● | | Quantidade nesta carga. Permite dividir um item entre viagens |
-| `is_separated` | boolean | ● | | Separação física concluída |
-
-## `order_status_history`: histórico de estados
-
-| Atributo | Tipo | Ob. | Chave | Descrição |
-|---|---|:--:|:--:|---|
-| `id` | uuid | ● | PK | Identificador |
-| `order_id` | uuid | ● | FK → `orders` | Pedido |
-| `from_status` | varchar(30) | ○ | | Estado anterior. Nulo no primeiro registro |
-| `to_status` | varchar(30) | ● | | Estado novo |
-| `changed_by` | uuid | ● | FK → `users` | Autor da transição |
-| `notes` | text | ○ | | Justificativa |
-
----
-
-## `supplier_quotes`: cotação
-
-| Atributo | Tipo | Ob. | Chave | Descrição |
-|---|---|:--:|:--:|---|
-| `id` | uuid | ● | PK | Identificador |
-| `request_group_id` | uuid | ● | | Agrupa as cotações de uma mesma consulta a vários fornecedores |
-| `supplier_id` | uuid | ● | FK → `suppliers` | Fornecedor consultado |
-| `order_id` | uuid | ○ | FK → `orders` | Pedido de cliente que a originou. Nulo em cotação avulsa |
-| `channel` | varchar(15) | ● | | `whatsapp`, `email`, `instagram`, `manual` |
-| `message_text` | text | ● | | Mensagem exatamente como enviada. Auditoria do contato |
-| `status` | varchar(15) | ● | | `queued`, `sent`, `responded`, `no_reply`, `cancelled` |
-| `sent_at` | timestamptz | ○ | | Momento do envio |
-| `responded_at` | timestamptz | ○ | | Momento da resposta |
-| `raw_response` | text | ○ | | Resposta recebida, como transcrita |
-| `created_by` | uuid | ● | FK → `users` | Autor da cotação |
-| `notes` | text | ○ | | Observações da cotação |
-
-## `supplier_quote_items`: item de cotação
-
-| Atributo | Tipo | Ob. | Chave | Descrição |
-|---|---|:--:|:--:|---|
-| `id` | uuid | ● | PK | Identificador |
-| `quote_id` | uuid | ● | FK → `supplier_quotes` | Cotação |
-| `species_id` | uuid | ● | FK → `species` | Espécie cotada |
-| `order_item_id` | uuid | ○ | FK → `order_items` | Item do pedido que originou a cotação |
-| `quantity` | integer | ● | | Quantidade solicitada |
-| `size` | text | ○ | | Porte desejado |
-| `quoted_unit_price` | numeric(10,2) | ○ | | Preço unitário informado pelo fornecedor |
-| `is_chosen` | boolean | ● | | Proposta vencedora para a espécie, dentro da consulta |
-| `sale_unit_price` | numeric(10,2) | ○ | | Preço de revenda ao cliente, validado contra o piso mínimo |
-| `response_notes` | text | ○ | | Observações da resposta |
-
----Esquema separado do restante do sistema, por decisão de segurança (ver [`C6`, §3.5](C6-modelo-entidade-relacionamento.md)).
-
-# Módulo 4 · Financeiro
-
-## `fixed_costs`: custo fixo mensal
-
-| Atributo | Tipo | Ob. | Chave | Descrição |
-|---|---|:--:|:--:|---|
-| `id` | uuid | ● | PK | Identificador |
-| `category` | enum | ● | | `salarios`, `energia`, `agua`, `manutencao`, `combustivel`, `depreciacao`, `outros` |
-| `monthly_amount` | numeric(12,2) | ● | | Valor do mês |
-| `reference_month` | date | ● | | Mês de referência, sempre o primeiro dia |
-| `notes` | text | ○ | | Observação |
-
-## `production_costs`: custo variável por espécie e recipiente
-
-| Atributo | Tipo | Ob. | Chave | Descrição |
-|---|---|:--:|:--:|---|
-| `id` | uuid | ● | PK | Identificador |
-| `species_id` | uuid | ● | FK → `species` | Espécie |
-| `container_id` | uuid | ● | FK → `containers` | Recipiente |
-| `substrate_cost` | numeric(10,2) | ● | | Custo do substrato |
-| `seed_cost` | numeric(10,2) | ● | | Custo da semente |
-| `input_costs_json` | jsonb | ● | | Demais insumos aplicados, com quantidade e custo por insumo |
-| `labor_minutes` | numeric(8,2) | ● | | Minutos de mão de obra |
-| `labor_rate_id` | uuid | ○ | FK → `labor_rates` | Valor-hora do período que produziu o custo de mão de obra, guardado para responder qual taxa gerou este número (RN-53). **Especificado, não implementado.** |
-| `labor_cost` | numeric(10,2) | ● | | Custo da mão de obra |
-| `total_variable_cost` | numeric(12,2) | ● | | **Derivado**: soma de substrato, semente e mão de obra |
-| `calculated_at` | timestamptz | ● | | Momento do último cálculo |
-
-**Restrição de unicidade:** uma única linha por combinação de espécie e recipiente.
-
-## `species_unit_cost`: visão de custo unitário *(não é tabela)*
-
-Visão que compõe o custo variável apurado com o rateio do custo fixo mensal, entregando o **custo
-unitário por espécie e recipiente** consumido pelo relatório de margem (RF-17). Não armazena dados:
-é derivação sobre `production_costs`, `species`, `containers` e `fixed_costs`.
-
-| Atributo exposto | Origem |
-|---|---|
-| `species_id`, `common_name`, `scientific_name` | `species` |
-| `container_id`, `container_name` | `containers` |
-| `substrate_cost`, `seed_cost`, `labor_cost`, `total_variable_cost` | `production_costs` |
-| `total_fixed_cost_month` | soma de `fixed_costs` do mês corrente |
-| `fixed_cost_allocated` | rateio do custo fixo sobre as combinações ativas |
-| `unit_cost_estimated` | custo variável somado ao rateio |
-
----
-
-## `labor_rates`: valor-hora do período
-
-Um registro por mês: folha dividida por horas (RN-53). Guarda o custo da hora **da equipe**, nunca
-o salário individual.
-
-| Atributo | Tipo | Ob. | Chave | Descrição |
-|---|---|:--:|:--:|---|
-| `id` | uuid | ● | PK | Identificador |
-| `reference_month` | date | ● | UK | Mês de referência, no primeiro dia do mês. Um registro por mês |
-| `total_payroll` | numeric(12,2) | ● | | Total da folha do mês, vindo do financeiro. Restrição: maior que zero |
-| `total_hours` | numeric(10,2) | ● | | Horas apuradas na agenda do mês. Restrição: maior que zero |
-| `rate_per_hour` | numeric(12,4) | ● | | **Derivado e mantido pelo banco**: `total_payroll / total_hours` |
-
-> **O mês é uma data, e não o par ano e mês.** Um `date` no primeiro dia do mês ordena, compara e
-> entra em intervalo sem conversão, e a chave única sobre ele já impede o segundo registro do mesmo
-> mês, que duas colunas independentes só impediriam com restrição composta.
-
-> **`rate_per_hour` é coluna gerada**, calculada pelo banco a cada gravação. Não é a exceção que
-> `batches.current_quantity` declara: aqui o valor não é mantido pela aplicação, é derivado na
-> própria linha e não tem como divergir das duas que o produzem.
-
-## `financeiro.accounts`: conta
-
-*Especificada, não implementada no protótipo.*
-
-| Atributo | Tipo | Ob. | Chave | Descrição |
-|---|---|:--:|:--:|---|
-| `id` | uuid | ● | PK | Identificador |
-| `code` | text | ● | UK | Código curto da conta |
-| `name` | text | ● | | Designação |
-| `holder` | text | ● | | Titular |
-| `kind` | text | ● | | `corrente`, `pagamento`, `caixa` |
-| `opening_balance` | numeric(14,2) | ● | | Saldo no marco zero |
-| `opening_balance_date` | date | ● | | Data do saldo inicial |
-
-> Inclui uma conta de **dinheiro em espécie**, para que a regra "nenhum lançamento sem conta" não
-> empurre o gasto em dinheiro para fora do sistema.
-
-## `financeiro.cost_centers`: centro de custo
-
-*Especificada, não implementada no protótipo.*
-
-| Atributo | Tipo | Ob. | Chave | Descrição |
-|---|---|:--:|:--:|---|
-| `id` | uuid | ● | PK | Identificador |
-| `code` | text | ● | UK | Código, derivado do nome. **Imutável**: é por ele que a carga inicial e as regras de classificação apontam |
-| `name` | text | ● | | Designação |
-| `nature` | text | ● | | `negocio` ou `pessoal`. Escolhida na criação, **imutável** depois de existir lançamento no centro (RN-73) |
-| `active` | boolean | ● | | Oferecido em novos lançamentos |
-| `created_at` | timestamptz | ● | | Momento do cadastro |
-| `created_by` | uuid | ○ | FK → `users` | Autor do cadastro (RN-46). Nulo nos cinco da carga inicial |
-| `deactivated_at` | timestamptz | ○ | | Quando saiu das escolhas de lançamento novo |
-
-> **É o centro de custo que separa negócio de pessoal.** Não há campo de natureza no lançamento.
-> a natureza deriva do centro. Foi a natureza digitada linha a linha que produziu, na planilha
-> anterior, classificação errada nos dois sentidos.
-
-> **É cadastro, não carga inicial fechada.** A tabela nasce com cinco centros (viveiro, sítio,
-> clínica, casa, floricultura) e é mantida pela chefia em `/cadastros/centros-de-custo` (RF-77 a
-> RF-79). **Exclusão não existe**: o centro extinto é inativado, porque o lançamento já classificado
-> guarda o seu centro para sempre (RN-72). `active = false` significa uma coisa só: fora das escolhas
-> de lançamento novo, presente em todo o resto, inclusive na reclassificação de lançamento antigo.
-
-## `financeiro.category_groups` e `financeiro.categories`: classificação
-
-*Especificada, não implementada no protótipo.*
-
-| `financeiro.category_groups` | Tipo | Ob. | Chave | Descrição |
-|---|---|:--:|:--:|---|
-| `id` | uuid | ● | PK | Identificador |
-| `name` | text | ● | | Nome do grupo |
-
-| `financeiro.categories` | Tipo | Ob. | Chave | Descrição |
-|---|---|:--:|:--:|---|
-| `id` | uuid | ● | PK | Identificador |
-| `group_id` | uuid | ● | FK → `financeiro.category_groups` | Grupo |
-| `name` | text | ● | | Nome da categoria |
-| `direction` | text | ● | | `saida`, `entrada` ou `ambos`. Restringe o que a lista oferece conforme o sinal do valor |
-
-## `financeiro.statement_imports`: importação de extrato
-
-*Especificada, não implementada no protótipo.*
-
-| Atributo | Tipo | Ob. | Chave | Descrição |
-|---|---|:--:|:--:|---|
-| `id` | uuid | ● | PK | Identificador |
-| `account_id` | uuid | ● | FK → `financeiro.accounts` | Conta do extrato |
-| `source_format` | text | ● | | Formato do arquivo |
-| `file_name` | text | ● | | Nome do arquivo |
-| `file_hash` | text | ● | | Resumo do conteúdo, para detectar reimportação |
-| `period_start` / `period_end` | date | ● | | Intervalo coberto |
-| `rows_total` | integer | ● | | Linhas lidas |
-| `rows_new` | integer | ● | | Linhas inéditas |
-| `rows_duplicated` | integer | ● | | Linhas já existentes, descartadas |
-| `imported_by` | uuid | ● | FK → `users` | Autor da importação |
-
-## `financeiro.transactions`: lançamento *(entidade central do financeiro)*
-
-*Especificada, não implementada no protótipo.*
-
-| Atributo | Tipo | Ob. | Chave | Descrição |
-|---|---|:--:|:--:|---|
-| `id` | uuid | ● | PK | Identificador |
-| `account_id` | uuid | ● | FK → `financeiro.accounts` | Conta. **Nada existe sem conta** |
-| `import_id` | uuid | ○ | FK → `financeiro.statement_imports` | Lote de importação. Nulo se lançado manualmente |
-| `posted_at` | date | ● | | Quando o banco moveu. **Nunca editado** |
-| `competence_date` | date | ● | | Mês a que o gasto pertence. Assume a data de movimentação por padrão |
-| `amount` | numeric(14,2) | ● | | Valor. **Negativo é saída, positivo é entrada** |
-| `description_raw` | text | ● | | Descrição do banco. **Nunca editada: é a prova** |
-| `fitid` | text | ○ | | Identificador do movimento no arquivo do banco |
-| `dedupe_key` | text | ● | | Chave de deduplicação, quando o formato não traz identificador |
-| `balance_after` | numeric(14,2) | ○ | | Saldo após o movimento, quando informado |
-| `kind` | text | ● | | `despesa`, `receita`, `transferencia`, `aporte`, `retirada`, `estorno` |
-| `installment_number` | smallint | ○ | | Número da parcela |
-| `installment_total` | smallint | ○ | | Total de parcelas |
-| `installment_total_amount` | numeric(14,2) | ○ | | Valor cheio da compra parcelada |
-| `category_id` | uuid | ○ | FK → `financeiro.categories` | Categoria |
-| `cost_center_id` | uuid | ○ | FK → `financeiro.cost_centers` | Centro de custo. Nulo quando há rateio |
-| `party_id` | uuid | ○ | FK → `cadastro.parties` | Contraparte |
-| `transfer_pair_id` | uuid | ○ | FK → `financeiro.transactions` | Perna oposta da transferência entre contas próprias |
-| `order_id` | uuid | ○ | FK → `orders` | Pedido conciliado, quando entrada |
-| `supplier_quote_id` | uuid | ○ | FK → `supplier_quotes` | Cotação conciliada, quando saída |
-| `status` | text | ● | | `a-classificar`, `classificado`, `conciliado`, `ignorado` |
-| `classified_by` | uuid | ○ | FK → `users` | Autor da classificação |
-| `classified_at` | timestamptz | ○ | | Momento da classificação |
-
-**Restrições de unicidade**: o que torna a reimportação segura: identificador do movimento único por
-conta, quando existir; chave de deduplicação única por conta, sempre. Reimportar o mesmo arquivo não
-cria nada.
-
-**Por que o sinal no valor em vez de uma coluna de direção:** é como o extrato entrega, e faz a soma
-dos valores do período ser o saldo diretamente.
-
-## `financeiro.transaction_splits`: rateio
-
-*Especificada, não implementada no protótipo.*
-
-| Atributo | Tipo | Ob. | Chave | Descrição |
-|---|---|:--:|:--:|---|
-| `id` | uuid | ● | PK | Identificador |
-| `transaction_id` | uuid | ● | FK → `financeiro.transactions` | Lançamento rateado |
-| `cost_center_id` | uuid | ● | FK → `financeiro.cost_centers` | Centro que recebe a parte |
-| `category_id` | uuid | ○ | FK → `financeiro.categories` | Categoria da parte. Nulo herda a do lançamento |
-| `amount` | numeric(14,2) | ● | | Valor da parte |
-
-**Invariante:** havendo rateio, a soma das partes iguala o valor do lançamento. Validada na camada de
-aplicação, onde a mensagem de erro é legível e o comportamento é verificável por teste automatizado.
-
-## `financeiro.classification_rules`: regra de classificação
-
-*Especificada, não implementada no protótipo.*
-
-| Atributo | Tipo | Ob. | Chave | Descrição |
-|---|---|:--:|:--:|---|
-| `id` | uuid | ● | PK | Identificador |
-| `pattern` | text | ● | | Trecho ou expressão a reconhecer na descrição |
-| `match_type` | text | ● | | `contains` ou `regex` |
-| `account_id` | uuid | ○ | FK → `financeiro.accounts` | Restringe a regra a uma conta |
-| `category_id` | uuid | ○ | FK → `financeiro.categories` | Categoria a aplicar |
-| `cost_center_id` | uuid | ○ | FK → `financeiro.cost_centers` | Centro a aplicar |
-| `party_id` | uuid | ○ | FK → `cadastro.parties` | Contraparte a aplicar |
-| `priority` | integer | ● | | Ordem de avaliação |
-| `hits` | integer | ● | | Quantas vezes já se aplicou |
-| `active` | boolean | ● | | Regra em uso |
-
-> É a entidade que faz a fila de pendências **encolher** a cada mês, em vez de crescer: cada
-> classificação manual vira regra para as próximas.
-
-## `financeiro.periods`: fechamento mensal
-
-*Especificada, não implementada no protótipo.*
-
-| Atributo | Tipo | Ob. | Chave | Descrição |
-|---|---|:--:|:--:|---|
-| `id` | uuid | ● | PK | Identificador |
-| `account_id` | uuid | ● | FK → `financeiro.accounts` | Conta |
-| `year` / `month` | integer | ● | | Período |
-| `status` | text | ● | | `aberto` ou `fechado` |
-| `closing_balance` | numeric(14,2) | ○ | | Saldo conferido no fechamento |
-| `closed_by` | uuid | ○ | FK → `users` | Autor do fechamento |
-| `closed_at` | timestamptz | ○ | | Momento do fechamento |
-
-> Mês fechado não aceita alteração, e **só mês fechado vira indicador** (RF-61). Período incompleto
-> exibe travessão, não número: comparar um mês parcial com um mês cheio inventa variação.
-
----
-
-## `sale_channels`: canal de venda
-
-*Especificada, não implementada no protótipo.*
-
-| Atributo | Tipo | Ob. | Chave | Descrição |
-|---|---|:--:|:--:|---|
-| `id` | uuid | ● | PK | Identificador |
-| `code` | text | ● | UK | Código curto: atacado, compensacao, paisagismo, prefeitura, varejo |
-| `name` | text | ● | | Designação apresentada ao usuário |
-| `default_margin_pct` | numeric(6,3) | ● | | Margem padrão aplicada sobre o custo unitário |
-| `min_margin_pct` | numeric(6,3) | ● | | Margem mínima admitida. Base do cálculo do piso |
-| `active` | boolean | ● | | Canal em uso |
-
-> A margem é atributo do canal, não do preço: alterá-la deve refletir-se em todos os preços do canal.
-
-## `sale_prices`: preço de venda vigente
-
-*Especificada, não implementada no protótipo.*
-
-| Atributo | Tipo | Ob. | Chave | Descrição |
-|---|---|:--:|:--:|---|
-| `id` | uuid | ● | PK | Identificador |
-| `species_id` | uuid | ● | FK → `species` | Espécie |
-| `container_id` | uuid | ● | FK → `containers` | Recipiente. Junto à espécie, identifica o produto |
-| `channel_id` | uuid | ● | FK → `sale_channels` | Canal de venda |
-| `unit_cost_snapshot` | numeric(10,2) | ● | | **Custo unitário vigente quando o preço foi definido.** Permite responder qual era a margem no momento da venda |
-| `margin_pct` | numeric(6,3) | ● | | Margem efetivamente aplicada, que pode diferir da padrão do canal |
-| `unit_price` | numeric(10,2) | ● | | Preço unitário sugerido |
-| `floor_price` | numeric(10,2) | ● | | Piso mínimo. Abaixo dele a venda é recusada, não apenas alertada |
-| `valid_from` | date | ● | | Início da vigência |
-| `valid_to` | date | ○ | | Fim da vigência. Nulo indica preço vigente |
-| `defined_by` | uuid | ● | FK → `users` | Quem definiu o preço |
-
-**Restrição de unicidade:** um único preço vigente por espécie, recipiente e canal, garantida pela
-ausência de sobreposição entre períodos de vigência.
-
-> O preço efetivamente acordado é registrado no item do pedido (`order_items.unit_price`), e pode
-> diferir do sugerido dentro do limite do piso. Esta entidade é fonte de sugestão e de validação, nunca de imposição.
-
----
+| `unit_price` | numeric(10,2) | ● | | **Preço unitário informado por quem registra** (RF-141, RN-114). Restrição: maior que zero |
+
+> **O preço é digitado, e o sistema não o calcula.** Não há referência a tabela de preço, piso
+> mínimo nem margem: o valor é o que foi negociado na conversa com o cliente, e ao sistema cabe
+> guardá-lo. O total do item e o do pedido são derivados de `quantity` por `unit_price`, e não
+> materializados.
+
+> **Não há coluna de disponibilidade.** O saldo que a tela exibe ao lado do item (RF-42) é somado
+> dos lotes prontos daquela espécie e recipiente a cada consulta. Guardá-lo aqui congelaria uma
+> leitura que muda a cada perda registrada, e o item passaria a mentir sobre o estoque de hoje. É a
+> mesma decisão que fez a situação do lote ser visão e não coluna (RN-93).
 
 ## Resumo
 
-| Módulo | Entidades | Observação |
+| Área | Entidades | Observação |
 |---|---:|---|
-| *(transversal)* Acesso | 5 | inclui `settings`, os parâmetros do sistema |
-| 1 · Cadastros | 16 | inclui `task_types`, o endereço do viveiro (`areas`, `beds`), `work_shifts` e o esquema `cadastro` (`parties`, `party_roles`, `addresses`) |
-| 2 · Produção | 14 | lote, movimento, agenda, recorrência, apontamento, consumo, coleta, perda, contagem |
-| 3 · Comercial | 8 | pedido, item, carga, cotação |
-| 4 · Financeiro | 14 | nove entidades no esquema `financeiro`, mais custeio e preço em `public` |
-| **Total** | **57** | mais `species_unit_cost`, `input_stock_balance` e `batch_health`, que são visões e não tabelas |
-
-
-
+| *(transversal)* Acesso e configurações | 4 | `users`, `sessions`, `login_events` e `settings`, os parâmetros do sistema |
+| 1 · Cadastro único | 15 | catálogo (`species`, `containers`, `inputs`), endereço do viveiro (`areas`, `beds`), trabalho (`task_types`, `work_shifts`), protocolo (`protocols`, `protocol_steps`, `species_protocol_overrides`) e o esquema `cadastro` (`parties`, `party_roles`, `addresses`) |
+| 2 · Produção | 6 | `week_plans`, `assignments`, `assignment_members`, `batches`, `batch_movements`, `batch_protocol_steps` |
+| 3 · Comercial | 2 | `orders` e `order_items` |
+| **Total** | **27** | mais `batch_health` e `batch_protocol_due`, que são visões e não tabelas |
