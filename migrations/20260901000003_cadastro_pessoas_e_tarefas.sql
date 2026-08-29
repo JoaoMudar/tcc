@@ -2,10 +2,10 @@
 -- Descricao: Identidade unica de pessoas (schema `cadastro`) e catalogo de tipos
 --            de tarefa.
 --
--- Requisitos: RF-36 a RF-39, RF-52, RF-69, RF-70, RF-82, RF-140 · Regras: RN-25 a RN-27, RN-55, RN-62, RN-80, RN-81
+-- Requisitos: RF-17 a RF-20, RF-21, RF-22, RF-23, RF-24, RF-16 · Regras: RN-50 a RN-52, RN-15, RN-57, RN-23, RN-24
 -- Entidades: C8 `cadastro.parties`, `cadastro.party_roles`, `cadastro.addresses`, `task_types`
 --
--- UMA PESSOA, VARIOS PAPEIS (RN-27). Quem vende muda ao viveiro e as vezes compra
+-- UMA PESSOA, VARIOS PAPEIS (RN-52). Quem vende muda ao viveiro e as vezes compra
 -- dele e um cadastro so. Tres tabelas de pessoa produziriam tres verdades sobre o
 -- mesmo telefone.
 --
@@ -22,7 +22,7 @@ CREATE TABLE cadastro.parties (
   kind       cadastro.party_kind NOT NULL,
   name       TEXT NOT NULL,
 
-  -- CPF ou CNPJ, apenas digitos. Nulo no cadastro rapido (RF-36, RN-26): nome e
+  -- CPF ou CNPJ, apenas digitos. Nulo no cadastro rapido (RF-17, RN-51): nome e
   -- telefone bastam para registrar o pedido, e a ficha se completa depois.
   document   TEXT UNIQUE,
 
@@ -62,7 +62,7 @@ CREATE TABLE cadastro.party_roles (
 CREATE INDEX party_roles_por_papel ON cadastro.party_roles (role) WHERE active;
 
 -- UMA PESSOA TEM MAIS DE UM ENDERECO, e o de entrega pode nao ser o de cobranca
--- (RN-62).
+-- (RN-57).
 CREATE TABLE cadastro.addresses (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   party_id   UUID NOT NULL REFERENCES cadastro.parties(id) ON DELETE CASCADE,
@@ -88,7 +88,7 @@ CREATE UNIQUE INDEX users_uma_credencial_por_pessoa
   ON users (party_id) WHERE party_id IS NOT NULL;
 
 -- ------------------------------------------------------------
--- O catalogo de tarefas comanda o formulario (RF-82, RN-55)
+-- O catalogo de tarefas comanda o formulario (RF-24, RN-15)
 -- ------------------------------------------------------------
 -- E o tipo de tarefa que diz se a tela vai pedir especie, recipiente, lote ou uma
 -- contagem por participante. Sem isso, ou o formulario pede tudo sempre (e ninguem
@@ -98,10 +98,10 @@ CREATE TABLE task_types (
   name               TEXT NOT NULL UNIQUE,
   category           TEXT NOT NULL,
 
-  -- Faz a confirmacao pedir um numero POR PARTICIPANTE (RF-98, RN-91).
+  -- Faz a confirmacao pedir um numero POR PARTICIPANTE (RF-36, RN-29).
   is_quantitative    BOOLEAN NOT NULL DEFAULT false,
 
-  -- Faz aparecer o campo de lote, e dispensa o canteiro, que vem dele (RN-82).
+  -- Faz aparecer o campo de lote, e dispensa o canteiro, que vem dele (RN-25).
   requires_batch     BOOLEAN NOT NULL DEFAULT false,
 
   -- Para as tarefas que pedem especie ou recipiente sem haver lote, como colher
@@ -113,7 +113,7 @@ CREATE TABLE task_types (
   created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
-  -- RN-80: seis categorias, e a categoria nao comanda formulario algum. Ela agrupa
+  -- RN-23: seis categorias, e a categoria nao comanda formulario algum. Ela agrupa
   -- a lista e os relatorios.
   CONSTRAINT task_types_categoria_valida CHECK (category IN
     ('semente', 'terra', 'plantio', 'manutencao', 'pos_morte', 'expedicao'))
@@ -141,8 +141,8 @@ INSERT INTO task_types (name, category, is_quantitative, requires_batch, require
   ('Carregar caminhao',     'expedicao',  false, false, false, false);
 
 COMMENT ON SCHEMA cadastro IS
-  'Identidade unica de pessoas. Esquema proprio porque nao pertence a nenhuma das tres areas. RN-27.';
+  'Identidade unica de pessoas. Esquema proprio porque nao pertence a nenhuma das tres areas. RN-52.';
 COMMENT ON TABLE cadastro.party_roles IS
-  'Papeis de uma mesma pessoa: cliente, fornecedor, funcionario. Chave composta. RN-27.';
+  'Papeis de uma mesma pessoa: cliente, fornecedor, funcionario. Chave composta. RN-52.';
 COMMENT ON TABLE task_types IS
-  'Catalogo de tarefas. As tres declaracoes comandam o que a tela pede. RF-82, RN-55.';
+  'Catalogo de tarefas. As tres declaracoes comandam o que a tela pede. RF-24, RN-15.';
