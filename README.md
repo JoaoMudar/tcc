@@ -1,7 +1,11 @@
 # Viveiro Mudar: Ecossistema de Gestão
 
 Sistema integrado de gestão para um viveiro de mudas nativas no Alto Vale do Itajaí (SC).
-Área de ~10.000 m², equipe de 7 pessoas e venda no atacado via WhatsApp.
+Área de ~10.000 m², equipe de 9 pessoas e venda no atacado via WhatsApp.
+
+O sistema tem **três áreas de negócio**, Cadastro único, Produção e Comercial, com Acesso e
+Configurações atravessando as três, e é operado por **três pessoas**: chefia, gerência e
+administrador.
 
 O foco é trocar o "tudo de cabeça" por **dados estruturados**, com interfaces extremamente
 simples e **mobile-first**: os usuários finais não são técnicos e o celular é o dispositivo
@@ -73,16 +77,16 @@ A aplicação fica disponível em `http://localhost:3000`. O login é exigido em
 docs/              Documentação de referência (ver docs/README.md, mapa de tudo)
 migrations/        Migrações SQL (psql puro), aplicadas em ordem cronológica
 data/seeds/        Fontes de carga inicial (seed), ex.: export das 142 espécies
-plans/             Planos de implementação por projeto (P1 a P15)
+plans/             Roadmap de implementação, em quatro fases
 scripts/           migrate.ts, seed-admin.ts, geração de ícones, hooks de git
 src/
-  app/             Rotas (App Router), organizadas pelos quatro módulos
-    cadastros/     1 · Espécies, recipientes, insumos, pessoas, tipos de tarefa
-    producao/      2 · Ainda sem tela: agenda, lotes, apontamento e perdas (P13/P14)
-    pedidos/       3 · Rotina completa de pedidos
-    clientes/ fornecedores/  3 · As telas de cada papel (dados fiscais, cotação)
-    financeiro/    4 · Custos fixos, custeio, preços, indicadores (restrito)
-    admin/         Usuários e configurações
+  app/             Rotas (App Router), organizadas pelas três áreas
+    cadastros/     1 · Espécies, recipientes, insumos, pessoas, tipos de tarefa, protocolos
+    producao/      2 · Ainda sem tela: agenda, lotes, protocolo e mapa
+    pedidos/       3 · Cadastro de pedidos
+    clientes/ fornecedores/  1 · As telas de cada papel da mesma pessoa
+    configuracoes/ Período de trabalho e parâmetros do sistema
+    admin/         Usuários e sessões
     login/ logout/ conta/ trocar-senha/   Fluxo de autenticação
     api/           Endpoints (notificações, fotos de espécie)
   components/      Componentes compartilhados (Toast, Autocomplete, sino de notificações)
@@ -94,53 +98,49 @@ src/
 
 ## Perfis de acesso
 
-São quatro papéis, com visibilidade progressiva no menu inicial:
+São três papéis, e correspondem às três pessoas que operam o sistema:
 
-- **admin**: acesso total, incluindo gestão de usuários
-- **chefia**: administração e pedidos (sem gestão de usuários)
-- **gerencia**: pedidos
-- **colaborador**: operações de campo (separação de carga; o registro em campo chega no P13/P14)
+- **admin**: acesso total, incluindo gestão de usuários e sessões
+- **chefia**: cadastros, pedidos e parâmetros do sistema
+- **gerencia**: agenda da semana, lotes, protocolo e mapa
 
-> `colaborador` é o **nível de acesso** (`users.role`), renomeado de `funcionario` na migration
-> `20260810000001`. Não confundir com o papel `funcionario` de `cadastro.party_roles`, que diz
-> *esta pessoa trabalha aqui* e vale até para quem não tem login. A matriz completa está em
+> **Não há perfil de campo.** Os seis colaboradores do viveiro não operam o sistema: o trabalho
+> deles é planejado e confirmado pela gerência. Eles existem em `cadastro.party_roles` com o papel
+> `funcionario`, que diz *esta pessoa trabalha aqui* e não implica acesso. A matriz completa está em
 > [`docs/engenharia/D-arquitetura/D4-matriz-rbac.md`](docs/engenharia/D-arquitetura/D4-matriz-rbac.md).
 
 ---
 
 ## Funcionalidades implementadas
 
-- **Cadastros (admin):** espécies, recipientes, insumos, custos fixos, coleta de sementes e usuários.
-- **Operação de campo:** registro de compra/uso de insumos com suporte offline.
-- **Rotina de Pedidos** (fluxo completo):
-  1. Cadastro do pedido e listagem
-  2. Verificação de disponibilidade (mobile)
-  3. Análise e fechamento pela chefia
-  4. Separação por cargas, com calendário de entregas
-- **Notificações** internas com sino e central de avisos.
+- **Acesso:** autenticação, troca de senha no primeiro acesso, sessões ativas, usuários e perfis.
+- **Cadastro único:** espécies (com nomes populares e foto), recipientes, insumos, e as pessoas
+  com os seus papéis de cliente, fornecedor e funcionário.
+- **Comercial:** cadastro de pedidos e listagem.
 
-O ciclo de vida do pedido percorre os status: `cadastrado → verificando_disponibilidade →
-verificado → (pendente_alteracao) → aprovado → separando → pronto_envio`
-(com `cancelado` à parte).
+O pedido percorre três situações: `rascunho → confirmado`, com `cancelado` à parte. Confirmado, ele
+não aceita mais alteração de item.
+
+**Falta construir a Produção inteira**, e é a maior parte do que resta: agenda da semana, lotes e
+movimentos, protocolo por lote e mapa. O modelo de dados dela está no banco; o que falta é tela.
 
 ---
 
-## Roadmap dos projetos
+## Roadmap
 
-Os projetos são interdependentes; a ordem de implementação importa.
+Quatro fases, e a ordem importa.
 
 ```
-P1 (Custeio) ──┐
-P2 (Perdas)  ──┤──→ P6 (Dashboard) ──→ P7 (Catálogo)
-P3 (Preço)   ──┘                         ↓
-                                     P9 (Site) → P10 (E-commerce)
-P4 (WhatsApp) ← depende de P1+P3
-P5 (Automação n8n) ← depende de P4
-P8 (Instagram) ← independente
+Fase 1 (acesso e cadastro) ─┬─> Fase 2 (lotes) ─┬─> Fase 4 (mapa e pedido)
+                            └─> Fase 3 (agenda e protocolo) ─┘
 ```
 
-Os planos detalhados ficam em [`plans/`](plans/). Além deles, está em andamento a **Rotina de
-Pedidos** (cadastro → verificação → fechamento → separação por cargas).
+**A Fase 1 bloqueia tudo**: a agenda escala pessoas, o lote referencia espécie e canteiro, e o
+pedido referencia pessoa. **O mapa é o último a funcionar**, porque depende das duas fontes de
+pendência, a atribuição lançada à mão e a ordem gerada pelo protocolo.
+
+O plano detalhado, tarefa a tarefa, está em
+[`plans/P1-sistema-reduzido.md`](plans/P1-sistema-reduzido.md).
 
 ---
 
