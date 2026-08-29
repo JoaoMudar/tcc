@@ -1,7 +1,7 @@
 -- Migration: 20260901000006_comercial_pedidos.sql
 -- Descricao: Cadastro de pedidos.
 --
--- Requisitos: RF-66, RF-68, RF-67 a RF-70 · Regras: RN-49, RN-56, RN-58
+-- Requisitos: RF-66 a RF-70 · Regras: RN-49, RN-56, RN-58
 -- Entidades: C8 `orders`, `order_items`
 --
 -- DUAS TABELAS, E E O TAMANHO CERTO. Nao ha carga, separacao, entrega, cotacao nem

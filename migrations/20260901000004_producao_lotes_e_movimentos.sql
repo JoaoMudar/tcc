@@ -1,7 +1,7 @@
 -- Migration: 20260901000004_producao_lotes_e_movimentos.sql
 -- Descricao: O lote e o razao que explica o seu saldo.
 --
--- Requisitos: RF-40 a RF-46, RF-48, RF-47, RF-58, RF-49 · Regras: RN-08 a RN-11, RN-18 a RN-22, RN-28, RN-30
+-- Requisitos: RF-40 a RF-49, RF-58 · Regras: RN-08 a RN-11, RN-18 a RN-22, RN-28, RN-29
 -- Entidades: C8 `batches`, `batch_movements`
 --
 -- O LOTE E O ENDERECO DA MUDA. Especie e recipiente dizem O QUE a muda e; `bed_id`

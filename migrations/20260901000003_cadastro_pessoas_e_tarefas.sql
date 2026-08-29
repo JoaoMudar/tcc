@@ -2,7 +2,7 @@
 -- Descricao: Identidade unica de pessoas (schema `cadastro`) e catalogo de tipos
 --            de tarefa.
 --
--- Requisitos: RF-17 a RF-20, RF-21, RF-22, RF-23, RF-24, RF-16 · Regras: RN-50 a RN-52, RN-15, RN-57, RN-23, RN-24
+-- Requisitos: RF-16 a RF-24 · Regras: RN-15, RN-19, RN-20, RN-50 a RN-53, RN-57
 -- Entidades: C8 `cadastro.parties`, `cadastro.party_roles`, `cadastro.addresses`, `task_types`
 --
 -- UMA PESSOA, VARIOS PAPEIS (RN-52). Quem vende muda ao viveiro e as vezes compra

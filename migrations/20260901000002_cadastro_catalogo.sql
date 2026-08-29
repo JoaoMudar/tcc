@@ -2,7 +2,7 @@
 -- Descricao: Catalogo de producao (species, containers, inputs) e endereco do
 --            viveiro (areas, beds), mais o periodo de trabalho (work_shifts).
 --
--- Requisitos: RF-10 a RF-13, RF-14, RF-15, RF-08 · Regras: RN-01 a RN-04, RN-17, RN-27, RN-07
+-- Requisitos: RF-08, RF-10 a RF-15 · Regras: RN-01 a RN-04, RN-07, RN-17, RN-27
 -- Entidades: C8 `species`, `species_popular_names`, `species_photos`, `containers`,
 --            `inputs`, `areas`, `beds`, `work_shifts`
 --

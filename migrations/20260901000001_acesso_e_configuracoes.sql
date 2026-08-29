@@ -1,7 +1,7 @@
 -- Migration: 20260901000001_acesso_e_configuracoes.sql
 -- Descricao: Acesso (users, sessions, login_events) e parametros do sistema (settings).
 --
--- Requisitos: RF-01 a RF-07, RF-09 · Regras: RN-59, RN-60, RN-32
+-- Requisitos: RF-01 a RF-07, RF-09 · Regras: RN-32, RN-59, RN-60
 -- Entidades: C8 `users`, `sessions`, `login_events`, `settings`
 --
 -- TRES PERFIS, E NAO QUATRO. O enum nao tem `colaborador`: os seis trabalhadores

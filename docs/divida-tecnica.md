@@ -22,7 +22,7 @@ O que fechou, e por que importava:
 | Observabilidade | nenhuma | Sentry (server + client + edge), com evento real confirmado em produção |
 
 **Os dois refactors estruturais estão feitos.** É o que responde à exigência original de "não
-quero ter que refatorar depois": o P13 e o P12 podem ser construídos sobre a política de acesso e
+quero ter que refatorar depois": as fases seguintes podem ser construídas sobre a política de acesso e
 sobre `parties` sem retrabalho.
 
 O que resta abaixo é risco de **operação**, não de **arquitetura**. Nenhum destes itens impede
@@ -117,7 +117,7 @@ dela**. `/clientes` e `/fornecedores` continuam exibindo as colunas antigas de `
 `suppliers`, então a mesma pessoa nos dois papéis ainda aparece como dois cadastros na interface.
 mesmo já sendo uma identidade só no banco.
 
-Isso é a Fase 2 do P13 (T13.4–T13.8) e não é urgente: a duplicidade de *dado* está resolvida, o que
+Isso é a Fase 1 do roadmap e não é urgente: a duplicidade de *dado* está resolvida, o que
 resta é duplicidade de *exibição*.
 
 > **Parcialmente fechado em 19/08/2026.** `/cadastros/pessoas` lê de `parties` (via `listParties`)
@@ -132,11 +132,11 @@ resta é duplicidade de *exibição*.
 
 ---
 
-## 6. `T13.3`: `users.party_id`
+## 6. `users.party_id`
 
-Última tarefa aberta da Fase 1 do P13. As colunas `party_id` de `customers` e `suppliers` já
+Pendência da Fase 1 do roadmap. A coluna `party_id` de `users` já
 existem e estão preenchidas; `users` ficou de fora. É pré-requisito para a agenda de pessoal
-(P13 Fase 3), que precisa ligar um usuário do sistema à pessoa física correspondente.
+(Fase 3 do roadmap), que precisa ligar um usuário do sistema à pessoa física correspondente.
 
 ---
 
@@ -152,26 +152,23 @@ existem e estão preenchidas; `users` ficou de fora. É pré-requisito para a ag
 
 ---
 
-## 8. `mergeParties` vai apagar histórico financeiro: **quando o financeiro existir**
+## 8. `mergeParties` apaga a pessoa, e o que aponta para ela mudou
 
-**Estado:** latente. Não dá para corrigir hoje, porque `financeiro.transactions` ainda não
-existe; e não dá para esquecer, porque no dia em que existir a falha é silenciosa.
+**Estado:** aberto, e mais simples do que era.
 
-`mergeParties` (`src/lib/parties.ts`) termina com `DELETE FROM cadastro.parties` e, antes disso,
-repointa **só** `customers` e `suppliers`. `financeiro.transactions.party_id` (P12 Fase 2,
-`docs/rotinas/4-financeiro/02-schema-financeiro.md:50`) será uma terceira FK para a mesma
-linha. Fundir duas identidades depois disso ou **falha na FK**, ou, se alguém usar
-`ON DELETE SET NULL` para destravar: **desliga as transações da pessoa sem avisar**: o dinheiro
-segue no saldo e some do histórico dela.
+`mergeParties` termina com `DELETE FROM cadastro.parties` e, antes disso, repointa as tabelas que
+referenciam a pessoa. Com a redução de escopo, essas tabelas passaram a ser duas: `orders.customer_id`
+e `assignment_members.party_id`, mais `users.party_id`. As de cliente e fornecedor deixaram de
+existir como tabelas próprias: viraram papéis em `cadastro.party_roles`, que cai em cascata.
 
-**Por que importa:** fundir identidade não é caso raro, é a rotina que o cadastro único existe
-para servir: `PartyMatchPrompt` oferece a fusão toda vez que um fornecedor conhecido é
-cadastrado como cliente. E é justamente a pessoa com os dois papéis, de quem se compra e para
-quem se vende, cujo histórico tem mais valor.
+**A correção é declarativa, e é o que mudou.** Antes o item dependia de disciplina no código de
+fusão; hoje depende de as três chaves estrangeiras serem `RESTRICT`, que é o padrão. Com elas
+assim, fundir duas identidades sem repointar **falha na hora**, em vez de desligar registros em
+silêncio. O que resta é o `UPDATE` das três, e um teste que falhe se sobrar referência.
 
-**Correção:** está escrita na Fase 2 do P12, em "A armadilha 4, por extenso"
-([`plans/P12-conciliacao-bancaria.md`](../plans/P12-conciliacao-bancaria.md)), FK RESTRICT
-explícita, `UPDATE` das transações no passo 5, e um teste que falhe se sobrar referência.
+**Por que continua importando:** fundir identidade não é caso raro, é a rotina que o cadastro único
+existe para servir. E é justamente a pessoa com dois papéis, de quem se compra e para quem se vende,
+cujo histórico tem mais valor.
 
 ---
 
@@ -179,8 +176,9 @@ explícita, `UPDATE` das transações no passo 5, e um teste que falhe se sobrar
 
 **1** (backup) antes de qualquer coisa: é uma tarde de trabalho e é o único risco irreversível.
 Depois **3** (drift de schema), que é barato e cobre a falha mais provável. **2** e **7** entram
-quando houver folga; **5** entra com a Fase 2 do P13 e **6** com a Fase 3, que são quem precisa de
-cada um. **4** está fechado (resta só o source map, que é conforto).
+quando houver folga; **5** e **6** entram com a Fase 1 do roadmap, que é quem precisa dos dois.
+**4** está fechado (resta só o source map, que é conforto).
 
-**8 não tem ordem: tem gatilho.** Ele não pode ser feito antes da Fase 2 do P12 nem depois dela
-tem que ser feito **na mesma migration** que criar `financeiro.transactions`.
+**8 deixou de ter gatilho e passou a ter prazo.** Ele dependia de uma tabela do schema
+`financeiro`, que saiu do escopo: hoje é uma correção comum, de três `UPDATE` e um teste, e pode
+ser feita a qualquer momento.
