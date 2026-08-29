@@ -34,19 +34,19 @@ São documentos de projeto, não relatórios de código.
 
 | Código | Artefato | Destino no TCC | Situação |
 |---|---|---|---|
-| [B2](B-requisitos/B2-especificacao-requisitos.md) | Especificação de Requisitos (ERS) | 4.2 Requisitos do sistema | ✅ escrito: 136 RF, 26 RNF |
-| [B3](B-requisitos/B3-regras-de-negocio.md) | Regras de negócio e vínculo com os requisitos | 4.3 Regras de negócio | ✅ escrito: 103 regras, 132 dos 136 RF vinculados |
-| [B4](B-requisitos/B4-quadros-tcc.md) | Quadros de regras de negócio e requisitos | Apêndice D | ✅ escrito: 13 quadros, transcritos de B2 e B3 |
-| [B5](B-requisitos/B5-matriz-rastreabilidade.md) | Matriz de rastreabilidade | 4.10 + Apêndice | ✅ escrito: revelou 25 lacunas fechadas; a de teste da agenda fechou em 24/08 |
+| [B2](B-requisitos/B2-especificacao-requisitos.md) | Especificação de Requisitos (ERS) | 4.2 Requisitos do sistema | ✅ escrito: 70 RF, 27 RNF |
+| [B3](B-requisitos/B3-regras-de-negocio.md) | Regras de negócio e vínculo com os requisitos | 4.3 Regras de negócio | ✅ escrito: 60 regras, 66 dos 70 RF vinculados. **§4 e §7 geradas** por `scripts/build-b3-derivado.mjs` |
+| [B4](B-requisitos/B4-quadros-tcc.md) | Quadros de regras de negócio e requisitos | Apêndice D | ✅ **gerado** por `scripts/build-b4-quadros.mjs`: 10 quadros |
+| [B5](B-requisitos/B5-matriz-rastreabilidade.md) | Matriz de rastreabilidade | 4.10 + Apêndice | ✅ escrito: **§2 e §6 geradas** por `scripts/build-b5-matriz.mjs`; revelou 19 requisitos sem teste, todos fechados |
 
 ### C: Modelagem UML e de dados
 
 | Código | Artefato | Destino no TCC | Situação |
 |---|---|---|---|
-| [C1](C-modelagem/C1-diagrama-casos-de-uso.md) | Diagrama de casos de uso | 4.4 Modelagem do sistema | ✅ escrito: 59 casos de uso |
-| [C2](C-modelagem/C2-especificacao-casos-de-uso.md) | Especificação de casos de uso | 4.4 + Apêndice | ✅ escrito: 15 casos detalhados |
-| [C6](C-modelagem/C6-modelo-entidade-relacionamento.md) | MER e DER | 4.5 Modelagem de dados | ✅ escrito: 62 entidades nos quatro módulos |
-| [C8](C-modelagem/C8-dicionario-de-dados.md) | Dicionário de dados | 4.5 + Apêndice | ✅ escrito: 62 entidades + 4 visões |
+| [C1](C-modelagem/C1-diagrama-casos-de-uso.md) | Diagrama de casos de uso | 4.4 Modelagem do sistema | ✅ escrito: 34 casos de uso, 3 atores |
+| [C2](C-modelagem/C2-especificacao-casos-de-uso.md) | Especificação de casos de uso | 4.4 + Apêndice | ✅ escrito: 10 casos detalhados |
+| [C6](C-modelagem/C6-modelo-entidade-relacionamento.md) | MER e DER | 4.5 Modelagem de dados | ✅ escrito: 27 entidades nas três áreas |
+| [C8](C-modelagem/C8-dicionario-de-dados.md) | Dicionário de dados | 4.5 + Apêndice | ✅ escrito: 27 entidades + 2 visões |
 
 ### D: Arquitetura e decisões técnicas
 
@@ -54,13 +54,13 @@ São documentos de projeto, não relatórios de código.
 |---|---|---|---|
 | [D1](D-arquitetura/D1-arquitetura-c4.md) | Documento de arquitetura (C4) | 4.6 Arquitetura da solução | ✅ escrito: 3 níveis C4 |
 | [D3](D-arquitetura/D3-diagrama-implantacao.md) | Diagrama de implantação | 4.6 Arquitetura da solução | ✅ escrito |
-| [D4](D-arquitetura/D4-matriz-rbac.md) | Matriz RBAC | 4.7 Segurança e controle de acesso | ✅ escrito: 43 recursos, agrupados nos quatro módulos |
+| [D4](D-arquitetura/D4-matriz-rbac.md) | Matriz RBAC | 4.7 Segurança e controle de acesso | ✅ escrito: 23 recursos, 3 perfis |
 
 ### E: Qualidade, riscos e segurança
 
 | Código | Artefato | Destino no TCC | Situação |
 |---|---|---|---|
-| [E2](E-qualidade/E2-casos-de-teste-de-aceite.md) | Casos de teste de aceite | 4.8 + Apêndice | ✅ escrito: 98 casos |
+| [E2](E-qualidade/E2-casos-de-teste-de-aceite.md) | Casos de teste de aceite | 4.8 + Apêndice | ✅ escrito: 68 casos; **§9 gerada** por `scripts/build-e2-cobertura.mjs` |
 | [E3](E-qualidade/E3-analise-de-riscos.md) | Análise de riscos do projeto | **Capítulo 3** (metodologia) | ✅ escrito: 10 riscos |
 | [E4](E-qualidade/E4-modelagem-de-ameacas.md) | Modelagem de ameaças e controles | 4.7 Segurança e controle de acesso | ✅ escrito: 11 ameaças |
 | [E5](E-qualidade/E5-mapeamento-lgpd.md) | Mapeamento LGPD | 4.7 + parágrafos novos no Cap. 2.5 | ✅ escrito |
@@ -70,7 +70,7 @@ São documentos de projeto, não relatórios de código.
 
 | Código | Artefato | Destino no TCC | Situação |
 |---|---|---|---|
-| [F1](F-ux/F1-prototipo-de-telas.html) | Protótipo de telas (página HTML) | 4.4 + Apêndice | ✅ escrito: 59 telas, uma por caso de uso; conferido contra B3 e D4 em 26/08 |
+| [F1](F-ux/F1-prototipo-de-telas.html) | Protótipo de telas (página HTML) | 4.4 + Apêndice | ✅ escrito: 35 pranchas, uma por caso de uso mais a entrada da Produção |
 | [F3](F-ux/F3-plano-avaliacao-usabilidade.md) | Plano de avaliação de usabilidade | 4.8 Verificação e validação | ✅ escrito |
 
 **Sobre o `F1`.** É o único artefato em HTML e não em Markdown, porque a peça *é* a tela: cada
@@ -80,7 +80,7 @@ embaixo a ficha de engenharia, perfil autorizado, requisitos satisfeitos e se a 
 identificado pelo código do caso de uso: alterar uma prancha é editar esse objeto, não redesenhar
 a página.
 
-Fontes, na ordem em que mandam: `C1` (casos de uso e módulos), `B2` (texto dos requisitos),
+Fontes, na ordem em que mandam: `C1` (casos de uso e áreas), `B2` (texto dos requisitos),
 `B3` §3 e §4 (regras de negócio e o vínculo RF → RN) e `D4` §2 e §3 (matriz de permissão e as
 dezesseis exceções). Mexeu em caso de uso, requisito, regra ou permissão, confira se a prancha
 correspondente ainda descreve a tela certa.
@@ -97,7 +97,7 @@ quem escrever tela a partir de um só é que erra.
 
 | Código | Artefato | Destino no TCC | Situação |
 |---|---|---|---|
-| [G2](G-gestao/G2-fichas-de-indicadores.md) | Fichas de indicador (KPI) | 4.9 Indicadores de desempenho | ✅ escrito: 9 indicadores |
+| [G2](G-gestao/G2-fichas-de-indicadores.md) | Fichas de indicador (KPI) | 4.9 Indicadores de desempenho | ✅ escrito: 3 indicadores, os que o mapa de lotes mostra |
 
 ---
 
