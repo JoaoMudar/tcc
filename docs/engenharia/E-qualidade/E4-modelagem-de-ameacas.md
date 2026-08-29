@@ -127,11 +127,11 @@ pelo tipo de controle de Sommerville.
 | **Probabilidade** | Média: é erro comum e de consequência máxima |
 
 **Controles:**
-- *Prevenção*: credenciais em configuração de ambiente, jamais no código (RNF-22).
+- *Prevenção*: credenciais em configuração de ambiente, jamais no código (RNF-23).
 - *Prevenção*: acesso ao banco restrito à camada de servidor; o navegador nunca recebe credencial
   (RNF-12).
 - *Detecção*: verificação automática antes de cada envio ao repositório, que bloqueia o envio ao
-  identificar arquivo sensível (RNF-21).
+  identificar arquivo sensível (RNF-22).
 
 > A detecção automática é o controle que importa aqui, porque este é um risco de **erro humano**, e
 > não de ataque. Sommerville observa que a maioria das falhas de segurança decorre de erro humano.
@@ -184,13 +184,13 @@ mudado depois de fechados.
 
 **Controles:**
 
-- *Prevenção*: semana fechada recusa alteração (RF-73, RN-50); pedido confirmado recusa alteração
-  de item (RF-142, RN-31); nenhum perfil tem permissão de exclusão sobre movimento de lote
+- *Prevenção*: semana fechada recusa alteração (RF-33, RN-13); pedido confirmado recusa alteração
+  de item (RF-69, RN-56); nenhum perfil tem permissão de exclusão sobre movimento de lote
   ([`D4` §3.6](../D-arquitetura/D4-matriz-rbac.md)).
 - *Prevenção*: a correção de saldo é um movimento de `ajuste_contagem`, que **registra** a correção
-  em vez de esconder o erro (RN-14).
+  em vez de esconder o erro (RN-09).
 - *Detecção*: a soma dos movimentos tem de reproduzir o saldo do lote; divergência é defeito
-  detectável por consulta (RN-78).
+  detectável por consulta (RN-21).
 
 ### A-10 · Perda de dados por falha de infraestrutura
 
@@ -267,9 +267,9 @@ Registrar os controles **descartados** e o motivo evita que a ausência seja lid
 | A-03 | RF-07, RF-04, RF-06 |
 | A-04 | RF-06, RNF-12 |
 | A-05 | RNF-12 |
-| A-06 | RNF-12, RNF-21, RNF-22 |
+| A-06 | RNF-12, RNF-22, RNF-23 |
 | A-07 | RNF-11, RNF-13 |
 | A-08 | RNF-05, RF-06 |
-| A-09 | RF-73, RF-88, RF-142 |
+| A-09 | RF-33, RF-44, RF-69 |
 | A-10 | RNF-14 |
 | A-11 | RNF-05 |

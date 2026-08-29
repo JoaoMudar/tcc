@@ -119,31 +119,31 @@ graph LR
   CH(("Chefia"))
 
   subgraph M1["1 · Cadastro único"]
-    UC05(["UC-05 · Manter catálogo de espécies"])
-    UC06(["UC-06 · Manter recipientes"])
-    UC07(["UC-07 · Manter insumos"])
-    UC21(["UC-21 · Cadastrar cliente rápido"])
-    UC22(["UC-22 · Manter cadastro de cliente"])
-    UC23(["UC-23 · Consultar pessoa"])
-    UC31(["UC-31 · Manter fornecedor"])
-    UC41(["UC-41 · Manter cadastro de funcionário"])
+    UC05(["UC-07 · Manter catálogo de espécies"])
+    UC06(["UC-08 · Manter recipientes"])
+    UC07(["UC-09 · Manter insumos"])
+    UC21(["UC-10 · Cadastrar cliente rápido"])
+    UC22(["UC-11 · Manter cadastro de cliente"])
+    UC23(["UC-12 · Consultar pessoa"])
+    UC31(["UC-13 · Manter fornecedor"])
+    UC41(["UC-14 · Manter cadastro de funcionário"])
   end
 
   subgraph M2["2 · Produção"]
-    UC15(["UC-15 · Consultar estoque disponível"])
-    UC18(["UC-18 · Analisar perdas"])
+    UC15(["UC-29 · Consultar estoque disponível"])
+    UC18(["UC-30 · Analisar perdas"])
   end
 
   subgraph M3["3 · Comercial"]
-    UC24(["UC-24 · Cadastrar pedido"])
-    UC25(["UC-25 · Consultar disponibilidade no pedido"])
-    UC26(["UC-26 · Confirmar pedido"])
-    UC28(["UC-28 · Acompanhar pedidos"])
+    UC24(["UC-31 · Cadastrar pedido"])
+    UC25(["UC-32 · Consultar disponibilidade no pedido"])
+    UC26(["UC-33 · Confirmar pedido"])
+    UC28(["UC-34 · Acompanhar pedidos"])
   end
 
   subgraph CFG["Configurações"]
-    UC54(["UC-54 · Manter período de trabalho"])
-    UC60(["UC-60 · Manter parâmetros do sistema"])
+    UC54(["UC-05 · Manter período de trabalho"])
+    UC60(["UC-06 · Manter parâmetros do sistema"])
   end
 
   CH --- UC05
@@ -171,25 +171,25 @@ graph LR
   GE(("Gerência"))
 
   subgraph M1["1 · Cadastro único"]
-    UC42(["UC-42 · Manter tipos de tarefa"])
-    UC46(["UC-46 · Manter áreas e canteiros"])
-    UC57(["UC-57 · Manter protocolo de atividades"])
-    UC59(["UC-59 · Customizar tempo de etapa por espécie"])
+    UC42(["UC-15 · Manter tipos de tarefa"])
+    UC46(["UC-16 · Manter áreas e canteiros"])
+    UC57(["UC-17 · Manter protocolo de atividades"])
+    UC59(["UC-18 · Customizar tempo de etapa por espécie"])
   end
 
   subgraph M2["2 · Produção"]
-    UC43(["UC-43 · Montar a agenda da semana"])
-    UC51(["UC-51 · Confirmar tarefa realizada"])
-    UC52(["UC-52 · Fechar a semana"])
-    UC47(["UC-47 · Criar lote"])
-    UC48(["UC-48 · Repicar lote"])
-    UC58(["UC-58 · Dividir lote"])
-    UC17(["UC-17 · Registrar perda"])
-    UC16(["UC-16 · Registrar contagem do lote"])
-    UC61(["UC-61 · Consultar o mapa de lotes"])
-    UC62(["UC-62 · Acompanhar protocolo do lote"])
-    UC15(["UC-15 · Consultar estoque disponível"])
-    UC18(["UC-18 · Analisar perdas"])
+    UC43(["UC-19 · Montar a agenda da semana"])
+    UC51(["UC-20 · Confirmar tarefa realizada"])
+    UC52(["UC-21 · Fechar a semana"])
+    UC47(["UC-22 · Criar lote"])
+    UC48(["UC-23 · Repicar lote"])
+    UC58(["UC-24 · Dividir lote"])
+    UC17(["UC-25 · Registrar perda"])
+    UC16(["UC-26 · Registrar contagem do lote"])
+    UC61(["UC-27 · Consultar o mapa de lotes"])
+    UC62(["UC-28 · Acompanhar protocolo do lote"])
+    UC15(["UC-29 · Consultar estoque disponível"])
+    UC18(["UC-30 · Analisar perdas"])
   end
 
   GE --- UC42
@@ -248,42 +248,42 @@ alimenta a matriz de rastreabilidade [`B5`](../B-requisitos/B5-matriz-rastreabil
 | **UC-02** | Trocar senha | Acesso | Todos | RF-02 | - |
 | **UC-03** | Gerenciar usuários e perfis | Acesso | Administrador | RF-05, RF-06 | - |
 | **UC-04** | Gerenciar sessões ativas | Acesso | Todos | RF-03, RF-04, RF-07 | - |
-| **UC-54** | Manter período de trabalho | Config. | Chefia | RF-83 | - |
-| **UC-60** | Manter parâmetros do sistema | Config. | Chefia | RF-139 | - |
-| **UC-05** | Manter catálogo de espécies | 1 · Cad. | Chefia | RF-08, RF-09 | - |
-| **UC-06** | Manter recipientes | 1 · Cad. | Chefia | RF-10 | - |
-| **UC-07** | Manter insumos | 1 · Cad. | Chefia | RF-11 | - |
-| **UC-21** | Cadastrar cliente rápido | 1 · Cad. | Chefia | RF-36 | - |
-| **UC-22** | Manter cadastro completo de cliente | 1 · Cad. | Chefia | RF-37, RF-38 | - |
-| **UC-23** | Consultar pessoa | 1 · Cad. | Chefia | RF-39, RF-140 | - |
-| **UC-31** | Manter fornecedor | 1 · Cad. | Chefia | RF-52 | - |
-| **UC-41** | Manter cadastro de funcionário | 1 · Cad. | Chefia | RF-69 | - |
-| **UC-42** | Manter catálogo de tipos de tarefa | 1 · Cad. | Gerência | RF-70, RF-82 | - |
-| **UC-46** | Manter áreas e canteiros | 1 · Cad. | Gerência | RF-80, RF-81 | - |
-| **UC-57** | Manter protocolo de atividades | 1 · Cad. | Gerência | RF-122, RF-123, RF-124, RF-125 | **✔ sim** |
-| **UC-59** | Customizar tempo de etapa por espécie | 1 · Cad. | Gerência | RF-133 | **✔ sim** |
-| **UC-43** | Montar a agenda da semana | 2 · Prod. | Gerência | RF-71, RF-72, RF-73, RF-92, RF-108 | - |
-| **UC-51** | Confirmar tarefa realizada | 2 · Prod. | Gerência | RF-98, RF-99, RF-107, RF-113 | **✔ sim** |
-| **UC-52** | Fechar a semana | 2 · Prod. | Gerência | RF-75 | - |
-| **UC-47** | Criar lote | 2 · Prod. | Gerência | RF-84, RF-126 | **✔ sim** |
-| **UC-48** | Repicar lote | 2 · Prod. | Gerência | RF-86, RF-87, RF-88 | **✔ sim** |
-| **UC-58** | Dividir lote | 2 · Prod. | Gerência | RF-135 | **✔ sim** |
-| **UC-17** | Registrar perda | 2 · Prod. | Gerência | RF-26, RF-91 | **✔ sim** |
-| **UC-16** | Registrar contagem do lote | 2 · Prod. | Gerência | RF-23 | - |
-| **UC-61** | Consultar o mapa de lotes | 2 · Prod. | Gerência, Chefia | RF-85, RF-89, RF-117, RF-118, RF-119, RF-120 | - |
-| **UC-62** | Acompanhar protocolo do lote | 2 · Prod. | Gerência | RF-131, RF-132, RF-134 | - |
-| **UC-15** | Consultar estoque disponível | 2 · Prod. | Chefia, Gerência | RF-22 | - |
-| **UC-18** | Analisar perdas | 2 · Prod. | Gerência, Chefia | RF-27, RF-28, RF-29 | - |
-| **UC-24** | Cadastrar pedido | 3 · Com. | Chefia | RF-41, RF-141 | **✔ sim** |
-| **UC-25** | Consultar disponibilidade no pedido | 3 · Com. | Chefia | RF-42 | **✔ sim** |
-| **UC-26** | Confirmar pedido | 3 · Com. | Chefia | RF-142 | **✔ sim** |
-| **UC-28** | Acompanhar pedidos | 3 · Com. | Chefia | RF-143 | - |
+| **UC-05** | Manter período de trabalho | Config. | Chefia | RF-08 | - |
+| **UC-06** | Manter parâmetros do sistema | Config. | Chefia | RF-09 | - |
+| **UC-07** | Manter catálogo de espécies | 1 · Cad. | Chefia | RF-10, RF-11 | - |
+| **UC-08** | Manter recipientes | 1 · Cad. | Chefia | RF-12 | - |
+| **UC-09** | Manter insumos | 1 · Cad. | Chefia | RF-13 | - |
+| **UC-10** | Cadastrar cliente rápido | 1 · Cad. | Chefia | RF-17 | - |
+| **UC-11** | Manter cadastro completo de cliente | 1 · Cad. | Chefia | RF-18, RF-19 | - |
+| **UC-12** | Consultar pessoa | 1 · Cad. | Chefia | RF-20, RF-16 | - |
+| **UC-13** | Manter fornecedor | 1 · Cad. | Chefia | RF-21 | - |
+| **UC-14** | Manter cadastro de funcionário | 1 · Cad. | Chefia | RF-22 | - |
+| **UC-15** | Manter catálogo de tipos de tarefa | 1 · Cad. | Gerência | RF-23, RF-24 | - |
+| **UC-16** | Manter áreas e canteiros | 1 · Cad. | Gerência | RF-14, RF-15 | - |
+| **UC-17** | Manter protocolo de atividades | 1 · Cad. | Gerência | RF-25, RF-26, RF-27, RF-28 | **✔ sim** |
+| **UC-18** | Customizar tempo de etapa por espécie | 1 · Cad. | Gerência | RF-29 | **✔ sim** |
+| **UC-19** | Montar a agenda da semana | 2 · Prod. | Gerência | RF-31, RF-32, RF-33, RF-34, RF-30 | - |
+| **UC-20** | Confirmar tarefa realizada | 2 · Prod. | Gerência | RF-36, RF-37, RF-35, RF-38 | **✔ sim** |
+| **UC-21** | Fechar a semana | 2 · Prod. | Gerência | RF-39 | - |
+| **UC-22** | Criar lote | 2 · Prod. | Gerência | RF-40, RF-58 | **✔ sim** |
+| **UC-23** | Repicar lote | 2 · Prod. | Gerência | RF-42, RF-43, RF-44 | **✔ sim** |
+| **UC-24** | Dividir lote | 2 · Prod. | Gerência | RF-49 | **✔ sim** |
+| **UC-25** | Registrar perda | 2 · Prod. | Gerência | RF-47, RF-46 | **✔ sim** |
+| **UC-26** | Registrar contagem do lote | 2 · Prod. | Gerência | RF-48 | - |
+| **UC-27** | Consultar o mapa de lotes | 2 · Prod. | Gerência, Chefia | RF-41, RF-45, RF-54, RF-55, RF-56, RF-57 | - |
+| **UC-28** | Acompanhar protocolo do lote | 2 · Prod. | Gerência | RF-63, RF-64, RF-65 | - |
+| **UC-29** | Consultar estoque disponível | 2 · Prod. | Chefia, Gerência | RF-53 | - |
+| **UC-30** | Analisar perdas | 2 · Prod. | Gerência, Chefia | RF-50, RF-51, RF-52 | - |
+| **UC-31** | Cadastrar pedido | 3 · Com. | Chefia | RF-66, RF-67 | **✔ sim** |
+| **UC-32** | Consultar disponibilidade no pedido | 3 · Com. | Chefia | RF-68 | **✔ sim** |
+| **UC-33** | Confirmar pedido | 3 · Com. | Chefia | RF-69 | **✔ sim** |
+| **UC-34** | Acompanhar pedidos | 3 · Com. | Chefia | RF-70 | - |
 
 **34 casos de uso.** Os dez marcados são especificados em detalhe em
 [`C2`](C2-especificacao-casos-de-uso.md): são os que concentram fluxos alternativos e exceções, e
 aqueles cujo erro tem maior custo operacional.
 
-**UC-57 e UC-59 são de cadastro e, pela regra de seleção, não seriam especificados**; estão
+**UC-17 e UC-18 são de cadastro e, pela regra de seleção, não seriam especificados**; estão
 marcados assim mesmo porque o erro neles é **silencioso e diferido**: âncora escolhida errada só
 aparece semanas depois, no lote que foi classificado cedo demais.
 
@@ -294,11 +294,11 @@ caso de uso porque não há ator, e registrá-los com um seria inventar uma inte
 
 | RF | O que o sistema faz sem ator | Onde o resultado aparece |
 |---|---|---|
-| RF-118 | Classifica o lote em saudável, atenção e crítico | UC-61 |
-| RF-127 | Gera as ordens de tarefa do protocolo na agenda | UC-43 |
-| RF-128 | Avança a fase do lote ao concluir etapa sequencial | UC-62 |
-| RF-129 | Conta a ocorrência seguinte a partir da execução real | UC-62 |
-| RF-130 | Mantém no máximo uma ordem em aberto por etapa | UC-62 |
+| RF-55 | Classifica o lote em saudável, atenção e crítico | UC-27 |
+| RF-59 | Gera as ordens de tarefa do protocolo na agenda | UC-19 |
+| RF-60 | Avança a fase do lote ao concluir etapa sequencial | UC-28 |
+| RF-61 | Conta a ocorrência seguinte a partir da execução real | UC-28 |
+| RF-62 | Mantém no máximo uma ordem em aberto por etapa | UC-28 |
 
 O padrão é o mesmo nos cinco: **o valor é derivado, e derivar é o que dispensa a digitação**. É a
 razão de o protocolo existir, e por isso a ausência de ator aqui é resultado, e não lacuna.

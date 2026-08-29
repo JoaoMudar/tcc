@@ -125,7 +125,7 @@ abertura, e a referência espacial se perderia.
 Canteiro livre é canteiro **sem nenhum lote aberto**. Lote que zera encerra sozinho e larga o
 canteiro.
 
-**É tela de computador**, como a agenda do dia, e pelo mesmo motivo (RNF-27): o mapa existe para
+**É tela de computador**, como a agenda do dia, e pelo mesmo motivo (RNF-15): o mapa existe para
 mostrar o viveiro **inteiro de uma vez**, e trinta canteiros lado a lado não cabem na largura de um
 celular. Espremer não encolhe o mapa, desfaz a comparação entre áreas, que é o que se veio ver.
 
@@ -223,10 +223,10 @@ nasce da repicagem, dentro do gesto de encerrar a tarefa.
 |---|---|
 | [`A1`](../../engenharia/A-fundacao/A1-documento-de-visao.md) | §7: lote saiu do fora-de-escopo, com a justificativa da revisão declarada; entrou "rastreamento individual da muda" |
 | [`A2`](../../engenharia/A-fundacao/A2-glossario-dominio.md) | verbetes Lote, Lote de origem, Área, Canteiro e Classificação; "Lote" saiu dos termos não adotados |
-| [`B3`](../../engenharia/B-requisitos/B3-regras-de-negocio.md) | RN-74 a RN-79 e RN-90; em 26/08/2026, RN-92 a RN-94, com RN-76 e RN-79 emendadas |
-| [`B2`](../../engenharia/B-requisitos/B2-especificacao-requisitos.md) | RF-84 a RF-91 e RF-135; RF-80 e RF-81 no catálogo; RF-117 a RF-120 no mapa de lotes; **RNF-27** e a emenda de RNF-06 |
-| [`C1`](../../engenharia/C-modelagem/C1-diagrama-casos-de-uso.md) / [`C2`](../../engenharia/C-modelagem/C2-especificacao-casos-de-uso.md) | UC-46, UC-47, UC-48, UC-58 e UC-61; os quatro primeiros detalhados; UC-17 emendado |
+| [`B3`](../../engenharia/B-requisitos/B3-regras-de-negocio.md) | RN-17 a RN-22 e RN-28; em 26/08/2026, RN-30 a RN-32, com RN-19 e RN-22 emendadas |
+| [`B2`](../../engenharia/B-requisitos/B2-especificacao-requisitos.md) | RF-40 a RF-46 e RF-49; RF-14 e RF-15 no catálogo; RF-54 a RF-57 no mapa de lotes; **RNF-15** e a emenda de RNF-06 |
+| [`C1`](../../engenharia/C-modelagem/C1-diagrama-casos-de-uso.md) / [`C2`](../../engenharia/C-modelagem/C2-especificacao-casos-de-uso.md) | UC-16, UC-22, UC-23, UC-24 e UC-27; os quatro primeiros detalhados; UC-25 emendado |
 | [`C6`](../../engenharia/C-modelagem/C6-modelo-entidade-relacionamento.md) / [`C8`](../../engenharia/C-modelagem/C8-dicionario-de-dados.md) | `areas`, `beds`, `batches` e `batch_movements`; perda e contagem física viraram **tipos de movimento**, e não entidades próprias; a visão `batch_health` e `batches.position`, com a cardinalidade canteiro-lote em 1:N |
 | [`D4`](../../engenharia/D-arquitetura/D4-matriz-rbac.md) | recursos **Áreas e canteiros** e **Lotes**; §3.13 |
-| [`E2`](../../engenharia/E-qualidade/E2-casos-de-teste-de-aceite.md) | TA-59, TA-63 a TA-68, TA-101 e TA-114 a TA-116 |
+| [`E2`](../../engenharia/E-qualidade/E2-casos-de-teste-de-aceite.md) | TA-09, TA-16 a TA-21, TA-58 e TA-46 a TA-48 |
 | [`auditoria-divergencias.md`](../../auditoria-divergencias.md) | achado L: o conflito entre `A1`/`A2`/`C2` e o `P2`, e a decisão que o resolveu |

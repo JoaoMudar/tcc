@@ -104,7 +104,7 @@ graph TB
 
 | Contêiner | Por que existe |
 |---|---|
-| **Aplicação web progressiva** | Atende ao uso móvel (RE-2) sem exigir instalação por loja de aplicativos (RNF-26), o que elimina custo e fricção de distribuição para nove usuários |
+| **Aplicação web progressiva** | Atende ao uso móvel (RE-2) sem exigir instalação por loja de aplicativos (RNF-27), o que elimina custo e fricção de distribuição para nove usuários |
 | **Fila local de sincronização** | A conexão no viveiro é instável (RE-3). Sem ela, o registro em campo falharia justamente onde mais ocorre, e seria substituído por papel |
 | **Renderização no servidor** | Permite que a tela chegue ao celular já com os dados, reduzindo o número de idas e voltas sob rede lenta (RNF-07) |
 | **Ações de servidor** | Concentram regra de negócio e verificação de permissão do lado do servidor, atendendo ao RNF-12 |
@@ -174,7 +174,7 @@ nenhuma sai. É a tradução arquitetural do que o sistema afirma: o catálogo �
 **O motor do protocolo é o único componente que escreve numa área que não é a sua.** Ele lê a
 etapa em Cadastro único, lê o lote em Produção e **gera ordem na agenda**, que também é Produção.
 A seta pontilhada marca que a escrita é automática: nenhum usuário a aciona, e é justamente essa
-a razão de o componente existir (RF-127).
+a razão de o componente existir (RF-59).
 
 **O Comercial depende da Produção por uma única aresta, e ela é de leitura.** O cadastro de
 pedidos consulta o saldo de muda pronta e não escreve nada lá: o pedido não reserva, não baixa e
@@ -182,7 +182,7 @@ não move lote. É a interconexão que o trabalho existe para demonstrar, e o di
 custa uma seta.
 
 **O mapa depende de três coisas, e uma delas é parâmetro.** Ele lê lote, lê agenda e lê os limites
-de atraso e de mortalidade. É o que torna a cor da tela ajustável sem implantação (RN-94), e é a
+de atraso e de mortalidade. É o que torna a cor da tela ajustável sem implantação (RN-32), e é a
 razão de Configurações ser transversal e não um canto do Cadastro único.
 
 ---
@@ -193,7 +193,7 @@ razão de Configurações ser transversal e não um canto do Cadastro único.
 |---|---|
 | Lógica e autorização exclusivamente no servidor | Toda operação exige ida ao servidor; mitigado pela fila local nas operações de campo |
 | Aplicação web progressiva em vez de aplicativo nativo | Sem acesso a recursos nativos avançados; em troca, distribuição imediata e sem loja |
-| Banco relacional com integridade declarativa | Alterações de esquema exigem migração versionada (RNF-19); em troca, o dado inconsistente é impedido pelo banco e não apenas pela aplicação |
+| Banco relacional com integridade declarativa | Alterações de esquema exigem migração versionada (RNF-20); em troca, o dado inconsistente é impedido pelo banco e não apenas pela aplicação |
 | Esquema separado para o cadastro de pessoas | Consultas precisam qualificar o esquema; em troca, a identidade única fica visivelmente fora das três áreas de negócio, que é o que ela é |
 | Sincronização por fila local, e não banco replicado no dispositivo | Consultas agregadas exigem conexão; em troca, não há conflito de escrita a resolver |
 
@@ -208,10 +208,10 @@ razão de Configurações ser transversal e não um canto do Cadastro único.
 |---|---|
 | RNF-05: registro sem conexão | Fila local no dispositivo, com reenvio automático |
 | RNF-06: concepção móvel | Camada de apresentação projetada para o celular, não adaptada de tela maior, nas rotinas de campo |
-| RNF-27: tela larga na coordenação | Agenda do dia e mapa de produção projetados para o computador, com redução em lista no celular |
+| RNF-15: tela larga na coordenação | Agenda do dia e mapa de produção projetados para o computador, com redução em lista no celular |
 | RNF-07: conexão lenta | Renderização no servidor reduz idas e voltas |
 | RNF-09, RNF-10: senha e sessão | Armazenadas apenas como resumo criptográfico |
 | RNF-11: cookies de sessão | Marcações que restringem uso a canal cifrado e impedem leitura por código de página |
 | RNF-12: regras no servidor | Componente de autorização na camada de lógica, verificando a cada operação |
 | RNF-13: cifra em trânsito | Comunicação cifrada obrigatória entre as três camadas |
-| RNF-19: esquema versionado | Migrações aplicadas de forma controlada na publicação (ver [`D3`](D3-diagrama-implantacao.md)) |
+| RNF-20: esquema versionado | Migrações aplicadas de forma controlada na publicação (ver [`D3`](D3-diagrama-implantacao.md)) |

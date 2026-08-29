@@ -1,7 +1,7 @@
 -- Migration: 20260901000001_acesso_e_configuracoes.sql
 -- Descricao: Acesso (users, sessions, login_events) e parametros do sistema (settings).
 --
--- Requisitos: RF-01 a RF-07, RF-139 · Regras: RN-45, RN-46, RN-94
+-- Requisitos: RF-01 a RF-07, RF-09 · Regras: RN-59, RN-60, RN-32
 -- Entidades: C8 `users`, `sessions`, `login_events`, `settings`
 --
 -- TRES PERFIS, E NAO QUATRO. O enum nao tem `colaborador`: os seis trabalhadores
@@ -84,7 +84,7 @@ CREATE INDEX login_events_created_idx ON login_events (created_at DESC);
 -- ------------------------------------------------------------
 -- Parametros do sistema
 -- ------------------------------------------------------------
--- NINGUEM CRIA E NINGUEM EXCLUI (RF-139, D4 §3.7). A chave nasce aqui, porque ha
+-- NINGUEM CRIA E NINGUEM EXCLUI (RF-09, D4 §3.7). A chave nasce aqui, porque ha
 -- consulta que a le pelo nome: apagar uma delas nao deixaria a tela vazia,
 -- deixaria a leitura sem resposta, e o mapa passaria a considerar todo lote
 -- saudavel. O que a operacao faz e alterar `value`.
@@ -100,20 +100,20 @@ CREATE TABLE settings (
   CONSTRAINT settings_value_type_valido CHECK (value_type IN ('texto', 'numero', 'booleano', 'data'))
 );
 
--- Os limites sao PARAMETRO, nao literal (RN-94): mudam com a estacao e com a
+-- Os limites sao PARAMETRO, nao literal (RN-32): mudam com a estacao e com a
 -- tarefa. Zero em "atencao" significa que a tarefa que vence hoje ja pinta de
 -- amarelo.
 INSERT INTO settings (key, value, value_type, description) VALUES
   ('producao.atraso_atencao_dias', '0', 'numero',
-   'Dias de atraso a partir dos quais o lote fica em atencao (RN-93, RN-94)'),
+   'Dias de atraso a partir dos quais o lote fica em atencao (RN-31, RN-32)'),
   ('producao.atraso_critico_dias', '3', 'numero',
-   'Dias de atraso a partir dos quais o lote fica critico (RN-93, RN-94)'),
+   'Dias de atraso a partir dos quais o lote fica critico (RN-31, RN-32)'),
   ('producao.mortalidade_limite_pct', '20', 'numero',
-   'Percentual de mortalidade do lote a partir do qual ele e destacado (RN-17)');
+   'Percentual de mortalidade do lote a partir do qual ele e destacado (RN-11)');
 
 COMMENT ON TABLE users IS
-  'Credencial de acesso. Tres perfis: admin, chefia, gerencia. RN-45.';
+  'Credencial de acesso. Tres perfis: admin, chefia, gerencia. RN-59.';
 COMMENT ON COLUMN users.party_id IS
   'Pessoa do cadastro unico. Opcional: ha login sem vinculo e vinculo sem login.';
 COMMENT ON TABLE settings IS
-  'Parametro escalar do sistema. Ninguem cria e ninguem exclui: so se altera o valor. RF-139.';
+  'Parametro escalar do sistema. Ninguem cria e ninguem exclui: so se altera o valor. RF-09.';

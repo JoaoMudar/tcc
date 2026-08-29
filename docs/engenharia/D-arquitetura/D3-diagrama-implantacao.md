@@ -46,7 +46,7 @@ equipamento no viveiro seria o ponto único de falha e o alvo mais exposto.
 | Nó | Papel | Justificativa |
 |---|---|---|
 | **Celulares da equipe** | Camada de apresentação em campo; guarda a fila local de registros feitos sem rede | É o dispositivo que a equipe já possui e usa. Restrição RE-2 |
-| **Computador da chefia e da gerência** | Mesma aplicação, em tela maior, para as duas telas de coordenação da produção, os cadastros e os pedidos | Comparar nove faixas de uma semana ou trinta canteiros de uma vez pede tela larga, e montar catálogo é tarefa de mesa. Restrição RE-2 com a exceção de RNF-27 |
+| **Computador da chefia e da gerência** | Mesma aplicação, em tela maior, para as duas telas de coordenação da produção, os cadastros e os pedidos | Comparar nove faixas de uma semana ou trinta canteiros de uma vez pede tela larga, e montar catálogo é tarefa de mesa. Restrição RE-2 com a exceção de RNF-15 |
 | **Servidor de aplicação** | Camadas de apresentação e de lógica; publicação automática a cada versão | Elimina administração de servidor. Restrição RE-5 |
 | **Banco de dados** | Camada de persistência, em serviço gerenciado com região brasileira. Guarda também as fotografias das espécies | Latência menor para usuários no Brasil, e backup gerenciado sem operação manual |
 
@@ -136,4 +136,4 @@ adia registros, e o registro adiado é recuperado pela fila local do dispositivo
 | Dispositivo → aplicação | Canal cifrado obrigatório (RNF-13); sessão identificada por resumo criptográfico, com marcações que impedem leitura por código de página (RNF-10, RNF-11) |
 | Aplicação → banco | Conexão cifrada; credencial mantida exclusivamente no servidor, nunca entregue ao navegador (RNF-12) |
 | Aplicação → serviços externos | Sem credencial de terceiro embarcada no cliente; a mensageria é acionada por ação do usuário, não pelo servidor |
-| Repositório | Credenciais e dados sensíveis jamais versionados, com verificação automática que bloqueia o envio (RNF-21, RNF-22) |
+| Repositório | Credenciais e dados sensíveis jamais versionados, com verificação automática que bloqueia o envio (RNF-22, RNF-23) |

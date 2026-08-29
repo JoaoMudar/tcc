@@ -107,7 +107,7 @@ a{color:inherit}
   font-size:12px;line-height:1.35;
 }
 
-/* moldura de computador: só a agenda e o mapa, por RNF-27 */
+/* moldura de computador: só a agenda e o mapa, por RNF-15 */
 .desk{
   width:100%;max-width:664px;background:#0E120D;border-radius:12px;padding:7px 7px 16px;
   box-shadow:var(--shadow);position:relative;
@@ -207,7 +207,7 @@ a{color:inherit}
 .mk-fab{position:absolute;right:12px;bottom:12px;width:44px;height:44px;border-radius:50%;background:#15803D;color:#fff;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:300;box-shadow:0 4px 10px rgba(0,0,0,.25)}
 .mk-rel{position:relative;flex:1;display:flex;flex-direction:column;overflow:hidden}
 
-/* ajustes das duas telas de tela larga (RNF-27) */
+/* ajustes das duas telas de tela larga (RNF-15) */
 .desk .mk-body{padding:12px 14px;gap:10px}
 .desk .mk-tabs span{font-size:12px;padding:9px 12px}
 .desk .mk-tlrow .who{width:80px;font-size:11px}
@@ -217,7 +217,7 @@ a{color:inherit}
 .desk .mk-map{grid-template-columns:repeat(12,1fr)}
 /* escala de dias: rotulo centrado sobre a coluna, e nao espalhado pela faixa */
 .mk-scale.days{display:grid;grid-template-columns:repeat(6,1fr);text-align:center}
-/* o canteiro e a faixa; o lote e o quadradinho dentro dela (RF-117) */
+/* o canteiro e a faixa; o lote e o quadradinho dentro dela (RF-54) */
 .mk-bed{display:flex;align-items:center;gap:3px;margin-bottom:4px}
 .mk-bed .k{width:26px;font-size:8.5px;font-weight:700;color:#6B7280;flex:none}
 .mk-bed i{width:14px;height:14px;border-radius:3px;background:#E5E7EB;flex:none;font-style:normal}
@@ -332,7 +332,7 @@ a{color:inherit}
       <span><i class="dot planned"></i> especificada, ainda não construída</span>
       <span><i class="actor chefia" style="border-style:solid">chefia</i> perfil que a matriz <b>D4</b> autoriza a executar o caso de uso</span>
       <span>RF-nn requisito satisfeito pela tela</span>
-      <span>moldura larga = tela concebida para computador (<b>RNF-27</b>)</span>
+      <span>moldura larga = tela concebida para computador (<b>RNF-15</b>)</span>
     </div>
     <div class="cols">
       <div>
@@ -353,7 +353,7 @@ a{color:inherit}
         <h4>Duas telas de computador, e só duas</h4>
         <p>
           A <b>agenda do dia</b> e o <b>mapa de produção</b> aparecem em moldura larga. É exceção
-          declarada em <b>RNF-27</b>, e a emenda de RNF-06 na mesma data diz por quê: essas duas telas
+          declarada em <b>RNF-15</b>, e a emenda de RNF-06 na mesma data diz por quê: essas duas telas
           não registram nada, elas <b>comparam</b>. Nove faixas ao longo de um dia só mostram o buraco
           quando cabem juntas; trinta canteiros lado a lado só mostram a área ruim quando estão lado a
           lado. Espremer isso na largura de um celular não encolhe a tela, desfaz a comparação.
@@ -368,7 +368,7 @@ a{color:inherit}
       <div>
         <h4>Uma prancha sem caso de uso</h4>
         <p>
-          <b>RF-108</b> (entrada da área Produção) traz número de requisito no lugar do UC. Não é
+          <b>RF-30</b> (entrada da área Produção) traz número de requisito no lugar do UC. Não é
           lacuna: ordem de abas não tem ator praticando um objetivo de negócio, e forçar um caso de
           uso para ela produziria um artefato que descreve cliques. A <b>B5</b> a registra como
           <i>sem caso de uso</i>, e não como pendente.
@@ -412,7 +412,7 @@ a{color:inherit}
           <code>globals.css</code> e <code>ModuleShell</code>. Conferido tela a tela contra B3 e D4
           em <b>26/08/2026</b>: 18 pranchas tiveram o perfil corrigido e 10 tiveram a regra ajustada.
           Cinco requisitos não têm tela porque descrevem o que o sistema faz sozinho, sem ninguém
-          acionar (RF-118 e RF-127 a RF-130): são o motor do protocolo, e é por isso que caso de uso
+          acionar (RF-55 e RF-59 a RF-62): são o motor do protocolo, e é por isso que caso de uso
           e requisito não se contam um a um. A lista está em <b>C1</b> §4.1.
           Os dados que aparecem nos mockups são plausíveis e ilustrativos, não vieram do banco.
           Espécies, recipientes, áreas e canteiros seguem o vocabulário do <b>A2</b>.
@@ -427,7 +427,7 @@ const MODULES = [
   {id:'acesso', idx:'00', name:'Acesso', lead:'Transversal às três áreas de negócio. Todo caso de uso do sistema tem como pré-condição uma sessão autenticada, e é por isso que estas quatro telas vêm antes de qualquer outra.'},
   {id:'config', idx:'01', name:'Configurações', lead:'Os parâmetros que o sistema lê e a operação ajusta: o período de trabalho do viveiro e os limites que pintam o lote no mapa. Ninguém cria e ninguém exclui parâmetro; o que se faz aqui é alterar valor.'},
   {id:'cadastros', idx:'02', name:'Cadastro único', lead:'O que o viveiro é, antes de qualquer movimento. Espécie é a entidade central: recipiente, insumo, canteiro, protocolo e pessoa existem para qualificá-la. Errar aqui contamina as outras duas áreas em silêncio.'},
-  {id:'producao', idx:'03', name:'Produção', lead:'A maior área, e a que a gerência mais toca. Aqui o dado nasce, muitas vezes no celular, em pé, com a mão suja: cada campo a mais nesta seção é um registro a menos que acontece de verdade. As duas primeiras pranchas são a exceção, e as únicas telas de computador do sistema: agenda da semana e mapa de lotes não registram nada, comparam, e comparar pede a tela inteira (RNF-27).'},
+  {id:'producao', idx:'03', name:'Produção', lead:'A maior área, e a que a gerência mais toca. Aqui o dado nasce, muitas vezes no celular, em pé, com a mão suja: cada campo a mais nesta seção é um registro a menos que acontece de verdade. As duas primeiras pranchas são a exceção, e as únicas telas de computador do sistema: agenda da semana e mapa de lotes não registram nada, comparam, e comparar pede a tela inteira (RNF-15).'},
   {id:'comercial', idx:'04', name:'Comercial', lead:'O pedido que chega pelo WhatsApp, registrado com o que foi negociado. O sistema não substitui a negociação nem calcula preço: guarda o que foi vendido, por quanto, para quem, e mostra ao lado o que a produção tem pronto.'}
 ];
 const S = [];
@@ -509,8 +509,8 @@ S.push({
 
 /* ============ 01 · CADASTROS ============ */
 S.push({
-  id:'UC-05', mod:'cadastros', actors:['chefia'], built:true, route:'/cadastros/especies',
-  name:'Manter catálogo de espécies', rf:'RF-08, RF-09',
+  id:'UC-07', mod:'cadastros', actors:['chefia'], built:true, route:'/cadastros/especies',
+  name:'Manter catálogo de espécies', rf:'RF-10, RF-11',
   why:'A entidade central do sistema. A busca aceita qualquer nome popular (RN-02) porque no viveiro ninguém procura por Cedrela fissilis, procura por cedro. As características são simultâneas (RN-03): a mesma nativa é madeireira e ornamental.',
   ui:`<div class="mk-hd"><div class="b">1 &middot; Cadastros</div><div class="t">Espécies</div></div>
   <div class="mk-tabs"><span class="on">Espécies</span><span>Recipientes</span><span>Insumos</span><span>Pessoas</span></div>
@@ -529,8 +529,8 @@ S.push({
     </div><div class="mk-fab">+</div></div>`
 });
 S.push({
-  id:'UC-06', mod:'cadastros', actors:['chefia'], built:true, route:'/cadastros/recipientes',
-  name:'Manter recipientes', rf:'RF-10',
+  id:'UC-08', mod:'cadastros', actors:['chefia'], built:true, route:'/cadastros/recipientes',
+  name:'Manter recipientes', rf:'RF-12',
   why:'O recipiente define o tamanho da muda, e com ele o custo e o preço. O consumo de substrato por unidade é o que liga este cadastro ao custeio.',
   ui:`<div class="mk-hd"><div class="b">1 &middot; Cadastros</div><div class="t">Recipientes</div></div>
   <div class="mk-tabs"><span>Espécies</span><span class="on">Recipientes</span><span>Insumos</span><span>Pessoas</span></div>
@@ -543,8 +543,8 @@ S.push({
     </div><div class="mk-fab">+</div></div>`
 });
 S.push({
-  id:'UC-07', mod:'cadastros', actors:['chefia'], built:true, route:'/cadastros/insumos',
-  name:'Manter insumos', rf:'RF-11',
+  id:'UC-09', mod:'cadastros', actors:['chefia'], built:true, route:'/cadastros/insumos',
+  name:'Manter insumos', rf:'RF-13',
   why:'O histórico de preços é obrigatório: o custo unitário de um lote de março não pode ser recalculado com o substrato que subiu em agosto.',
   ui:`<div class="mk-hd"><div class="b">1 &middot; Cadastros</div><div class="t">Insumos</div></div>
   <div class="mk-tabs"><span>Espécies</span><span>Recipientes</span><span class="on">Insumos</span><span>Pessoas</span></div>
@@ -558,8 +558,8 @@ S.push({
     </div><div class="mk-fab">+</div></div>`
 });
 S.push({
-  id:'UC-21', mod:'cadastros', actors:['chefia'], built:true, route:'/pedidos/novo · sobreposto',
-  name:'Cadastrar cliente rápido', rf:'RF-36',
+  id:'UC-10', mod:'cadastros', actors:['chefia'], built:true, route:'/pedidos/novo · sobreposto',
+  name:'Cadastrar cliente rápido', rf:'RF-17',
   why:'Nome e telefone, sem sair da tela do pedido. O cliente novo quase sempre aparece no meio de uma conversa de WhatsApp: exigir dado fiscal aqui faria o pedido não ser registrado.',
   ui:`<div class="mk-hd row"><div><div class="b">3 &middot; Comercial</div><div class="t">Novo pedido</div></div></div>
   <div class="mk-body" style="background:#F9FAFB;justify-content:flex-end;padding:0">
@@ -578,8 +578,8 @@ S.push({
   </div>`
 });
 S.push({
-  id:'UC-22', mod:'cadastros', actors:['chefia'], built:true, route:'/cadastros/pessoas/[id]',
-  name:'Manter cadastro completo de cliente', rf:'RF-37, RF-38, RF-140',
+  id:'UC-11', mod:'cadastros', actors:['chefia'], built:true, route:'/cadastros/pessoas/[id]',
+  name:'Manter cadastro completo de cliente', rf:'RF-18, RF-19, RF-16',
   why:'É aqui que o cadastro rápido vira cadastro fiscal. O CPF e o CNPJ são validados na digitação, e a tela sinaliza o que falta quando o pedido exigir nota.',
   ui:`<div class="mk-hd"><div class="b">1 &middot; Cadastros</div><div class="t">Sítio Boa Vista</div><div class="r">Cliente &middot; desde 12/06/2026</div></div>
   <div class="mk-body tight">
@@ -597,8 +597,8 @@ S.push({
   </div>`
 });
 S.push({
-  id:'UC-23', mod:'cadastros', actors:['chefia','gerencia'], built:true, route:'/clientes',
-  name:'Consultar cliente', rf:'RF-39',
+  id:'UC-12', mod:'cadastros', actors:['chefia','gerencia'], built:true, route:'/clientes',
+  name:'Consultar cliente', rf:'RF-20',
   why:'Um campo só, que aceita nome, telefone ou documento. Quem consulta está com o cliente na linha e não sabe de antemão por qual dado vai procurar.',
   ui:`<div class="mk-hd"><div class="b">1 &middot; Cadastros</div><div class="t">Clientes</div></div>
   <div class="mk-body tight">
@@ -617,8 +617,8 @@ S.push({
   </div>`
 });
 S.push({
-  id:'UC-31', mod:'cadastros', actors:['chefia'], built:true, route:'/fornecedores',
-  name:'Manter fornecedor', rf:'RF-52',
+  id:'UC-13', mod:'cadastros', actors:['chefia'], built:true, route:'/fornecedores',
+  name:'Manter fornecedor', rf:'RF-21',
   why:'As espécies que o fornecedor fornece não são texto livre: são a mesma lista do catálogo, e é isso que permite a cotação saber a quem perguntar.',
   ui:`<div class="mk-hd"><div class="b">3 &middot; Comercial</div><div class="t">Viveiro Santa Clara</div><div class="r">Fornecedor</div></div>
   <div class="mk-body tight">
@@ -640,8 +640,8 @@ S.push({
   </div>`
 });
 S.push({
-  id:'UC-41', mod:'cadastros', actors:['chefia'], built:true, route:'/cadastros/pessoas',
-  name:'Manter cadastro de funcionário', rf:'RF-69',
+  id:'UC-14', mod:'cadastros', actors:['chefia'], built:true, route:'/cadastros/pessoas',
+  name:'Manter cadastro de funcionário', rf:'RF-22',
   why:'O funcionário existe no cadastro mesmo sem acesso ao sistema. O diarista aparece na agenda e nas horas trabalhadas sem nunca abrir o aplicativo.',
   ui:`<div class="mk-hd"><div class="b">1 &middot; Cadastros</div><div class="t">Pessoas</div></div>
   <div class="mk-tabs"><span>Espécies</span><span>Recipientes</span><span>Insumos</span><span class="on">Pessoas</span></div>
@@ -656,8 +656,8 @@ S.push({
   </div>`
 });
 S.push({
-  id:'UC-42', mod:'cadastros', actors:['gerencia','chefia'], built:false, route:'',
-  name:'Manter catálogo de tipos de tarefa', rf:'RF-70, RF-82',
+  id:'UC-15', mod:'cadastros', actors:['gerencia','chefia'], built:false, route:'',
+  name:'Manter catálogo de tipos de tarefa', rf:'RF-23, RF-24',
   why:'Esta tela é a que decide o formulário das outras. O que o tipo de tarefa declarar exigir é exatamente o que a agenda e o encerramento vão pedir, nem um campo a mais.',
   ui:`<div class="mk-hd"><div class="b">1 &middot; Cadastros</div><div class="t">Tipo de tarefa</div><div class="r">Repicagem</div></div>
   <div class="mk-body tight">
@@ -676,8 +676,8 @@ S.push({
 });
 
 S.push({
-  id:'UC-46', mod:'cadastros', actors:['gerencia'], built:false, route:'',
-  name:'Manter áreas e canteiros', rf:'RF-80, RF-81',
+  id:'UC-16', mod:'cadastros', actors:['gerencia'], built:false, route:'',
+  name:'Manter áreas e canteiros', rf:'RF-14, RF-15',
   why:'Área identificada por letra, canteiro por número, exatamente como a equipe já fala no viveiro. Número repetido na mesma área é recusado na hora.',
   ui:`<div class="mk-hd"><div class="b">1 &middot; Cadastros</div><div class="t">Áreas e canteiros</div></div>
   <div class="mk-body tight">
@@ -696,8 +696,8 @@ S.push({
   </div>`
 });
 S.push({
-  id:'UC-54', mod:'config', actors:['gerencia','chefia'], built:false, route:'',
-  name:'Manter período de trabalho', rf:'RF-83',
+  id:'UC-05', mod:'config', actors:['gerencia','chefia'], built:false, route:'',
+  name:'Manter período de trabalho', rf:'RF-08',
   why:'A jornada padrão da agenda. Quando ninguém aponta a hora de entrada, é este turno que o sistema assume para calcular as horas trabalhadas, registrando que assumiu.',
   ui:`<div class="mk-hd"><div class="b">1 &middot; Cadastros</div><div class="t">Período de trabalho</div></div>
   <div class="mk-body">
@@ -722,8 +722,8 @@ S.push({
   </div>`
 });
 S.push({
-  id:'UC-60', mod:'config', actors:['chefia','admin'], built:false, route:'',
-  name:'Manter parâmetros do sistema', rf:'RF-139',
+  id:'UC-06', mod:'config', actors:['chefia','admin'], built:false, route:'',
+  name:'Manter parâmetros do sistema', rf:'RF-09',
   why:'Três números que mudam com a estação e hoje morariam em constante de código. Não há botão de criar nem de excluir: a chave nasce com o banco, porque existe consulta que a lê pelo nome, e o que a operação faz é alterar valor (D4 §3.7).',
   ui:`<div class="mk-hd"><div class="b">Configurações</div><div class="t">Parâmetros do sistema</div></div>
   <div class="mk-body">
@@ -744,8 +744,8 @@ S.push({
   </div>`
 });
 S.push({
-  id:'UC-57', mod:'cadastros', actors:['gerencia','chefia'], built:false, route:'',
-  name:'Manter protocolo de atividades', rf:'RF-122 a RF-125',
+  id:'UC-17', mod:'cadastros', actors:['gerencia','chefia'], built:false, route:'',
+  name:'Manter protocolo de atividades', rf:'RF-25 a RF-28',
   why:'A tela mais consequente do módulo, e a exceção em que a gerência mantém cadastro (D4 §3.16): quem sabe em quantos dias o ipê germina no tubete é quem está no viveiro. O erro aqui é silencioso e diferido, e protocolo não se exclui, desativa-se: excluir deixaria os lotes que o seguem sem receita, em silêncio.',
   ui:`<div class="mk-hd"><div class="b">1 &middot; Cadastros</div><div class="t">Protocolo &middot; Tubete</div><div class="r">Vigente desde 01/07/2026</div></div>
   <div class="mk-body tight">
@@ -771,8 +771,8 @@ S.push({
   </div>`
 });
 S.push({
-  id:'UC-59', mod:'cadastros', actors:['gerencia','chefia'], built:false, route:'',
-  name:'Customizar tempo de etapa por espécie', rf:'RF-133',
+  id:'UC-18', mod:'cadastros', actors:['gerencia','chefia'], built:false, route:'',
+  name:'Customizar tempo de etapa por espécie', rf:'RF-29',
   why:'Araucária não repica em quarenta e cinco dias. A exceção mora no cadastro da espécie e sobrescreve só a etapa citada, o resto do protocolo continua valendo.',
   ui:`<div class="mk-hd"><div class="b">1 &middot; Cadastros</div><div class="t">Araucária</div><div class="r">Araucaria angustifolia</div></div>
   <div class="mk-tabs"><span>Dados</span><span>Foto</span><span class="on">Protocolo</span></div>
@@ -794,9 +794,9 @@ S.push({
 });
 /* ============ 02 · PRODUÇÃO ============ */
 S.push({
-  id:'RF-108', mod:'producao', actors:['gerencia'], built:false, route:'', wide:true,
-  name:'Entrada da área Produção', rf:'RF-108',
-  why:'A pergunta que a gerência faz ao entrar é sempre uma das duas: quem está fazendo o quê agora, e como está o viveiro. Por isso as duas visões abrem alternadas por aba, e as demais rotinas ficam listadas abaixo: são o que se procura depois de já ter olhado o dia. É tela de computador (RNF-27), e não porque a gerência esteja no escritório: nove faixas ao longo de um dia só mostram o buraco quando cabem juntas na tela.',
+  id:'RF-30', mod:'producao', actors:['gerencia'], built:false, route:'', wide:true,
+  name:'Entrada da área Produção', rf:'RF-30',
+  why:'A pergunta que a gerência faz ao entrar é sempre uma das duas: quem está fazendo o quê agora, e como está o viveiro. Por isso as duas visões abrem alternadas por aba, e as demais rotinas ficam listadas abaixo: são o que se procura depois de já ter olhado o dia. É tela de computador (RNF-15), e não porque a gerência esteja no escritório: nove faixas ao longo de um dia só mostram o buraco quando cabem juntas na tela.',
   ui:`<div class="mk-hd row"><div><div class="b">2 &middot; Produção</div><div class="t">Agenda do dia</div></div><div class="r" style="align-self:center">Terça, 01/09 &middot; 09:42</div></div>
   <div class="mk-tabs"><span class="on">Agenda do dia</span><span>Mapa de produção</span></div>
   <div class="mk-body tight">
@@ -827,9 +827,9 @@ S.push({
 
 
 S.push({
-  id:'UC-15', mod:'producao', actors:['chefia','gerencia'], built:false, route:'',
-  name:'Consultar estoque disponível', rf:'RF-22',
-  why:'A pergunta que hoje se responde de memória: quantas mudas de cada espécie e tamanho existem. É leitura para os dois perfis, e é o mesmo número que o item de pedido exibe (RF-42). Só a muda pronta entra na conta: o que está em produção aparece à parte (RN-06).',
+  id:'UC-29', mod:'producao', actors:['chefia','gerencia'], built:false, route:'',
+  name:'Consultar estoque disponível', rf:'RF-53',
+  why:'A pergunta que hoje se responde de memória: quantas mudas de cada espécie e tamanho existem. É leitura para os dois perfis, e é o mesmo número que o item de pedido exibe (RF-68). Só a muda pronta entra na conta: o que está em produção aparece à parte (RN-06).',
   ui:`<div class="mk-hd"><div class="b">2 &middot; Produção</div><div class="t">Estoque</div></div>
   <div class="mk-body tight">
     <div class="mk-in">🔍 Buscar espécie</div>
@@ -853,8 +853,8 @@ S.push({
   </div>`
 });
 S.push({
-  id:'UC-16', mod:'producao', actors:['gerencia'], built:false, route:'',
-  name:'Registrar contagem do lote', rf:'RF-23',
+  id:'UC-26', mod:'producao', actors:['gerencia'], built:false, route:'',
+  name:'Registrar contagem do lote', rf:'RF-48',
   why:'A contagem física substitui a calculada, e não a corrige por diferença. O sistema guarda as duas para que a divergência sobreviva ao ajuste.',
   ui:`<div class="mk-hd"><div class="b">2 &middot; Produção</div><div class="t">Contagem física</div><div class="r">Lote 214 &middot; Cedro-rosa</div></div>
   <div class="mk-body">
@@ -872,9 +872,9 @@ S.push({
   </div>`
 });
 S.push({
-  id:'UC-17', mod:'producao', actors:['gerencia','chefia'], built:false, route:'',
-  name:'Registrar perda', rf:'RF-26',
-  why:'RN-16 fixa as cinco causas, seca, praga, geada, manuseio e outro: texto livre não vira estatística por causa. Quatro toques e o registro está feito, no canteiro, sem voltar ao escritório.',
+  id:'UC-25', mod:'producao', actors:['gerencia','chefia'], built:false, route:'',
+  name:'Registrar perda', rf:'RF-47',
+  why:'RN-10 fixa as cinco causas, seca, praga, geada, manuseio e outro: texto livre não vira estatística por causa. Quatro toques e o registro está feito, no canteiro, sem voltar ao escritório.',
   ui:`<div class="mk-hd"><div class="b">2 &middot; Produção</div><div class="t">Registrar perda</div></div>
   <div class="mk-body">
     <div><div class="mk-lbl">Lote</div><div class="mk-in v" style="margin-top:4px;padding:12px">214 &middot; Cedro-rosa &middot; A-07</div></div>
@@ -892,8 +892,8 @@ S.push({
   </div>`
 });
 S.push({
-  id:'UC-18', mod:'producao', actors:['gerencia','chefia'], built:false, route:'',
-  name:'Analisar perdas', rf:'RF-27 a RF-29',
+  id:'UC-30', mod:'producao', actors:['gerencia','chefia'], built:false, route:'',
+  name:'Analisar perdas', rf:'RF-50 a RF-52',
   why:'Mortalidade acima de vinte por cento gera alerta. O impacto em reais usa o custo unitário do módulo financeiro: perder muda é perder dinheiro já gasto.',
   ui:`<div class="mk-hd"><div class="b">2 &middot; Produção</div><div class="t">Perdas</div><div class="r">Últimos 90 dias</div></div>
   <div class="mk-body tight">
@@ -921,8 +921,8 @@ S.push({
 });
 
 S.push({
-  id:'UC-43', mod:'producao', actors:['gerencia'], built:false, route:'', wide:true,
-  name:'Montar a agenda da semana', rf:'RF-71 a RF-73, RF-92, RF-108',
+  id:'UC-19', mod:'producao', actors:['gerencia'], built:false, route:'', wide:true,
+  name:'Montar a agenda da semana', rf:'RF-31 a RF-33, RF-34, RF-30',
   why:'Não é outra tela: é a mesma agenda da entrada do módulo, com o botão de escala em Semana. Muda a unidade da barra, turno em vez de hora, porque o viveiro planeja por turno e nunca por hora marcada. Copiar a semana anterior é o gesto principal: no viveiro a semana repete. A semana fechada trava, e a tarefa planejada não confirmada é assumida como realizada, com essa condição registrada.',
   ui:`<div class="mk-hd row"><div><div class="b">2 &middot; Produção</div><div class="t">Agenda &middot; 31/08 a 05/09</div></div><span class="mk-pill a" style="align-self:center">rascunho</span></div>
   <div class="mk-tabs"><span class="on">Agenda do dia</span><span>Mapa de produção</span></div>
@@ -948,9 +948,9 @@ S.push({
 });
 
 S.push({
-  id:'UC-47', mod:'producao', actors:['gerencia'], built:false, route:'',
-  name:'Criar lote', rf:'RF-84, RF-126',
-  why:'Ao nascer, o lote recebe o protocolo vigente do seu recipiente. O canteiro comporta vários lotes (RN-76) e a capacidade avisa sem nunca travar (RN-92). A data de plantio é a âncora das etapas do protocolo que contam da criação do lote (RN-99).',
+  id:'UC-22', mod:'producao', actors:['gerencia'], built:false, route:'',
+  name:'Criar lote', rf:'RF-40, RF-58',
+  why:'Ao nascer, o lote recebe o protocolo vigente do seu recipiente. O canteiro comporta vários lotes (RN-19) e a capacidade avisa sem nunca travar (RN-30). A data de plantio é a âncora das etapas do protocolo que contam da criação do lote (RN-35).',
   ui:`<div class="mk-hd"><div class="b">2 &middot; Produção</div><div class="t">Novo lote</div></div>
   <div class="mk-body tight">
     <div><div class="mk-lbl">Espécie</div><div class="mk-in v" style="margin-top:3px">Ipê-amarelo</div></div>
@@ -967,8 +967,8 @@ S.push({
   </div>`
 });
 S.push({
-  id:'UC-48', mod:'producao', actors:['gerencia'], built:false, route:'',
-  name:'Repicar lote', rf:'RF-86, RF-87, RF-88',
+  id:'UC-23', mod:'producao', actors:['gerencia'], built:false, route:'',
+  name:'Repicar lote', rf:'RF-42, RF-43, RF-44',
   why:'A repicagem cria um lote novo apontando para o de origem, e é o gesto que fecha a confirmação da tarefa. Saldo negativo é recusado, não avisado.',
   ui:`<div class="mk-hd"><div class="b">2 &middot; Produção</div><div class="t">Repicar lote 214</div><div class="r">Cedro-rosa &middot; tubete &middot; A-07</div></div>
   <div class="mk-body tight">
@@ -988,9 +988,9 @@ S.push({
   </div>`
 });
 S.push({
-  id:'UC-61', mod:'producao', actors:['gerencia','chefia'], built:false, route:'', wide:true,
-  name:'Consultar o mapa de lotes', rf:'RF-85, RF-89, RF-117 a RF-120',
-  why:'A segunda aba da entrada do módulo. O viveiro desenhado como ele é: a área é o quadro, o canteiro é a faixa dentro dela e o lote é o quadradinho dentro do canteiro, porque um canteiro comporta várias levas. Reconhece-se o lote pelo lugar antes de ler o rótulo, e por isso a posição dentro do canteiro é guardada. A cor não é digitada por ninguém, vem das etapas do protocolo vencidas ou a vencer. É tela de computador (RNF-27) porque o mapa existe para mostrar o viveiro inteiro de uma vez; no celular ele vira lista de áreas, com os críticos primeiro.',
+  id:'UC-27', mod:'producao', actors:['gerencia','chefia'], built:false, route:'', wide:true,
+  name:'Consultar o mapa de lotes', rf:'RF-41, RF-45, RF-54 a RF-57',
+  why:'A segunda aba da entrada do módulo. O viveiro desenhado como ele é: a área é o quadro, o canteiro é a faixa dentro dela e o lote é o quadradinho dentro do canteiro, porque um canteiro comporta várias levas. Reconhece-se o lote pelo lugar antes de ler o rótulo, e por isso a posição dentro do canteiro é guardada. A cor não é digitada por ninguém, vem das etapas do protocolo vencidas ou a vencer. É tela de computador (RNF-15) porque o mapa existe para mostrar o viveiro inteiro de uma vez; no celular ele vira lista de áreas, com os críticos primeiro.',
   ui:`<div class="mk-hd row"><div><div class="b">2 &middot; Produção</div><div class="t">Mapa de produção</div></div><div class="r" style="align-self:center">133 lotes abertos em 27 canteiros</div></div>
   <div class="mk-tabs"><span>Agenda do dia</span><span class="on">Mapa de produção</span></div>
   <div class="mk-body tight">
@@ -1054,8 +1054,8 @@ S.push({
 
 
 S.push({
-  id:'UC-51', mod:'producao', actors:['gerencia'], built:false, route:'',
-  name:'Confirmar tarefa realizada', rf:'RF-98, RF-99, RF-107, RF-113',
+  id:'UC-20', mod:'producao', actors:['gerencia'], built:false, route:'',
+  name:'Confirmar tarefa realizada', rf:'RF-36, RF-37, RF-35, RF-38',
   why:'Encerra o grupo inteiro de uma vez: o lote uma vez para a tarefa, a quantidade uma vez por participante. Os campos que aparecem são os que o tipo de tarefa declarou exigir.',
   ui:`<div class="mk-hd"><div class="b">2 &middot; Produção</div><div class="t">Encerrar repicagem</div><div class="r">Iniciada às 09:42 &middot; 3 participantes</div></div>
   <div class="mk-body tight">
@@ -1071,8 +1071,8 @@ S.push({
   </div>`
 });
 S.push({
-  id:'UC-52', mod:'producao', actors:['gerencia'], built:false, route:'',
-  name:'Fechar a semana', rf:'RF-75',
+  id:'UC-21', mod:'producao', actors:['gerencia'], built:false, route:'',
+  name:'Fechar a semana', rf:'RF-39',
   why:'Fecha o apontamento aberto sem iniciar outro. Quem não teve apontamento nenhum recebe a jornada do turno planejado, e o sistema registra que assumiu, em vez de fingir que mediu.',
   ui:`<div class="mk-hd"><div class="b">2 &middot; Produção</div><div class="t">Fechar o dia</div><div class="r">Terça, 01/09 &middot; 17:04</div></div>
   <div class="mk-body tight">
@@ -1090,8 +1090,8 @@ S.push({
 
 
 S.push({
-  id:'UC-58', mod:'producao', actors:['gerencia'], built:false, route:'',
-  name:'Dividir lote', rf:'RF-135',
+  id:'UC-24', mod:'producao', actors:['gerencia'], built:false, route:'',
+  name:'Dividir lote', rf:'RF-49',
   why:'Cada resultante segue o protocolo por conta própria, herdando do original a fase e a data da última execução de cada etapa. Dividir não zera o relógio do lote.',
   ui:`<div class="mk-hd"><div class="b">2 &middot; Produção</div><div class="t">Dividir lote 214</div><div class="r">Cedro-rosa &middot; 3.200 &middot; A-07</div></div>
   <div class="mk-body tight">
@@ -1112,9 +1112,9 @@ S.push({
   </div>`
 });
 S.push({
-  id:'UC-62', mod:'producao', actors:['gerencia'], built:false, route:'',
-  name:'Acompanhar o protocolo do lote', rf:'RF-131, RF-132, RF-134',
-  why:'A ficha responde o que o lote já recebeu e o que está por vencer. Nenhuma data aqui é digitada: a última execução vem da tarefa confirmada, e o vencimento sai da âncora mais o tempo da etapa (RN-110).',
+  id:'UC-28', mod:'producao', actors:['gerencia'], built:false, route:'',
+  name:'Acompanhar o protocolo do lote', rf:'RF-63, RF-64, RF-65',
+  why:'A ficha responde o que o lote já recebeu e o que está por vencer. Nenhuma data aqui é digitada: a última execução vem da tarefa confirmada, e o vencimento sai da âncora mais o tempo da etapa (RN-45).',
   ui:`<div class="mk-hd"><div class="b">Produção</div><div class="t">Lote 2026-0184 · tubete · A-3</div></div>
   <div class="mk-body">
     <div class="mk-card">
@@ -1131,15 +1131,15 @@ S.push({
     </div>
     <div class="mk-card">
       <div class="mk-row"><span class="mk-nm">Irrigação</span><span class="mk-nm" style="font-weight:400">sem alerta</span></div>
-      <div class="s" style="font-size:9px">Alerta desligado nesta etapa (RN-105)</div>
+      <div class="s" style="font-size:9px">Alerta desligado nesta etapa (RN-40)</div>
     </div>
     <div class="mk-info">Encerrar o lote cancela as ordens em aberto, sem removê-las.</div>
   </div>`
 });
 /* ============ 03 · COMERCIAL ============ */
 S.push({
-  id:'UC-24', mod:'comercial', actors:['chefia'], built:true, route:'/pedidos/novo',
-  name:'Cadastrar pedido', rf:'RF-41, RF-141',
+  id:'UC-31', mod:'comercial', actors:['chefia'], built:true, route:'/pedidos/novo',
+  name:'Cadastrar pedido', rf:'RF-66, RF-67',
   why:'O item genérico é o que torna esta tela fiel ao negócio: o cliente pede "mil mudas nativas de 17×22", sem dizer quais. A espécie entra depois, na verificação.',
   ui:`<div class="mk-hd"><div class="b">3 &middot; Comercial</div><div class="t">Novo pedido</div></div>
   <div class="mk-body tight">
@@ -1158,9 +1158,9 @@ S.push({
   </div>`
 });
 S.push({
-  id:'UC-25', mod:'comercial', actors:['chefia'], built:false, route:'/pedidos/novo',
-  name:'Consultar disponibilidade no pedido', rf:'RF-42, RF-22',
-  why:'Não é uma tela: é o número que aparece ao lado do item enquanto ele é digitado. O saldo vem da soma dos lotes prontos daquela espécie e recipiente, e é a única aresta entre a Produção e o Comercial (RN-06, RN-13).',
+  id:'UC-32', mod:'comercial', actors:['chefia'], built:false, route:'/pedidos/novo',
+  name:'Consultar disponibilidade no pedido', rf:'RF-68, RF-53',
+  why:'Não é uma tela: é o número que aparece ao lado do item enquanto ele é digitado. O saldo vem da soma dos lotes prontos daquela espécie e recipiente, e é a única aresta entre a Produção e o Comercial (RN-06, RN-08).',
   ui:`<div class="mk-hd"><div class="b">Pedido #418</div><div class="t">Itens</div><div class="r">Prefeitura de Ibirama</div></div>
   <div class="mk-body tight">
     <div class="mk-card">
@@ -1179,8 +1179,8 @@ S.push({
   </div>`
 });
 S.push({
-  id:'UC-26', mod:'comercial', actors:['chefia'], built:false, route:'/pedidos/[id]',
-  name:'Confirmar pedido', rf:'RF-142',
+  id:'UC-33', mod:'comercial', actors:['chefia'], built:false, route:'/pedidos/[id]',
+  name:'Confirmar pedido', rf:'RF-69',
   why:'Confirmar é o único estado que trava alguma coisa: depois dele o item não muda mais. É o que faz o registro servir de histórico, e é o único gesto do Comercial que o sistema recusa desfazer.',
   ui:`<div class="mk-hd row"><div><div class="b">Pedido #418</div><div class="t">Confirmar pedido</div></div><span class="mk-pill n" style="align-self:center">rascunho</span></div>
   <div class="mk-body tight">
@@ -1200,8 +1200,8 @@ S.push({
 });
 
 S.push({
-  id:'UC-28', mod:'comercial', actors:['chefia'], built:true, route:'/pedidos',
-  name:'Acompanhar pedidos', rf:'RF-143',
+  id:'UC-34', mod:'comercial', actors:['chefia'], built:true, route:'/pedidos',
+  name:'Acompanhar pedidos', rf:'RF-70',
   why:'A lista responde o que foi vendido, para quem e por qual canal. Substitui o "e aquele pedido da prefeitura?" perguntado no corredor, e é o histórico que o viveiro nunca teve.',
   ui:`<div class="mk-hd"><div class="b">3 &middot; Comercial</div><div class="t">Pedidos</div></div>
   <div class="mk-tabs"><span class="on">Confirmados</span><span>Rascunhos</span><span>Todos</span></div>

@@ -1,16 +1,16 @@
 -- Migration: 20260901000007_situacao_do_lote.sql
 -- Descricao: A visao que pinta o lote no mapa.
 --
--- Requisitos: RF-117 a RF-120 · Regras: RN-92, RN-93, RN-94
+-- Requisitos: RF-54 a RF-57 · Regras: RN-30, RN-31, RN-32
 -- Entidades: C8 `batch_health` (visao)
 --
--- E VISAO, E NAO COLUNA (RN-93). Status gravado envelhece sozinho: o lote que
+-- E VISAO, E NAO COLUNA (RN-31). Status gravado envelhece sozinho: o lote que
 -- estava verde ontem continuaria verde no banco hoje, e a tela existe justamente
 -- para dizer o contrario. E a mesma razao de o saldo disponivel e a mortalidade
 -- tambem serem derivados.
 --
 -- A COR SAI DO ATRASO DE TAREFA, e de nada mais. A mortalidade tem alerta proprio
--- (RF-29, RF-120); somar tudo numa cor so produziria um vermelho que nao diz o que
+-- (RF-52, RF-57); somar tudo numa cor so produziria um vermelho que nao diz o que
 -- fazer. O que o mapa mostra ao apontar o lote e uma acao pendente:
 -- "Irrigacao, atrasada 3 dias".
 --
@@ -39,12 +39,12 @@ pendencia AS (
   -- PENDENCIA E O QUE SEGUE `planejada`, e a condicao e positiva de proposito. Os
   -- outros status saem, cada um pelo seu motivo: `confirmada` e a tarefa que a
   -- gerencia registrou como feita, e `nao_confirmada` e a que o fechamento da
-  -- semana assumiu como feita (RN-51). Sem a segunda, toda semana fechada deixaria
+  -- semana assumiu como feita (RN-14). Sem a segunda, toda semana fechada deixaria
   -- um vermelho permanente atras de si.
   --
   -- A MAIS ANTIGA MANDA: havendo tres pendencias no mesmo lote, quem determina a
   -- cor e a que espera ha mais tempo, e e ela que aparece ao apontar o lote
-  -- (RF-119).
+  -- (RF-56).
   SELECT DISTINCT ON (a.batch_id)
     a.batch_id,
     a.id           AS assignment_id,
@@ -81,4 +81,4 @@ LEFT JOIN pendencia p ON p.batch_id = b.id
 WHERE b.closed_at IS NULL;
 
 COMMENT ON VIEW batch_health IS
-  'Situacao do lote: saudavel, atencao, critico. Derivada do atraso da tarefa, nunca digitada. RN-93.';
+  'Situacao do lote: saudavel, atencao, critico. Derivada do atraso da tarefa, nunca digitada. RN-31.';

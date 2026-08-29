@@ -89,20 +89,20 @@ especificados em [`C2`](../C-modelagem/C2-especificacao-casos-de-uso.md).
 
 | # | Tarefa | Caso de uso | Frequência real |
 |---|---|---|---|
-| **T-01** | Registrar um pedido de três itens para cliente novo, com preço | UC-24 | Diária |
-| **T-02** | Confirmar um pedido e tentar alterar um item depois | UC-26 | Diária |
-| **T-03** | Descobrir quanto há de muda pronta de uma espécie em dois recipientes | UC-15 | Semanal |
-| **T-04** | Cadastrar uma espécie com dois nomes populares e localizá-la pelo segundo | UC-05 | Mensal |
-| **T-05** | Alterar o limite de mortalidade e conferir o efeito no mapa | UC-60 | Raro |
+| **T-01** | Registrar um pedido de três itens para cliente novo, com preço | UC-31 | Diária |
+| **T-02** | Confirmar um pedido e tentar alterar um item depois | UC-33 | Diária |
+| **T-03** | Descobrir quanto há de muda pronta de uma espécie em dois recipientes | UC-29 | Semanal |
+| **T-04** | Cadastrar uma espécie com dois nomes populares e localizá-la pelo segundo | UC-07 | Mensal |
+| **T-05** | Alterar o limite de mortalidade e conferir o efeito no mapa | UC-06 | Raro |
 
 ### Gerência
 
 | # | Tarefa | Caso de uso | Frequência real |
 |---|---|---|---|
-| **T-06** | Montar a semana de trabalho para três funcionários e publicá-la | UC-43 | Semanal |
-| **T-07** | Registrar uma contagem física de um lote | UC-16 | Semanal |
-| **T-08** | Registrar uma perda em campo | UC-17 | Diária |
-| **T-09** | Consultar as perdas do mês e identificar a espécie com maior mortalidade | UC-18 | Mensal |
+| **T-06** | Montar a semana de trabalho para três funcionários e publicá-la | UC-19 | Semanal |
+| **T-07** | Registrar uma contagem física de um lote | UC-26 | Semanal |
+| **T-08** | Registrar uma perda em campo | UC-25 | Diária |
+| **T-09** | Consultar as perdas do mês e identificar a espécie com maior mortalidade | UC-30 | Mensal |
 
 **As tarefas são executadas com dados reais da empresa**, não com dados fabricados para o teste. Um
 pedido de teste é um pedido de verdade; uma perda registrada é uma perda que ocorreu. A razão é dupla:
@@ -238,7 +238,7 @@ Cada critério de aprovação verifica um requisito não funcional de usabilidad
 | Eficiência em campo | RNF-01, RNF-02: limite de campos e listas fechadas |
 | Ausência de erro grave | RNF-02, RNF-04: listas fechadas e confirmação imediata |
 | Execução no celular, em campo | RNF-03, RNF-06: alvo de toque e concepção móvel |
-| Coordenação do dia em tela larga | RNF-27: agenda do dia e mapa de produção |
+| Coordenação do dia em tela larga | RNF-15: agenda do dia e mapa de produção |
 | Conclusão sob conexão instável | RNF-05, RNF-07: uso sem conexão e sob rede lenta |
 
 As sessões são conduzidas **junto à execução dos casos de aceite** de

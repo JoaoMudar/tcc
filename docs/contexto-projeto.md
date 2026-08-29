@@ -62,7 +62,7 @@ número, o saldo de muda pronta.
 
 **Esse número é a única aresta entre as duas áreas de movimento**, e é de leitura: o pedido não
 reserva, não baixa e não move lote. É o que o trabalho existe para demonstrar, e o caso de uso
-UC-25 existe justamente para registrar que ele é derivado, e não digitado.
+UC-32 existe justamente para registrar que ele é derivado, e não digitado.
 
 ## Ordem de construção
 
@@ -87,4 +87,4 @@ fontes de pendência, a atribuição lançada à mão e a ordem gerada pelo prot
 **Continuam valendo, ainda que o campo não opere o sistema.** Quem registra passou a ser a gerência,
 e ela registra em pé, no viveiro, com a leva na frente: o que mudou foi de quem é o dedo que toca a
 tela, não o lugar em que ela é usada. As duas exceções declaradas são a agenda da semana e o mapa
-de lotes, que não registram nada e existem para comparar (RNF-27).
+de lotes, que não registram nada e existem para comparar (RNF-15).

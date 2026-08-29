@@ -22,7 +22,7 @@ tarefa verbalmente. A segunda continua inteira mesmo depois de a agenda ficar pr
 > muda morta.
 
 A agenda registra **o que a Débora lembrou de lançar**. Se ela não lançou, o sistema não sabe que
-faltou. Pior: a situação do lote (RN-93) deriva do atraso das tarefas **já lançadas**, então o lote
+faltou. Pior: a situação do lote (RN-31) deriva do atraso das tarefas **já lançadas**, então o lote
 esquecido por completo aparece **verde**, porque não há nenhuma tarefa atrasada nele. A tela que
 existe para mostrar o problema mostra o contrário do problema.
 
@@ -112,7 +112,7 @@ Mesma tarefa do catálogo, duas manifestações no protocolo, e o catálogo já 
 | **Classificar seleção** | recorrente, para sempre | conclusão de "Classificar pós-germinação" |
 
 A primeira separa o que germinou do que não germinou. A segunda separa as maiores das menores,
-toda vez que trocam de bandeja. As duas produzem perda no mesmo gesto (RN-90).
+toda vez que trocam de bandeja. As duas produzem perda no mesmo gesto (RN-28).
 
 ## As 6 decisões de desenho
 
@@ -161,7 +161,7 @@ Amarelo é "está chegando a hora". Vermelho é "passou". Sem cor é "isto é ro
 ### 4. A ordem gerada é atribuição comum, e alterar o dia não altera a regra
 
 A ordem cai na agenda como qualquer outra tarefa: aparece na grade da semana e na confirmação.
-**Nenhuma tela precisa aprender um conceito novo** (RN-111).
+**Nenhuma tela precisa aprender um conceito novo** (RN-46).
 
 Débora pode mudar o dia, mudar o turno, excluir a ordem daquele dia. Nada disso mexe na etapa. E
 mexer na etapa não reescreve ordem já emitida nem dia já trabalhado: **o passado não se reescreve.**
@@ -250,7 +250,7 @@ cor. É a resposta para "este lote já foi classificado?" e para "quando é a pr
 
 ### Mapa de produção: sem tela nova
 
-O quadradinho do lote já mostra situação (RF-117). O que muda é **de onde a cor vem**: passa a
+O quadradinho do lote já mostra situação (RF-54). O que muda é **de onde a cor vem**: passa a
 sair do protocolo, e não do atraso das tarefas que alguém lembrou de lançar. **É a correção do
 problema desta rotina**, e não uma tela a mais.
 
@@ -277,7 +277,7 @@ A ordem do protocolo é atribuição comum e aparece onde as atribuições apare
 | **Lotes e canteiros** | o lote ganha protocolo, a segunda data e a divisão; a situação passa a vir daqui |
 | **Agenda de pessoal** | recebe as ordens emitidas, como atribuições comuns |
 | **Apontamento de tarefas** | concluir a ordem é o que move o protocolo; a data real da execução é o relógio |
-| **Perdas** | a classificação continua produzindo perda no mesmo gesto (RN-90); as perdas registradas contra a quantidade original zeram o lote, e o encerramento para o motor. As tarefas em que elas aparecem são as da categoria **pós-morte** do catálogo |
+| **Perdas** | a classificação continua produzindo perda no mesmo gesto (RN-28); as perdas registradas contra a quantidade original zeram o lote, e o encerramento para o motor. As tarefas em que elas aparecem são as da categoria **pós-morte** do catálogo |
 
 ## O que isso destrava
 
@@ -293,13 +293,13 @@ A ordem do protocolo é atribuição comum e aparece onde as atribuições apare
 
 | Artefato | O que esta rotina acrescentou |
 |---|---|
-| [`B2`](../../engenharia/B-requisitos/B2-especificacao-requisitos.md) | RF-122 a RF-125 e RF-133 no cadastro; RF-126 a RF-134 na operação |
-| [`B3`](../../engenharia/B-requisitos/B3-regras-de-negocio.md) | RN-98 a RN-113; RN-75 e RN-93 emendadas |
-| [`C2`](../../engenharia/C-modelagem/C2-especificacao-casos-de-uso.md) | UC-57, UC-58 e UC-59 |
+| [`B2`](../../engenharia/B-requisitos/B2-especificacao-requisitos.md) | RF-25 a RF-28 e RF-29 no cadastro; RF-58 a RF-65 na operação |
+| [`B3`](../../engenharia/B-requisitos/B3-regras-de-negocio.md) | RN-34 a RN-48; RN-18 e RN-31 emendadas |
+| [`C2`](../../engenharia/C-modelagem/C2-especificacao-casos-de-uso.md) | UC-17, UC-24 e UC-18 |
 | [`C6`](../../engenharia/C-modelagem/C6-modelo-entidade-relacionamento.md) / [`C8`](../../engenharia/C-modelagem/C8-dicionario-de-dados.md) | `protocols`, `protocol_steps`, `species_protocol_overrides`, `batch_protocol_steps` e a visão `batch_protocol_due`; `batches`, `assignments` e `containers` emendadas. O protocolo pendura-se no **recipiente**, e `container_types` deixou de existir |
 | [`B5`](../../engenharia/B-requisitos/B5-matriz-rastreabilidade.md) | 16 linhas novas |
 | [`D4`](../../engenharia/D-arquitetura/D4-matriz-rbac.md) | recursos **Tipos de embalagem** e **Protocolo de atividades** |
-| [`E2`](../../engenharia/E-qualidade/E2-casos-de-teste-de-aceite.md) | TA-87 a TA-98 |
+| [`E2`](../../engenharia/E-qualidade/E2-casos-de-teste-de-aceite.md) | TA-34 a TA-45 |
 | [`P15`](../../../plans/P15-protocolo-de-atividades.md) | o roteiro de implementação |
 
 ## Prova de mesa

@@ -131,7 +131,7 @@ Durante o dia, quem coordena marca na faixa do funcionário quando ele **começa
 
 **Não é uma tela própria**: é a mesma agenda da entrada da Produção, com o botão de escala em
 *Semana*. A escala de dia é onde se aponta ([`05`](05-apontamento-de-tarefas.md)); a de semana é
-onde se planeja. Como a agenda do dia, é tela de computador, e por RNF-27.
+onde se planeja. Como a agenda do dia, é tela de computador, e por RNF-15.
 
 ```
 Semana de 10/08 a 15/08   [ Dia | Semana | Mês ]   [Copiar semana passada] [Publicar]
@@ -267,9 +267,9 @@ existem na agenda mesmo sem nunca terem feito login.
 | Artefato | O que esta rotina acrescentou |
 |---|---|
 | [`A2`](../../engenharia/A-fundacao/A2-glossario-dominio.md) | §5 nova: Turno, Período de trabalho, Tipo de tarefa, Atribuição, Situação da atribuição, Semana |
-| [`B3`](../../engenharia/B-requisitos/B3-regras-de-negocio.md) | RN-80 a RN-82, RN-84, RN-85, RN-91, RN-95; RN-48 e RN-51 emendadas; ressalvas em §2.4 |
-| [`B2`](../../engenharia/B-requisitos/B2-especificacao-requisitos.md) | RF-70, RF-82 e RF-83; RF-71 a RF-75, RF-92, RF-98, RF-99, RF-107 e RF-113; RF-108 na entrada da área, com **RNF-27** e a emenda de RNF-06 |
-| [`C1`](../../engenharia/C-modelagem/C1-diagrama-casos-de-uso.md) / [`C2`](../../engenharia/C-modelagem/C2-especificacao-casos-de-uso.md) | UC-42, UC-43, UC-51, UC-52 e UC-54; UC-51 detalhado |
+| [`B3`](../../engenharia/B-requisitos/B3-regras-de-negocio.md) | RN-23 a RN-25, RN-26, RN-27, RN-29, RN-33; RN-12 e RN-14 emendadas; ressalvas em §2.4 |
+| [`B2`](../../engenharia/B-requisitos/B2-especificacao-requisitos.md) | RF-23, RF-24 e RF-08; RF-31 a RF-39, RF-34, RF-36, RF-37, RF-35 e RF-38; RF-30 na entrada da área, com **RNF-15** e a emenda de RNF-06 |
+| [`C1`](../../engenharia/C-modelagem/C1-diagrama-casos-de-uso.md) / [`C2`](../../engenharia/C-modelagem/C2-especificacao-casos-de-uso.md) | UC-15, UC-19, UC-20, UC-21 e UC-05; UC-20 detalhado |
 | [`C6`](../../engenharia/C-modelagem/C6-modelo-entidade-relacionamento.md) / [`C8`](../../engenharia/C-modelagem/C8-dicionario-de-dados.md) | `week_plans`, `assignments`, `assignment_members`, `work_shifts` e `task_types`; `assignments` guarda o planejado e o confirmado na mesma linha, e por isso não há entidade de apontamento |
 | [`D4`](../../engenharia/D-arquitetura/D4-matriz-rbac.md) | recursos **Agenda da semana**, **Confirmação de tarefa**, **Fechamento da semana** e **Período de trabalho**; §3.3 |
-| [`E2`](../../engenharia/E-qualidade/E2-casos-de-teste-de-aceite.md) | TA-60 a TA-62, TA-69, TA-71, TA-72, TA-101 e TA-109 a TA-113 |
+| [`E2`](../../engenharia/E-qualidade/E2-casos-de-teste-de-aceite.md) | TA-10 a TA-12, TA-26, TA-27, TA-28, TA-58 e TA-29 a TA-33 |

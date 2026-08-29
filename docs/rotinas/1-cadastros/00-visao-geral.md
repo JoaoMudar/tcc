@@ -173,9 +173,9 @@ O que faz a agenda ser rápida de preencher: sem digitação livre, só escolha 
 | Campo | Nota |
 |---|---|
 | Nome da atividade | "Colher semente", "Encher saquinho", "Repicar", "Irrigação", "Limpar mato" |
-| Categoria | semente · terra · plantio · manutenção · pós-morte · expedição. **Classifica, não comanda formulário** (RN-80) |
-| É quantitativa por unidade? | quando sim, o encerramento pede **quanto cada participante fez**; quando não, não pede número algum (RF-98) |
-| Lote específico? | quando sim, o encerramento exige o lote, que traz consigo canteiro, espécie e recipiente (RF-99) |
+| Categoria | semente · terra · plantio · manutenção · pós-morte · expedição. **Classifica, não comanda formulário** (RN-23) |
+| É quantitativa por unidade? | quando sim, o encerramento pede **quanto cada participante fez**; quando não, não pede número algum (RF-36) |
+| Lote específico? | quando sim, o encerramento exige o lote, que traz consigo canteiro, espécie e recipiente (RF-37) |
 | Exige espécie? | para a tarefa que pede espécie sem haver lote, como colher semente |
 | Exige recipiente? | para a tarefa que pede recipiente sem haver lote, como encher saquinho |
 | Ativo | soft-delete: inativar é o que retira a tarefa da lista da agenda |

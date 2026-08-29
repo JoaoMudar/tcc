@@ -40,7 +40,7 @@ capítulos.
 **Teste de 5 segundos para saber se algo é regra de negócio:** apague mentalmente o sistema. Se a
 frase continua verdadeira no viveiro, é regra. Se ela começa com *"O sistema deve"*, é requisito.
 
-Exemplo do par: **RN** "mortalidade acima de 20% é anormal e exige providência" → **RF-29** "o
+Exemplo do par: **RN** "mortalidade acima de 20% é anormal e exige providência" → **RF-52** "o
 sistema deve emitir alerta para espécie cuja mortalidade ultrapasse 20%". A regra é do viveiro; o
 requisito é a resposta do software a ela.
 
@@ -140,11 +140,11 @@ nove áreas:
 
 | Área | Regras | O que cobre |
 |---|---|---|
-| A: Domínio e produto | RN-01 a RN-06, RN-115 | Espécie como centro, nomes populares, recipiente define o produto e o manejo, só muda pronta é estoque, insumo é catálogo |
-| B: Produção, lote e trabalho | RN-13 a RN-17, RN-48, RN-50, RN-51, RN-55, RN-57, RN-74 a RN-82, RN-84, RN-85, RN-90 a RN-95 | Saldo derivado dos lotes, contagem física prevalece, causa da perda em lista fechada, mortalidade, lote e canteiro, planejamento por turno, semana que fecha, quantidade por pessoa |
-| C: Protocolo de atividades por lote | RN-98 a RN-102, RN-104 a RN-113 | Protocolo do recipiente, âncora declarada, contagem da execução real, uma ocorrência em aberto, alteração que não retroage |
-| D: Cliente e pedido | RN-20, RN-25 a RN-31, RN-62, RN-114 | PF/PJ, cadastro mínimo, identidade única com papéis, canal de venda, nota em sistema externo, preço negociado |
-| E: Acesso e responsabilidade | RN-45, RN-46 | Perfil determina o acesso; todo registro tem autor |
+| A: Domínio e produto | RN-01 a RN-06, RN-07 | Espécie como centro, nomes populares, recipiente define o produto e o manejo, só muda pronta é estoque, insumo é catálogo |
+| B: Produção, lote e trabalho | RN-08 a RN-11, RN-12, RN-13, RN-14, RN-15, RN-16, RN-17 a RN-25, RN-26, RN-27, RN-28 a RN-33 | Saldo derivado dos lotes, contagem física prevalece, causa da perda em lista fechada, mortalidade, lote e canteiro, planejamento por turno, semana que fecha, quantidade por pessoa |
+| C: Protocolo de atividades por lote | RN-34 a RN-38, RN-39 a RN-48 | Protocolo do recipiente, âncora declarada, contagem da execução real, uma ocorrência em aberto, alteração que não retroage |
+| D: Cliente e pedido | RN-49, RN-50 a RN-56, RN-57, RN-58 | PF/PJ, cadastro mínimo, identidade única com papéis, canal de venda, nota em sistema externo, preço negociado |
+| E: Acesso e responsabilidade | RN-59, RN-60 | Perfil determina o acesso; todo registro tem autor |
 
 Cada regra em `B3` traz **tipo** (fato, restrição, derivação, acionamento), **onde já estava
 documentada** e **quais RF e RNF ela origina**. As tabelas inversas (RF → RN e RNF → origem) estão
@@ -175,7 +175,7 @@ RE-5) ou de política do projeto. As regras determinam **o que** o sistema faz; 
 
 A seção 9 é a que fecha o capítulo com rigor: mostra que nenhuma regra ficou sem implementação e
 nenhuma implementação ficou sem regra: o mesmo raciocínio de `B5`. As quatro exceções (RF-02,
-RF-03, RF-07 e RF-108, que não decorrem de regra alguma) estão justificadas em `B3` §6 e valem um
+RF-03, RF-07 e RF-30, que não decorrem de regra alguma) estão justificadas em `B3` §6 e valem um
 parágrafo.
 
 ---

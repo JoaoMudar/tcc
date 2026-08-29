@@ -2,7 +2,7 @@
 -- Descricao: Catalogo de producao (species, containers, inputs) e endereco do
 --            viveiro (areas, beds), mais o periodo de trabalho (work_shifts).
 --
--- Requisitos: RF-08 a RF-11, RF-80, RF-81, RF-83 · Regras: RN-01 a RN-04, RN-74, RN-85, RN-115
+-- Requisitos: RF-10 a RF-13, RF-14, RF-15, RF-08 · Regras: RN-01 a RN-04, RN-17, RN-27, RN-07
 -- Entidades: C8 `species`, `species_popular_names`, `species_photos`, `containers`,
 --            `inputs`, `areas`, `beds`, `work_shifts`
 --
@@ -37,7 +37,7 @@ CREATE TRIGGER species_set_updated_at
   BEFORE UPDATE ON species
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
--- A ESPECIE TEM NOMES, E NAO UM NOME (RF-09, RN-02). Um campo de texto com nomes
+-- A ESPECIE TEM NOMES, E NAO UM NOME (RF-11, RN-02). Um campo de texto com nomes
 -- separados por virgula nao se indexa nem se valida.
 CREATE TABLE species_popular_names (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -71,7 +71,7 @@ CREATE TABLE species_photos (
 -- Recipiente e insumo
 -- ------------------------------------------------------------
 -- O RECIPIENTE DETERMINA O PORTE E O PRECO (RN-04), e e por ele que o protocolo de
--- atividades chega ao lote (RN-98).
+-- atividades chega ao lote (RN-34).
 CREATE TABLE containers (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name          TEXT NOT NULL UNIQUE,
@@ -87,7 +87,7 @@ CREATE TRIGGER containers_set_updated_at
 
 -- O INSUMO E CATALOGO, E NADA O CONSOME. Custo por unidade, historico de preco e
 -- saldo em estoque sairam com o custeio: o que resta e a lista do que o viveiro
--- aplica, com unidade e categoria (RN-115).
+-- aplica, com unidade e categoria (RN-07).
 CREATE TABLE inputs (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name            TEXT NOT NULL,
@@ -103,7 +103,7 @@ CREATE TRIGGER inputs_set_updated_at
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 -- ------------------------------------------------------------
--- O endereco da muda dentro do viveiro (RN-74)
+-- O endereco da muda dentro do viveiro (RN-17)
 -- ------------------------------------------------------------
 CREATE TABLE areas (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -124,14 +124,14 @@ CREATE TABLE beds (
   area_id    UUID NOT NULL REFERENCES areas(id) ON DELETE CASCADE,
   number     INTEGER NOT NULL,
 
-  -- Existe para o AVISO de RN-92, e nao para recusar o lote: quem sabe se cabe e
+  -- Existe para o AVISO de RN-30, e nao para recusar o lote: quem sabe se cabe e
   -- quem esta com a muda na mao.
   capacity   INTEGER,
 
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
-  -- RF-81: a numeracao recomeca em cada area.
+  -- RF-15: a numeracao recomeca em cada area.
   CONSTRAINT beds_numero_unico_na_area UNIQUE (area_id, number),
   CONSTRAINT beds_numero_positivo CHECK (number > 0)
 );
@@ -145,7 +145,7 @@ CREATE TRIGGER beds_set_updated_at
 -- ------------------------------------------------------------
 -- E ENTIDADE, E NAO CHAVE EM `settings`, porque e uma LISTA DE COISAS COM
 -- ATRIBUTOS (C6 §3.1). A tela dele, porem, mora em Configuracoes: o que muda de
--- lugar e a tela, nao a tabela. A duracao do turno sai daqui (RN-48, RN-85).
+-- lugar e a tela, nao a tabela. A duracao do turno sai daqui (RN-12, RN-27).
 CREATE TABLE work_shifts (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name       TEXT NOT NULL UNIQUE,
@@ -168,7 +168,7 @@ INSERT INTO work_shifts (name, starts_at, ends_at) VALUES
 
 COMMENT ON TABLE species IS 'Especie botanica. Entidade central do modelo. RN-01.';
 COMMENT ON TABLE species_photos IS 'Fotografia da especie, em bytes. Entra no backup do banco.';
-COMMENT ON TABLE containers IS 'Recipiente. Determina o porte, o preco e o protocolo de manejo. RN-04, RN-98.';
-COMMENT ON TABLE inputs IS 'Catalogo de insumos. Nada o consome no escopo atual. RN-115.';
-COMMENT ON TABLE beds IS 'Canteiro. Um lote ocupa um canteiro; um canteiro comporta varios lotes. RN-76.';
-COMMENT ON TABLE work_shifts IS 'Turno de trabalho. A duracao sai daqui, e nao de constante. RN-85.';
+COMMENT ON TABLE containers IS 'Recipiente. Determina o porte, o preco e o protocolo de manejo. RN-04, RN-34.';
+COMMENT ON TABLE inputs IS 'Catalogo de insumos. Nada o consome no escopo atual. RN-07.';
+COMMENT ON TABLE beds IS 'Canteiro. Um lote ocupa um canteiro; um canteiro comporta varios lotes. RN-19.';
+COMMENT ON TABLE work_shifts IS 'Turno de trabalho. A duracao sai daqui, e nao de constante. RN-27.';

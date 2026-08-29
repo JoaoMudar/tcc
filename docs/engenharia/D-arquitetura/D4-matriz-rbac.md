@@ -103,11 +103,11 @@ para ler a matriz, não para decidir acesso.
 ¹ **Ninguém cria e ninguém exclui parâmetro.** Ver §3.7.
 
 ² **Pessoas é um recurso só, e os papéis não se separam.** Cliente, fornecedor e funcionário são
-papéis da mesma identidade (RN-27): dar acesso a um e negar a outro exigiria uma permissão por
-papel sobre a mesma linha. Requisitos: **RF-36 a RF-39, RF-52, RF-69, RF-140**.
+papéis da mesma identidade (RN-52): dar acesso a um e negar a outro exigiria uma permissão por
+papel sobre a mesma linha. Requisitos: **RF-17 a RF-20, RF-21, RF-22, RF-16**.
 
 ³ **Recursos do protocolo de atividades por lote**, ainda sem tabela e sem tela. Requisitos:
-**RF-122 a RF-125 e RF-133** para o protocolo, **RF-135** para a divisão de lote. As regras de
+**RF-25 a RF-28 e RF-29** para o protocolo, **RF-49** para a divisão de lote. As regras de
 acesso que não se leem direto da matriz estão em §3.8.
 
 **Vinte e três recursos.** A matriz encolheu com o escopo, e o que ela perdeu foi sobretudo
@@ -134,8 +134,8 @@ funcionário na agenda. O que ela não lê é a ficha fiscal.
 
 ### 3.2 Confirmar pedido é privativo da chefia
 
-Confirmar o pedido é o ato que trava itens, quantidades e preços (RF-142). É decisão comercial, e
-quem responde por preço é a chefia (RN-114). A gerência **não lê pedido**, e é deliberado: o que a
+Confirmar o pedido é o ato que trava itens, quantidades e preços (RF-69). É decisão comercial, e
+quem responde por preço é a chefia (RN-58). A gerência **não lê pedido**, e é deliberado: o que a
 produção precisa saber do comercial é quanto foi vendido de cada espécie, e isso ela lê pelo saldo
 disponível, sem precisar da carteira de pedidos.
 
@@ -146,7 +146,7 @@ trabalho. Quem sabe quem está disponível, quem faz cada serviço e o que o viv
 semana é quem coordena a operação todos os dias.
 
 **Fechar a semana é atualização, e não exclusão.** A gerência fecha; ninguém apaga uma semana
-(RN-50). A linha da matriz dá `A` e não `E` de propósito: semana fechada é registro, e registro
+(RN-13). A linha da matriz dá `A` e não `E` de propósito: semana fechada é registro, e registro
 que se apaga não serve de histórico.
 
 ### 3.4 A gerência não cadastra espécie, recipiente nem insumo
@@ -172,7 +172,7 @@ três pessoas.
 
 `C L A` em lotes e `C L` em movimentos, e nenhum `E` nos dois. Movimento de lote é razão contábil
 do saldo: apagar uma linha faria o saldo deixar de bater com a soma, que é justamente a
-verificação que o modelo existe para permitir (RN-78). O erro se corrige com um movimento de
+verificação que o modelo existe para permitir (RN-21). O erro se corrige com um movimento de
 `ajuste_contagem`, que registra a correção em vez de esconder o erro.
 
 Pelo mesmo motivo a perda é `C L`: perda registrada por engano vira ajuste, e não desaparece.
@@ -186,7 +186,7 @@ leitura sem resposta, e o mapa de lotes passaria a considerar todo lote saudáve
 silenciosa mais cara possível naquela tela.
 
 O que a operação faz é **alterar o valor**. É por isso que o limite de mortalidade e os limites de
-atraso são parâmetro e não constante (RN-94): mudam com a estação, e mudá-los não pode exigir uma
+atraso são parâmetro e não constante (RN-32): mudam com a estação, e mudá-los não pode exigir uma
 implantação.
 
 **O período de trabalho tem linha própria e permissão diferente**, ainda que a tela seja a mesma:
@@ -203,7 +203,7 @@ delas e não à outra produziria protocolo que não se cumpre ou protocolo que n
 
 **Ninguém exclui protocolo**, nem o administrador. Etapa apagada deixaria lotes apontando para uma
 receita que não existe mais, e as datas já cumpridas perderiam a referência. O protocolo se
-inativa, e a alteração não retroage (RN-107).
+inativa, e a alteração não retroage (RN-42).
 
 **Dividir lote é só da gerência, e é `C` sem `L`.** A operação cria dois lotes e encerra o
 original: ler o resultado é ler lote, que a linha de cima já concede. A chefia não divide porque
@@ -246,7 +246,7 @@ Reproduzir a identidade no banco exigiria uma conexão por usuário, o que o amb
 sem servidor torna proibitivo.
 
 A consequência é assumida: **quem tiver a credencial do banco contorna a matriz inteira**. É a
-razão de RNF-22 proibir versionar credencial, e de a modelagem de ameaças
+razão de RNF-23 proibir versionar credencial, e de a modelagem de ameaças
 ([`E4`](../E-qualidade/E4-modelagem-de-ameacas.md)) tratar o vazamento dela como ameaça de maior
 severidade.
 
@@ -263,7 +263,7 @@ decide onde parar. Três decisões deste projeto são exatamente isso:
 | Administrador com acesso irrestrito na implementação | Incidente em produção se resolve sem trocar de perfil | A auditoria não distingue o que o administrador fez por manutenção do que fez por negócio |
 | Dado fiscal fechado para a gerência | Menos superfície de dado pessoal | A gerência não consegue conferir um cadastro incompleto sem chamar a chefia |
 
-**Todo registro tem autor identificado** (RN-46), e é o contrapeso comum às três: onde a permissão
+**Todo registro tem autor identificado** (RN-60), e é o contrapeso comum às três: onde a permissão
 foi concedida com folga, o registro de quem fez o quê é o que permite responder depois.
 
 ---
@@ -271,8 +271,8 @@ foi concedida com folga, o registro de quem fez o quê é o que permite responde
 ## 6. Rastreabilidade
 
 A matriz realiza **RF-06**, a verificação de permissão a cada operação, e **RF-05**, a atribuição
-de perfil. As regras de negócio que a sustentam são **RN-45**, cada pessoa tem um perfil que
-determina o que vê e faz, e **RN-46**, todo registro tem autor.
+de perfil. As regras de negócio que a sustentam são **RN-59**, cada pessoa tem um perfil que
+determina o que vê e faz, e **RN-60**, todo registro tem autor.
 
 Cada linha da matriz é verificada por caso de teste em
 [`E2`](../E-qualidade/E2-casos-de-teste-de-aceite.md), e a correspondência entre recurso e

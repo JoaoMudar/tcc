@@ -18,7 +18,7 @@ const b2 = readFileSync(B2, 'utf8');
 const b3 = readFileSync(B3, 'utf8');
 
 // ---------------------------------------------------------------- B2: os requisitos
-// Linha de RF:  | **RF-08** | texto | ator | prior | origem | verificação |
+// Linha de RF:  | **RF-10** | texto | ator | prior | origem | verificação |
 // Linha de RNF: | **RNF-01** | texto | origem | verificação |
 const rf = [];
 const rnf = [];

@@ -56,7 +56,7 @@ abertos dela. Sem lote, as três subrotinas funcionam por espécie agregada, e n
 - **Ocupação do viveiro**: o mapa, com o que há em cada canteiro e quais estão livres (subrotina 3)
 - **Ficha do lote**: semeado → germinando → repicado → pronto, com o histórico que explica o saldo
 
-> **A agenda e o mapa são as duas telas de mesa do sistema** (RNF-27): abrem juntas na entrada da
+> **A agenda e o mapa são as duas telas de mesa do sistema** (RNF-15): abrem juntas na entrada da
 > Produção, alternadas por aba, e são concebidas para computador. No celular viram lista. Todo o
 > resto do sistema é de campo, e continua sendo do celular.
 

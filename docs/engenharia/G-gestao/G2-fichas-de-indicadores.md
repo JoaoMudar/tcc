@@ -69,7 +69,7 @@ indicadores para um painel que não existia.
 | **Responsável** | Gerência |
 | **Perfis** | Chefia, Gerência |
 
-**O limiar não é constante: é parâmetro** (RF-139, RN-94). Os 20% de RN-17 são o valor inicial, e a
+**O limiar não é constante: é parâmetro** (RF-09, RN-32). Os 20% de RN-11 são o valor inicial, e a
 chefia o altera em Configurações sem que ninguém implante nada.
 
 **É por lote, e não por espécie, e a diferença é o achado.** A taxa por espécie diz que o ipê morre
@@ -90,7 +90,7 @@ regra dos 20% aponta um problema que ninguém consegue localizar.
 | **Fonte** | Visão `batch_health`, que lê `assignments` e `batch_protocol_steps` |
 | **Unidade** | Contagem absoluta e percentual do total de lotes abertos |
 | **Janela** | Instantâneo do dia |
-| **Periodicidade** | A cada leitura: **nunca gravado** (RN-93) |
+| **Periodicidade** | A cada leitura: **nunca gravado** (RN-31) |
 | **Meta** | Nenhum lote crítico |
 | **Faixas** | Definidas por parâmetro: `producao.atraso_atencao_dias` e `producao.atraso_critico_dias` |
 | **Comparação** | O mesmo dia da semana anterior |
@@ -100,7 +100,7 @@ regra dos 20% aponta um problema que ninguém consegue localizar.
 **É o único indicador do conjunto que mede uma ausência.** Os outros dois medem o que aconteceu;
 este mede o que **tinha de acontecer e não aconteceu**, e é o que faz o esquecimento aparecer. A
 tarefa que ninguém lançou não deixa rastro em lugar nenhum, exceto aqui, porque a cobrança vem do
-protocolo do lote e não da agenda (RF-118).
+protocolo do lote e não da agenda (RF-55).
 
 ### IND-03 · Ocupação do viveiro
 
@@ -142,7 +142,7 @@ expõe dado financeiro ou concorrencialmente sensível: são leituras da produç
 qualquer um deles a um perfil produziria a situação em que quem decide não vê o que quem opera vê.
 
 **Onde eles moram.** Não há tela de indicadores. Os três são o que o **mapa de lotes** apresenta
-(RF-117 a RF-120), na área Produção: IND-01 destaca o lote acima do limite, IND-02 pinta a situação
+(RF-54 a RF-57), na área Produção: IND-01 destaca o lote acima do limite, IND-02 pinta a situação
 de cada lote e IND-03 é a leitura das áreas e canteiros. Um painel separado exigiria uma tela a
 mais, uma rota a mais e uma permissão a mais, para exibir o que já está desenhado.
 

@@ -16,7 +16,7 @@ especificados aqui. O critério de seleção foi duplo: **concentração de flux
 **custo operacional do erro**. Cadastrar um insumo errado corrige-se em segundos; repicar para o
 canteiro errado põe a leva num lugar em que ninguém vai procurá-la.
 
-**UC-57 e UC-59 esticam o critério.** Os dois são manutenção de cadastro, e pela regra acima
+**UC-17 e UC-18 esticam o critério.** Os dois são manutenção de cadastro, e pela regra acima
 ficariam de fora. Entram porque o **custo do erro é diferido**: âncora escolhida errada no
 protocolo não produz sintoma nenhum na hora, e aparece semanas depois no lote que foi classificado
 cedo demais. Erro que não se manifesta quando é cometido precisa de fluxo de exceção escrito, e
@@ -29,13 +29,13 @@ Notação dos fluxos: **FP** fluxo principal, **FA** fluxo alternativo, **FE** f
 
 ---
 
-## UC-24 · Cadastrar pedido
+## UC-31 · Cadastrar pedido
 
 | | |
 |---|---|
 | **Ator principal** | Chefia |
 | **Objetivo** | Registrar no sistema um pedido já negociado por WhatsApp, antes que o detalhe se perca |
-| **Requisitos** | RF-41, RF-141, RF-36 |
+| **Requisitos** | RF-66, RF-67, RF-17 |
 | **Frequência** | Diária |
 | **Pré-condições** | Existe ao menos uma espécie e um recipiente cadastrados |
 | **Pós-condições** | Pedido criado no estado *rascunho*, com ao menos um item e o preço unitário de cada um |
@@ -48,7 +48,7 @@ Notação dos fluxos: **FP** fluxo principal, **FA** fluxo alternativo, **FE** f
 4. O sistema solicita o canal de venda e apresenta *atacado* como opção padrão.
 5. A chefia confirma ou altera o canal.
 6. A chefia adiciona um item informando espécie, recipiente, quantidade e **preço unitário**.
-7. O sistema valida que a quantidade e o preço são positivos, apresenta ao lado do item o saldo de muda pronta daquela espécie e recipiente (UC-25) e acrescenta o item ao pedido.
+7. O sistema valida que a quantidade e o preço são positivos, apresenta ao lado do item o saldo de muda pronta daquela espécie e recipiente (UC-32) e acrescenta o item ao pedido.
 8. A chefia repete os passos 6 e 7 para os demais itens.
 9. A chefia informa, opcionalmente, a data prevista de entrega e observações.
 10. A chefia conclui o cadastro.
@@ -64,7 +64,7 @@ No passo 3, a chefia não localiza o cliente.
 
 > O cadastro fiscal completo não é exigido aqui. Exigi-lo interromperia a única
 > etapa do processo que compete com uma conversa de WhatsApp em andamento: a complementação ocorre
-> depois, pelo cadastro de cliente (UC-22), e só quando houver nota a emitir no sistema externo.
+> depois, pelo cadastro de cliente (UC-11), e só quando houver nota a emitir no sistema externo.
 
 ### FA-2: Saldo menor que a quantidade pedida
 
@@ -85,14 +85,14 @@ motivo e mantém o pedido em edição, sem perder os itens já lançados.
 
 ---
 
-## UC-25 · Consultar disponibilidade no pedido
+## UC-32 · Consultar disponibilidade no pedido
 
 | | |
 |---|---|
 | **Ator principal** | Chefia |
 | **Objetivo** | Saber, no momento em que o item é lançado, quanta muda pronta a produção tem daquela espécie e recipiente |
-| **Requisitos** | RF-42, RF-22 |
-| **Frequência** | Diária, dentro de UC-24 |
+| **Requisitos** | RF-68, RF-53 |
+| **Frequência** | Diária, dentro de UC-31 |
 | **Pré-condições** | Existe ao menos um lote aberto |
 | **Pós-condições** | Nenhuma: o caso de uso é de leitura e não altera dado nenhum |
 
@@ -125,13 +125,13 @@ informação comercial legítima.
 
 ---
 
-## UC-26 · Confirmar pedido
+## UC-33 · Confirmar pedido
 
 | | |
 |---|---|
 | **Ator principal** | Chefia |
 | **Objetivo** | Encerrar a edição do pedido, fixando itens, quantidades e preços |
-| **Requisitos** | RF-142 |
+| **Requisitos** | RF-69 |
 | **Frequência** | Diária |
 | **Pré-condições** | Pedido no estado *rascunho*, com ao menos um item |
 | **Pós-condições** | Pedido *confirmado*; itens não admitem mais alteração |
@@ -164,13 +164,13 @@ A chefia tenta alterar um item de pedido já confirmado. O sistema recusa a oper
 
 ---
 
-## UC-17 · Registrar perda
+## UC-25 · Registrar perda
 
 | | |
 |---|---|
 | **Ator principal** | Gerência |
 | **Objetivo** | Registrar mudas perdidas no momento e no local em que a perda é constatada |
-| **Requisitos** | RF-26, RF-28, RF-29, RF-91 |
+| **Requisitos** | RF-47, RF-51, RF-52, RF-46 |
 | **Frequência** | Diária |
 | **Pré-condições** | Existe lote aberto com saldo |
 | **Pós-condições** | Movimento de perda gravado no lote; mortalidade do lote recalculada; alerta emitido se ultrapassar o limite |
@@ -190,7 +190,7 @@ A chefia tenta alterar um item de pedido já confirmado. O sistema recusa a oper
 ### FA-1: Mortalidade acima do limite
 
 No passo 9, a taxa recalculada ultrapassa o limite mantido em Configurações, inicialmente 20%. O
-sistema destaca o lote no mapa (UC-61), identificando taxa e causa predominante. **O registro não é
+sistema destaca o lote no mapa (UC-27), identificando taxa e causa predominante. **O registro não é
 interrompido**: o alerta é uma leitura da tela seguinte, e não uma caixa a fechar.
 
 ### FA-2: Sem conexão
@@ -206,8 +206,8 @@ preserva os demais já preenchidos.
 ### FE-2: Quantidade maior que o saldo do lote
 
 No passo 7, a perda informada excede o que o lote ainda tem. O sistema recusa e apresenta o saldo
-(RN-78): perda maior que o saldo significa que a contagem está errada, e gravar o negativo
-propagaria o erro para o estoque. A correção é uma contagem física (UC-16), não uma perda maior.
+(RN-21): perda maior que o saldo significa que a contagem está errada, e gravar o negativo
+propagaria o erro para o estoque. A correção é uma contagem física (UC-26), não uma perda maior.
 
 > **Nota de projeto: como o quinto campo entrou sem virar campo.** Até 24/08/2026 este caso
 > registrava que localizar a perda dentro do viveiro melhoraria a análise e **foi descartado**, por
@@ -220,13 +220,13 @@ propagaria o erro para o estoque. A correção é uma contagem física (UC-16), 
 
 ---
 
-## UC-47 · Criar lote
+## UC-22 · Criar lote
 
 | | |
 |---|---|
 | **Ator principal** | Gerência |
 | **Objetivo** | Registrar uma leva de mudas plantada junta e o canteiro que ela passa a ocupar |
-| **Requisitos** | RF-84, RF-126 |
+| **Requisitos** | RF-40, RF-58 |
 | **Frequência** | Semanal |
 | **Pré-condições** | Existem espécie, recipiente e ao menos um canteiro livre cadastrados |
 | **Pós-condições** | Lote aberto ocupando o canteiro, com saldo igual à quantidade inicial, um movimento de entrada e o protocolo do recipiente atribuído |
@@ -240,13 +240,13 @@ propagaria o erro para o estoque. A correção é uma contagem física (UC-16), 
 5. A gerência seleciona a área e o canteiro.
 6. A gerência informa a data de plantio, que assume o dia corrente.
 7. A gerência confirma.
-8. O sistema cria o lote, gera o código, grava o movimento de entrada e atribui a ele o protocolo vigente do recipiente escolhido (RF-126).
+8. O sistema cria o lote, gera o código, grava o movimento de entrada e atribui a ele o protocolo vigente do recipiente escolhido (RF-58).
 
 ### FA-1: A leva não cabe em um canteiro
 
 No passo 3, a quantidade excede o que o canteiro ainda comporta, contando os lotes já abertos nele.
-O sistema **avisa e não recusa** (RN-92), e a gerência escolhe: apertar mais, ou criar **dois
-lotes**, um por canteiro, em vez de um lote em dois lugares (RN-76).
+O sistema **avisa e não recusa** (RN-30), e a gerência escolhe: apertar mais, ou criar **dois
+lotes**, um por canteiro, em vez de um lote em dois lugares (RN-19).
 
 > **Por que não um lote em dois canteiros.** Seria uma entidade a mais e um campo a mais em toda
 > tela que pede lote, para representar o que dois lotes já representam. E a pergunta que a
@@ -267,20 +267,20 @@ e recarrega a lista de canteiros livres.
 
 ---
 
-## UC-48 · Repicar lote
+## UC-23 · Repicar lote
 
 | | |
 |---|---|
 | **Ator principal** | Gerência |
 | **Objetivo** | Passar mudas de um lote para recipiente maior, preservando a ligação com a leva de origem |
-| **Requisitos** | RF-86, RF-87, RF-88 |
+| **Requisitos** | RF-42, RF-43, RF-44 |
 | **Frequência** | Semanal |
 | **Pré-condições** | Existe lote aberto com saldo, e há canteiro livre para o lote de destino |
 | **Pós-condições** | Lote novo aberto apontando para o de origem; saldo do de origem reduzido; dois movimentos gravados |
 
 ### FP: Fluxo principal
 
-1. A gerência confirma a tarefa de repicagem (UC-51) e o sistema pede o destino das mudas.
+1. A gerência confirma a tarefa de repicagem (UC-20) e o sistema pede o destino das mudas.
 2. O sistema exibe o lote de origem, com espécie, recipiente e saldo.
 3. A gerência informa a quantidade repicada e o recipiente de destino.
 4. A gerência seleciona a área e o canteiro de destino, entre os livres.
@@ -296,7 +296,7 @@ restante, e passa a ter um lote filho. É o caso normal: repica-se o que está n
 ### FA-2: Parte das mudas morreu na repicagem
 
 No passo 3, entram menos mudas do que saíram. O sistema apresenta a diferença e pede a causa, em
-lista fechada, gravando-a como **perda do lote de origem** no mesmo gesto (RN-90). A soma
+lista fechada, gravando-a como **perda do lote de origem** no mesmo gesto (RN-28). A soma
 "repicadas mais perdidas" tem de igualar a quantidade que saiu.
 
 > Sem esta alternativa, a diferença viraria evaporação silenciosa: o saldo do lote de origem
@@ -311,17 +311,17 @@ sistema aceita, porque o passo 7 o liberou antes.
 ### FE-1: Quantidade maior que o saldo
 
 No passo 5, a quantidade repicada somada à perdida excede o saldo do lote de origem. O sistema
-recusa e apresenta o saldo disponível (RN-78).
+recusa e apresenta o saldo disponível (RN-21).
 
 ---
 
-## UC-51 · Confirmar tarefa realizada
+## UC-20 · Confirmar tarefa realizada
 
 | | |
 |---|---|
 | **Ator principal** | Gerência |
 | **Objetivo** | Registrar que a tarefa planejada foi feita, e o que ela produziu |
-| **Requisitos** | RF-98, RF-99, RF-107, RF-113 |
+| **Requisitos** | RF-36, RF-37, RF-35, RF-38 |
 | **Frequência** | Várias vezes ao dia |
 | **Pré-condições** | Existe atribuição planejada na semana corrente, e a semana não está fechada |
 | **Pós-condições** | Atribuição marcada como *confirmada*, com a quantidade de cada participante; movimento gravado no lote quando a tarefa moveu mudas |
@@ -329,9 +329,9 @@ recusa e apresenta o saldo disponível (RN-78).
 ### FP: Fluxo principal
 
 1. A gerência aciona "confirmar" na célula da agenda.
-2. Se o tipo de tarefa declarar **lote específico**, o sistema pede o lote, uma vez para a tarefa, e não pede canteiro, que vem do lote (RF-99).
-3. Se o tipo de tarefa **não** exigir lote, o sistema oferece registrar a área ou o canteiro em que a tarefa foi feita (RF-113).
-4. Se o tipo de tarefa for **quantitativo por unidade**, o sistema pede **um número por participante**: quanto cada um fez (RF-98, RF-107).
+2. Se o tipo de tarefa declarar **lote específico**, o sistema pede o lote, uma vez para a tarefa, e não pede canteiro, que vem do lote (RF-37).
+3. Se o tipo de tarefa **não** exigir lote, o sistema oferece registrar a área ou o canteiro em que a tarefa foi feita (RF-38).
+4. Se o tipo de tarefa for **quantitativo por unidade**, o sistema pede **um número por participante**: quanto cada um fez (RF-36, RF-35).
 5. Se o tipo de tarefa não for quantitativo, o passo 4 não ocorre e o sistema não pede número algum.
 6. A gerência confirma.
 7. O sistema marca a atribuição como *confirmada* para todos os participantes.
@@ -339,13 +339,13 @@ recusa e apresenta o saldo disponível (RN-78).
 
 ### FA-1: Tarefa de repicagem
 
-No passo 8, a tarefa é repicagem. O sistema encaminha para UC-48, porque o destino das mudas
+No passo 8, a tarefa é repicagem. O sistema encaminha para UC-23, porque o destino das mudas
 precisa ser informado antes que o movimento possa ser gravado.
 
 ### FA-2: Tarefa de classificação
 
 No passo 8, a tarefa é classificação. O sistema pede, no mesmo formulário, quantas mudas foram
-descartadas, e grava a perda como movimento do lote (RN-90). Separar os dois gestos faria a perda
+descartadas, e grava a perda como movimento do lote (RN-28). Separar os dois gestos faria a perda
 ser esquecida.
 
 ### FA-3: Sem conexão
@@ -362,10 +362,10 @@ registro.
 
 ### FA-5: Ordem do protocolo
 
-No passo 1, a célula é uma ordem gerada pelo protocolo (RF-127), e não um lançamento manual. O lote
+No passo 1, a célula é uma ordem gerada pelo protocolo (RF-59), e não um lançamento manual. O lote
 **já vem preenchido** pela ordem, e o passo 2 não pergunta nada: campo já respondido pela origem da
 tarefa não é campo a pedir. A conclusão realimenta o protocolo, que passa a contar a ocorrência
-seguinte a partir desta data (RF-129).
+seguinte a partir desta data (RF-61).
 
 ### FE-1: Quantidade inválida
 
@@ -376,29 +376,29 @@ alguma dela.
 ### FE-2: Lote não informado
 
 No passo 2, o tipo de tarefa declara lote específico e o lote não foi informado. O sistema recusa a
-confirmação e mantém a atribuição planejada (RF-99): sem lote a atividade não se liga à leva, e a
+confirmação e mantém a atribuição planejada (RF-37): sem lote a atividade não se liga à leva, e a
 perda não encontra destino.
 
 ### FE-3: Semana já fechada
 
 No passo 6, a semana da atribuição foi fechada enquanto a tela estava aberta. O sistema recusa a
-confirmação e informa o motivo (RF-73, RN-50): semana fechada não se altera, e o que ficou por
-confirmar já entrou no realizado com a marca de não confirmado (RF-75).
+confirmação e informa o motivo (RF-33, RN-13): semana fechada não se altera, e o que ficou por
+confirmar já entrou no realizado com a marca de não confirmado (RF-39).
 
 > **Confirmar não é apontar hora.** A tarefa registra que foi feita e quanto rendeu, e nada mais.
 > Medir a hora de entrada e de saída de cada pessoa seria controle de ponto, que está fora do
 > escopo declarado em [`A1` §7](../A-fundacao/A1-documento-de-visao.md), e a agenda continua sendo
-> planejada por turno (RN-48), que é como o viveiro sempre trabalhou.
+> planejada por turno (RN-12), que é como o viveiro sempre trabalhou.
 
 ---
 
-## UC-57 · Manter protocolo de atividades
+## UC-17 · Manter protocolo de atividades
 
 | | |
 |---|---|
 | **Ator principal** | Gerência |
 | **Objetivo** | Definir, por recipiente, a sequência de etapas que todo lote daquele recipiente passa a seguir sozinho |
-| **Requisitos** | RF-122, RF-123, RF-124, RF-125 |
+| **Requisitos** | RF-25, RF-26, RF-27, RF-28 |
 | **Frequência** | Raríssima: uma vez por recipiente, revista por safra |
 | **Pré-condições** | Existem tipos de tarefa no catálogo e ao menos um recipiente |
 | **Pós-condições** | Protocolo vigente para o recipiente; lotes criados a partir daí passam a segui-lo |
@@ -408,13 +408,13 @@ confirmar já entrou no realizado com a marca de não confirmado (RF-75).
 1. A gerência abre o cadastro de protocolos e escolhe o recipiente.
 2. O sistema apresenta o protocolo vigente do recipiente, ou um protocolo vazio quando não há.
 3. A gerência acrescenta uma etapa, escolhendo o tipo de tarefa no catálogo e dando-lhe um rótulo.
-4. A gerência declara o agendamento: **sequencial**, que ocorre uma vez, ou **recorrente**, que repete (RF-123).
-5. A gerência declara o **evento de referência**: a criação do lote, ou a conclusão de uma etapa já existente no protocolo, escolhida numa lista (RF-124).
+4. A gerência declara o agendamento: **sequencial**, que ocorre uma vez, ou **recorrente**, que repete (RF-26).
+5. A gerência declara o **evento de referência**: a criação do lote, ou a conclusão de uma etapa já existente no protocolo, escolhida numa lista (RF-27).
 6. A gerência informa o tempo em dias e, quando recorrente, o intervalo entre ocorrências.
-7. A gerência informa o turno e decide se a etapa tem **alerta de atraso** ligado (RF-125).
+7. A gerência informa o turno e decide se a etapa tem **alerta de atraso** ligado (RF-28).
 8. Quando sequencial, a gerência escolhe, de forma opcional, a fase do lote que a conclusão da etapa passa a gravar.
 9. O sistema valida a etapa e a acrescenta ao protocolo, na ordem escolhida.
-10. A alteração passa a valer **apenas para o que ainda vai ser gerado** (RN-107).
+10. A alteração passa a valer **apenas para o que ainda vai ser gerado** (RN-42).
 
 ### FA-1: Etapa que não altera a fase
 
@@ -425,13 +425,13 @@ escolher uma fase faria inventar transições que o ciclo produtivo não tem.
 ### FA-2: Etapa com janela de aviso própria
 
 No passo 7, a etapa precisa avisar antes ou depois do padrão. A gerência informa a janela própria,
-em percentual do intervalo, e ela prevalece sobre o parâmetro geral (RN-104).
+em percentual do intervalo, e ela prevalece sobre o parâmetro geral (RN-39).
 
 ### FA-3: Alteração de protocolo com lotes em andamento
 
 No passo 10, existem lotes seguindo o protocolo. O sistema **não** reescreve as ordens já emitidas
-nem as datas já cumpridas: a alteração vale para a próxima geração de cada lote (RN-107). É a
-mesma garantia que a ordem já gerada tem em RN-111, e a razão é a mesma: regra que reescrevesse o
+nem as datas já cumpridas: a alteração vale para a próxima geração de cada lote (RN-42). É a
+mesma garantia que a ordem já gerada tem em RN-46, e a razão é a mesma: regra que reescrevesse o
 passado apagaria dia já trabalhado.
 
 ### FE-1: Âncora circular
@@ -455,13 +455,13 @@ lote novo segue.
 
 ---
 
-## UC-58 · Dividir lote
+## UC-24 · Dividir lote
 
 | | |
 |---|---|
 | **Ator principal** | Gerência |
 | **Objetivo** | Separar uma leva em dois lotes que passam a ser conduzidos de forma independente |
-| **Requisitos** | RF-135, RF-134 |
+| **Requisitos** | RF-49, RF-65 |
 | **Frequência** | Ocasional |
 | **Pré-condições** | Lote aberto, com saldo maior que um |
 | **Pós-condições** | Dois lotes abertos, cada um com o seu saldo e o seu protocolo; lote original encerrado com motivo `dividido` |
@@ -472,15 +472,15 @@ lote novo segue.
 2. O sistema apresenta o saldo atual e pede a quantidade que vai para o segundo lote.
 3. A gerência informa a quantidade e o canteiro de cada resultante, que podem ser o mesmo.
 4. O sistema cria os dois lotes, ambos apontando para o original como lote de origem.
-5. O sistema **copia para cada um o acompanhamento do protocolo do original**: a fase e a data da última execução de cada etapa (RN-109).
-6. O sistema encerra o original com motivo `dividido`, e **cancela** as ordens dele ainda em aberto (RN-108).
+5. O sistema **copia para cada um o acompanhamento do protocolo do original**: a fase e a data da última execução de cada etapa (RN-44).
+6. O sistema encerra o original com motivo `dividido`, e **cancela** as ordens dele ainda em aberto (RN-43).
 7. O sistema grava os movimentos que explicam o saldo dos três lotes.
 8. Daí em diante, os dois resultantes vencem e cumprem etapas de forma independente.
 
 ### FA-1: Divisão que mantém os dois no mesmo canteiro
 
 No passo 3, os dois resultantes ficam onde estavam. O sistema aceita: um canteiro comporta vários
-lotes (RN-76), e a divisão é frequentemente contábil, e não física.
+lotes (RN-19), e a divisão é frequentemente contábil, e não física.
 
 ### FA-2: Etapa já vencida no momento da divisão
 
@@ -502,13 +502,13 @@ hora trabalhada perderia destino.
 
 ---
 
-## UC-59 · Customizar tempo de etapa por espécie
+## UC-18 · Customizar tempo de etapa por espécie
 
 | | |
 |---|---|
 | **Ator principal** | Gerência |
 | **Objetivo** | Ajustar, para uma espécie, o tempo de uma etapa específica do protocolo |
-| **Requisitos** | RF-133 |
+| **Requisitos** | RF-29 |
 | **Frequência** | Rara, e apenas para as espécies que fogem da média |
 | **Pré-condições** | Espécie cadastrada e protocolo montado para o tipo de embalagem em questão |
 | **Pós-condições** | A espécie passa a usar o tempo próprio; as demais seguem o do tipo de embalagem |
@@ -518,7 +518,7 @@ hora trabalhada perderia destino.
 1. A gerência abre o cadastro da espécie e a seção de tempos do protocolo.
 2. O sistema apresenta as etapas dos protocolos, com o tempo padrão de cada uma.
 3. A gerência informa o tempo próprio da espécie na etapa que difere.
-4. O sistema grava apenas o que foi preenchido, e o que ficou em branco continua vindo do protocolo (RN-106).
+4. O sistema grava apenas o que foi preenchido, e o que ficou em branco continua vindo do protocolo (RN-41).
 5. Lotes daquela espécie criados a partir daí passam a usar o tempo próprio.
 
 ### FA-1: Remover a customização
@@ -536,7 +536,7 @@ caminho a mais para chegar ao mesmo número.
 ### FE-2: Alteração com lotes em andamento
 
 No passo 5, existem lotes da espécie em curso. O novo tempo vale para os vencimentos **ainda não
-gerados**, e não reescreve ordem já emitida (RN-107). O sistema informa quantos lotes serão
+gerados**, e não reescreve ordem já emitida (RN-42). O sistema informa quantos lotes serão
 afetados na próxima geração, para que a gerência saiba o alcance antes de confirmar.
 
 ---
@@ -548,7 +548,7 @@ de cadastro e de consulta, cujo fluxo se resume a selecionar, preencher e confir
 relevantes. Especificá-los produziria repetição sem ganho analítico.
 
 Três merecem registro por já estarem descritos em linguagem de negócio na documentação de domínio:
-**UC-43 (montar a agenda da semana)** e **UC-52 (fechar a semana)**, em
+**UC-19 (montar a agenda da semana)** e **UC-21 (fechar a semana)**, em
 [`docs/rotinas/2-producao/01-agenda-de-pessoal.md`](../../rotinas/2-producao/01-agenda-de-pessoal.md),
-e **UC-61 (consultar mapa de lotes)**, em
+e **UC-27 (consultar mapa de lotes)**, em
 [`docs/rotinas/2-producao/04-lotes-e-canteiros.md`](../../rotinas/2-producao/04-lotes-e-canteiros.md).
