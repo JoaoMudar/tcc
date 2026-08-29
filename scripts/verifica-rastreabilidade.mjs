@@ -52,8 +52,14 @@ const citados = {};
 for (const familia of Object.keys(FONTES)) citados[familia] = new Map();
 const reCitacao = /\b(RNF|RF|RN|UC|TA|IND|RE)-(\d+)\b/g;
 
+// Registros históricos citam, de propósito, identificadores que já não existem: é o
+// que os torna registro. Reescrevê-los para satisfazer esta conferência os
+// transformaria em ficção retroativa.
+const REGISTROS_HISTORICOS = ['auditoria-divergencias.md'];
+
 for (const arquivo of ARQUIVOS) {
   if (arquivo.includes('node_modules')) continue;
+  if (REGISTROS_HISTORICOS.some((h) => arquivo.endsWith(h))) continue;
   const texto = readFileSync(arquivo, 'utf8');
   for (const m of texto.matchAll(reCitacao)) {
     const id = `${m[1]}-${m[2]}`;

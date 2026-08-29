@@ -1,6 +1,6 @@
 # Guia de escrita: capítulos de *Elicitação e análise de requisitos* e *Regras de negócio*
 
-> Para quem: você, sentando para escrever, sem tempo de reler 3.500 linhas de documentação.
+> Para quem: você, sentando para escrever, sem tempo de reler as linhas de documentação.
 > Não é um artefato de engenharia: é um mapa de onde o material já está e o que ainda falta escrever.
 
 ---
@@ -13,7 +13,7 @@
    a legenda de origem de [`B2`](B-requisitos/B2-especificacao-requisitos.md) §1, o §5 de `B2`
    (conflitos), o §5 de [`B5`](B-requisitos/B5-matriz-rastreabilidade.md) (lacunas) e as seções
    *"Situação atual"* de [`docs/rotinas/`](../rotinas/).
-3. **Regras de negócio** já estão catalogadas: 82 regras em
+3. **Regras de negócio** já estão catalogadas: 60 regras em
    [`B3-regras-de-negocio.md`](B-requisitos/B3-regras-de-negocio.md), cada uma com os requisitos que
    ela origina. Foram extraídas de [`A2`](A-fundacao/A2-glossario-dominio.md) (as regras estão dentro
    das definições), dos fluxos **FE/FA** de [`C2`](C-modelagem/C2-especificacao-casos-de-uso.md) e do
@@ -54,7 +54,7 @@ requisito é a resposta do software a ela.
 |---|---|---|
 | [`A1-documento-de-visao.md`](A-fundacao/A1-documento-de-visao.md) | §2: O problema | O diagnóstico inicial: ausência de registro, conhecimento na memória de duas pessoas, precificação intuitiva. É o **resultado** da elicitação de contexto |
 | `A1` | §5: Stakeholders e usuários | Quem foi ouvido, com quantas pessoas, nível técnico. Inclui os *stakeholders* sem acesso ao sistema (contador, clientes de compensação, órgãos ambientais) e a **declaração de viés do autor** |
-| `A1` | §8 (Premissas e §9) Restrições | As 8 restrições **RE-1 a RE-8**: cada uma é um achado de elicitação (usuários sem formação técnica, conexão instável, mãos sujas, base financeira misturada) |
+| `A1` | §8 (Premissas e §9) Restrições | As 7 restrições **RE-1 a RE-7**: cada uma é um achado de elicitação (usuários sem formação técnica, conexão instável, mãos sujas, base financeira misturada) |
 | [`B2-especificacao-requisitos.md`](B-requisitos/B2-especificacao-requisitos.md) | §1 ("Legenda) origem" | **As técnicas de elicitação já estão codificadas**: OP, EN, AD, DOM, LEG, ORG. É o esqueleto da sua seção de técnicas |
 | `B2` | §4: Distribuição por prioridade | A priorização MoSCoW: parte da *análise*, não do levantamento |
 | `B2` | §5: Conflitos entre requisitos e sua resolução | **O melhor material do capítulo.** Três conflitos reais entre *stakeholders*, com a negociação e o desfecho. É análise de requisitos em estado puro |
@@ -73,7 +73,7 @@ a soma dá 113 e não 106.
 | **EN**: Entrevista com chefia e gerência | 40 | Técnica dominante: o conhecimento estava na memória das pessoas |
 | **OP**: Observação participante | 35 | Segunda maior: o autor integra a operação |
 | **ORG**: Política do projeto | 16 | Quase toda em acesso, segurança e fechamento de período |
-| **AD**: Análise documental (notas, extratos, planilhas) | 16 | Concentrada no subsistema financeiro e de custeio |
+| **AD**: Análise documental (notas de compra, planilhas de nota fiscal) | 3 | Concentrada no cadastro de insumo e nos dados fiscais do cliente |
 | **LEG**: Exigência legal/fiscal | 4 | Documento fiscal, LGPD, nome científico |
 | **DOM**: Estudo do domínio florestal | 2 | Complementar |
 
@@ -90,7 +90,7 @@ Esse é um parágrafo de análise que a banca valoriza.
 | 2. *Stakeholders* identificados | `A1` §5 (tabela pronta) | Não |
 | 3. Técnicas empregadas e justificativa | `B2` §1 legenda + tabela 1.2 acima | Parcial: falta o **como** (ver 1.4) |
 | 4. Processo de elicitação (o como-é) | `rotinas/*` + `A1` §2 | Parcial |
-| 5. Restrições identificadas | `A1` §9 (RE-1 a RE-8) | Não |
+| 5. Restrições identificadas | `A1` §9 (RE-1 a RE-7) | Não |
 | 6. Análise: priorização MoSCoW | `B2` §4 | Não |
 | 7. Análise: conflitos e negociação | `B2` §5 (três conflitos) | Não |
 | 8. Validação dos requisitos | `B5` §5 (as lacunas encontradas) + `E2` casos de aceite | Não |
@@ -117,8 +117,7 @@ Isto é o único trabalho realmente novo. Nada disso está registrado em nenhum 
 ## 2.1 Onde as regras estão escondidas
 
 > ✅ **Já resolvido.** O catálogo completo agora existe em
-> [`B3-regras-de-negocio.md`](B-requisitos/B3-regras-de-negocio.md): **82 regras** numeradas
-> de RN-01 a RN-90, com oito números vagos de regras que saíram do catálogo, cada uma com
+> [`B3-regras-de-negocio.md`](B-requisitos/B3-regras-de-negocio.md): **60 regras**, cada uma com
 > tipo, onde já estava documentada e os requisitos que ela origina.
 > mais as tabelas inversas (RF → RN e RNF → origem). Os mesmos conteúdos, já reduzidos ao formato
 > de quadro que vai impresso, estão em [`B4-quadros-tcc.md`](B-requisitos/B4-quadros-tcc.md).
@@ -134,23 +133,18 @@ As regras estavam dissolvidas em cinco lugares:
 | [`C6`](C-modelagem/C6-modelo-entidade-relacionamento.md) / [`C8`](C-modelagem/C8-dicionario-de-dados.md) | Regras que viraram estrutura: chaves compostas, listas fechadas, restrições `CHECK`. `C6` §5 explica *por que o piso é coluna e não constante*, regra que molda o modelo |
 | [`G2`](G-gestao/G2-fichas-de-indicadores.md) e [`D4`](D-arquitetura/D4-matriz-rbac.md) | Limiares e regras de acesso (o 20% de mortalidade; a base bancária restrita à chefia) |
 
-## 2.2 O catálogo: 82 regras, em [`B3`](B-requisitos/B3-regras-de-negocio.md)
+## 2.2 O catálogo: 60 regras, em [`B3`](B-requisitos/B3-regras-de-negocio.md)
 
-As regras estão numeradas de **RN-01 a RN-90**, com oito números vagos (RN-36, RN-49, RN-54,
-RN-60, RN-61, RN-63, RN-64 e RN-65 saíram do catálogo e não se reutilizam), e agrupadas em
+As regras estão agrupadas em
 nove áreas:
 
 | Área | Regras | O que cobre |
 |---|---|---|
-| A: Domínio e produto | RN-01 a RN-06 | Espécie como centro, nomes populares, recipiente define o produto, ciclo produtivo, muda pronta |
-| B: Custeio | RN-07 a RN-12, RN-53, RN-56 | Composição do custo unitário, histórico de preço, competência, valor-hora médio, tarefa sem espécie como custo indireto |
-| C: Produção, estoque e perdas | RN-13 a RN-18, RN-48, RN-50 a RN-52, RN-57, RN-74 a RN-90 | Saldo, contagem física, estoque mínimo, causa em lista fechada, mortalidade de 20%, custo da perda, agenda por turno, semana que fecha, o que soma ao estoque; e, desde 24/08/2026, área e canteiro, lote e repicagem, catálogo de tarefas, apontamento e período de trabalho, entrada e saldo de insumo, gasto de tarefa |
-| D: Precificação | RN-19 a RN-24, RN-58, RN-59 | Preço = custo + margem, canal, piso mínimo, frete, margem negativa, custo vigente na data, preço que sugere e não impõe |
-| E: Cliente e obrigação fiscal | RN-25 a RN-30, RN-55, RN-62 | PF/PJ, cadastro mínimo, identidade única com papéis acumuláveis, nota externa, compensação ambiental, LGPD, endereços |
-| F: Pedido, entrega e fornecedor | RN-31 a RN-35, RN-37 a RN-39, RN-66, RN-67 | Ciclo de estados, item genérico, disponibilidade parcial, carga como unidade que sai do viveiro, cotação de fornecedor |
-| G: Financeiro | RN-40 a RN-44, RN-68 a RN-73 | Extrato como fonte da verdade, centro de custo e rateio, fechamento do mês, acesso restrito, transferência, entregue ≠ pago, centro de custo como cadastro que se inativa |
-| H: Acesso e responsabilidade | RN-45, RN-46 | Perfil determina o acesso; todo registro tem autor |
-| I: Indicadores | RN-47 | Indicador sem meta e sem comparação não orienta decisão |
+| A: Domínio e produto | RN-01 a RN-06, RN-115 | Espécie como centro, nomes populares, recipiente define o produto e o manejo, só muda pronta é estoque, insumo é catálogo |
+| B: Produção, lote e trabalho | RN-13 a RN-17, RN-48, RN-50, RN-51, RN-55, RN-57, RN-74 a RN-82, RN-84, RN-85, RN-90 a RN-95 | Saldo derivado dos lotes, contagem física prevalece, causa da perda em lista fechada, mortalidade, lote e canteiro, planejamento por turno, semana que fecha, quantidade por pessoa |
+| C: Protocolo de atividades por lote | RN-98 a RN-102, RN-104 a RN-113 | Protocolo do recipiente, âncora declarada, contagem da execução real, uma ocorrência em aberto, alteração que não retroage |
+| D: Cliente e pedido | RN-20, RN-25 a RN-31, RN-62, RN-114 | PF/PJ, cadastro mínimo, identidade única com papéis, canal de venda, nota em sistema externo, preço negociado |
+| E: Acesso e responsabilidade | RN-45, RN-46 | Perfil determina o acesso; todo registro tem autor |
 
 Cada regra em `B3` traz **tipo** (fato, restrição, derivação, acionamento), **onde já estava
 documentada** e **quais RF e RNF ela origina**. As tabelas inversas (RF → RN e RNF → origem) estão
@@ -171,19 +165,17 @@ RE-5) ou de política do projeto. As regras determinam **o que** o sistema faz; 
 | Seção | Conteúdo |
 |---|---|
 | 1. Conceito e critério de classificação | O teste "apague o sistema"; a distinção regra × requisito × RNF; os quatro tipos (`B3` §2) |
-| 2. Regras de domínio e produto | RN-01 a RN-06 |
-| 3. Regras de custeio | RN-07 a RN-12, RN-53, RN-56 |
-| 4. Regras de produção, estoque e perdas | RN-13 a RN-18, RN-48, RN-50 a RN-52, RN-57, RN-74 a RN-90 |
-| 5. Regras de precificação | RN-19 a RN-24, RN-58, RN-59: a **espinha dorsal do trabalho**, é onde o objetivo OP-3 se realiza |
-| 6. Regras de cliente e obrigação fiscal | RN-25 a RN-30, RN-55, RN-62 |
-| 7. Regras de pedido, entrega e fornecedor | RN-31 a RN-35, RN-37 a RN-39, RN-66, RN-67 |
-| 8. Regras financeiras, de acesso e de indicadores | RN-40 a RN-47, RN-68 a RN-73 |
+| 2. Regras de domínio e produto | Área A |
+| 3. Regras de produção, lote e trabalho | Área B: é a **espinha dorsal do trabalho**, e onde os objetivos OP-2 e OP-3 se apoiam |
+| 4. Regras do protocolo de atividades | Área C: o único conjunto que descreve comportamento automático |
+| 5. Regras de cliente e pedido | Área D |
+| 6. Regras de acesso e responsabilidade | Área E |
 | 9. Como as regras se refletem no sistema | Tabela RN → RF (`B3` §3 e §4) → onde é verificada (`E2`) |
 | 10. Regras implementadas como restrição de dados | `C6`/`C8`: lista fechada, chave composta, `CHECK` |
 
 A seção 9 é a que fecha o capítulo com rigor: mostra que nenhuma regra ficou sem implementação e
 nenhuma implementação ficou sem regra: o mesmo raciocínio de `B5`. As quatro exceções (RF-02,
-RF-03, RF-07 e RF-72, que não decorrem de regra alguma) estão justificadas em `B3` §6 e valem um
+RF-03, RF-07 e RF-108, que não decorrem de regra alguma) estão justificadas em `B3` §6 e valem um
 parágrafo.
 
 ---
@@ -234,7 +226,7 @@ nomes que não batem com o sumário.
 
 1. Crie o artefato-fonte que falta em `docs/engenharia/`, seguindo a convenção de códigos:
    - `B-requisitos/B1-elicitacao-e-analise.md`: **o único que falta**; o código `B1` está livre
-   - `B-requisitos/B3-regras-de-negocio.md`: **✅ já existe**, com as 82 regras e as tabelas de vínculo
+   - `B-requisitos/B3-regras-de-negocio.md`: **✅ já existe**, com as 60 regras e as tabelas de vínculo
    - `B-requisitos/B4-quadros-tcc.md`: **✅ já existe**, com os 13 quadros formatados para o Word
 2. Registre-os em [`scripts/build-docs-tcc.mjs`](../../scripts/build-docs-tcc.mjs), no array
    `SECOES`, na posição correta da ordem: o array define nome de arquivo, título e ordem

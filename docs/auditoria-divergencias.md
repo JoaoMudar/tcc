@@ -19,6 +19,20 @@
 > mantidos junto do modelo. Havia aqui uma cópia dela, o antigo achado I, e ela envelheceu três
 > vezes: foi retirada em 26/08/2026.
 
+> ---
+>
+> ⚠️ **A redução de escopo de 28/08/2026 superou boa parte deste arquivo.** O sistema passou de
+> quatro módulos para três áreas de negócio, de quatro perfis para três, e de 62 entidades para 27.
+> Os achados **D** (colaborador × funcionario), **G** (dois documentos definindo indicadores),
+> **K** (taxonomias de módulo concorrentes) e **M** (um lote por canteiro) tratam de estruturas que
+> deixaram de existir, e ficam aqui como registro do que se decidiu, não como pendência a resolver.
+> A oitava passada, ao final do arquivo, descreve o corte e o que ele fechou.
+>
+> **Este é um registro, e registro não se reescreve.** Os identificadores de requisito, regra e caso
+> de uso citados abaixo são os da numeração da época, e muitos já não existem. Por isso o arquivo
+> está na lista de exceções de `scripts/verifica-rastreabilidade.mjs`: corrigi-lo para satisfazer a
+> conferência produziria uma auditoria que descreve um passado que não aconteceu.
+
 ## Resumo
 
 | # | Divergência | Situação |
@@ -745,3 +759,57 @@ seriam tomadas melhor com o código na frente. Quinze dias depois, o saldo dessa
 O critério que fica: **marcar só serve para o que não se pode consertar agora.** Se a tradução já é
 sabida, ela é o conserto, e adiá-la significa reescrever o mesmo texto duas vezes, uma no aviso e
 outra na tarefa, e ainda arcar com o risco de o aviso envelhecer sozinho.
+
+---
+
+## Oitava passada: a redução de escopo (28/08/2026)
+
+O sistema foi especificado para a empresa e para o TCC ao mesmo tempo, e a especificação cresceu
+além do que um protótipo entrega no prazo acadêmico. O corte foi aplicado a todos os artefatos, e é
+o maior evento registrado neste arquivo.
+
+### O que saiu
+
+Módulo Financeiro por inteiro (extrato, conciliação, lançamentos, centros de custo, fechamento
+mensal), custeio, precificação, cotação com fornecedores, entregas e cargas, apontamento por
+relógio, gastos e insumos da tarefa, coleta de sementes, estoque de insumo, item genérico de
+pedido, notificações, histórico de estados do pedido e exigência de nota fiscal. Junto deles, o
+**perfil colaborador**: os seis trabalhadores de campo deixaram de operar o sistema, e o trabalho
+deles passou a ser planejado e confirmado pela gerência.
+
+### O que o corte fechou
+
+| Achado | Como fechou |
+|---|---|
+| **D** | O enum `user_role` perdeu `colaborador`, e a ambiguidade com `party_roles.role = 'funcionario'` deixou de existir: hoje só há um sentido para cada palavra, declarado em `D4` §1 |
+| **G** | `G2` passou a ter três indicadores, e os três são o que o mapa de lotes mostra. Não há painel próprio nem segunda definição |
+| **K** | Uma taxonomia só, de três áreas, espelhada em B2, B5, C1, C6, D1, D4 e no mapa de rotinas |
+| **M** | Um canteiro comporta vários lotes, e a restrição sobrevivente é a do lote, que não se espalha |
+
+### O que o corte revelou, e é achado novo
+
+**Achado O: tabela de cobertura escrita à mão afirmando cobertura que não existia.** Ao remover
+seções inteiras de `E2`, dezenove requisitos de prioridade *deve ter* ficaram sem caso de aceite, e
+a tabela de cobertura da §13 continuou afirmando cobertura total, porque era mantida à mão. A
+lacuna só apareceu quando a tabela passou a ser **calculada a partir dos casos**.
+
+A correção não foi escrever os dezenove casos, ainda que eles tenham sido escritos: foi tornar
+derivadas as tabelas que resumem outras. Passaram a ser geradas por script:
+
+| Documento | Script | O que ele deriva |
+|---|---|---|
+| `B3` §4 e §7 | `scripts/build-b3-derivado.mjs` | RF → RN, invertido do catálogo; texto integral dos requisitos |
+| `B4` inteiro | `scripts/build-b4-quadros.mjs` | Os dez quadros, de B2, B3 e A1 |
+| `B5` §2 e §6 | `scripts/build-b5-matriz.mjs` | Caso de uso e teste por requisito; estado da cobertura |
+| `E2` §9 | `scripts/build-e2-cobertura.mjs` | Cobertura por seção e os requisitos sem caso |
+| `modelo-dados-pt` | `scripts/mede-figuras.mjs` | A fonte útil de cada figura, medida do PNG |
+
+**O critério é um só: documento que resume outro não se escreve à mão.** Foi o que produziu, no
+histórico deste projeto, o `.docx` de quadros defasado em dois meses (achado do `B4`), as
+contagens divergentes de requisitos (136 declarados contra 138 reais) e agora a cobertura de teste
+afirmada e inexistente. Três vezes é padrão.
+
+**Achado P: a conferência de referências virou comando.** `scripts/verifica-rastreabilidade.mjs`
+confronta, nos dois sentidos, os identificadores definidos em B2, B3, C1, E2, G2 e A1 contra os
+citados em todo o repositório. Foi ele que encontrou, durante o corte, as dezenas de citações a
+requisitos removidos que sobreviveram em C8, D4, E4, E5, F1 e nas rotinas.
