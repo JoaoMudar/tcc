@@ -171,20 +171,33 @@ todo. Rastreiam-se ao artefato que os realiza e ao teste que os verifica.
 
 | RNF | Realizado em | Teste |
 |---|---|---|
-| RNF-01 a RNF-04 | Projeto de interface; [`F3`](../F-ux/F3-plano-avaliacao-usabilidade.md) | TA-55, TA-56, TA-22, TA-21 |
+| RNF-01 | Projeto de interface; [`F3`](../F-ux/F3-plano-avaliacao-usabilidade.md) | TA-55, TA-21, TA-22 |
+| RNF-02 | Projeto de interface; listas fechadas do modelo | TA-56 |
+| RNF-03, RNF-04 | Projeto de interface; [`F3`](../F-ux/F3-plano-avaliacao-usabilidade.md) | - *(avaliação de usabilidade)* |
 | RNF-05 | [`D1`](../D-arquitetura/D1-arquitetura-c4.md), fila local de sincronização | TA-23, TA-60 |
-| RNF-06, RNF-07 | [`D1`](../D-arquitetura/D1-arquitetura-c4.md), camada de apresentação | TA-57, TA-59 |
-| RNF-08 | [`A2`](../A-fundacao/A2-glossario-dominio.md), vocabulário canônico | TA-55; critério de aprendizado em F3 |
+| RNF-06 | [`D1`](../D-arquitetura/D1-arquitetura-c4.md), camada de apresentação | TA-57 |
+| RNF-07 | [`D1`](../D-arquitetura/D1-arquitetura-c4.md), camada de apresentação | TA-59 |
+| RNF-08 | [`A2`](../A-fundacao/A2-glossario-dominio.md), vocabulário canônico | - *(critério de aprendizado em F3)* |
 | RNF-09, RNF-10 | [`C8`](../C-modelagem/C8-dicionario-de-dados.md), `password_hash`, `token_hash` | TA-62 |
 | RNF-11, RNF-13 | [`D3`](../D-arquitetura/D3-diagrama-implantacao.md), fronteiras entre nós | - *(inspeção)* |
-| RNF-12 | [`D4`](../D-arquitetura/D4-matriz-rbac.md) §4, verificação na operação | TA-03, TA-61, TA-08 |
-| RNF-14 | [`E6`](../E-qualidade/E6-plano-backup-recuperacao.md) | Teste de restauração semestral |
-| RNF-16 a RNF-23 | Convenções do projeto; verificação automática antes do envio | Suíte automatizada |
-| RNF-24 | [`E5`](../E-qualidade/E5-mapeamento-lgpd.md) | - *(auditoria documental)* |
-| RNF-25, RNF-26 | [`C8`](../C-modelagem/C8-dicionario-de-dados.md), campos fiscais e nome científico | TA-15 |
-| RNF-27 | [`D3`](../D-arquitetura/D3-diagrama-implantacao.md) | TA-57 |
+| RNF-12 | [`D4`](../D-arquitetura/D4-matriz-rbac.md) §4, verificação na operação | TA-61 |
+| RNF-14 | [`E6`](../E-qualidade/E6-plano-backup-recuperacao.md) | - *(teste de restauração semestral)* |
 | RNF-15 | [`D3`](../D-arquitetura/D3-diagrama-implantacao.md), computador da coordenação | **TA-58** |
+| RNF-16 a RNF-23 | Convenções do projeto; verificação automática antes do envio | - *(suíte automatizada)* |
+| RNF-24 | [`E5`](../E-qualidade/E5-mapeamento-lgpd.md) | - *(auditoria documental)* |
+| RNF-25, RNF-26 | [`C8`](../C-modelagem/C8-dicionario-de-dados.md), campos fiscais e nome científico | - *(inspeção do cadastro)* |
+| RNF-27 | [`D3`](../D-arquitetura/D3-diagrama-implantacao.md) | - *(execução no ambiente-alvo)* |
 
+> **Nove dos vinte e sete têm caso de aceite, e os outros dezoito se verificam por inspeção.** A
+> coluna Teste só nomeia um TA quando existe um caso em [`E2`](../E-qualidade/E2-casos-de-teste-de-aceite.md)
+> que **declara aquele RNF** na sua coluna Requisito; onde a verificação é inspeção, medição ou
+> avaliação de usabilidade, ela vai entre parênteses e sem número.
+>
+> **A versão anterior desta tabela agrupava faixas e herdava o teste do primeiro da faixa**, e com
+> isso afirmava cobertura que não existia: RNF-03 e RNF-04 apareciam cobertos por casos que
+> declaram RNF-01 e RNF-02, RNF-08 por TA-55, que conta campos e não vocabulário, RNF-25 e RNF-26
+> por TA-15, que declara RF-16 e RF-18, e RNF-27 por TA-57, que declara RNF-06. É o mesmo defeito da
+> tabela de cobertura da §5.1, e pela mesma causa: seção que resume outra, mantida à mão.
 
 ---
 
@@ -197,9 +210,9 @@ justifique**?
 |---|---|---|
 | Casos de uso (C1) | 34 | Nenhum |
 | Entidades (C6, C8) | 27, mais 2 visões | Nenhuma |
-| Recursos de acesso (D4) | 23 | Nenhum |
+| Recursos de acesso (D4) | 25 | Nenhum |
 | Casos de aceite (E2) | 68 | Nenhum |
-| Indicadores (G2) | 3 | Nenhum: derivam de RF-52, RF-55 e RF-57 |
+| Indicadores (G2) | 3 | Nenhum: IND-01 de RF-52, IND-02 de RF-55 e IND-03 de RF-41 |
 | Pranchas de tela (F1) | 35 | Uma, RF-30, que é organização de interface e traz o número do requisito no lugar do caso de uso |
 
 **Nenhuma entidade sobrou sem requisito, e isso mudou com a redução de escopo.** A versão anterior
@@ -225,21 +238,25 @@ prioridade *deve ter* ficaram sem verificação**, entre eles o cadastro de esp�
 confirmação de tarefa (RF-35 a RF-38), o mapa inteiro (RF-54 a RF-57) e o pedido
 (RF-67 a RF-70).
 
-**Dezenove casos foram escritos para fechar a lacuna**, e a tabela de cobertura passou a ser gerada
-por script (`scripts/build-e2-cobertura.mjs`). O achado que vale registrar não é a lacuna: é que ela
-existiu por três dias sem que nenhuma leitura dos documentos a revelasse, porque a tabela que
-deveria denunciá-la era escrita à mão e continuava afirmando cobertura total.
+**Dezenove casos foram escritos para fechar a lacuna.** Treze deles couberam nas seções de `E2` que
+já tratavam do assunto, e os **seis** que não tinham seção onde entrar formaram a §8 de lá. A tabela
+de cobertura passou a ser gerada por script (`scripts/build-e2-cobertura.mjs`). O achado que vale
+registrar não é a lacuna: é que ela existiu por três dias sem que nenhuma leitura dos documentos a
+revelasse, porque a tabela que deveria denunciá-la era escrita à mão e continuava afirmando
+cobertura total.
 
-### 5.2 Quatro requisitos que descrevem o que o sistema faz sozinho
+### 5.2 Requisitos que descrevem o que o sistema faz sozinho
 
-RF-59 a RF-62 não têm caso de uso, e a ausência **não é lacuna**: são o motor de geração de ordens
-do protocolo, e nenhum ator os aciona. Confrontá-los com o catálogo de casos de uso obrigou a
-decidir entre inventar um ator ou declarar a ausência, e a decisão está registrada em
+**Seis requisitos não têm ator**, e a ausência **não é lacuna**: RF-51 e RF-55 calculam, e RF-59 a
+RF-62 são o motor de geração de ordens do protocolo. Confrontá-los com o catálogo de casos de uso
+obrigou a decidir entre inventar um ator ou declarar a ausência, e a decisão está em
 [`C1` §4.1](../C-modelagem/C1-diagrama-casos-de-uso.md).
 
-O padrão vale além destes quatro: **requisito derivado não tem ator**, e é o traço que separa o que
-o sistema calcula do que alguém digita. Os dois requisitos que também derivam sem ator, RF-55 e
-RF-51, aparecem na matriz com entidade marcada como *derivada*, e não com tabela própria.
+**Sem ator e sem caso de uso não são a mesma coisa**, e é o que a §6 conta. Quatro deles, RF-59 a
+RF-62, não têm caso de uso nenhum: ninguém os aciona e o resultado aparece na tela de outro caso.
+Os outros dois aparecem **dentro** do caso que exibe o que eles calculam, RF-51 em UC-30 e RF-55 em
+UC-27, porque ali existe alguém consultando, ainda que não seja quem dispara a conta. Daí o
+contador da §6 dizer 66 de 70, e não 64.
 
 ### 5.3 Três colunas derivadas e duas mantidas à mão
 

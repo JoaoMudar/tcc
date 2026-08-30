@@ -90,7 +90,7 @@ Fonte: Elaborado pelo autor (2026).
 | RN-44 | A divisão do lote produz dois lotes que seguem o protocolo de forma independente, herdando do original a fase e a data da última execução de cada etapa. |
 | RN-45 | O vencimento da etapa é derivado, nunca digitado: sai do evento de referência, da última execução e do tempo declarado. |
 | RN-46 | A ordem gerada pelo protocolo é atribuição comum: alterar ou excluir a ordem de um dia não altera a etapa nem as ordens dos demais lotes. |
-| RN-47 | A ordem do protocolo entra na semana do seu vencimento, e o sistema abre essa semana em rascunho se ela não existir; se a semana já estiver fechada, a ordem entra na semana aberta corrente, sem que o vencimento mude. |
+| RN-47 | O serviço vencido pertence à semana do seu vencimento; se essa semana já estiver fechada, ele passa a pertencer à semana aberta corrente, e o vencimento não muda por isso. |
 | RN-48 | A ordem do protocolo nasce sem ninguém escalado. O protocolo diz o que fazer e quando; quem faz continua sendo de quem monta a agenda. |
 
 Fonte: Elaborado pelo autor (2026).
@@ -200,7 +200,7 @@ Fonte: Elaborado pelo autor (2026).
 | RF-56 | Tarefa pendente e atraso do lote | O sistema deve apresentar, ao apontar o lote, a tarefa pendente que determina a situação dele e o atraso em dias. | RN-31 |
 | RF-57 | Mortalidade destacada no mapa | O sistema deve apresentar, no mapa, a mortalidade de cada lote e destacar os que ultrapassam o limite. | RN-11 |
 | RF-58 | Atribuição do protocolo ao lote na criação | O sistema deve atribuir ao lote, na criação, o protocolo vigente do recipiente dele, e acompanhar o lote etapa a etapa. | RN-34 |
-| RF-59 | Geração das ordens do protocolo na agenda | O sistema deve gerar as ordens de tarefa do protocolo na agenda sem digitação, e permitir alterar ou excluir a ordem de um dia sem alterar a etapa. | RN-46, RN-47, RN-48 |
+| RF-59 | Geração das ordens do protocolo na agenda | O sistema deve gerar as ordens de tarefa do protocolo na agenda sem digitação, abrindo em rascunho a semana do vencimento quando ela ainda não existir, e permitir alterar ou excluir a ordem de um dia sem alterar a etapa. | RN-46, RN-47, RN-48 |
 | RF-60 | Avanço de fase por etapa sequencial | O sistema deve avançar a fase do lote ao concluir uma etapa sequencial que declare fase resultante, e não deve avançá-la ao concluir etapa recorrente. | RN-38 |
 | RF-61 | Contagem a partir da execução real | O sistema deve contar a ocorrência seguinte de etapa recorrente a partir da data real da execução anterior, e nunca de uma data de calendário prevista. | RN-36 |
 | RF-62 | Uma ocorrência em aberto por etapa | O sistema deve manter no máximo uma ordem em aberto por etapa e por lote, sem gerar ocorrência nova enquanto a anterior estiver pendente. | RN-37 |

@@ -25,6 +25,15 @@ não de tela de cadastro genérica.
 Todos têm como pré-condição comum uma **sessão autenticada** cujo perfil autoriza a operação, a
 verificação ocorre a cada ação, e não apenas na entrada da tela (RF-06).
 
+**O campo Requisitos lista o que o fluxo exercita, e não só o que o caso realiza.** Quatro fluxos
+atravessam requisito que [`C1`](C1-diagrama-casos-de-uso.md) §4 atribui a outro caso de uso, e o
+requisito aparece aqui marcado com *(de UC-nn)*: cadastrar pedido oferece o cadastro rápido de
+cliente sem sair da tela, consultar disponibilidade lê o mesmo saldo que UC-29 apresenta, registrar
+perda atualiza a mortalidade que UC-30 analisa, e dividir lote encerra o protocolo do lote de
+origem. **A atribuição canônica é a do `C1`**, e é dela que a matriz
+[`B5`](../B-requisitos/B5-matriz-rastreabilidade.md) §2 é gerada: sem a marca, ler os dois
+documentos lado a lado daria a impressão de que o mesmo requisito tem dois donos.
+
 Notação dos fluxos: **FP** fluxo principal, **FA** fluxo alternativo, **FE** fluxo de exceção.
 
 ---
@@ -35,7 +44,7 @@ Notação dos fluxos: **FP** fluxo principal, **FA** fluxo alternativo, **FE** f
 |---|---|
 | **Ator principal** | Chefia |
 | **Objetivo** | Registrar no sistema um pedido já negociado por WhatsApp, antes que o detalhe se perca |
-| **Requisitos** | RF-66, RF-67, RF-17 |
+| **Requisitos** | RF-66, RF-67, RF-17 *(de UC-10)* |
 | **Frequência** | Diária |
 | **Pré-condições** | Existe ao menos uma espécie e um recipiente cadastrados |
 | **Pós-condições** | Pedido criado no estado *rascunho*, com ao menos um item e o preço unitário de cada um |
@@ -91,7 +100,7 @@ motivo e mantém o pedido em edição, sem perder os itens já lançados.
 |---|---|
 | **Ator principal** | Chefia |
 | **Objetivo** | Saber, no momento em que o item é lançado, quanta muda pronta a produção tem daquela espécie e recipiente |
-| **Requisitos** | RF-68, RF-53 |
+| **Requisitos** | RF-68, RF-53 *(de UC-29)* |
 | **Frequência** | Diária, dentro de UC-31 |
 | **Pré-condições** | Existe ao menos um lote aberto |
 | **Pós-condições** | Nenhuma: o caso de uso é de leitura e não altera dado nenhum |
@@ -170,7 +179,7 @@ A chefia tenta alterar um item de pedido já confirmado. O sistema recusa a oper
 |---|---|
 | **Ator principal** | Gerência |
 | **Objetivo** | Registrar mudas perdidas no momento e no local em que a perda é constatada |
-| **Requisitos** | RF-47, RF-51, RF-52, RF-46 |
+| **Requisitos** | RF-47, RF-46, RF-51 e RF-52 *(de UC-30)* |
 | **Frequência** | Diária |
 | **Pré-condições** | Existe lote aberto com saldo |
 | **Pós-condições** | Movimento de perda gravado no lote; mortalidade do lote recalculada; alerta emitido se ultrapassar o limite |
@@ -461,7 +470,7 @@ lote novo segue.
 |---|---|
 | **Ator principal** | Gerência |
 | **Objetivo** | Separar uma leva em dois lotes que passam a ser conduzidos de forma independente |
-| **Requisitos** | RF-49, RF-65 |
+| **Requisitos** | RF-49, RF-65 *(de UC-28)* |
 | **Frequência** | Ocasional |
 | **Pré-condições** | Lote aberto, com saldo maior que um |
 | **Pós-condições** | Dois lotes abertos, cada um com o seu saldo e o seu protocolo; lote original encerrado com motivo `dividido` |

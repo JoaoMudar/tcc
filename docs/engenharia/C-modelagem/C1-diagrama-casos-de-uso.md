@@ -287,21 +287,29 @@ aqueles cujo erro tem maior custo operacional.
 marcados assim mesmo porque o erro neles é **silencioso e diferido**: âncora escolhida errada só
 aparece semanas depois, no lote que foi classificado cedo demais.
 
-### 4.1 Os cinco requisitos que não têm caso de uso
+### 4.1 Os seis requisitos que não têm ator
 
-Cinco requisitos funcionais descrevem o que o sistema faz **sozinho**, sem ninguém acionar. Não têm
-caso de uso porque não há ator, e registrá-los com um seria inventar uma interação que não existe.
+Seis requisitos funcionais descrevem o que o sistema faz **sozinho**, sem ninguém acionar. Não têm
+ator, e inventar um seria registrar uma interação que não existe.
 
-| RF | O que o sistema faz sem ator | Onde o resultado aparece |
-|---|---|---|
-| RF-55 | Classifica o lote em saudável, atenção e crítico | UC-27 |
-| RF-59 | Gera as ordens de tarefa do protocolo na agenda | UC-19 |
-| RF-60 | Avança a fase do lote ao concluir etapa sequencial | UC-28 |
-| RF-61 | Conta a ocorrência seguinte a partir da execução real | UC-28 |
-| RF-62 | Mantém no máximo uma ordem em aberto por etapa | UC-28 |
+| RF | O que o sistema faz sem ator | Caso de uso | Onde o resultado aparece |
+|---|---|---|---|
+| RF-51 | Calcula a taxa de mortalidade do lote | UC-30 | UC-30 |
+| RF-55 | Classifica o lote em saudável, atenção e crítico | UC-27 | UC-27 |
+| RF-59 | Gera as ordens de tarefa do protocolo na agenda | *nenhum* | UC-19 |
+| RF-60 | Avança a fase do lote ao concluir etapa sequencial | *nenhum* | UC-28 |
+| RF-61 | Conta a ocorrência seguinte a partir da execução real | *nenhum* | UC-28 |
+| RF-62 | Mantém no máximo uma ordem em aberto por etapa | *nenhum* | UC-28 |
 
-O padrão é o mesmo nos cinco: **o valor é derivado, e derivar é o que dispensa a digitação**. É a
+O padrão é o mesmo nos seis: **o valor é derivado, e derivar é o que dispensa a digitação**. É a
 razão de o protocolo existir, e por isso a ausência de ator aqui é resultado, e não lacuna.
+
+**Sem ator e sem caso de uso não são a mesma coisa, e a distinção decide um número do trabalho.**
+RF-51 e RF-55 pertencem a um caso de uso, porque há alguém consultando a tela em que o valor
+aparece, ainda que não seja essa pessoa quem dispara a conta. Os outros quatro não pertencem a
+nenhum: rodam sem que ninguém abra tela alguma, e o resultado só se vê depois, no caso de uso de
+outra pessoa. Por isso o contador de [`B5` §6](../B-requisitos/B5-matriz-rastreabilidade.md) diz
+**66 de 70 requisitos com caso de uso**, e não 64.
 
 ---
 

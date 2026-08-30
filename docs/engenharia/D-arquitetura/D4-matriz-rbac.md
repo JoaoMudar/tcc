@@ -110,7 +110,7 @@ papel sobre a mesma linha. Requisitos: **RF-17 a RF-20, RF-21, RF-22, RF-16**.
 **RF-25 a RF-28 e RF-29** para o protocolo, **RF-49** para a divisão de lote. As regras de
 acesso que não se leem direto da matriz estão em §3.8.
 
-**Vinte e três recursos.** A matriz encolheu com o escopo, e o que ela perdeu foi sobretudo
+**Vinte e cinco recursos.** A matriz encolheu com o escopo, e o que ela perdeu foi sobretudo
 coluna: a saída do perfil de campo eliminou a única regra que dependia do registro e não do
 perfil, e com ela a distinção entre "a tarefa que é sua" e "a tarefa dos outros".
 
@@ -274,6 +274,12 @@ A matriz realiza **RF-06**, a verificação de permissão a cada operação, e *
 de perfil. As regras de negócio que a sustentam são **RN-59**, cada pessoa tem um perfil que
 determina o que vê e faz, e **RN-60**, todo registro tem autor.
 
-Cada linha da matriz é verificada por caso de teste em
-[`E2`](../E-qualidade/E2-casos-de-teste-de-aceite.md), e a correspondência entre recurso e
-requisito está em [`B5`](../B-requisitos/B5-matriz-rastreabilidade.md).
+A correspondência entre recurso e requisito está em
+[`B5`](../B-requisitos/B5-matriz-rastreabilidade.md).
+
+**A matriz não é verificada célula a célula, e é bom dizer.** São 25 recursos por 3 perfis, e
+[`E2`](../E-qualidade/E2-casos-de-teste-de-aceite.md) traz quatro casos de acesso: TA-03, a
+operação restrita recusada quando acionada pelo endereço; TA-08, a leitura permitida onde a
+escrita não é; TA-61, a regra que roda no servidor e não no navegador; e TA-63, o perfil atribuído
+valendo no primeiro acesso. Eles verificam o **mecanismo**, e não as 75 células: testar cada uma
+seria reescrever a matriz em forma de teste, e o que quebra na prática é o mecanismo, não a linha.

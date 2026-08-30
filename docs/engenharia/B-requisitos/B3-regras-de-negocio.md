@@ -166,7 +166,7 @@ e já se diz "fiz tantos saquinhos hoje". Apague o sistema e os enunciados sobre
 | **RN-44** | A **divisão do lote produz dois lotes que seguem o protocolo de forma independente**, herdando do original a fase e a data da última execução de cada etapa | Derivação | `rotinas/2-producao` | RF-49 | - |
 | **RN-45** | O **vencimento da etapa é derivado, nunca digitado**: sai do evento de referência, da última execução e do tempo declarado | Derivação | `rotinas/2-producao` | RF-55, RF-63 | - |
 | **RN-46** | A **ordem gerada pelo protocolo é atribuição comum**: alterar ou excluir a ordem de um dia não altera a etapa nem as ordens dos demais lotes | Restrição | `rotinas/2-producao` | RF-59 | - |
-| **RN-47** | A **ordem do protocolo entra na semana do seu vencimento**, e o sistema abre essa semana em rascunho se ela não existir; se a semana já estiver fechada, a ordem entra na semana aberta corrente, sem que o vencimento mude | Restrição | `rotinas/2-producao` | RF-59 | - |
+| **RN-47** | O **serviço vencido pertence à semana do seu vencimento**; se essa semana já estiver fechada, ele passa a pertencer à semana aberta corrente, e o vencimento não muda por isso | Restrição | `rotinas/2-producao` | RF-59 | - |
 | **RN-48** | A **ordem do protocolo nasce sem ninguém escalado.** O protocolo diz o que fazer e quando; **quem faz continua sendo de quem monta a agenda** | Restrição | `rotinas/2-producao` | RF-59 | - |
 
 ### 3.4 Área D: Cliente e pedido
@@ -205,9 +205,9 @@ e já se diz "fiz tantos saquinhos hoje". Apague o sistema e os enunciados sobre
 | Tipo | Quantidade |
 |---|---:|
 | Fato | 26 |
-| Restrição | 21 |
+| Restrição | 22 |
 | Derivação | 11 |
-| Acionamento | 2 |
+| Acionamento | 1 |
 
 ---
 
@@ -328,13 +328,13 @@ política do projeto ou de organização da interface, e nenhum é omissão do c
 | RF-03 | Encerrar a própria sessão é higiene de acesso (ORG); o viveiro não tinha sessão para encerrar |
 | RF-07 | Ver e encerrar sessões ativas é decorrência de RF-03, e da mesma origem |
 | RF-30 | Abrir a área em duas abas é organização de interface: não há regra de negócio sobre por onde se entra numa tela |
-| RF-70 | Listar pedidos com filtro é conveniência de consulta, e não obrigação do domínio |
 
 ### 6.2 As restrições que originam os requisitos não funcionais
 
-As sete restrições de [`A1`](../A-fundacao/A1-documento-de-visao.md) §9 originam vinte e sete
-requisitos não funcionais, e nenhuma delas é regra de negócio: são condições do ambiente e do
-projeto.
+Doze dos vinte e sete requisitos não funcionais nascem das restrições de
+[`A1`](../A-fundacao/A1-documento-de-visao.md) §9, e nenhuma delas é regra de negócio: são
+condições do ambiente. Os outros quinze vêm de política do projeto (ORG) ou de exigência legal
+(LEG), e estão atribuídos um a um na seção 5.
 
 | RE | Restrição | RNF originados |
 |---|---|---|
@@ -422,7 +422,7 @@ não dependa de abrir outro arquivo. **Não editar aqui**: a fonte é o `B2`.
 | RF-56 | O sistema deve apresentar, ao apontar o lote, a tarefa pendente que determina a situação dele e o atraso em dias | D | OP |
 | RF-57 | O sistema deve apresentar, no mapa, a mortalidade de cada lote e destacar os que ultrapassam o limite | D | EN |
 | RF-58 | O sistema deve atribuir ao lote, na criação, o protocolo vigente do recipiente dele, e acompanhar o lote etapa a etapa | D | ORG |
-| RF-59 | O sistema deve gerar as ordens de tarefa do protocolo na agenda sem digitação, e permitir alterar ou excluir a ordem de um dia sem alterar a etapa | D | ORG |
+| RF-59 | O sistema deve gerar as ordens de tarefa do protocolo na agenda sem digitação, abrindo em rascunho a semana do vencimento quando ela ainda não existir, e permitir alterar ou excluir a ordem de um dia sem alterar a etapa | D | ORG |
 | RF-60 | O sistema deve avançar a fase do lote ao concluir uma etapa sequencial que declare fase resultante, e não deve avançá-la ao concluir etapa recorrente | D | DOM |
 | RF-61 | O sistema deve contar a ocorrência seguinte de etapa recorrente a partir da data real da execução anterior, e nunca de uma data de calendário prevista | D | DOM |
 | RF-62 | O sistema deve manter no máximo uma ordem em aberto por etapa e por lote, sem gerar ocorrência nova enquanto a anterior estiver pendente | D | ORG |
@@ -439,33 +439,33 @@ não dependa de abrir outro arquivo. **Não editar aqui**: a fonte é o `B2`.
 
 | RNF | Texto | Origem |
 |---|---|---|
-| RNF-01 | Formulários de campo devem apresentar no máximo cinco campos por tela | Contagem de campos em cada formulário destinado ao registro em campo |
-| RNF-02 | Campos de categoria devem oferecer lista fechada de opções, nunca entrada livre de texto | Inspeção dos formulários; nenhuma categoria admite texto digitado |
-| RNF-03 | Elementos acionáveis devem ter alvo de toque compatível com uso de dedos sujos e molhados | Medição do alvo de toque contra o mínimo definido no projeto de interface |
-| RNF-04 | Toda ação de gravação deve produzir resposta visual imediata de confirmação | Registro em campo exibe confirmação sem exigir conferência posterior |
-| RNF-05 | O registro de dados em campo deve funcionar sem conexão, com envio automático ao restabelecer a rede | Registro feito em modo avião aparece no sistema após reconexão |
-| RNF-06 | A interface deve ser concebida para uso em celular, e não adaptada a partir de tela de computador, nas rotinas de registro em campo | Todas as rotinas de campo executáveis em tela de celular sem rolagem horizontal |
-| RNF-07 | O sistema deve permanecer utilizável sob conexão móvel lenta | Execução das rotinas de campo sob rede limitada |
-| RNF-08 | A interface deve empregar o vocabulário da empresa, conforme o glossário, e não termos técnicos do sistema | Revisão dos rótulos contra [`A2`](../A-fundacao/A2-glossario-dominio.md) |
-| RNF-09 | Senhas devem ser armazenadas de forma cifrada, por técnica que impeça sua recuperação | Inspeção do armazenamento; nenhuma senha legível |
-| RNF-10 | Identificadores de sessão devem ser armazenados apenas em formato protegido | Inspeção do armazenamento de sessões |
-| RNF-11 | Cookies de sessão devem receber as marcações de segurança que restringem seu uso a comunicação cifrada e impedem leitura por código do navegador | Inspeção dos atributos do cookie |
-| RNF-12 | As regras de acesso aos dados devem ser executadas no servidor, nunca no navegador | Nenhuma credencial ou regra de acesso presente no código entregue ao cliente |
-| RNF-13 | Toda comunicação entre cliente e servidor deve ser cifrada em trânsito | Acesso por canal não cifrado é recusado |
-| RNF-14 | O sistema deve dispor de rotina de backup e procedimento de recuperação com objetivos declarados | Ver [`E6`](../E-qualidade/E6-plano-backup-recuperacao.md) |
-| RNF-15 | As telas de coordenação da produção, agenda da semana e mapa de lotes, devem ser concebidas para tela larga, e apresentar no celular uma versão reduzida em lista, sem rolagem horizontal | As duas telas são operáveis em tela de computador com a semana inteira visível, e no celular apresentam a mesma informação em lista |
-| RNF-16 | Arquivos, identificadores e estruturas de dados devem ser nomeados em inglês; a documentação, em português | Revisão de nomenclatura |
-| RNF-17 | Cada funcionalidade deve ser desenvolvida em ramificação própria e integrada por solicitação de incorporação | Histórico do controle de versão |
-| RNF-18 | Alteração direta na versão principal deve ser impedida por controle automático | Tentativa de alteração direta é bloqueada |
-| RNF-19 | Mensagens de alteração devem seguir padrão fixo | Revisão do histórico |
-| RNF-20 | Alterações na estrutura do banco devem ser versionadas em arquivos aplicados de forma controlada, preservando compatibilidade retroativa | Cada alteração de esquema corresponde a um arquivo versionado |
-| RNF-21 | Toda alteração de código deve incluir testes automatizados cobrindo utilitários, regras de negócio e validações | Execução da suíte de testes |
-| RNF-22 | Verificação automática executada antes de cada alteração deve bloquear o envio em caso de arquivo sensível, falha de teste ou desvio de padronização | Tentativa de envio com falha é bloqueada |
-| RNF-23 | Credenciais, chaves e dados sensíveis não devem ser versionados | Varredura do histórico |
-| RNF-24 | O tratamento de dados pessoais deve observar a Lei nº 13.709/2018, com finalidade, base legal e prazo de retenção declarados para cada dado coletado | Ver [`E5`](../E-qualidade/E5-mapeamento-lgpd.md) |
-| RNF-25 | Os dados cadastrais de cliente devem comportar o conjunto exigido para emissão de nota fiscal no sistema externo em uso | Conferência contra os campos exigidos pelo emissor |
-| RNF-26 | O nome científico da espécie deve estar disponível para atender exigências de projetos de compensação ambiental | Documentos gerados exibem o nome científico |
-| RNF-27 | O sistema deve operar em navegador de celular de uso corrente pela equipe, sem exigir instalação a partir de loja de aplicativos | Execução no ambiente-alvo |
+| RNF-01 | Formulários de campo devem apresentar no máximo cinco campos por tela | RE-1 |
+| RNF-02 | Campos de categoria devem oferecer lista fechada de opções, nunca entrada livre de texto | RE-1 |
+| RNF-03 | Elementos acionáveis devem ter alvo de toque compatível com uso de dedos sujos e molhados | RE-4 |
+| RNF-04 | Toda ação de gravação deve produzir resposta visual imediata de confirmação | RE-4 |
+| RNF-05 | O registro de dados em campo deve funcionar sem conexão, com envio automático ao restabelecer a rede | RE-3 |
+| RNF-06 | A interface deve ser concebida para uso em celular, e não adaptada a partir de tela de computador, nas rotinas de registro em campo | RE-2 |
+| RNF-07 | O sistema deve permanecer utilizável sob conexão móvel lenta | RE-3 |
+| RNF-08 | A interface deve empregar o vocabulário da empresa, conforme o glossário, e não termos técnicos do sistema | RE-1 |
+| RNF-09 | Senhas devem ser armazenadas de forma cifrada, por técnica que impeça sua recuperação | ORG |
+| RNF-10 | Identificadores de sessão devem ser armazenados apenas em formato protegido | ORG |
+| RNF-11 | Cookies de sessão devem receber as marcações de segurança que restringem seu uso a comunicação cifrada e impedem leitura por código do navegador | ORG |
+| RNF-12 | As regras de acesso aos dados devem ser executadas no servidor, nunca no navegador | ORG |
+| RNF-13 | Toda comunicação entre cliente e servidor deve ser cifrada em trânsito | ORG |
+| RNF-14 | O sistema deve dispor de rotina de backup e procedimento de recuperação com objetivos declarados | RE-5 |
+| RNF-15 | As telas de coordenação da produção, agenda da semana e mapa de lotes, devem ser concebidas para tela larga, e apresentar no celular uma versão reduzida em lista, sem rolagem horizontal | RE-2 |
+| RNF-16 | Arquivos, identificadores e estruturas de dados devem ser nomeados em inglês; a documentação, em português | ORG |
+| RNF-17 | Cada funcionalidade deve ser desenvolvida em ramificação própria e integrada por solicitação de incorporação | ORG |
+| RNF-18 | Alteração direta na versão principal deve ser impedida por controle automático | ORG |
+| RNF-19 | Mensagens de alteração devem seguir padrão fixo | ORG |
+| RNF-20 | Alterações na estrutura do banco devem ser versionadas em arquivos aplicados de forma controlada, preservando compatibilidade retroativa | ORG |
+| RNF-21 | Toda alteração de código deve incluir testes automatizados cobrindo utilitários, regras de negócio e validações | ORG |
+| RNF-22 | Verificação automática executada antes de cada alteração deve bloquear o envio em caso de arquivo sensível, falha de teste ou desvio de padronização | ORG |
+| RNF-23 | Credenciais, chaves e dados sensíveis não devem ser versionados | ORG |
+| RNF-24 | O tratamento de dados pessoais deve observar a Lei nº 13.709/2018, com finalidade, base legal e prazo de retenção declarados para cada dado coletado | LEG |
+| RNF-25 | Os dados cadastrais de cliente devem comportar o conjunto exigido para emissão de nota fiscal no sistema externo em uso | LEG |
+| RNF-26 | O nome científico da espécie deve estar disponível para atender exigências de projetos de compensação ambiental | LEG, DOM |
+| RNF-27 | O sistema deve operar em navegador de celular de uso corrente pela equipe, sem exigir instalação a partir de loja de aplicativos | RE-2, RE-5 |
 ## 8. Manutenção
 
 Este catálogo é a fonte das regras de negócio do trabalho. Regra nova entra aqui antes de virar

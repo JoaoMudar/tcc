@@ -68,9 +68,10 @@ autenticação.
 
 ## 5. Produção: cadastro do viveiro, lotes, agenda e protocolo
 
-*Acrescentada em 24/08/2026.* Fecha a lacuna que a §9 declarava desde 19/08: **RF-22 a RF-39
-estavam sem critério de aprovação**, e o subsistema da agenda não tinha como ser aceito. Os casos
-abaixo cobrem esses e os requisitos da rotina de produção (RF-14 a RF-34).
+*Acrescentada em 24/08/2026.* Fecha a lacuna que a §9 declarava desde 19/08: o subsistema da
+agenda não tinha como ser aceito, porque nenhum dos seus requisitos tinha critério de aprovação.
+Os casos abaixo cobrem do cadastro do viveiro ao protocolo do lote, e a lista exata de requisitos
+por subseção está na tabela gerada da §9.
 
 ### 5.1 Cadastro do viveiro
 
@@ -101,8 +102,8 @@ abaixo cobrem esses e os requisitos da rotina de produção (RF-14 a RF-34).
 |---|---|---|---|---|---|
 | **TA-22** | RF-47, RNF-01 | Espécies e recipientes cadastrados | 1. Registrar uma perda no celular, em campo | Registro concluído em **no máximo quatro campos**, sem digitação de texto livre | Não executado |
 | **TA-23** | RF-47, RNF-05 | Dispositivo em modo avião | 1. Registrar uma perda sem conexão<br>2. Observar a confirmação<br>3. Restabelecer a conexão | Confirmação aparece imediatamente mesmo sem rede; o registro aparece no sistema após a reconexão | Não executado |
-| **TA-24** | RF-51, RF-52 | Espécie com produção registrada e perdas acumuladas acima de 20% | 1. Registrar perda que ultrapasse o limite<br>2. Acessar o perfil de gerência | Alerta de mortalidade é exibido à gerência, identificando espécie e taxa | Não executado |
-| **TA-25** | RF-52 | - | 1. Verificar se o colaborador que registrou a perda em TA-24 recebeu alerta | **O colaborador não é interrompido.** O alerta dirige-se a quem pode agir | Não executado |
+| **TA-24** | RF-51, RF-52 | Lote aberto com quantidade inicial conhecida e limite de mortalidade em 20% | 1. Registrar perdas que somem mais de 20% da quantidade inicial do lote<br>2. Abrir o mapa de lotes como gerência | A taxa exibida é a soma das perdas dividida pela quantidade inicial, e o lote aparece com alerta de mortalidade | Não executado |
+| **TA-25** | RF-52 | O lote de TA-24, com mortalidade entre 20% e 30% | 1. Alterar o limite de mortalidade para 30% em Configurações<br>2. Reabrir o mapa de lotes | O alerta desaparece sem que nada no lote mude: **o limite é parâmetro, e não constante** (RN-11, RF-09) | Não executado |
 
 ### 5.4 Agenda da semana
 
@@ -119,8 +120,8 @@ abaixo cobrem esses e os requisitos da rotina de produção (RF-14 a RF-34).
 
 ### 5.5 Protocolo de atividades por lote
 
-*Acrescentada em 26/08/2026, junto com a especificação do módulo.* Cobre RF-25 a RF-49. **Os
-casos foram escritos antes de qualquer linha de código**, e as datas de TA-40, TA-41 e TA-45 saem
+*Acrescentada em 26/08/2026, junto com a especificação do módulo.* Cobre o protocolo, do cadastro
+da etapa ao encerramento do lote. **Os casos foram escritos antes de qualquer linha de código**, e as datas de TA-40, TA-41 e TA-45 saem
 da prova de mesa de
 [`rotinas/2-producao/06`](../../rotinas/2-producao/06-protocolo-de-atividades.md): são elas que
 qualquer implementação do motor tem de reproduzir.
@@ -195,7 +196,7 @@ qualquer implementação do motor tem de reproduzir.
 
 ## 8. Casos acrescentados pela matriz de rastreabilidade
 
-Os oito casos abaixo não constavam da primeira versão deste documento. Foram acrescentados quando a
+Os seis casos abaixo não constavam da primeira versão deste documento. Foram acrescentados quando a
 matriz [`B5`](../B-requisitos/B5-matriz-rastreabilidade.md) confrontou requisitos e testes e apontou
 requisitos de prioridade *deve ter* sem verificação correspondente.
 

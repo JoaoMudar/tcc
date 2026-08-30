@@ -31,7 +31,7 @@ requisitos.
 | Casos de uso detalhados | 15 | **10** |
 | Entidades do modelo | 62 | **27**, mais 2 visões |
 | Perfis de acesso | 4 | **3** |
-| Recursos na matriz RBAC | 43 | **23** |
+| Recursos na matriz RBAC | 43 | **25** |
 | Casos de teste de aceite | 98 | **68** |
 | Pranchas de protótipo | 62 | **35** |
 | Figuras do modelo de dados | 19 | **12** |
