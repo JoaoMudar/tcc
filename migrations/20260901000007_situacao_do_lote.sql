@@ -1,7 +1,7 @@
 -- Migration: 20260901000007_situacao_do_lote.sql
 -- Descricao: A visao que pinta o lote no mapa.
 --
--- Requisitos: RF-54 a RF-57 · Regras: RN-30, RN-31, RN-32
+-- Requisitos: RF-47 a RF-49 · Regras: RN-30, RN-31, RN-32
 -- Entidades: C8 `batch_health` (visao)
 --
 -- E VISAO, E NAO COLUNA (RN-31). Status gravado envelhece sozinho: o lote que
@@ -10,7 +10,7 @@
 -- tambem serem derivados.
 --
 -- A COR SAI DO ATRASO DE TAREFA, e de nada mais. A mortalidade tem alerta proprio
--- (RF-52, RF-57); somar tudo numa cor so produziria um vermelho que nao diz o que
+-- (RF-45, RF-49); somar tudo numa cor so produziria um vermelho que nao diz o que
 -- fazer. O que o mapa mostra ao apontar o lote e uma acao pendente:
 -- "Irrigacao, atrasada 3 dias".
 --
@@ -44,7 +44,7 @@ pendencia AS (
   --
   -- A MAIS ANTIGA MANDA: havendo tres pendencias no mesmo lote, quem determina a
   -- cor e a que espera ha mais tempo, e e ela que aparece ao apontar o lote
-  -- (RF-56).
+  -- (RF-48).
   SELECT DISTINCT ON (a.batch_id)
     a.batch_id,
     a.id           AS assignment_id,

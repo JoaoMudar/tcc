@@ -2,7 +2,7 @@
 -- Descricao: Catalogo de producao (species, containers, inputs) e endereco do
 --            viveiro (areas, beds), mais o periodo de trabalho (work_shifts).
 --
--- Requisitos: RF-08, RF-10 a RF-15 · Regras: RN-01 a RN-04, RN-07, RN-17, RN-27
+-- Requisitos: RF-08, RF-10 a RF-13 · Regras: RN-01 a RN-04, RN-07, RN-17, RN-27
 -- Entidades: C8 `species`, `species_popular_names`, `species_photos`, `containers`,
 --            `inputs`, `areas`, `beds`, `work_shifts`
 --
@@ -37,7 +37,7 @@ CREATE TRIGGER species_set_updated_at
   BEFORE UPDATE ON species
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
--- A ESPECIE TEM NOMES, E NAO UM NOME (RF-11, RN-02). Um campo de texto com nomes
+-- A ESPECIE TEM NOMES, E NAO UM NOME (RF-10, RN-02). Um campo de texto com nomes
 -- separados por virgula nao se indexa nem se valida.
 CREATE TABLE species_popular_names (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -131,7 +131,7 @@ CREATE TABLE beds (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
-  -- RF-15: a numeracao recomeca em cada area.
+  -- RF-13: a numeracao recomeca em cada area.
   CONSTRAINT beds_numero_unico_na_area UNIQUE (area_id, number),
   CONSTRAINT beds_numero_positivo CHECK (number > 0)
 );

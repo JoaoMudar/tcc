@@ -2,7 +2,7 @@
 -- Descricao: Identidade unica de pessoas (schema `cadastro`) e catalogo de tipos
 --            de tarefa.
 --
--- Requisitos: RF-16 a RF-24 · Regras: RN-15, RN-19, RN-20, RN-50 a RN-53, RN-57
+-- Requisitos: RF-14 a RF-21 · Regras: RN-15, RN-19, RN-20, RN-50 a RN-53, RN-57
 -- Entidades: C8 `cadastro.parties`, `cadastro.party_roles`, `cadastro.addresses`, `task_types`
 --
 -- UMA PESSOA, VARIOS PAPEIS (RN-52). Quem vende muda ao viveiro e as vezes compra
@@ -22,7 +22,7 @@ CREATE TABLE cadastro.parties (
   kind       cadastro.party_kind NOT NULL,
   name       TEXT NOT NULL,
 
-  -- CPF ou CNPJ, apenas digitos. Nulo no cadastro rapido (RF-17, RN-51): nome e
+  -- CPF ou CNPJ, apenas digitos. Nulo no cadastro rapido (RF-15, RN-51): nome e
   -- telefone bastam para registrar o pedido, e a ficha se completa depois.
   document   TEXT UNIQUE,
 
@@ -88,7 +88,7 @@ CREATE UNIQUE INDEX users_uma_credencial_por_pessoa
   ON users (party_id) WHERE party_id IS NOT NULL;
 
 -- ------------------------------------------------------------
--- O catalogo de tarefas comanda o formulario (RF-24, RN-15)
+-- O catalogo de tarefas comanda o formulario (RF-21, RN-15)
 -- ------------------------------------------------------------
 -- E o tipo de tarefa que diz se a tela vai pedir especie, recipiente, lote ou uma
 -- contagem por participante. Sem isso, ou o formulario pede tudo sempre (e ninguem
@@ -98,7 +98,7 @@ CREATE TABLE task_types (
   name               TEXT NOT NULL UNIQUE,
   category           TEXT NOT NULL,
 
-  -- Faz a confirmacao pedir um numero POR PARTICIPANTE (RF-36, RN-29).
+  -- Faz a confirmacao pedir um numero POR PARTICIPANTE (RF-30, RN-29).
   is_quantitative    BOOLEAN NOT NULL DEFAULT false,
 
   -- Faz aparecer o campo de lote, e dispensa o canteiro, que vem dele (RN-25).
@@ -145,4 +145,4 @@ COMMENT ON SCHEMA cadastro IS
 COMMENT ON TABLE cadastro.party_roles IS
   'Papeis de uma mesma pessoa: cliente, fornecedor, funcionario. Chave composta. RN-52.';
 COMMENT ON TABLE task_types IS
-  'Catalogo de tarefas. As tres declaracoes comandam o que a tela pede. RF-24, RN-15.';
+  'Catalogo de tarefas. As tres declaracoes comandam o que a tela pede. RF-21, RN-15.';
