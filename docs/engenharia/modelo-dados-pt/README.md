@@ -38,13 +38,13 @@ node scripts/mede-figuras.mjs
 | 6 | `fig06-conceitual-producao` | Conceitual: da semente à muda pronta | 6,9 pt |
 | 7 | `fig07-conceitual-comercial` | Conceitual: do cadastro ao pedido | 9,9 pt |
 | 8 | `fig08-acesso` | Acesso e configurações, transversais às três áreas | 9,2 pt |
-| 9 | `fig09-cadastros-especie` | Cadastros: a espécie e seus nomes | 10,3 pt |
-| 10 | `fig10-cadastros-insumo-recipiente` | Cadastros: recipiente e insumo | 14,2 pt |
-| 11 | `fig11-cadastros-viveiro` | Cadastros: área, canteiro e turno de trabalho | 19,1 pt |
+| 9 | `fig09-cadastros-especie` | Cadastros: a espécie e seus nomes | 8,7 pt |
+| 10 | `fig10-cadastros-insumo-recipiente` | Cadastros: recipiente e insumo | 11,5 pt |
+| 11 | `fig11-cadastros-viveiro` | Cadastros: área, canteiro e turno de trabalho | 12,5 pt |
 | 12 | `fig12-cadastros-pessoas` | Cadastros: identidade única e papéis | 8,4 pt |
 | 13 | `fig13-cadastros-tarefa-protocolo` | Cadastros: tipo de tarefa e protocolo de atividades | 8,7 pt |
 | 14 | `fig14-producao-agenda` | Produção: semana, atribuição e participantes | 9,0 pt |
-| 15 | `fig15-producao-lote` | Produção: o lote e seus movimentos | 9,2 pt |
+| 15 | `fig15-producao-lote` | Produção: o lote e seus movimentos | 9,0 pt |
 | 16 | `fig16-producao-protocolo-do-lote` | Produção: o lote seguindo o protocolo | 22,6 pt |
 | 17 | `fig17-comercial-pedido` | Comercial: pedido e item | 12,7 pt |
 
@@ -63,11 +63,23 @@ arestas somem do desenho e o texto do `C6` passa a afirmar o que a figura não m
 conferência é um comando, e não uma lembrança:**
 
 ```bash
-grep -c '||--' mmd/*.mmd | awk -F: '{s+=$2} END {print s}'
+node scripts/confere-modelo-pt.mjs
 ```
 
-O total tem de bater com a soma dos relacionamentos do `C6`. Para ver quais mudaram entre duas
-versões, em vez de só contar:
+Ele traduz os nomes pela tabela de correspondência acima e compara o **conjunto** de arestas das
+figuras lógicas (fig08 a fig17) com o das seções 3.1 a 3.4 do `C6`, nos dois sentidos.
+
+> **Contar arestas não serve, e a versão anterior deste README mandava contar.** As figuras são um
+> recorte mais fino que os quatro diagramas lógicos do `C6`, e aresta que cruza a fronteira de duas
+> figuras aparece nas duas: `atribuicoes produz movimentos_lote` está em fig14 e em fig15. A soma
+> das figuras é sempre maior que a do `C6`, e a conferência que nunca fecha é a que se para de
+> rodar. O que tem de bater é o conjunto, não o total.
+
+**A única aresta que o script aceita só nas figuras** é `lotes dá saldo a pedidos_itens`, em fig17:
+é aresta de leitura e não de chave estrangeira, e está no `C6` §2, o conceitual. Ela aparece na
+figura porque é o que o trabalho existe para demonstrar.
+
+Para ver quais mudaram entre duas versões, em vez de comparar com o `C6`:
 
 ```bash
 comm -23 \

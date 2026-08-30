@@ -14,11 +14,12 @@ erDiagram
     int         posicao
     timestamptz encerrado_em
     text        motivo_encerramento
+    text        observacoes
   }
   movimentos_lote {
     uuid id PK
     uuid lote_id FK
-    enum tipo_movimento
+    text tipo_movimento
     int  quantidade
     date data_movimento
     uuid canteiro_origem_id FK
@@ -33,6 +34,7 @@ erDiagram
   canteiros {}
   usuarios {}
   atribuicoes {}
+  protocolos {}
 
   lotes ||--o{ movimentos_lote : "e explicado por"
   lotes ||--o{ lotes           : "da origem a"
@@ -40,4 +42,5 @@ erDiagram
   recipientes ||--o{ lotes : "define o porte de"
   canteiros   ||--o{ lotes : "abriga"
   usuarios    ||--o{ movimentos_lote : "registra"
-  atribuicoes ||--o| movimentos_lote : "produz"
+  atribuicoes ||--o{ movimentos_lote : "produz"
+  protocolos  ||--o{ lotes : "rege"

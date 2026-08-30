@@ -70,7 +70,7 @@ erDiagram
   PROTOCOLO    ||--o{ LOTE            : "rege"
   ETAPA_PROTOCOLO ||--o{ ETAPA_DO_LOTE : "materializa-se em"
   LOTE         ||--o{ ETAPA_DO_LOTE   : "percorre"
-  ETAPA_DO_LOTE ||--o| ATRIBUICAO     : "gera ordem de"
+  ETAPA_DO_LOTE ||--o{ ATRIBUICAO     : "gera ordem de"
 
   LOTE         ||--o{ LOTE            : "dá origem a"
   LOTE         ||--o{ MOVIMENTO_LOTE  : "é explicado por"
@@ -80,7 +80,7 @@ erDiagram
   TURNO        ||--o{ ATRIBUICAO   : "situa"
   LOTE         ||--o{ ATRIBUICAO   : "recebe trabalho de"
   FUNCIONARIO  ||--o{ ATRIBUICAO   : "executa"
-  ATRIBUICAO   ||--o| MOVIMENTO_LOTE : "produz"
+  ATRIBUICAO   ||--o{ MOVIMENTO_LOTE : "produz"
 
   ESPECIE      ||--o{ ITEM_PEDIDO : "é vendida em"
   RECIPIENTE   ||--o{ ITEM_PEDIDO : "define porte de"
@@ -88,13 +88,13 @@ erDiagram
   PEDIDO       ||--o{ ITEM_PEDIDO : "compõe-se de"
   LOTE         ||--o{ ITEM_PEDIDO : "dá saldo a"
 
-  PESSOA       ||--o{ CLIENTE     : "é papel de"
-  PESSOA       ||--o{ FUNCIONARIO : "é papel de"
+  PESSOA       ||--o| CLIENTE     : "é papel de"
+  PESSOA       ||--o| FUNCIONARIO : "é papel de"
   USUARIO      ||--o{ PEDIDO      : "registra"
   USUARIO      ||--o{ MOVIMENTO_LOTE : "registra"
 ```
 
-O diagrama conceitual apresenta **vinte e duas entidades**, e não as vinte e sete do modelo
+O diagrama conceitual apresenta **dezenove entidades**, e não as vinte e sete do modelo
 completo. A redução é deliberada: Sommerville (2011) observa que a ausência de detalhe excessivo é
 característica central do modelo, cujo objetivo é destacar o mais relevante e não especificar por
 inteiro. Entidades associativas, de histórico e de auditoria aparecem apenas nos modelos lógicos por
@@ -160,9 +160,16 @@ sistema em que o erro é mais caro, e é por isso que dois dos dez casos de uso 
 Convenção dos diagramas: entidade de **outra** área aparece como **caixa vazia**, apenas para que
 a aresta exista. Os atributos dela estão no diagrama da área a que pertence.
 
-Atributos comuns a todas as entidades, omitidos dos diagramas para não repetir vinte e sete vezes:
-`id` (chave primária), `created_at` e `updated_at`. Onde `active` aparece, é a marca de inativação
-que substitui a exclusão.
+Atributos comuns à maioria das entidades, omitidos dos diagramas para não repetir vinte e sete
+vezes: `id` (chave primária), `created_at` e `updated_at`. Onde `active` aparece, é a marca de
+inativação que substitui a exclusão. As exceções, tabelas sem `updated_at` porque nada nelas se
+altera, e as duas de ligação, sem `id` porque a chave é o par que as define, estão registradas uma
+a uma no [dicionário](C8-dicionario-de-dados.md).
+
+**`text` na coluna de tipo, com lista fechada de valores, é `TEXT` mais restrição `CHECK` no
+banco; `enum` é tipo enumerado de verdade.** A distinção importa na manutenção: acrescentar valor a
+um `CHECK` é reescrever a restrição, e a um `ENUM` é `ALTER TYPE`. Os cinco tipos enumerados são
+`user_role`, `input_category` e os três do esquema `cadastro`.
 
 ### 3.1 Acesso e configurações: transversal às três áreas
 
@@ -185,6 +192,7 @@ erDiagram
     uuid user_id FK
     text token_hash UK
     timestamptz expires_at
+    timestamptz last_seen_at
     text ip
     text user_agent
   }
@@ -269,21 +277,20 @@ erDiagram
   containers {
     uuid    id PK
     text    name UK
-    int     volume_ml
+    numeric volume_liters
     boolean active
   }
   inputs {
     uuid    id PK
     text    name
     enum    category
-    text    unit
+    text    unit_of_measure
     boolean active
   }
   areas {
     uuid    id PK
     char    letter UK
     text    name
-    int     bed_count
   }
   beds {
     uuid id PK
@@ -301,7 +308,7 @@ erDiagram
   task_types {
     uuid    id PK
     text    name
-    enum    category
+    text    category
     boolean is_quantitative
     boolean requires_batch
     boolean requires_species
@@ -381,7 +388,7 @@ erDiagram
   protocols  ||--o{ batches      : "rege"
   task_types ||--o{ assignments  : "classifica"
   work_shifts||--o{ assignments  : "situa"
-  parties    ||--o{ assignments  : "executa"
+  parties    ||--o{ assignment_members : "executa"
   protocol_steps ||--o{ batch_protocol_steps : "materializa-se em"
   species    ||--o{ order_items  : "é vendida em"
   containers ||--o{ order_items  : "define porte de"
@@ -400,6 +407,12 @@ separados por vírgula não se indexa nem se valida. `is_primary` marca o nome q
 sistema de arquivos do ambiente de publicação é somente-leitura e é descartado a cada implantação:
 a imagem gravada em disco desapareceria na semana seguinte. O ganho colateral é que a foto entra no
 mesmo backup do banco.
+
+**`species é ilustrada por species_photos` é aresta de leitura, e não de chave estrangeira**, do
+mesmo tipo que `LOTE dá saldo a ITEM_PEDIDO` no diagrama conceitual. `species_photos` não tem
+`species_id`: o envio da foto acontece antes de a espécie existir, e a chave estrangeira não teria
+a que apontar no momento da gravação. Quem liga as duas é o texto de `species.photo_url`, no
+formato `/api/fotos/<uuid>`.
 
 **O canteiro tem capacidade, e ela não é restrição.** `beds.capacity` existe para o aviso de
 RN-30, que informa que a leva talvez não caiba, e não para recusar o lote: quem sabe se cabe é
@@ -443,7 +456,7 @@ erDiagram
   week_plans {
     uuid        id PK
     date        week_start UK
-    enum        status
+    text        status
     uuid        published_by FK
     timestamptz closed_at
   }
@@ -459,9 +472,10 @@ erDiagram
     uuid    area_id FK
     uuid    bed_id FK
     uuid    batch_protocol_step_id FK
+    date    protocol_due_on
     int     planned_quantity
     boolean is_recurring
-    enum    status
+    text    status
     text    notes
   }
   assignment_members {
@@ -481,19 +495,21 @@ erDiagram
     int         current_quantity
     text        stage
     date        planted_at
+    int         position
     timestamptz closed_at
-    text        close_reason
+    text        closed_reason
+    text        notes
   }
   batch_movements {
     uuid id PK
     uuid batch_id FK
-    enum movement_type
+    text movement_type
     int  quantity
     date movement_date
     uuid from_bed_id FK
     uuid to_bed_id FK
     uuid assignment_id FK
-    enum loss_cause
+    text loss_cause
     uuid recorded_by FK
     text notes
   }
@@ -507,6 +523,7 @@ erDiagram
   }
   species {}
   containers {}
+  areas {}
   beds {}
   task_types {}
   work_shifts {}
@@ -521,14 +538,20 @@ erDiagram
   batches    ||--o{ batches            : "dá origem a"
   batches    ||--o{ batch_protocol_steps : "percorre"
   batches    ||--o{ assignments        : "recebe trabalho de"
-  batch_protocol_steps ||--o| assignments : "gera ordem de"
+  batch_protocol_steps ||--o{ assignments : "gera ordem de"
 
   species    ||--o{ batches : "é plantada em"
   containers ||--o{ batches : "define o porte de"
   beds       ||--o{ batches : "abriga"
+  beds       ||--o{ batch_movements : "origem e destino da transferência"
   task_types ||--o{ assignments : "classifica"
   work_shifts||--o{ assignments : "situa"
+  species    ||--o{ assignments : "é objeto de"
+  containers ||--o{ assignments : "é objeto de"
+  areas      ||--o{ assignments : "localiza"
+  beds       ||--o{ assignments : "localiza"
   parties    ||--o{ assignment_members : "executa"
+  users      ||--o{ week_plans : "publica"
   protocol_steps ||--o{ batch_protocol_steps : "materializa-se em"
   users      ||--o{ batch_movements : "registra"
 ```
@@ -622,11 +645,11 @@ Duas entidades, e é o tamanho certo. O pedido registra o que foi negociado fora
 erDiagram
   orders {
     uuid    id PK
-    int     number UK
+    serial  order_number UK
     uuid    customer_id FK
-    enum    channel
-    enum    status
-    date    expected_delivery
+    text    sale_channel
+    text    status
+    date    delivery_date
     text    notes
     uuid    created_by FK
   }
@@ -656,7 +679,7 @@ pedido referencia a pessoa. Uma tabela `customers` própria duplicaria nome, tel
 quem também é fornecedor.
 
 **`unit_price` é digitado, e não referencia tabela de preço** (RN-58). Não há entidade de canal de
-venda nem de tabela de preços: `channel` é enumeração em `orders`, porque canal de venda é uma
+venda nem de tabela de preços: `sale_channel` é enumeração em `orders`, porque canal de venda é uma
 lista fechada de cinco valores sem atributos próprios (RN-49), e o preço é o que foi acordado na
 conversa.
 

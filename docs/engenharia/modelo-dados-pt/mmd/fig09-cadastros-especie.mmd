@@ -20,8 +20,10 @@ erDiagram
   }
   lotes {}
   pedidos_itens {}
+  atribuicoes {}
 
   especies ||--o{ especies_nomes_populares : "e conhecida por"
   especies ||--o| especies_fotos           : "e ilustrada por"
   especies ||--o{ lotes                    : "e plantada em"
   especies ||--o{ pedidos_itens            : "e vendida em"
+  especies ||--o{ atribuicoes              : "e objeto de"

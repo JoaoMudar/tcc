@@ -32,11 +32,16 @@ quatro módulos do sistema, com o Acesso à frente por atravessar os quatro.
   identificador universal em vez de sequencial permite gerar a chave no dispositivo antes da
   gravação, requisito do funcionamento sem conexão (RNF-05).
 - `created_at`: momento da criação, preenchido automaticamente.
-- `updated_at`: momento da última alteração, mantido automaticamente pelo banco.
+- `updated_at`: momento da última alteração, mantido automaticamente pelo banco, por gatilho.
 - `active`: indicador de arquivamento. Registro inativo desaparece das listagens sem ser removido,
   preservando a integridade das referências históricas.
-- Nome de entidade fora do esquema `public` vem qualificado (`cadastro.parties`,
-  `financeiro.transactions`), na coluna Chave inclusive.
+- **As três são convenção, e não obrigação**, e a tabela que foge dela declara o atributo (ou a
+  ausência dele) na sua própria linha. Quem só registra fato consumado não tem `updated_at`, porque
+  não se altera: é o caso de `sessions`, `login_events`, `batch_movements` e
+  `species_popular_names`. As duas tabelas de ligação, `cadastro.party_roles` e
+  `assignment_members`, também não têm `id`: a chave é o par que as define, e é ela que impede a
+  linha repetida. E `active` só existe onde há catálogo a arquivar.
+- Nome de entidade fora do esquema `public` vem qualificado (`cadastro.parties`), na coluna Chave inclusive.
 - A marca *Especificada, não implementada no protótipo* abaixo do título indica entidade que
   pertence ao modelo mas ainda não existe no banco; em entidade já existente, a mesma condição
   aparece como **Especificado, não implementado** na descrição do atributo.
@@ -139,9 +144,8 @@ exige uma implantação.
 | `updated_by` | uuid | ○ | FK → `users` | Quem alterou |
 
 > **Onde está a fronteira entre `settings` e cadastro.** Parâmetro que é **um valor** mora aqui.
-> Parâmetro que é **uma lista de coisas com atributos** vira entidade: foi o caso de
-> `financeiro.cost_centers`, e é o caso do período de trabalho, que virou `work_shifts` no módulo
-> 1 em vez de quatro chaves aqui. A regra de corte é a dos Cadastros: se apagar deixa um movimento
+> Parâmetro que é **uma lista de coisas com atributos** vira entidade: é o caso do período de
+> trabalho, que virou `work_shifts` na área 1 em vez de quatro chaves aqui. A regra de corte é a dos Cadastros: se apagar deixa um movimento
 > passado sem sentido, é entidade.
 
 > **`value` é texto e `value_type` diz como lê-lo.** A alternativa, uma coluna por tipo, deixaria
@@ -162,12 +166,17 @@ exige uma implantação.
 | Atributo | Tipo | Ob. | Chave | Descrição |
 |---|---|:--:|:--:|---|
 | `id` | uuid | ● | PK | Identificador |
-| `common_name` | text | ● | | Nome popular principal |
-| `scientific_name` | text | ○ | | Nome científico binomial, exigido em projetos de compensação ambiental (RNF-26) |
+| `scientific_name` | text | ● | UK | Nome científico binomial, exigido em projetos de compensação ambiental (RNF-26). **É a identidade da espécie**, e por isso é único e obrigatório |
 | `tags` | text[] | ● | | Características da espécie: nativa, exótica, frutífera, ornamental, madeireira, forrageira. **Múltiplas por espécie** |
 | `notes` | text | ○ | | Observações de manejo |
 | `photo_url` | text | ○ | | Referência da fotografia, no formato `/api/fotos/<uuid>`, que aponta para `species_photos` |
 | `active` | boolean | ● | | Espécie em catálogo |
+
+> **Não há coluna de nome popular aqui, e é o que RN-02 exige.** A mesma espécie é chamada por
+> nomes diferentes conforme a região e o interlocutor, de modo que o nome popular é lista e não
+> campo: mora em `species_popular_names`, e o principal é o que tiver `is_primary`. Uma coluna
+> `common_name` obrigaria a eleger um nome no cadastro e faria a busca por qualquer um dos outros
+> deixar de encontrar a espécie, que é justamente o que RF-11 pede.
 
 > **O tempo de ciclo saiu da espécie.** `germination_time_days` e `growth_time_months` existiam
 > para calcular a previsão de disponibilidade do lote, que ficou fora do escopo. O que restou de
@@ -181,17 +190,22 @@ exige uma implantação.
 |---|---|:--:|:--:|---|
 | `id` | uuid | ● | PK | Identificador |
 | `species_id` | uuid | ● | FK → `species` | Espécie designada |
-| `name` | text | ● | | Nome tal como escrito |
-| `name_normalized` | text | ● | UK | Forma normalizada: sem acentos, minúscula, espaços colapsados. A unicidade garante que **um nome popular aponta para uma única espécie** |
+| `name` | text | ● | UK | Nome tal como escrito. Único **dentro da espécie**, pelo par `(species_id, name)` |
+| `is_primary` | boolean | ● | | Nome principal da espécie. Índice único parcial: **no máximo um principal por espécie** |
+| `created_at` | timestamptz | ● | | Criação |
+
+> **A unicidade é por espécie, e não global.** Duas espécies podem legitimamente compartilhar um
+> nome popular no Alto Vale, e proibir isso obrigaria a inventar um desempate na hora do cadastro.
+> A busca de RF-11 devolve as duas, e quem cadastra escolhe.
 
 ## `species_photos`: fotografia da espécie
 
 | Atributo | Tipo | Ob. | Chave | Descrição |
 |---|---|:--:|:--:|---|
 | `id` | uuid | ● | PK | Identificador, e também o que aparece na URL `/api/fotos/<uuid>` |
-| `bytes` | bytea | ● | | Conteúdo binário da imagem |
-| `mime` | text | ● | | Tipo do arquivo, `image/webp` por padrão |
-| `byte_size` | integer | ● | | Tamanho em bytes, para controle de ocupação |
+| `content` | bytea | ● | | Conteúdo binário da imagem |
+| `content_type` | text | ● | | Tipo do arquivo, `image/webp` por padrão |
+| `created_at` | timestamptz | ● | | Criação |
 
 > **Sem `species_id`, por decisão de projeto.** O envio da foto acontece antes da inserção da
 > espécie, então a chave estrangeira não teria a que apontar no momento da gravação. A referência
@@ -233,31 +247,45 @@ exige uma implantação.
 | Atributo | Tipo | Ob. | Chave | Descrição |
 |---|---|:--:|:--:|---|
 | `id` | uuid | ● | PK | Identificador |
-| `kind` | varchar(2) | ○ | | **Natureza da pessoa**: `pf` ou `pj`. NULL quando não informado, o cadastro simples legado não preenchia, e presumir pessoa física para uma prefeitura seria pior que registrar a ausência |
-| `document` | varchar(14) | ○ | | CPF ou CNPJ, só dígitos. UNIQUE parcial `WHERE document IS NOT NULL` |
+| `kind` | `cadastro.party_kind` | ● | | **Natureza da pessoa**: `pf` ou `pj` (RN-50) |
+| `document` | text | ○ | UK | CPF ou CNPJ, só dígitos (RF-19). Opcional porque o cadastro rápido do pedido pede só nome e telefone (RN-51); a unicidade não impede várias identidades sem documento, porque nulos não colidem entre si |
 | `name` | text | ● | | Nome usual: o que aparece nas listas |
-| `legal_name` | text | ○ | | Razão social (PJ) |
-| `trade_name` | text | ○ | | Nome fantasia (PJ) |
-| `email`, `phone`, `whatsapp` | text/varchar | ○ | | Contato. `whatsapp` só dígitos |
+| `phone` | text | ○ | | Telefone, e é por ele que a negociação começa |
+| `email` | text | ○ | | Correio eletrônico |
 | `notes` | text | ○ | | Observações |
-| `active` | boolean | ● | | Soft-delete, padrão do sistema |
+| `active` | boolean | ● | | Papel ativo; inativar preserva o histórico que excluir apagaria |
+
+> **Razão social e nome fantasia não são colunas.** O conjunto fiscal que RNF-25 exige é o do
+> emissor externo, e o que ele pede desta base é nome, documento e endereço. Guardar aqui campos
+> que só a nota usa duplicaria o cadastro do sistema fiscal sem que nada neste sistema os lesse.
+
+> **Não há coluna de WhatsApp.** A negociação acontece por WhatsApp e o pedido é registrado depois,
+> à mão: não há integração, e um segundo número de telefone só se justificaria se algo aqui
+> discasse para ele.
 
 > **Correção de 11/08/2026.** Este dicionário descrevia `kind` como *natureza do vínculo*
 > (cliente, fornecedor, funcionário). Estava errado: um `kind` único não representa o caso que
-> motivou a tabela: a mesma pessoa que vende muda e também compra. O vínculo passou para
+> motivou a tabela, a mesma pessoa que vende muda e também compra. O vínculo passou para
 > `party_roles`, que admite N papéis por identidade; `kind` ficou com a natureza da pessoa.
-> Fonte canônica: [`docs/rotinas/4-financeiro/01-cadastro-unico.md`](../../rotinas/4-financeiro/01-cadastro-unico.md).
+> Fonte canônica: [`docs/rotinas/1-cadastros/01-cadastro-unico.md`](../../rotinas/1-cadastros/01-cadastro-unico.md).
 
 ## `cadastro.party_roles`: papéis da identidade
 
 | Atributo | Tipo | Ob. | Chave | Descrição |
 |---|---|:--:|:--:|---|
 | `party_id` | uuid | ● | PK, FK → `cadastro.parties` | Identidade |
-| `role` | varchar(20) | ● | PK | `cliente`, `fornecedor`, `funcionario`, `socio`, `familiar`, `banco`, `governo`, `contador`, `outro` |
+| `role` | `cadastro.party_role_kind` | ● | PK | `cliente`, `fornecedor`, `funcionario` |
+| `employment_kind` | text | ○ | | `fixo` ou `diarista`, e só quando `role` é `funcionario` |
+| `active` | boolean | ● | | Papel ativo |
+| `created_at` | timestamptz | ● | | Criação |
+
+> **A tabela não tem `id` nem `updated_at`.** A chave é o par `(party_id, role)`, o que impõe pela
+> estrutura que uma pessoa exerça cada papel no máximo uma vez (RN-52).
 
 > `funcionario` aqui é **vínculo empregatício**, e não nível de acesso. O nível de acesso é
-> `users.role`, cujo valor foi renomeado para `colaborador` na migration `20260810000001`
-> justamente para desfazer essa ambiguidade.
+> `users.role`, cujos valores são `admin`, `chefia` e `gerencia`. A ambiguidade que existia entre as
+> duas palavras deixou de existir com a saída do perfil de campo: `users.role` não tem, e não terá
+> enquanto essa decisão valer, o valor `colaborador` ([`D4`](../D-arquitetura/D4-matriz-rbac.md) §1).
 
 ## `cadastro.addresses`: endereços da identidade
 
@@ -265,10 +293,16 @@ exige uma implantação.
 |---|---|:--:|:--:|---|
 | `id` | uuid | ● | PK | Identificador |
 | `party_id` | uuid | ● | FK → `cadastro.parties` | Identidade |
-| `label` | varchar(20) | ● | | `principal`, `entrega`, `cobranca` ou `outro`, endereço de cobrança diferente do de entrega não cabia como coluna em `customers` |
-| `zip_code`, `street`, `number`, `complement`, `neighborhood`, `city`, `state`, `ibge_code` | | ○ | | Endereço. `number` corresponde a `customers.address_number` |
-| `lat`, `lng`, `geocoded_at` | numeric/timestamptz | ○ | | Coordenadas do mapa de fornecedores (P11 F4) |
-| `is_primary` | boolean | ● | | UNIQUE parcial: no máximo um principal por identidade |
+| `kind` | `cadastro.address_kind` | ● | | `entrega`, `cobranca` ou `residencial` |
+| `street` | text | ○ | | Logradouro e número |
+| `city` | text | ○ | | Município |
+| `state` | char(2) | ○ | | Unidade federativa |
+| `zip` | text | ○ | | CEP |
+| `created_at`, `updated_at` | timestamptz | ● | | Criação e alteração |
+
+> **A entidade existe porque uma pessoa tem mais de um endereço, e o de entrega pode não ser o de
+> cobrança** (RN-57). É `kind` que os distingue, e a tabela não impõe endereço único por tipo: a
+> mesma identidade pode ter dois endereços de entrega, o que o viveiro pratica.
 
 ## `task_types`: tipo de tarefa
 
@@ -287,55 +321,49 @@ deixa de pedir (RF-24).
 | `requires_container` | boolean | ● | | Quando verdadeiro, exigem recipiente. Tarefa com lote o herda dele |
 | `active` | boolean | ● | | Tipo em uso. Inativar é o que retira a tarefa da lista da agenda; excluir deixaria sem sentido toda atribuição passada |
 
-> **Toda tarefa mede tempo.** O apontamento tem início e fim sempre (`task_executions`), e
-> `is_quantitative` só diz se **também** se conta quanto foi feito. Não é "tempo *ou*
-> quantidade": a pergunta do viveiro é "quantos fez em quantas horas", e são as duas metades da
-> mesma resposta.
+> **Nenhuma tarefa mede tempo, e é decisão.** A agenda registra o turno, e não a hora (RN-12):
+> apontamento por relógio seria controle de ponto, e está fora do escopo. `is_quantitative` diz
+> apenas se se conta **quanto** foi feito, e a pergunta do viveiro passou a ser "quantos fez no
+> turno".
 
 > **A contagem é por pessoa, e não da tarefa** (RN-29). Quatro pessoas enchendo saquinho gravam
-> quatro números em quatro linhas de `task_executions`, e não um total dividido por quatro. O
-> encerramento do grupo (RF-35) é o gesto que preenche as quatro de uma vez.
+> quatro números em `assignment_members.quantity_done`, e não um total dividido por quatro. A
+> confirmação do grupo (RF-35) é o gesto que preenche as quatro de uma vez.
 
-> **`measurement_type` e `avg_minutes_per_unit` saíram, por motivos opostos.** O primeiro tinha
-> três valores (`tempo`, `saco`, `tubete`), e os dois últimos diziam qual recipiente se contava;
-> mas o recipiente já vem do lote e do próprio nome da tarefa, de modo que os três respondiam uma
-> pergunta de dois estados, e alguém acabaria escrevendo a condição para `'saco'` esquecendo
-> `'tubete'`. O segundo saiu porque nunca teve fonte: ninguém cronometrou tempo por unidade.
-> Coluna sem fonte fica nula para sempre, e um dia alguém a confunde com dado real. Migração:
-> `20260825000001_tipos_tarefa_simplificacao.sql`.
+> **`measurement_type`, `avg_minutes_per_unit` e `unit_of_measure` não chegaram ao banco.** O
+> primeiro tinha três valores (`tempo`, `saco`, `tubete`) para uma pergunta de dois estados: o
+> recipiente já vem do lote e do próprio nome da tarefa, e alguém acabaria escrevendo a condição
+> para `'saco'` esquecendo `'tubete'`. O segundo nunca teve fonte, porque ninguém cronometrou tempo
+> por unidade, e coluna sem fonte fica nula para sempre até que alguém a confunda com dado real. O
+> terceiro era texto livre ("muda", "bandeja", "metro") e não decidia comportamento algum.
 
-> **`unit_of_measure` saiu antes, pelo mesmo raciocínio.** Era texto livre ("muda", "bandeja",
-> "metro") e não decidia comportamento algum. A entidade nunca chegou ao banco: aquela troca não
-> custou migração.
-
-**Carga inicial: as 22 tarefas do viveiro.** O catálogo nasce preenchido, e não vazio, porque tipo
+**Carga inicial: as 15 tarefas do viveiro.** O catálogo nasce preenchido, e não vazio, porque tipo
 de tarefa digitado por quem monta a agenda produziria "limpar mato", "limpeza de mato" e "capina"
-como três tarefas distintas, e a soma de horas por tarefa deixaria de existir.
+como três tarefas distintas, e a contagem por tarefa deixaria de existir.
 
 | Categoria | Tarefas | Quantitativa | Lote específico |
 |---|---|:--:|:--:|
-| `semente` | Colher semente · Beneficiar semente · Semear | não | não |
-| `terra` | Fazer substrato | não | não |
-| `terra` | Encher saquinho · Encher tubete | **sim** | não |
-| `plantio` | Encanteirar saco · Plantar no saquinho · Plantar no tubete | **sim** | **sim** |
-| `manutencao` | Classificar pós-germinação · Classificar seleção · Repicar · Limpar mato | **sim** | **sim** |
-| `manutencao` | Aplicação de adubo · Aplicação de fungicida · Irrigação | não | não |
-| `pos_morte` | Limpar canteiro · Replantar no saco | não | **sim** |
-| `pos_morte` | Limpar saco · Limpar tubete | não | não |
-| `expedicao` | Separar mudas | não | **sim** |
-| `expedicao` | Carregar | não | não |
+| `semente` | Colher semente · Beneficiar semente | **sim** | não |
+| `terra` | Peneirar terra | não | não |
+| `terra` | Encher saquinho · Encher bandeja | **sim** | não |
+| `plantio` | Semear · Repicar | **sim** | **sim** |
+| `manutencao` | Irrigar · Adubar · Capinar · Limpar canteiro · Rustificar | não | **sim** |
+| `pos_morte` | Classificar | **sim** | **sim** |
+| `expedicao` | Separar para entrega | **sim** | **sim** |
+| `expedicao` | Carregar caminhão | não | não |
 
-**Nove das 22 são quantitativas**, e são exatamente as que a migration de simplificação converteu
-a partir de `measurement_type <> 'tempo'`. Encher saquinho e encher tubete deixam de se distinguir
-no catálogo: o que as separava era o recipiente contado, que continua no nome de cada uma.
+**Oito das 15 são quantitativas**, e as duas de semente são as únicas que exigem espécie sem exigir
+lote: colhe-se e beneficia-se semente de uma espécie antes de existir leva. Encher saquinho e
+encher bandeja exigem recipiente pelo mesmo motivo invertido: contam recipiente, e não muda.
 
-> **Semear não exige lote, e plantar exige.** É o ponto em que a leva ganha endereço: a semente vai
-> para bandeja de germinação, que não é canteiro. O lote nasce no plantio, e "classificar
-> pós-germinação", que já exige lote, ocorre depois dele.
+> **Semear já exige lote, e é o ponto em que a leva ganha identidade.** A semeadura é o primeiro
+> movimento que soma ao estoque (RN-16), e um lote sem semeadura não teria quantidade inicial de
+> onde sair. Por isso `Semear` é `plantio` e não `semente`: a categoria `semente` cobre o que se faz
+> **antes** de existir lote, colher e beneficiar.
 
-> **Classificar aparece duas vezes** porque são dois momentos com propósitos distintos:
-> *pós-germinação* separa o que germinou do que não germinou, e *seleção* separa as maiores das
-> menores quando trocam de bandeja. Ambas produzem perda no mesmo gesto (RN-28).
+> **`Classificar` é `pos_morte` porque produz perda no mesmo gesto** (RN-28). Separar as vivas das
+> mortas é o momento em que a parte morta vira movimento de `perda` do lote, e classificá-la como
+> manutenção esconderia justamente a etapa que mais mata.
 
 ## `areas`: área do viveiro
 
@@ -345,10 +373,8 @@ Divisão física do viveiro, identificada por letra. É a primeira metade do end
 | Atributo | Tipo | Ob. | Chave | Descrição |
 |---|---|:--:|:--:|---|
 | `id` | uuid | ● | PK | Identificador |
-| `letter` | text | ● | UK | Letra da área: A, B, C. Única |
+| `letter` | char(1) | ● | UK | Letra da área: A, B, C. Única, e o banco exige maiúscula |
 | `name` | text | ○ | | Nome pelo qual a equipe se refere a ela, quando houver |
-| `notes` | text | ○ | | Observação |
-| `active` | boolean | ● | | Área em uso |
 
 ## `beds`: canteiro
 
@@ -361,8 +387,6 @@ pede para ser executada.
 | `area_id` | uuid | ● | FK → `areas` | Área a que pertence |
 | `number` | integer | ● | | Número dentro da área. Restrição: maior que zero |
 | `capacity` | integer | ○ | | Quantas mudas o canteiro comporta; serve de aviso ao criar lote, não de trava |
-| `notes` | text | ○ | | Observação |
-| `active` | boolean | ● | | Canteiro em uso |
 
 **Restrição de unicidade:** número de canteiro único dentro da área.
 
@@ -383,19 +407,24 @@ estação e com a combinação da equipe é dado, não constante (RN-27).
 | Atributo | Tipo | Ob. | Chave | Descrição |
 |---|---|:--:|:--:|---|
 | `id` | uuid | ● | PK | Identificador |
-| `code` | text | ● | UK | Código estável: `manha`, `tarde` |
-| `name` | text | ● | | Nome exibido |
-| `start_time` | time | ● | | Hora de início |
-| `end_time` | time | ● | | Hora de término. Restrição: posterior a `start_time` |
-| `sort_order` | integer | ● | | Ordem de exibição no dia |
+| `name` | text | ● | UK | Nome do turno: `manha`, `tarde` |
+| `starts_at` | time | ● | | Hora de início |
+| `ends_at` | time | ● | | Hora de término. Restrição: posterior a `starts_at` |
 | `active` | boolean | ● | | Turno em uso |
 
-> **A duração do turno é derivada**, `end_time` menos `start_time`, e não campo. Guardá-la
-> permitiria que ela divergisse dos horários que a própria linha declara.
+**Carga inicial:** `manha` das 07:30 às 11:30, `tarde` das 13:00 às 17:00.
 
-> **`code` é estável e `name` é editável.** A agenda e o apontamento referenciam o turno por
-> `shift_id`, mas relatório e carga inicial precisam de um identificador que sobreviva a alguém
-> renomear "Manhã" para "Manhã (verão)".
+> **A duração do turno é derivada**, `ends_at` menos `starts_at`, e não campo. Guardá-la permitiria
+> que ela divergisse dos horários que a própria linha declara.
+
+> **`name` é a chave de negócio, e não há coluna de código separada.** São dois turnos, e a agenda
+> os referencia por `shift_id`: um segundo identificador estável só teria uso se o nome fosse
+> editável a ponto de deixar de identificar o turno, o que não é o caso com dois valores fixos.
+
+> **O horário existe, e o registro do trabalho não o usa.** A agenda escala por dia e turno, nunca
+> por hora (RN-12): `starts_at` e `ends_at` dizem quando o turno começa e termina para quem lê a
+> grade, e não são comparados com relógio nenhum. Apontamento de entrada e saída é controle de
+> ponto, e está fora do escopo.
 
 ## `protocols`: protocolo de atividades
 
@@ -460,8 +489,8 @@ RF-27). É a entidade que carrega a lógica do módulo inteiro.
 > aplicação, com teste dedicado. **Limite conhecido, declarado aqui em vez de descoberto em
 > produção.**
 
-> **`shift_id` é obrigatório pelo mesmo motivo de `task_recurrences.shift_id`** (RN-33):
-> `assignments.shift_id` é `NOT NULL`, e a ordem gerada precisa de um. A pergunta que resolve
+> **`shift_id` é obrigatório porque `assignments.shift_id` é `NOT NULL`**, e a ordem gerada
+> precisa de um. A pergunta que resolve
 > ("esta etapa é de manhã ou de tarde?") a gerência responde sem pensar, e derivá-la de qualquer
 > outra coisa obrigaria a escolher entre errar e recusar.
 
@@ -582,15 +611,20 @@ aqui, com motivo e origem.
 | `movement_date` | date | ● | | Data do movimento |
 | `from_bed_id` | uuid | ○ | FK → `beds` | Canteiro de origem, só em `transferencia` |
 | `to_bed_id` | uuid | ○ | FK → `beds` | Canteiro de destino, só em `transferencia` |
-| `task_execution_id` | uuid | ○ | FK → `task_executions` | Apontamento que o originou, quando veio de uma tarefa |
-| `loss_event_id` | uuid | ○ | FK → `loss_events` | Perda que o originou |
-| `stock_count_id` | uuid | ○ | FK → `stock_counts` | Contagem física que o originou |
-| `recorded_by` | uuid | ● | FK → `users` | Quem registrou |
+| `loss_cause` | text | ○ | | Causa em **lista fechada**: `seca`, `praga`, `geada`, `manuseio`, `outro` (RN-10). Existe se e somente se `movement_type` for `perda` |
+| `assignment_id` | uuid | ○ | FK → `assignments` | Atribuição que o originou, quando veio de uma tarefa confirmada |
+| `recorded_by` | uuid | ● | FK → `users` | Quem registrou (RN-60) |
 | `notes` | text | ○ | | Observação |
 
-> **As três origens são exclusivas entre si e todas opcionais.** Movimento sem origem é o ajuste
-> manual da gerência, que existe e precisa caber. Prendê-lo a uma origem obrigatória faria a
-> correção de um erro de digitação ser impossível sem inventar uma perda que não houve.
+> **A origem é uma só, e é opcional.** `assignment_id` liga o movimento à tarefa que o causou.
+> Movimento sem origem é o ajuste manual da gerência, que existe e precisa caber: prendê-lo a uma
+> origem obrigatória faria a correção de um erro de digitação ser impossível sem inventar uma perda
+> que não houve.
+
+> **Perda, contagem e venda não são entidades: são valores de `movement_type`.** Uma tabela própria
+> de perda obrigaria a gravar duas linhas por perda, uma nela e outra aqui, e a divergir no dia em
+> que alguém gravasse só uma. É a mesma decisão que faz de `loss_cause` uma coluna deste razão, e
+> não de uma entidade `loss_events`.
 
 > **A repicagem grava dois movimentos**, `repicagem_saida` no lote de origem e `repicagem_entrada`
 > no de destino, e a diferença entre eles, quando houver, é uma `perda` no lote de origem (RN-28).
@@ -612,14 +646,24 @@ turno admite duas tarefas com grupos diferentes (RN-26).
 |---|---|:--:|:--:|---|
 | `assignment_id` | uuid | ● | PK, FK → `assignments` | Atribuição |
 | `party_id` | uuid | ● | PK, FK → `cadastro.parties` | Funcionário escalado |
+| `quantity_done` | integer | ○ | | Quantidade que **esta pessoa** realizou, pedida na confirmação quando o tipo de tarefa for quantitativo (RF-36, RN-29). Nula enquanto a tarefa não for confirmada |
+| `created_at` | timestamptz | ● | | Criação |
+
+> **A tabela não tem `id` nem `updated_at`.** A chave é o par `(assignment_id, party_id)`, o que
+> impede pela estrutura escalar a mesma pessoa duas vezes na mesma tarefa.
 
 > **`assignments` perdeu `party_id` para cá.** Com a pessoa dentro da própria atribuição, escalar
 > quatro funcionários na mesma tarefa criaria quatro atribuições idênticas, e a tarefa deixaria de
 > ser uma coisa só para virar quatro coisas parecidas: metade da equipe enchendo saquinho enquanto
 > a outra repica é a norma do viveiro, não a exceção.
 
-> **A tabela não guarda hora.** Quem sai da tarefa em momento diferente do grupo é registrado em
-> `task_executions`, uma linha por pessoa: aqui fica só o planejado.
+> **É aqui que a quantidade realizada mora, e não na atribuição** (RN-29). Quatro pessoas enchendo
+> saquinho produzem quatro números, e é assim que o viveiro fala: um total na atribuição obrigaria
+> a dividir por quatro na hora de ler, e a divisão seria invenção.
+
+> **A tabela não guarda hora.** A unidade do planejamento é o turno, e não o relógio (RN-12): quem
+> sai da tarefa antes do grupo não é registrado em lugar nenhum, porque apontamento de entrada e
+> saída é controle de ponto e está fora do escopo.
 
 ## `week_plans`: semana de trabalho
 
@@ -654,9 +698,9 @@ execução separada. A duração do turno vem de `work_shifts` (RN-12, RN-27).
 | `bed_id` | uuid | ○ | FK → `beds` | Canteiro da tarefa que não exige lote (RF-38) |
 | `planned_quantity` | integer | ○ | | Quantidade planejada, quando aplicável |
 | `is_recurring` | boolean | ● | | Marca a atribuição como parte da rotina fixa: ao copiar a semana anterior, ela já vem preenchida (RF-32, RN-33) |
-| `batch_protocol_step_id` | uuid | ○ | FK → `batch_protocol_steps` | Etapa do protocolo daquele lote que gerou esta ordem. Nula = atribuição lançada à mão (RN-46). **Especificado, não implementado.** |
-| `protocol_due_on` | date | ○ | | Vencimento que esta ordem representa, congelado na geração. Distingue-se de `work_date`, que a gerência pode remarcar. **Especificado, não implementado.** |
-| `status` | text | ● | | `planejada`, `confirmada`, `nao_confirmada`, `cancelada`: a segunda é a que a gerência marca ao registrar que a tarefa foi feita, a terceira é a que o fechamento assume como realizada (RN-14), e a quarta é a ordem que o encerramento do lote invalidou (RN-43). `cancelada` é **especificada, não implementada** |
+| `batch_protocol_step_id` | uuid | ○ | | Etapa do protocolo daquele lote que gerou esta ordem. Nula = atribuição lançada à mão (RN-46). A coluna existe; **a chave estrangeira não**, porque `batch_protocol_steps` ainda não foi criada |
+| `protocol_due_on` | date | ○ | | Vencimento que esta ordem representa, congelado na geração. Distingue-se de `work_date`, que a gerência pode remarcar |
+| `status` | text | ● | | `planejada`, `confirmada`, `nao_confirmada`, `cancelada`: a segunda é a que a gerência marca ao registrar que a tarefa foi feita, a terceira é a que o fechamento assume como realizada (RN-14), e a quarta é a ordem que o encerramento do lote invalidou (RN-43) |
 | `notes` | text | ○ | | Observação livre; único campo aberto da agenda |
 
 > **`party_id` saiu para `assignment_members`.** Quem executa deixou de ser coluna e virou lista:
@@ -731,8 +775,8 @@ decorre: `saudavel`, `atencao` ou `critico`. É o que pinta o mapa de produção
 >
 > **A primeira versão da visão enumerava pela exclusão** (`status <> 'nao_confirmada'`) e deixava
 > `confirmada` passar: o lote ficava colorido por um serviço que foi feito, sem nada na tela
-> denunciando o erro. Corrigido em `20260826000005`. É a razão de a condição ser positiva agora:
-> excluir por lista exige lembrar de todos os casos, e um deles escapou.
+> denunciando o erro. É a razão de a condição ser positiva agora: excluir por lista exige lembrar
+> de todos os casos, e um deles escapou.
 
 > **Os limites vêm de `settings`, e não de literal na visão** (RN-32). É o que faz o parâmetro ser
 > parâmetro de verdade, e não constante com outro nome. A migration que cria a visão afirma que as
@@ -770,10 +814,10 @@ Uma linha por par lote e etapa, criada quando o lote nasce. **Guarda fatos, e nu
 > comportamento de calendário fixo que o módulo existe para não ter.
 
 > **Não há entidade de eventos do protocolo, e é decisão declarada.** O razão que explica este
-> estado é o par `assignments` + `task_executions`: a ordem sabe a etapa e a ocorrência, e a
-> execução sabe a data real. Uma terceira tabela criaria duas verdades sobre o mesmo fato.
-> **Consequência aceita:** marcar uma etapa como feita fora da agenda tem de gerar a ordem e a
-> execução correspondentes, e não escrever direto aqui.
+> estado é a própria `assignments`: a ordem sabe a etapa que a gerou, o vencimento que representa e
+> a data em que foi confirmada. Uma segunda tabela criaria duas verdades sobre o mesmo fato.
+> **Consequência aceita:** marcar uma etapa como feita fora da agenda tem de gerar a atribuição
+> correspondente, e não escrever direto aqui.
 
 ## `batch_protocol_due`: vencimento e situação da etapa *(não é tabela)*
 
@@ -861,7 +905,7 @@ e a situação que dele decorre (RF-63, RF-64).
 | Área | Entidades | Observação |
 |---|---:|---|
 | *(transversal)* Acesso e configurações | 4 | `users`, `sessions`, `login_events` e `settings`, os parâmetros do sistema |
-| 1 · Cadastro único | 15 | catálogo (`species`, `containers`, `inputs`), endereço do viveiro (`areas`, `beds`), trabalho (`task_types`, `work_shifts`), protocolo (`protocols`, `protocol_steps`, `species_protocol_overrides`) e o esquema `cadastro` (`parties`, `party_roles`, `addresses`) |
+| 1 · Cadastro único | 15 | catálogo (`species`, `species_popular_names`, `species_photos`, `containers`, `inputs`), endereço do viveiro (`areas`, `beds`), trabalho (`task_types`, `work_shifts`), protocolo (`protocols`, `protocol_steps`, `species_protocol_overrides`) e o esquema `cadastro` (`parties`, `party_roles`, `addresses`) |
 | 2 · Produção | 6 | `week_plans`, `assignments`, `assignment_members`, `batches`, `batch_movements`, `batch_protocol_steps` |
 | 3 · Comercial | 2 | `orders` e `order_items` |
 | **Total** | **27** | mais `batch_health` e `batch_protocol_due`, que são visões e não tabelas |

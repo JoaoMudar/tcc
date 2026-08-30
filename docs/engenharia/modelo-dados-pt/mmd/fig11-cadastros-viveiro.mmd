@@ -19,7 +19,11 @@ erDiagram
   }
   lotes {}
   atribuicoes {}
+  movimentos_lote {}
 
   areas    ||--o{ canteiros   : "contem"
   canteiros||--o{ lotes       : "abriga"
   turnos_trabalho ||--o{ atribuicoes : "situa"
+  areas    ||--o{ atribuicoes : "localiza"
+  canteiros||--o{ atribuicoes : "localiza"
+  canteiros||--o{ movimentos_lote : "origem e destino da transferencia"

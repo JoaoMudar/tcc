@@ -31,6 +31,7 @@ erDiagram
   turnos_trabalho {}
   tipos_tarefa {}
   pessoas {}
+  usuarios {}
   lotes {}
   lotes_etapas {}
   movimentos_lote {}
@@ -42,4 +43,5 @@ erDiagram
   tipos_tarefa    ||--o{ atribuicoes : "classifica"
   pessoas         ||--o{ atribuicoes_participantes : "executa"
   lotes           ||--o{ atribuicoes : "recebe trabalho de"
-  lotes_etapas    ||--o| atribuicoes : "gera ordem de"
+  lotes_etapas    ||--o{ atribuicoes : "gera ordem de"
+  usuarios        ||--o{ semanas : "publica"
