@@ -22,7 +22,7 @@
    Isso não está em lugar nenhum do repositório. É o §1 do capítulo de elicitação, comece por ele
    enquanto a memória está fresca.
 5. **Não escreva nada dentro de `docs/engenharia/word/`.** Aquela pasta é gerada e apagada a cada
-   `npm run docs:tcc`.
+   `node scripts/build-word.mjs`.
 
 ---
 
@@ -40,9 +40,11 @@ capítulos.
 **Teste de 5 segundos para saber se algo é regra de negócio:** apague mentalmente o sistema. Se a
 frase continua verdadeira no viveiro, é regra. Se ela começa com *"O sistema deve"*, é requisito.
 
-Exemplo do par: **RN** "mortalidade acima de 20% é anormal e exige providência" → **RF-52** "o
-sistema deve emitir alerta para espécie cuja mortalidade ultrapasse 20%". A regra é do viveiro; o
-requisito é a resposta do software a ela.
+Exemplo do par: **RN-11** "mortalidade acima do limite é anormal e exige providência" → **RF-52**
+"o sistema deve emitir alerta para o lote cuja mortalidade ultrapasse o limite definido em
+Configurações". A regra é do viveiro; o requisito é a resposta do software a ela. Repare que o
+requisito fala em **lote** e em **limite mantido**, e não em espécie e em 20% fixos: quem escreve o
+capítulo tem de copiar o enunciado do `B2`, e não a lembrança dele.
 
 ---
 
@@ -60,27 +62,34 @@ requisito é a resposta do software a ela.
 | `B2` | §5: Conflitos entre requisitos e sua resolução | **O melhor material do capítulo.** Três conflitos reais entre *stakeholders*, com a negociação e o desfecho. É análise de requisitos em estado puro |
 | [`B5-matriz-rastreabilidade.md`](B-requisitos/B5-matriz-rastreabilidade.md) | §5: O que a construção desta matriz revelou | **Validação de requisitos**: 25 lacunas encontradas por verificação sistemática, não por acaso |
 | [`E3-analise-de-riscos.md`](E-qualidade/E3-analise-de-riscos.md) | risco de viés do autor | O tratamento formal do problema de ser gerente e analista ao mesmo tempo |
-| [`docs/rotinas/`](../rotinas/) | seções "Situação atual" / "Fluxo atual" | O **registro do processo como-é**, em linguagem de negócio. `3-comercial/pedidos.md` ("Fluxo atual analógico"), `1-cadastros/00-visao-geral.md` §"O problema", `4-financeiro/00-visao-geral.md` §"Situação atual" |
+| [`docs/rotinas/`](../rotinas/) | seções "Situação atual" / "Fluxo atual" | O **registro do processo como-é**, em linguagem de negócio. `3-comercial/pedidos.md` ("Fluxo atual analógico"), `1-cadastros/00-visao-geral.md` §"O problema", `2-producao/00-visao-geral.md` |
 | [`docs/contexto-projeto.md`](../contexto-projeto.md) | §Formulários de campo | Os princípios de UX derivados da observação em campo |
 
 ## 1.2 Tabela pronta: requisitos por técnica de elicitação
 
-Contagem extraída de `B2` (106 RF). Requisitos com duas origens aparecem em ambas as linhas, por isso
-a soma dá 113 e não 106.
+Contagem extraída de `B2` (70 RF). Requisito com duas origens aparece em ambas as linhas, por isso
+a soma dá 73 e não 70. **Recontar antes de usar**: a tabela abaixo é resultado, e resultado que se
+copia de uma versão anterior é como as contagens deste projeto já erraram três vezes.
 
 | Técnica (código em `B2`) | Requisitos funcionais | Leitura |
 |---|---:|---|
-| **EN**: Entrevista com chefia e gerência | 40 | Técnica dominante: o conhecimento estava na memória das pessoas |
-| **OP**: Observação participante | 35 | Segunda maior: o autor integra a operação |
-| **ORG**: Política do projeto | 16 | Quase toda em acesso, segurança e fechamento de período |
-| **AD**: Análise documental (notas de compra, planilhas de nota fiscal) | 3 | Concentrada no cadastro de insumo e nos dados fiscais do cliente |
-| **LEG**: Exigência legal/fiscal | 4 | Documento fiscal, LGPD, nome científico |
-| **DOM**: Estudo do domínio florestal | 2 | Complementar |
+| **OP**: Observação participante | 26 | Técnica dominante: o autor integra a operação |
+| **ORG**: Política do projeto | 20 | Quase toda em acesso, segurança e fechamento de período |
+| **EN**: Entrevista com chefia e gerência | 17 | O conhecimento estava na memória das pessoas |
+| **DOM**: Estudo do domínio florestal | 6 | Ciclo produtivo, protocolo de manejo, nome científico |
+| **AD**: Análise documental (notas de compra, planilhas de nota fiscal) | 2 | Concentrada nos dados fiscais do cliente |
+| **LEG**: Exigência legal/fiscal | 2 | Documento fiscal e nome científico |
 
-Nos **26 requisitos não funcionais** a origem é outra: 13 vêm de política do projeto (**ORG**),
-10 derivam diretamente das restrições **RE-1 a RE-5** de `A1`, e 3 de exigência legal (**LEG**).
-Ou seja: **os RNF não foram elicitados com os usuários, foram deduzidos das restrições do ambiente.**
-Esse é um parágrafo de análise que a banca valoriza.
+**A redução de escopo trocou a técnica dominante, e isso vale um parágrafo.** Antes do corte a
+entrevista liderava, com 40 requisitos contra 35 da observação. O que saiu foi sobretudo o que a
+chefia **pediu em entrevista** e o autor nunca viu operando, custeio, precificação, conciliação; o
+que ficou foi o que ele **viu acontecer**, a leva plantada, a semana combinada de boca, o pedido
+anotado depois. O escopo encolheu na direção do que estava observado, e não do que estava desejado.
+
+Nos **27 requisitos não funcionais** a origem é outra: 13 vêm de política do projeto (**ORG**),
+11 derivam das restrições **RE-1 a RE-5** de `A1` e 3 de exigência legal (**LEG**). Ou seja: **os
+RNF não foram elicitados com os usuários, foram deduzidos das restrições do ambiente.** Esse é um
+parágrafo de análise que a banca valoriza.
 
 ## 1.3 Esqueleto sugerido do capítulo
 
@@ -127,32 +136,35 @@ As regras estavam dissolvidas em cinco lugares:
 
 | Lugar | Como a regra aparece ali |
 |---|---|
-| [`A2-glossario-dominio.md`](A-fundacao/A2-glossario-dominio.md) | **Dentro da definição.** "Piso mínimo: valor abaixo do qual o preço não pode cair, independentemente de negociação" já é uma regra completa |
-| [`C2-especificacao-casos-de-uso.md`](C-modelagem/C2-especificacao-casos-de-uso.md) | Nos fluxos **FE** (exceção) e **FA** (alternativo). Toda exceção existe porque uma regra foi violada, `FE-1 Preço abaixo do piso mínimo` é a regra vista pelo avesso |
+| [`A2-glossario-dominio.md`](A-fundacao/A2-glossario-dominio.md) | **Dentro da definição.** "Lote: leva de mudas da mesma espécie, no mesmo recipiente, plantada junta" já é uma regra completa, e virou RN-18 |
+| [`C2-especificacao-casos-de-uso.md`](C-modelagem/C2-especificacao-casos-de-uso.md) | Nos fluxos **FE** (exceção) e **FA** (alternativo). Toda exceção existe porque uma regra foi violada: o fluxo que recusa o movimento que deixaria o saldo negativo é RN-21 vista pelo avesso |
 | [`CLAUDE.md`](../../CLAUDE.md) §Regras de negócio | A lista curta e canônica, em 6 linhas. **Comece por ela** |
-| [`C6`](C-modelagem/C6-modelo-entidade-relacionamento.md) / [`C8`](C-modelagem/C8-dicionario-de-dados.md) | Regras que viraram estrutura: chaves compostas, listas fechadas, restrições `CHECK`. `C6` §5 explica *por que o piso é coluna e não constante*, regra que molda o modelo |
+| [`C6`](C-modelagem/C6-modelo-entidade-relacionamento.md) / [`C8`](C-modelagem/C8-dicionario-de-dados.md) | Regras que viraram estrutura: chave composta em `party_roles`, lista fechada de causa de perda, `CHECK` que impede saldo negativo. A restrição `batches_encerrado_sem_canteiro` é RN-22 escrita em SQL, nos dois sentidos |
 | [`G2`](G-gestao/G2-fichas-de-indicadores.md) e [`D4`](D-arquitetura/D4-matriz-rbac.md) | Limiares e regras de acesso (o 20% de mortalidade; a base bancária restrita à chefia) |
 
 ## 2.2 O catálogo: 60 regras, em [`B3`](B-requisitos/B3-regras-de-negocio.md)
 
-As regras estão agrupadas em
-nove áreas:
+As regras estão agrupadas em **cinco áreas**:
 
-| Área | Regras | O que cobre |
-|---|---|---|
-| A: Domínio e produto | RN-01 a RN-06, RN-07 | Espécie como centro, nomes populares, recipiente define o produto e o manejo, só muda pronta é estoque, insumo é catálogo |
-| B: Produção, lote e trabalho | RN-08 a RN-11, RN-12, RN-13, RN-14, RN-15, RN-16, RN-17 a RN-25, RN-26, RN-27, RN-28 a RN-33 | Saldo derivado dos lotes, contagem física prevalece, causa da perda em lista fechada, mortalidade, lote e canteiro, planejamento por turno, semana que fecha, quantidade por pessoa |
-| C: Protocolo de atividades por lote | RN-34 a RN-38, RN-39 a RN-48 | Protocolo do recipiente, âncora declarada, contagem da execução real, uma ocorrência em aberto, alteração que não retroage |
-| D: Cliente e pedido | RN-49, RN-50 a RN-56, RN-57, RN-58 | PF/PJ, cadastro mínimo, identidade única com papéis, canal de venda, nota em sistema externo, preço negociado |
-| E: Acesso e responsabilidade | RN-59, RN-60 | Perfil determina o acesso; todo registro tem autor |
+| Área | Regras | Qtd. | O que cobre |
+|---|---|---:|---|
+| A: Domínio e produto | RN-01 a RN-07 | 7 | Espécie como centro, nomes populares, recipiente define o produto e o manejo, só muda pronta é estoque, insumo é catálogo |
+| B: Produção, lote e trabalho | RN-08 a RN-33 | 26 | Saldo derivado dos lotes, contagem física prevalece, causa da perda em lista fechada, mortalidade, lote e canteiro, planejamento por turno, semana que fecha, quantidade por pessoa |
+| C: Protocolo de atividades por lote | RN-34 a RN-48 | 15 | Protocolo do recipiente, âncora declarada, contagem da execução real, uma ocorrência em aberto, alteração que não retroage |
+| D: Cliente e pedido | RN-49 a RN-58 | 10 | PF/PJ, cadastro mínimo, identidade única com papéis, canal de venda, nota em sistema externo, preço negociado |
+| E: Acesso e responsabilidade | RN-59, RN-60 | 2 | Perfil determina o acesso; todo registro tem autor |
 
 Cada regra em `B3` traz **tipo** (fato, restrição, derivação, acionamento), **onde já estava
 documentada** e **quais RF e RNF ela origina**. As tabelas inversas (RF → RN e RNF → origem) estão
-nas seções 4 e 5 de lá, e o texto integral dos 106 RF e 26 RNF no apêndice: o arquivo é
+nas seções 4 e 5 de lá, e o texto integral dos 70 RF e 27 RNF no apêndice (§7): o arquivo é
 autossuficiente para gerar as tabelas do trabalho.
 
-**Dois números que valem parágrafo no capítulo:** 102 dos 106 requisitos funcionais nascem de regra de
-negócio, mas apenas 3 dos 26 não funcionais: os outros 23 vêm das restrições do ambiente (RE-1 a
+> ⚠️ **As seções 4 e 7 do `B3` são geradas** por `scripts/build-b3-derivado.mjs`, e o mesmo vale
+> para o `B4` inteiro, para `B5` §2 e §6 e para `E2` §9. Editá-las à mão é trabalho que o próximo
+> `node scripts/build-b3-derivado.mjs` apaga. Corrija a fonte, que é o `B2` §2/§3 ou o `B3` §3.
+
+**Dois números que valem parágrafo no capítulo:** 66 dos 70 requisitos funcionais nascem de regra de
+negócio, mas apenas 3 dos 27 não funcionais: os outros 24 vêm das restrições do ambiente (RE-1 a
 RE-5) ou de política do projeto. As regras determinam **o que** o sistema faz; o ambiente determina
 **como** ele precisa ser.
 
@@ -187,7 +199,7 @@ parágrafo.
 Elicitação **precede** requisitos, e regras de negócio vêm logo depois.
 
 **Metade já foi feita.** Em 19/08/2026 o capítulo de regras de negócio entrou como **4.3** e tudo
-que vinha depois deslocou uma casa. É esta a numeração vigente, e é a que `scripts/build-docs-tcc.mjs`
+que vinha depois deslocou uma casa. É esta a numeração vigente, e é a que `scripts/build-word.mjs`
 gera hoje:
 
 ```
@@ -218,7 +230,7 @@ localizá-las:
 grep -rn "seção 4\.\|Destino no TCC" docs/engenharia --include=*.md | grep -v /word/
 ```
 
-E lembre de ajustar o array `SECOES` de `scripts/build-docs-tcc.mjs`, que define o **nome do
+E lembre de ajustar o array `CAPITULO` de `scripts/build-word.mjs`, que define o **nome do
 arquivo** gerado além do título: renumerar o título sem renumerar o arquivo produz `word/` com
 nomes que não batem com o sumário.
 
@@ -228,12 +240,12 @@ nomes que não batem com o sumário.
    - `B-requisitos/B1-elicitacao-e-analise.md`: **o único que falta**; o código `B1` está livre
    - `B-requisitos/B3-regras-de-negocio.md`: **✅ já existe**, com as 60 regras e as tabelas de vínculo
    - `B-requisitos/B4-quadros-tcc.md`: **✅ já existe**, com os 13 quadros formatados para o Word
-2. Registre-os em [`scripts/build-docs-tcc.mjs`](../../scripts/build-docs-tcc.mjs), no array
-   `SECOES`, na posição correta da ordem: o array define nome de arquivo, título e ordem
+2. Registre-os em [`scripts/build-word.mjs`](../../scripts/build-word.mjs), no array
+   `CAPITULO`, na posição correta da ordem: o array define nome de arquivo, título e ordem
    do capítulo.
 3. Acrescente a linha em [`00-indice.md`](00-indice.md), com destino e situação.
 4. Termo novo entra **primeiro** no glossário `A2`, depois nos outros documentos.
-5. Rode `npm run docs:tcc` e monte a partir de [`word/`](word/), nunca editando `word/` à mão.
+5. Rode `node scripts/build-word.mjs` e monte a partir de [`word/`](word/), nunca editando `word/` à mão.
 
 ## 3.3 Fundamentação teórica: o que citar
 
@@ -267,15 +279,19 @@ Cada bloco é fechado: começa e termina com algo escrito no disco. Não pule o 
 | 7 | Regras, conferência | Leia `B3` §3 inteiro e confira cada enunciado contra a sua vivência do viveiro, corrigir agora custa uma linha, depois custa uma tabela | `B3` validado |
 | 8 | Regras, prosa | Escreva o texto corrido das seções 2 a 8 do esqueleto, uma área por vez, apoiado nas tabelas de `B3` | Capítulo em pé |
 | 9 | Regras, seções 9 e 10 | Vínculo RN → RF (tabelas de `B3` §3 e §4) + regras que viraram restrição de dados (`C6`/`C8`) | Capítulo fechado |
-| 10 | Integração | Registre no `SECOES`, renumere as seções, rode `npm run docs:tcc` | `word/` regenerado |
+| 10 | Integração | Registre no `CAPITULO`, renumere as seções, rode `node scripts/build-word.mjs` | `word/` regenerado |
 
 ## Armadilhas conhecidas
 
-- **`docs/engenharia/word/` é gerada.** Editar lá dentro e rodar `npm run docs:tcc` apaga o trabalho.
+- **`docs/engenharia/word/` é gerada.** Editar lá dentro e rodar `node scripts/build-word.mjs` apaga o trabalho.
 - **Não repita `B2`.** Se um parágrafo do capítulo de regras começa com "O sistema deve", ele
   pertence a 4.2 e não aqui.
-- **Numeração de RN é estável.** Uma vez atribuída, não se reutiliza, mesma disciplina dos RF
-  (`B2` §1).
+- **Numeração estável no dia a dia, refeita só em corte de escopo.** No trabalho normal, o
+  identificador atribuído não se reutiliza nem se remaneja (`B2` §1). A exceção é a redução de
+  escopo, que deixa a lista esburacada e chama atenção para o que saiu em vez do que ficou: em
+  28/08/2026 todos os identificadores foram renumerados em sequência contínua por
+  `scripts/renumerar.mjs`, que reescreve o repositório inteiro numa passada. **Nunca renumere à
+  mão**, e rode `node scripts/renumerar.mjs --simular` antes de aplicar.
 - **Não cite número de linha neste guia.** As referências deste arquivo apontam para seções (`§4`,
   `§5`), e não para linhas: um artefato que cresce invalida toda citação de linha silenciosamente.
   Foi assim que a versão anterior passou a apontar para o lugar errado em sete lugares.
