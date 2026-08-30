@@ -35,7 +35,13 @@ cardinalidade, atualize os três na mesma alteração:
 O `modelo-dados-pt` é **fonte separada e renderizada à mão**: nenhum gerador passa por ele. Edite o
 `.mmd` da figura, regere o `.png` com o comando do
 [`README`](docs/engenharia/modelo-dados-pt/README.md) e rode `node scripts/mede-figuras.mjs` para
-conferir a fonte útil, que muda quando a figura muda de proporção.
+conferir a fonte útil, que muda quando a figura muda de proporção. Depois,
+`node scripts/confere-modelo-pt.mjs`: ele compara o **conjunto** de arestas das figuras com o do
+`C6`, nos dois sentidos, e é o que pega a aresta perdida numa divisão de figura.
+
+**A fonte da verdade do modelo é a migration.** Onde `C6` ou `C8` discordarem do SQL, quem está
+errado é o documento. O que ainda não existe no banco vem marcado como *especificado, não
+implementado*, e é assim que a intenção fica registrada sem se passar por descrição.
 
 **Documento que resume outro não se escreve à mão.** Cinco tabelas do trabalho são geradas, e rodar
 o script é parte de alterar o artefato de origem: `build-b3-derivado.mjs`, `build-b4-quadros.mjs`,

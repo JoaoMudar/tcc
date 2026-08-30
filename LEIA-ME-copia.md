@@ -100,6 +100,7 @@ Dois scripts cuidam das figuras:
 ```bash
 node scripts/mede-figuras.mjs          # fonte útil de cada figura do modelo-dados-pt
 node scripts/render-mapas.mjs          # PNG em cinza dos mapas de rotina
+node scripts/confere-modelo-pt.mjs     # as figuras em português contra o C6, nos dois sentidos
 ```
 
 ## Por onde começar

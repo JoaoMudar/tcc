@@ -813,3 +813,102 @@ afirmada e inexistente. Três vezes é padrão.
 confronta, nos dois sentidos, os identificadores definidos em B2, B3, C1, E2, G2 e A1 contra os
 citados em todo o repositório. Foi ele que encontrou, durante o corte, as dezenas de citações a
 requisitos removidos que sobreviveram em C8, D4, E4, E5, F1 e nas rotinas.
+
+
+---
+
+## Nona passada: o que o corte deixou para tras (30/08/2026)
+
+A oitava passada fechou com um criterio: **documento que resume outro nao se escreve a mao.** Ele
+foi aplicado a cinco tabelas, e funcionou. Esta passada e a conferencia de onde ele **nao** foi
+aplicado, e a resposta e desconfortavel: foi exatamente ali que a divergencia reapareceu.
+
+### O achado de fundo
+
+| Onde o criterio foi aplicado | Estado em 30/08 |
+|---|---|
+| `B5` §2 e §6, `E2` §9, `B3` §4 e §7, `B4` | Corretos, e batem com a fonte |
+| `B5` §3, `B3` §6, `D4`, o `C8` inteiro | **Todos divergiam**, e nenhum acusava |
+
+A conferencia automatica passava limpa o tempo todo, porque
+`verifica-rastreabilidade.mjs` so sabe responder se um identificador citado existe. Nao conta
+linha, nao confere cobertura, e nao compara um documento com o vizinho. Nenhum dos achados abaixo
+era visivel para ela.
+
+### Achado Q: o dicionario de dados descrevia o sistema anterior ao corte
+
+O `C8` vai impresso como Apendice B, e nao era impresicao de redacao: era outra especificacao.
+`batch_movements` documentava tres colunas apontando para `task_executions`, `loss_events` e
+`stock_counts`, tabelas que nao existem em lugar nenhum do modelo, e **omitia as duas colunas
+reais**, `assignment_id` e `loss_cause`. Era o contrario da regra-simbolo do projeto, a de que
+todo movimento passa pela mesma porta: o documento continuava descrevendo a entidade propria de
+perda que a migration explicitamente recusou. O dominio de `loss_cause`, que e onde RN-10 e
+imposta pelo banco, nao estava documentado em lugar nenhum dos tres documentos do modelo.
+
+Junto dele: nove valores no papel de `party_roles` contra tres no enum, com os seis extras sendo
+residuo do modulo Financeiro; `cadastro.addresses` com dez colunas inexistentes; a carga inicial
+de `task_types` falando em 22 tarefas contra as 15 do seed, e afirmando em destaque que "Semear
+nao exige lote" enquanto o seed grava o contrario; e uma nota dizendo que `users.role` fora
+renomeado para `colaborador` numa migration que nao existe, o que ressuscitava o **achado D**
+num documento impresso.
+
+### Achado R: o gerador que apagava a tabela em silencio
+
+E o achado mais grave da passada, e nasceu de rodar os geradores nesta copia pela primeira vez
+depois de um checkout com quebra de linha do Windows.
+
+Os quatro partem o arquivo em linhas e casam cada uma contra uma regex ancorada no fim. Com CRLF
+sobra um retorno de carro depois do split, e em JavaScript o `.` de uma regex **nao casa retorno
+de carro**. A regex nao casava nada, o gerador concluia que o documento nao tinha requisito nenhum
+e **gravava a tabela vazia**. Sem erro, sem aviso: o unico sinal era a linha `B3: 0 RF, 0 RNF,
+0 RN` passando no terminal.
+
+**Tornar a tabela derivada nao basta se o gerador puder falhar em silencio.** O criterio da oitava
+passada ganhou uma segunda metade: derivar, e falhar alto quando nao conseguir derivar.
+
+### Achado S: a delimitacao de escopo nao registrou o proprio corte
+
+`A1` §7 e a delimitacao canonica, citada pelo `P1` e pelo `B2` §4 como o lugar onde o que
+saiu esta declarado. Ela nao tinha **nenhuma** das exclusoes de 28/08: custeio, modulo financeiro,
+cotacao com fornecedor, entregas, apontamento por relogio e tela de campo. O corte foi aplicado aos
+requisitos e ao modelo, e nao ao documento que existe para dizer onde o sistema termina.
+
+### O que mais foi corrigido
+
+- `D1` dizia "62 entidades em 3 esquemas", **dentro do bloco mermaid que vira a figura de 4.6**.
+- `D4` e `B5` diziam 23 recursos; a matriz tem 25, e o mapa do gerador de `B5` ja usava 25.
+- `B3` §3.6 declarava Restricao 21 e Acionamento 2, contra 22 e 1 reais. **Os dois erros se
+  cancelavam e o total 60 fechava**, que e por que nenhuma leitura o pegou.
+- `B5` §3 herdava o teste do primeiro RNF de cada faixa, e assim afirmava cobertura de RNF-03 e
+  RNF-04, que nao tem caso de aceite nenhum.
+- `C1` §4.1 e `B5` §5.2 contavam conjuntos diferentes de requisitos sem ator. Sem ator e sem
+  caso de uso nao sao a mesma coisa, e a distincao decide o contador de `B5` §6.
+- `TA-25` testava o perfil `colaborador`, verificando que um usuario inexistente nao e
+  interrompido: condicao vaziamente verdadeira, num apendice impresso.
+- O guia de escrita dos capitulos 4.2 e 4.3 estava inteiro na numeracao antiga, e seu exemplo
+  canonico era o **piso minimo**, conceito que saiu com o custeio.
+
+### O que a passada mudou de processo
+
+Duas conferencias novas, porque as duas classes de erro acima eram invisiveis para a existente:
+
+| Comando | O que confronta |
+|---|---|
+| `node scripts/confere-modelo-pt.mjs` | O conjunto de arestas das figuras em portugues contra o do `C6`, nos dois sentidos |
+| `scripts/leia.mjs` | Leitura unica dos geradores, normalizando a quebra de linha |
+
+A conferencia que o `README` do `modelo-dados-pt` mandava fazer, somar `grep -c` e comparar
+com o `C6`, **nunca poderia fechar**: as figuras sao um recorte mais fino, e aresta que cruza a
+fronteira de duas aparece nas duas. Conferencia que nunca fecha e conferencia que se para de rodar,
+e foi assim que a aresta `protocolos -> lotes` sumiu de todas as figuras sem que ninguem notasse.
+
+### A fusao dos oito pares
+
+Na mesma data, e por decisao de escopo e nao de correcao, os requisitos passaram de 70 para 62.
+Nenhuma funcionalidade saiu: oito pares compartilhavam **o mesmo caso de uso e o mesmo teste de
+aceite**, e portanto eram um requisito escrito em duas linhas. O criterio esta declarado em
+`B2` §1, com a excecao de RF-46 e RF-60, que compartilham TA-65 e ficam separados de proposito
+por serem a unica aresta entre a Producao e o Comercial.
+
+**Os identificadores foram renumerados outra vez.** Este arquivo continua sendo o registro
+historico, e cita, de proposito, numeros que ja nao existem.

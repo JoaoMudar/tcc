@@ -101,4 +101,6 @@ suas fontes, e rodar os scripts é parte de alterar qualquer artefato:
 | `mede-figuras.mjs` | A fonte útil de cada figura do `modelo-dados-pt` |
 | `render-mapas.mjs` | Os PNG em escala de cinza de `rotinas/img/` |
 | `verifica-rastreabilidade.mjs` | Confere, nos dois sentidos, os identificadores citados contra os definidos |
+| `confere-modelo-pt.mjs` | Confere o conjunto de arestas das figuras em português contra o do `C6` |
+| `leia.mjs` | Leitura dos geradores, normalizando a quebra de linha. Não se roda sozinho |
 
