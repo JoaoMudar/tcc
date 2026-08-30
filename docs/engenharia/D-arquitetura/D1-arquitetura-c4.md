@@ -174,7 +174,7 @@ nenhuma sai. É a tradução arquitetural do que o sistema afirma: o catálogo �
 **O motor do protocolo é o único componente que escreve numa área que não é a sua.** Ele lê a
 etapa em Cadastro único, lê o lote em Produção e **gera ordem na agenda**, que também é Produção.
 A seta pontilhada marca que a escrita é automática: nenhum usuário a aciona, e é justamente essa
-a razão de o componente existir (RF-59).
+a razão de o componente existir (RF-51).
 
 **O Comercial depende da Produção por uma única aresta, e ela é de leitura.** O cadastro de
 pedidos consulta o saldo de muda pronta e não escreve nada lá: o pedido não reserva, não baixa e

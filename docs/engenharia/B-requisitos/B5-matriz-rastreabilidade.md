@@ -60,106 +60,98 @@ As seções seguem as **três áreas de negócio** do sistema, na mesma ordem da
 | RF | Caso de uso | Entidade | Recurso em D4 | Teste |
 |---|---|---|---|---|
 | RF-10 | UC-07 | `species`, `species_popular_names`, `species_photos` | Espécies | TA-13 |
-| RF-11 | UC-07 | `species_popular_names` | Espécies | TA-13 |
-| RF-12 | UC-08 | `containers` | Recipientes | TA-64 |
-| RF-13 | UC-09 | `inputs` | Insumos | TA-14 |
-| RF-14 | UC-16 | `areas` | Áreas e canteiros | TA-09 |
-| RF-15 | UC-16 | `beds`, `areas` | Áreas e canteiros | TA-09 |
+| RF-11 | UC-08 | `containers` | Recipientes | TA-64 |
+| RF-12 | UC-09 | `inputs` | Insumos | TA-14 |
+| RF-13 | UC-16 | `areas`, `beds` | Áreas e canteiros | TA-09 |
 
 ### 2.3.2 Pessoas: cliente, fornecedor, funcionário
 
 | RF | Caso de uso | Entidade | Recurso em D4 | Teste |
 |---|---|---|---|---|
-| RF-16 | UC-12 | `cadastro.parties`, `cadastro.party_roles` | Pessoas | TA-15 |
-| RF-17 | UC-10 | `cadastro.parties` | Pessoas | TA-49 |
-| RF-18 | UC-11 | `cadastro.parties`, `cadastro.addresses` | Dados fiscais de pessoa | TA-15 |
-| RF-19 | UC-11 | `cadastro.parties` | Dados fiscais de pessoa | TA-50 |
-| RF-20 | UC-12 | `cadastro.parties`, `cadastro.party_roles` | Pessoas | TA-68 |
-| RF-21 | UC-13 | `cadastro.parties`, `cadastro.party_roles` | Pessoas | - *(DV)* |
-| RF-22 | UC-14 | `cadastro.parties`, `cadastro.party_roles` | Pessoas | TA-10 |
+| RF-14 | UC-12 | `cadastro.parties`, `cadastro.party_roles` | Pessoas | TA-15 |
+| RF-15 | UC-10 | `cadastro.parties` | Pessoas | TA-49 |
+| RF-16 | UC-11 | `cadastro.parties`, `cadastro.addresses` | Dados fiscais de pessoa | TA-15 |
+| RF-17 | UC-11 | `cadastro.parties` | Dados fiscais de pessoa | TA-50 |
+| RF-18 | UC-12 | `cadastro.parties`, `cadastro.party_roles` | Pessoas | TA-68 |
+| RF-19 | UC-13 | `cadastro.parties`, `cadastro.party_roles` | Pessoas | - *(DV)* |
+| RF-20 | UC-14 | `cadastro.parties`, `cadastro.party_roles` | Pessoas | TA-10 |
 
 ### 2.3.3 Trabalho: tipo de tarefa e protocolo de atividades
 
 | RF | Caso de uso | Entidade | Recurso em D4 | Teste |
 |---|---|---|---|---|
-| RF-23 | UC-15 | `task_types` | Tipos de tarefa | TA-11 |
-| RF-24 | UC-15 | `task_types` | Tipos de tarefa | TA-11 |
-| RF-25 | UC-17 | `protocols` | Protocolo de atividades | TA-34 |
-| RF-26 | UC-17 | `protocol_steps` | Protocolo de atividades | TA-34 |
-| RF-27 | UC-17 | `protocol_steps` | Protocolo de atividades | TA-35 |
-| RF-28 | UC-17 | `protocol_steps` | Protocolo de atividades | TA-36 |
-| RF-29 | UC-18 | `species_protocol_overrides` | Protocolo de atividades | TA-43 |
+| RF-21 | UC-15 | `task_types` | Tipos de tarefa | TA-11 |
+| RF-22 | UC-17 | `protocols`, `protocol_steps` | Protocolo de atividades | TA-34 |
+| RF-23 | UC-17 | `protocol_steps` | Protocolo de atividades | TA-35 |
+| RF-24 | UC-17 | `protocol_steps` | Protocolo de atividades | TA-36 |
+| RF-25 | UC-18 | `species_protocol_overrides` | Protocolo de atividades | TA-43 |
 
 ### 2.4 Área 2 · Produção
 
 | RF | Caso de uso | Entidade | Recurso em D4 | Teste |
 |---|---|---|---|---|
-| RF-30 | UC-19 | *sem entidade*: organização de interface | Agenda da semana | TA-33 |
+| RF-26 | UC-19 | *sem entidade*: organização de interface | Agenda da semana | TA-33 |
 
 ### 2.4.1 Agenda semanal
 
 | RF | Caso de uso | Entidade | Recurso em D4 | Teste |
 |---|---|---|---|---|
-| RF-31 | UC-19 | `week_plans`, `assignments`, `assignment_members` | Agenda da semana | TA-26 |
-| RF-32 | UC-19 | `assignments` | Agenda da semana | TA-27 |
-| RF-33 | UC-19 | `week_plans` | Agenda da semana | TA-28 |
-| RF-34 | UC-19 | `assignments`, `assignment_members` | Agenda da semana | TA-26 |
-| RF-35 | UC-20 | `assignments`, `assignment_members` | Confirmação de tarefa | TA-29 |
-| RF-36 | UC-20 | `assignment_members` | Confirmação de tarefa | TA-29 |
-| RF-37 | UC-20 | `assignments` | Confirmação de tarefa | TA-30 |
-| RF-38 | UC-20 | `assignments` | Confirmação de tarefa | TA-31 |
-| RF-39 | UC-21 | `assignments`, `week_plans` | Fechamento da semana | TA-32 |
+| RF-27 | UC-19 | `week_plans`, `assignments`, `assignment_members` | Agenda da semana | TA-26 |
+| RF-28 | UC-19 | `assignments` | Agenda da semana | TA-27 |
+| RF-29 | UC-19 | `week_plans` | Agenda da semana | TA-28 |
+| RF-30 | UC-20 | `assignments`, `assignment_members` | Confirmação de tarefa | TA-29 |
+| RF-31 | UC-20 | `assignments` | Confirmação de tarefa | TA-30 |
+| RF-32 | UC-20 | `assignments` | Confirmação de tarefa | TA-31 |
+| RF-33 | UC-21 | `assignments`, `week_plans` | Fechamento da semana | TA-32 |
 
 ### 2.4.2 Lotes, movimentos e perdas
 
 | RF | Caso de uso | Entidade | Recurso em D4 | Teste |
 |---|---|---|---|---|
-| RF-40 | UC-22 | `batches`, `batch_movements` | Lotes | TA-16 |
-| RF-41 | UC-27 | `batches`, `beds`, `areas` | Lotes | TA-17 |
-| RF-42 | UC-23 | `batches`, `batch_movements` | Lotes | TA-18, TA-19 |
-| RF-43 | UC-23 | `batch_movements` | Movimentos de lote | TA-18 |
-| RF-44 | UC-23 | `batches`, `batch_movements` | Movimentos de lote | TA-20 |
-| RF-45 | UC-27 | `batches` | Lotes | TA-17 |
-| RF-46 | UC-25 | `batch_movements` | Movimentos de lote | TA-19, TA-21 |
-| RF-47 | UC-25 | `batch_movements` | Perdas | TA-22, TA-23 |
-| RF-48 | UC-26 | `batch_movements` | Movimentos de lote | TA-66 |
-| RF-49 | UC-24 | `batches`, `batch_protocol_steps` | Divisão de lote | TA-45 |
-| RF-50 | UC-30 | `batch_movements` | Análise de perdas | TA-67 |
-| RF-51 | UC-30 | *derivada* de `batch_movements` e `batches` | Análise de perdas | TA-24 |
-| RF-52 | UC-30 | *derivada*; limite em `settings` | Análise de perdas | TA-24, TA-25 |
-| RF-53 | UC-29 | *derivada* de `batches` | Estoque disponível | TA-65 |
+| RF-34 | UC-22 | `batches`, `batch_movements` | Lotes | TA-16 |
+| RF-35 | UC-27 | `batches`, `beds`, `areas` | Lotes | TA-17 |
+| RF-36 | UC-23 | `batches`, `batch_movements` | Lotes | TA-18, TA-19 |
+| RF-37 | UC-23 | `batch_movements` | Movimentos de lote | TA-18 |
+| RF-38 | UC-23 | `batches`, `batch_movements` | Movimentos de lote | TA-20 |
+| RF-39 | UC-25 | `batch_movements` | Movimentos de lote | TA-19, TA-21 |
+| RF-40 | UC-25 | `batch_movements` | Perdas | TA-22, TA-23 |
+| RF-41 | UC-26 | `batch_movements` | Movimentos de lote | TA-66 |
+| RF-42 | UC-24 | `batches`, `batch_protocol_steps` | Divisão de lote | TA-45 |
+| RF-43 | UC-30 | `batch_movements` | Análise de perdas | TA-67 |
+| RF-44 | UC-30 | *derivada* de `batch_movements` e `batches` | Análise de perdas | TA-24 |
+| RF-45 | UC-30 | *derivada*; limite em `settings` | Análise de perdas | TA-24, TA-25 |
+| RF-46 | UC-29 | *derivada* de `batches` | Estoque disponível | TA-65 |
 
 ### 2.4.3 Mapa de lotes
 
 | RF | Caso de uso | Entidade | Recurso em D4 | Teste |
 |---|---|---|---|---|
-| RF-54 | UC-27 | `batches`, `beds`, `areas` | Mapa de lotes | TA-46 |
-| RF-55 | UC-27 | visão `batch_health` | Mapa de lotes | TA-47 |
-| RF-56 | UC-27 | visão `batch_health` | Mapa de lotes | TA-47 |
-| RF-57 | UC-27 | *derivada* de `batch_movements` | Mapa de lotes | TA-48 |
+| RF-47 | UC-27 | `batches`, `beds`, `areas` | Mapa de lotes | TA-46 |
+| RF-48 | UC-27 | visão `batch_health` | Mapa de lotes | TA-47 |
+| RF-49 | UC-27 | *derivada* de `batch_movements` | Mapa de lotes | TA-48 |
 
 ### 2.4.4 Protocolo de atividades por lote
 
 | RF | Caso de uso | Entidade | Recurso em D4 | Teste |
 |---|---|---|---|---|
-| RF-58 | UC-22 | `batches`, `protocols`, `batch_protocol_steps` | Lotes | TA-16, TA-37 |
-| RF-59 | *sem caso de uso*: o sistema age sozinho | `assignments`, `batch_protocol_steps` | Agenda da semana | TA-38 |
-| RF-60 | *sem caso de uso*: o sistema age sozinho | `batches`, `batch_protocol_steps` | Protocolo de atividades | TA-39 |
-| RF-61 | *sem caso de uso*: o sistema age sozinho | `batch_protocol_steps` | Protocolo de atividades | TA-40 |
-| RF-62 | *sem caso de uso*: o sistema age sozinho | `batch_protocol_steps` | Protocolo de atividades | TA-41 |
-| RF-63 | UC-28 | `batch_protocol_steps`, visão `batch_protocol_due` | Protocolo de atividades | TA-42 |
-| RF-64 | UC-28 | visão `batch_protocol_due` | Protocolo de atividades | TA-36 |
-| RF-65 | UC-28 | `batch_protocol_steps`, `assignments` | Protocolo de atividades | TA-44 |
+| RF-50 | UC-22 | `batches`, `protocols`, `batch_protocol_steps` | Lotes | TA-16, TA-37 |
+| RF-51 | *sem caso de uso*: o sistema age sozinho | `assignments`, `batch_protocol_steps` | Agenda da semana | TA-38 |
+| RF-52 | *sem caso de uso*: o sistema age sozinho | `batches`, `batch_protocol_steps` | Protocolo de atividades | TA-39 |
+| RF-53 | *sem caso de uso*: o sistema age sozinho | `batch_protocol_steps` | Protocolo de atividades | TA-40 |
+| RF-54 | *sem caso de uso*: o sistema age sozinho | `batch_protocol_steps` | Protocolo de atividades | TA-41 |
+| RF-55 | UC-28 | `batch_protocol_steps`, visão `batch_protocol_due` | Protocolo de atividades | TA-42 |
+| RF-56 | UC-28 | visão `batch_protocol_due` | Protocolo de atividades | TA-36 |
+| RF-57 | UC-28 | `batch_protocol_steps`, `assignments` | Protocolo de atividades | TA-44 |
 
 ### 2.5 Área 3 · Comercial
 
 | RF | Caso de uso | Entidade | Recurso em D4 | Teste |
 |---|---|---|---|---|
-| RF-66 | UC-31 | `orders`, `order_items` | Pedidos | TA-51 |
-| RF-67 | UC-31 | `order_items` | Pedidos | TA-52 |
-| RF-68 | UC-32 | *derivada* de `batches` | Estoque disponível | TA-65 |
-| RF-69 | UC-33 | `orders` | Confirmação de pedido | TA-53 |
-| RF-70 | UC-34 | `orders` | Pedidos | TA-54 |
+| RF-58 | UC-31 | `orders`, `order_items` | Pedidos | TA-51 |
+| RF-59 | UC-31 | `order_items` | Pedidos | TA-52 |
+| RF-60 | UC-32 | *derivada* de `batches` | Estoque disponível | TA-65 |
+| RF-61 | UC-33 | `orders` | Confirmação de pedido | TA-53 |
+| RF-62 | UC-34 | `orders` | Pedidos | TA-54 |
 
 
 ---
@@ -196,7 +188,7 @@ todo. Rastreiam-se ao artefato que os realiza e ao teste que os verifica.
 > **A versão anterior desta tabela agrupava faixas e herdava o teste do primeiro da faixa**, e com
 > isso afirmava cobertura que não existia: RNF-03 e RNF-04 apareciam cobertos por casos que
 > declaram RNF-01 e RNF-02, RNF-08 por TA-55, que conta campos e não vocabulário, RNF-25 e RNF-26
-> por TA-15, que declara RF-16 e RF-18, e RNF-27 por TA-57, que declara RNF-06. É o mesmo defeito da
+> por TA-15, que declara RF-14 e RF-16, e RNF-27 por TA-57, que declara RNF-06. É o mesmo defeito da
 > tabela de cobertura da §5.1, e pela mesma causa: seção que resume outra, mantida à mão.
 
 ---
@@ -212,8 +204,8 @@ justifique**?
 | Entidades (C6, C8) | 27, mais 2 visões | Nenhuma |
 | Recursos de acesso (D4) | 25 | Nenhum |
 | Casos de aceite (E2) | 68 | Nenhum |
-| Indicadores (G2) | 3 | Nenhum: IND-01 de RF-52, IND-02 de RF-55 e IND-03 de RF-41 |
-| Pranchas de tela (F1) | 35 | Uma, RF-30, que é organização de interface e traz o número do requisito no lugar do caso de uso |
+| Indicadores (G2) | 3 | Nenhum: IND-01 de RF-45, IND-02 de RF-48 e IND-03 de RF-35 |
+| Pranchas de tela (F1) | 35 | Uma, RF-26, que é organização de interface e traz o número do requisito no lugar do caso de uso |
 
 **Nenhuma entidade sobrou sem requisito, e isso mudou com a redução de escopo.** A versão anterior
 desta matriz apontava `notifications` e `order_status_history` como entidades que atendiam apenas a
@@ -234,9 +226,9 @@ documentos lidos isoladamente: apareceram ao confrontá-los linha a linha.
 Ao reduzir o escopo, seções inteiras de [`E2`](../E-qualidade/E2-casos-de-teste-de-aceite.md) foram
 removidas junto dos requisitos que verificavam. O efeito colateral só apareceu quando a tabela de
 cobertura foi **recalculada a partir dos casos** em vez de mantida à mão: **dezenove requisitos de
-prioridade *deve ter* ficaram sem verificação**, entre eles o cadastro de espécie (RF-10, RF-11), a
-confirmação de tarefa (RF-35 a RF-38), o mapa inteiro (RF-54 a RF-57) e o pedido
-(RF-67 a RF-70).
+prioridade *deve ter* ficaram sem verificação**, entre eles o cadastro de espécie (RF-10), a
+confirmação de tarefa (RF-30 a RF-32), o mapa inteiro (RF-47 a RF-49) e o pedido
+(RF-59 a RF-62).
 
 **Dezenove casos foram escritos para fechar a lacuna.** Treze deles couberam nas seções de `E2` que
 já tratavam do assunto, e os **seis** que não tinham seção onde entrar formaram a §8 de lá. A tabela
@@ -247,16 +239,16 @@ cobertura total.
 
 ### 5.2 Requisitos que descrevem o que o sistema faz sozinho
 
-**Seis requisitos não têm ator**, e a ausência **não é lacuna**: RF-51 e RF-55 calculam, e RF-59 a
-RF-62 são o motor de geração de ordens do protocolo. Confrontá-los com o catálogo de casos de uso
+**Seis requisitos não têm ator**, e a ausência **não é lacuna**: RF-44 e RF-48 calculam, e RF-51 a
+RF-54 são o motor de geração de ordens do protocolo. Confrontá-los com o catálogo de casos de uso
 obrigou a decidir entre inventar um ator ou declarar a ausência, e a decisão está em
 [`C1` §4.1](../C-modelagem/C1-diagrama-casos-de-uso.md).
 
-**Sem ator e sem caso de uso não são a mesma coisa**, e é o que a §6 conta. Quatro deles, RF-59 a
-RF-62, não têm caso de uso nenhum: ninguém os aciona e o resultado aparece na tela de outro caso.
-Os outros dois aparecem **dentro** do caso que exibe o que eles calculam, RF-51 em UC-30 e RF-55 em
+**Sem ator e sem caso de uso não são a mesma coisa**, e é o que a §6 conta. Quatro deles, RF-51 a
+RF-54, não têm caso de uso nenhum: ninguém os aciona e o resultado aparece na tela de outro caso.
+Os outros dois aparecem **dentro** do caso que exibe o que eles calculam, RF-44 em UC-30 e RF-48 em
 UC-27, porque ali existe alguém consultando, ainda que não seja quem dispara a conta. Daí o
-contador da §6 dizer 66 de 70, e não 64.
+contador da §6 dizer 58 de 62, e não 56.
 
 ### 5.3 Três colunas derivadas e duas mantidas à mão
 
@@ -286,15 +278,15 @@ ser o documento que mais diverge.
 
 | Verificação | Resultado |
 |---|---|
-| Requisitos funcionais com caso de uso | 66 de 70 |
-| Requisitos funcionais com entidade ou derivação declarada | **70 de 70** |
-| Requisitos funcionais com regra de acesso definida | **70 de 70** |
-| Requisitos de prioridade *deve ter* com teste de aceite | 65 de 65 |
+| Requisitos funcionais com caso de uso | 58 de 62 |
+| Requisitos funcionais com entidade ou derivação declarada | **62 de 62** |
+| Requisitos funcionais com regra de acesso definida | **62 de 62** |
+| Requisitos de prioridade *deve ter* com teste de aceite | 57 de 57 |
 | Requisitos *deveria ter* sem teste | 1: deliberado |
 | Casos de uso sem requisito de origem | 0 |
 | Entidades sem requisito de origem | 0 |
 
-**Os 4 requisitos sem caso de uso descrevem o que o sistema faz sozinho:** RF-59, RF-60, RF-61, RF-62.
+**Os 4 requisitos sem caso de uso descrevem o que o sistema faz sozinho:** RF-51, RF-52, RF-53, RF-54.
 Não há ator praticando um objetivo de negócio, e forçar um caso de uso para eles produziria um
 artefato que descreve execução automática como se fosse interação. A coluna diz *sem caso de uso*,
 e não *pendente*, para separar a decisão do débito. A lista comentada está em

@@ -400,7 +400,7 @@ em estoque ficaram fora do escopo, e mantê-lo no cadastro é o que permite que 
 referencie quando isso deixar de ser verdade.
 
 **A espécie tem nomes, e não um nome.** `species_popular_names` existe porque a busca precisa
-encontrar a espécie por qualquer denominação regional (RF-11, RN-02), e um campo de texto com nomes
+encontrar a espécie por qualquer denominação regional (RF-10, RN-02), e um campo de texto com nomes
 separados por vírgula não se indexa nem se valida. `is_primary` marca o nome que as telas exibem.
 
 **A foto é linha de tabela, e não arquivo em disco.** `species_photos` guarda os bytes porque o
@@ -610,7 +610,7 @@ enchendo saquinho produzem quatro números, e é assim que o viveiro fala. Guard
 atribuição perderia justamente o dado que ele quer.
 
 **`is_recurring` é uma marca, e não uma regra de calendário.** Ela diz que a atribuição faz parte da
-rotina fixa e, por isso, vem preenchida quando se copia a semana anterior (RF-32, RN-33). Uma
+rotina fixa e, por isso, vem preenchida quando se copia a semana anterior (RF-28, RN-33). Uma
 entidade de recorrência, com dias da semana e vigência, existiria para gerar dias sozinha, e o que
 gera dia sozinho neste modelo é o protocolo, cujo sujeito é o lote e não a equipe.
 
@@ -683,7 +683,7 @@ venda nem de tabela de preços: `sale_channel` é enumeração em `orders`, porq
 lista fechada de cinco valores sem atributos próprios (RN-49), e o preço é o que foi acordado na
 conversa.
 
-**Não há entidade de disponibilidade.** O saldo que o item exibe (RF-68) é calculado dos lotes
+**Não há entidade de disponibilidade.** O saldo que o item exibe (RF-60) é calculado dos lotes
 prontos daquela espécie e recipiente, a cada consulta. Guardá-lo no item congelaria uma leitura que
 muda a cada perda registrada, e o item passaria a mentir sobre o estoque de hoje.
 

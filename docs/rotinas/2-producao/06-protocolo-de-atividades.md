@@ -250,7 +250,7 @@ cor. É a resposta para "este lote já foi classificado?" e para "quando é a pr
 
 ### Mapa de produção: sem tela nova
 
-O quadradinho do lote já mostra situação (RF-54). O que muda é **de onde a cor vem**: passa a
+O quadradinho do lote já mostra situação (RF-47). O que muda é **de onde a cor vem**: passa a
 sair do protocolo, e não do atraso das tarefas que alguém lembrou de lançar. **É a correção do
 problema desta rotina**, e não uma tela a mais.
 
@@ -293,7 +293,7 @@ A ordem do protocolo é atribuição comum e aparece onde as atribuições apare
 
 | Artefato | O que esta rotina acrescentou |
 |---|---|
-| [`B2`](../../engenharia/B-requisitos/B2-especificacao-requisitos.md) | RF-25 a RF-28 e RF-29 no cadastro; RF-58 a RF-65 na operação |
+| [`B2`](../../engenharia/B-requisitos/B2-especificacao-requisitos.md) | RF-22 a RF-24 e RF-25 no cadastro; RF-50 a RF-57 na operação |
 | [`B3`](../../engenharia/B-requisitos/B3-regras-de-negocio.md) | RN-34 a RN-48; RN-18 e RN-31 emendadas |
 | [`C2`](../../engenharia/C-modelagem/C2-especificacao-casos-de-uso.md) | UC-17, UC-24 e UC-18 |
 | [`C6`](../../engenharia/C-modelagem/C6-modelo-entidade-relacionamento.md) / [`C8`](../../engenharia/C-modelagem/C8-dicionario-de-dados.md) | `protocols`, `protocol_steps`, `species_protocol_overrides`, `batch_protocol_steps` e a visão `batch_protocol_due`; `batches`, `assignments` e `containers` emendadas. O protocolo pendura-se no **recipiente**, e `container_types` deixou de existir |

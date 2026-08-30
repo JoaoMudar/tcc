@@ -40,8 +40,8 @@ entrar em operação, não depois.
 contato e o documento do responsável, quando informados, são dado pessoal.
 
 **Minimização aplicada:** os campos fiscais são **todos opcionais** no cadastro. O cliente de
-atacado que não pede nota permanece cadastrado apenas com nome e telefone (RF-17), e a ficha
-completa só é preenchida quando há nota a emitir no sistema externo (RF-18): coleta-se o mínimo
+atacado que não pede nota permanece cadastrado apenas com nome e telefone (RF-15), e a ficha
+completa só é preenchida quando há nota a emitir no sistema externo (RF-16): coleta-se o mínimo
 necessário à finalidade, e apenas quando a finalidade existe.
 
 ### 2.2 Dados de fornecedores

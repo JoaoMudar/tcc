@@ -176,7 +176,7 @@ exige uma implantação.
 > nomes diferentes conforme a região e o interlocutor, de modo que o nome popular é lista e não
 > campo: mora em `species_popular_names`, e o principal é o que tiver `is_primary`. Uma coluna
 > `common_name` obrigaria a eleger um nome no cadastro e faria a busca por qualquer um dos outros
-> deixar de encontrar a espécie, que é justamente o que RF-11 pede.
+> deixar de encontrar a espécie, que é justamente o que RF-10 pede.
 
 > **O tempo de ciclo saiu da espécie.** `germination_time_days` e `growth_time_months` existiam
 > para calcular a previsão de disponibilidade do lote, que ficou fora do escopo. O que restou de
@@ -196,7 +196,7 @@ exige uma implantação.
 
 > **A unicidade é por espécie, e não global.** Duas espécies podem legitimamente compartilhar um
 > nome popular no Alto Vale, e proibir isso obrigaria a inventar um desempate na hora do cadastro.
-> A busca de RF-11 devolve as duas, e quem cadastra escolhe.
+> A busca de RF-10 devolve as duas, e quem cadastra escolhe.
 
 ## `species_photos`: fotografia da espécie
 
@@ -248,7 +248,7 @@ exige uma implantação.
 |---|---|:--:|:--:|---|
 | `id` | uuid | ● | PK | Identificador |
 | `kind` | `cadastro.party_kind` | ● | | **Natureza da pessoa**: `pf` ou `pj` (RN-50) |
-| `document` | text | ○ | UK | CPF ou CNPJ, só dígitos (RF-19). Opcional porque o cadastro rápido do pedido pede só nome e telefone (RN-51); a unicidade não impede várias identidades sem documento, porque nulos não colidem entre si |
+| `document` | text | ○ | UK | CPF ou CNPJ, só dígitos (RF-17). Opcional porque o cadastro rápido do pedido pede só nome e telefone (RN-51); a unicidade não impede várias identidades sem documento, porque nulos não colidem entre si |
 | `name` | text | ● | | Nome usual: o que aparece nas listas |
 | `phone` | text | ○ | | Telefone, e é por ele que a negociação começa |
 | `email` | text | ○ | | Correio eletrônico |
@@ -306,9 +306,9 @@ exige uma implantação.
 
 ## `task_types`: tipo de tarefa
 
-Vocabulário fechado da agenda e do encerramento (RF-23). **É o catálogo que comanda o
+Vocabulário fechado da agenda e do encerramento (RF-21). **É o catálogo que comanda o
 formulário**: um nome e quatro booleanos, e cada booleano decide um campo que a tela pede ou
-deixa de pedir (RF-24).
+deixa de pedir (RF-21).
 
 | Atributo | Tipo | Ob. | Chave | Descrição |
 |---|---|:--:|:--:|---|
@@ -328,7 +328,7 @@ deixa de pedir (RF-24).
 
 > **A contagem é por pessoa, e não da tarefa** (RN-29). Quatro pessoas enchendo saquinho gravam
 > quatro números em `assignment_members.quantity_done`, e não um total dividido por quatro. A
-> confirmação do grupo (RF-35) é o gesto que preenche as quatro de uma vez.
+> confirmação do grupo (RF-30) é o gesto que preenche as quatro de uma vez.
 
 > **`measurement_type`, `avg_minutes_per_unit` e `unit_of_measure` não chegaram ao banco.** O
 > primeiro tinha três valores (`tempo`, `saco`, `tubete`) para uma pergunta de dois estados: o
@@ -431,7 +431,7 @@ estação e com a combinação da equipe é dado, não constante (RN-27).
 **Especificada, não implementada.**
 
 A receita de manejo de um recipiente: a sequência de etapas que todo lote daquele recipiente passa
-a seguir sozinho (RF-25).
+a seguir sozinho (RF-22).
 
 | Atributo | Tipo | Ob. | Chave | Descrição |
 |---|---|:--:|:--:|---|
@@ -457,8 +457,8 @@ a seguir sozinho (RF-25).
 
 **Especificada, não implementada.**
 
-Uma linha da receita. Aponta para uma tarefa do catálogo e declara **quando** ela ocorre (RF-26,
-RF-27). É a entidade que carrega a lógica do módulo inteiro.
+Uma linha da receita. Aponta para uma tarefa do catálogo e declara **quando** ela ocorre (RF-22,
+RF-23). É a entidade que carrega a lógica do módulo inteiro.
 
 | Atributo | Tipo | Ob. | Chave | Descrição |
 |---|---|:--:|:--:|---|
@@ -509,7 +509,7 @@ RF-27). É a entidade que carrega a lógica do módulo inteiro.
 **Especificada, não implementada.**
 
 O que permite a uma espécie de germinação lenta usar setenta dias onde o protocolo diz quarenta,
-sem duplicar a receita inteira (RF-29, RN-41).
+sem duplicar a receita inteira (RF-25, RN-41).
 
 | Atributo | Tipo | Ob. | Chave | Descrição |
 |---|---|:--:|:--:|---|
@@ -544,14 +544,14 @@ respondia o que a muda era e não onde estava. A revisão de escopo está justif
 | `container_id` | uuid | ● | FK → `containers` | Recipiente, que define o porte da muda |
 | `bed_id` | uuid | ○ | FK → `beds` | Canteiro ocupado. Nulo quando o lote está encerrado |
 | `parent_batch_id` | uuid | ○ | FK → `batches` | Lote de origem, quando este nasceu de uma repicagem (RN-20) ou de uma divisão (RN-44) |
-| `protocol_id` | uuid | ○ | FK → `protocols` | Protocolo que rege o lote, fotografado na criação a partir do recipiente (RF-58). Nulo quando o recipiente ainda não tem protocolo. **Especificado, não implementado.** |
+| `protocol_id` | uuid | ○ | FK → `protocols` | Protocolo que rege o lote, fotografado na criação a partir do recipiente (RF-50). Nulo quando o recipiente ainda não tem protocolo. **Especificado, não implementado.** |
 | `initial_quantity` | integer | ● | | Quantidade que entrou. Restrição: maior que zero |
 | `current_quantity` | integer | ● | | Saldo vivo. Restrição de banco: não negativo (RN-21). **Mantido pela aplicação** na mesma transação do movimento |
 | `stage` | text | ● | | Fase em **lista fechada**: `semeado`, `germinado`, `repicado`, `crescimento`, `rustificacao`, `pronto`, `encerrado` |
 | `planted_at` | date | ● | | Data em que a leva foi plantada e passou a ocupar o canteiro. É a âncora das etapas do protocolo que contam da criação do lote (RN-35) |
 | `closed_at` | timestamptz | ○ | | Momento do encerramento; a partir dele o lote sai da ocupação |
 | `closed_reason` | text | ○ | | Motivo do encerramento em **lista fechada**: `saldo_zero`, `expedido`, `dividido`. Preenchido se e somente se `closed_at` o estiver (RN-43) |
-| `position` | integer | ○ | | Ordem do lote dentro do canteiro, a partir de 1. Dá ao mapa um desenho estável (RF-54) |
+| `position` | integer | ○ | | Ordem do lote dentro do canteiro, a partir de 1. Dá ao mapa um desenho estável (RF-47) |
 | `notes` | text | ○ | | Observação |
 
 > **O endereço fica fora do código** (`2026-0147`, e não `2026-A3-004`). O canteiro do lote muda:
@@ -646,7 +646,7 @@ turno admite duas tarefas com grupos diferentes (RN-26).
 |---|---|:--:|:--:|---|
 | `assignment_id` | uuid | ● | PK, FK → `assignments` | Atribuição |
 | `party_id` | uuid | ● | PK, FK → `cadastro.parties` | Funcionário escalado |
-| `quantity_done` | integer | ○ | | Quantidade que **esta pessoa** realizou, pedida na confirmação quando o tipo de tarefa for quantitativo (RF-36, RN-29). Nula enquanto a tarefa não for confirmada |
+| `quantity_done` | integer | ○ | | Quantidade que **esta pessoa** realizou, pedida na confirmação quando o tipo de tarefa for quantitativo (RF-30, RN-29). Nula enquanto a tarefa não for confirmada |
 | `created_at` | timestamptz | ● | | Criação |
 
 > **A tabela não tem `id` nem `updated_at`.** A chave é o par `(assignment_id, party_id)`, o que
@@ -667,7 +667,7 @@ turno admite duas tarefas com grupos diferentes (RN-26).
 
 ## `week_plans`: semana de trabalho
 
-A semana é a unidade real de decisão do viveiro (RF-31, RF-33). Fechada, não se altera: sem isso
+A semana é a unidade real de decisão do viveiro (RF-27, RF-29). Fechada, não se altera: sem isso
 o custo do período mudaria depois de apurado (RN-13).
 
 | Atributo | Tipo | Ob. | Chave | Descrição |
@@ -694,10 +694,10 @@ execução separada. A duração do turno vem de `work_shifts` (RN-12, RN-27).
 | `species_id` | uuid | ○ | FK → `species` | Espécie, quando o tipo de tarefa a exigir |
 | `container_id` | uuid | ○ | FK → `containers` | Recipiente, quando o tipo de tarefa o exigir |
 | `batch_id` | uuid | ○ | FK → `batches` | Lote, quando o tipo de tarefa o exigir (RN-25) |
-| `area_id` | uuid | ○ | FK → `areas` | Área da tarefa que não exige lote (RF-38) |
-| `bed_id` | uuid | ○ | FK → `beds` | Canteiro da tarefa que não exige lote (RF-38) |
+| `area_id` | uuid | ○ | FK → `areas` | Área da tarefa que não exige lote (RF-32) |
+| `bed_id` | uuid | ○ | FK → `beds` | Canteiro da tarefa que não exige lote (RF-32) |
 | `planned_quantity` | integer | ○ | | Quantidade planejada, quando aplicável |
-| `is_recurring` | boolean | ● | | Marca a atribuição como parte da rotina fixa: ao copiar a semana anterior, ela já vem preenchida (RF-32, RN-33) |
+| `is_recurring` | boolean | ● | | Marca a atribuição como parte da rotina fixa: ao copiar a semana anterior, ela já vem preenchida (RF-28, RN-33) |
 | `batch_protocol_step_id` | uuid | ○ | | Etapa do protocolo daquele lote que gerou esta ordem. Nula = atribuição lançada à mão (RN-46). A coluna existe; **a chave estrangeira não**, porque `batch_protocol_steps` ainda não foi criada |
 | `protocol_due_on` | date | ○ | | Vencimento que esta ordem representa, congelado na geração. Distingue-se de `work_date`, que a gerência pode remarcar |
 | `status` | text | ● | | `planejada`, `confirmada`, `nao_confirmada`, `cancelada`: a segunda é a que a gerência marca ao registrar que a tarefa foi feita, a terceira é a que o fechamento assume como realizada (RN-14), e a quarta é a ordem que o encerramento do lote invalidou (RN-43) |
@@ -725,7 +725,7 @@ execução separada. A duração do turno vem de `work_shifts` (RN-12, RN-27).
 > existe para denunciar.
 
 > **A ordem do protocolo carrega `batch_id` sempre**, inclusive quando o tipo de tarefa não declara
-> lote específico: irrigar *aquele* lote é o que o protocolo mandou. Não conflita com RF-24, que
+> lote específico: irrigar *aquele* lote é o que o protocolo mandou. Não conflita com RF-21, que
 > rege o que a tela **pede** a quem preenche: campo já respondido pela origem da tarefa não é campo
 > a pedir.
 
@@ -751,7 +751,7 @@ execução separada. A duração do turno vem de `work_shifts` (RN-12, RN-27).
 ## `batch_health`: situação do lote *(não é tabela)*
 
 **Visão.** Devolve, para cada lote aberto, a tarefa pendente mais antiga e a situação que dela
-decorre: `saudavel`, `atencao` ou `critico`. É o que pinta o mapa de produção (RF-54 a RF-57).
+decorre: `saudavel`, `atencao` ou `critico`. É o que pinta o mapa de produção (RF-47 a RF-49).
 
 | Atributo | Origem |
 |---|---|
@@ -765,12 +765,12 @@ decorre: `saudavel`, `atencao` ou `critico`. É o que pinta o mapa de produção
 > continuaria saudável hoje, que é o contrário do que a tela mostra.
 
 > **A mais antiga manda.** Havendo três pendências no mesmo lote, quem determina a cor é a que
-> espera há mais tempo, e é ela que aparece ao apontar o lote (RF-56): resolvê-la é a providência
+> espera há mais tempo, e é ela que aparece ao apontar o lote (RF-48): resolvê-la é a providência
 > que o mapa está pedindo.
 
 > **Pendência é o que segue `planejada`, e a condição é positiva de propósito.** Os outros dois
 > status saem, cada um pelo seu motivo: `confirmada` é a tarefa que a gerência registrou como feita
-> (RF-35), e `nao_confirmada` é a que o fechamento da semana assumiu como feita (RF-39, RN-14). Sem
+> (RF-30), e `nao_confirmada` é a que o fechamento da semana assumiu como feita (RF-33, RN-14). Sem
 > a segunda, toda semana fechada deixaria um vermelho permanente atrás de si.
 >
 > **A primeira versão da visão enumerava pela exclusão** (`status <> 'nao_confirmada'`) e deixava
@@ -824,7 +824,7 @@ Uma linha por par lote e etapa, criada quando o lote nasce. **Guarda fatos, e nu
 **Especificada, não implementada.**
 
 **Visão.** Devolve, para cada lote aberto e etapa ativa que ainda vence algo, o próximo vencimento
-e a situação que dele decorre (RF-63, RF-64).
+e a situação que dele decorre (RF-55, RF-56).
 
 | Atributo | Origem |
 |---|---|
@@ -869,7 +869,7 @@ e a situação que dele decorre (RF-63, RF-64).
 | `notes` | text | ○ | | Observações |
 | `created_by` | uuid | ● | FK → `users` | Autor do registro (RN-60) |
 
-**Restrição:** pedido em `confirmado` ou `cancelado` não admite alteração de item (RF-69).
+**Restrição:** pedido em `confirmado` ou `cancelado` não admite alteração de item (RF-61).
 
 > **Não há tabela de histórico de estados.** São três situações e o que o negócio precisa saber é
 > em qual delas o pedido está. Uma tabela de histórico existiria para responder quem mudou o quê e
@@ -888,14 +888,14 @@ e a situação que dele decorre (RF-63, RF-64).
 | `species_id` | uuid | ● | FK → `species` | Espécie |
 | `container_id` | uuid | ● | FK → `containers` | Recipiente solicitado |
 | `quantity` | integer | ● | | Quantidade pedida. Restrição: maior que zero |
-| `unit_price` | numeric(10,2) | ● | | **Preço unitário informado por quem registra** (RF-67, RN-58). Restrição: maior que zero |
+| `unit_price` | numeric(10,2) | ● | | **Preço unitário informado por quem registra** (RF-59, RN-58). Restrição: maior que zero |
 
 > **O preço é digitado, e o sistema não o calcula.** Não há referência a tabela de preço, piso
 > mínimo nem margem: o valor é o que foi negociado na conversa com o cliente, e ao sistema cabe
 > guardá-lo. O total do item e o do pedido são derivados de `quantity` por `unit_price`, e não
 > materializados.
 
-> **Não há coluna de disponibilidade.** O saldo que a tela exibe ao lado do item (RF-68) é somado
+> **Não há coluna de disponibilidade.** O saldo que a tela exibe ao lado do item (RF-60) é somado
 > dos lotes prontos daquela espécie e recipiente a cada consulta. Guardá-lo aqui congelaria uma
 > leitura que muda a cada perda registrada, e o item passaria a mentir sobre o estoque de hoje. É a
 > mesma decisão que fez a situação do lote ser visão e não coluna (RN-31).

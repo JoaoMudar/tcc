@@ -104,10 +104,10 @@ para ler a matriz, não para decidir acesso.
 
 ² **Pessoas é um recurso só, e os papéis não se separam.** Cliente, fornecedor e funcionário são
 papéis da mesma identidade (RN-52): dar acesso a um e negar a outro exigiria uma permissão por
-papel sobre a mesma linha. Requisitos: **RF-17 a RF-20, RF-21, RF-22, RF-16**.
+papel sobre a mesma linha. Requisitos: **RF-15 a RF-18, RF-19, RF-20, RF-14**.
 
 ³ **Recursos do protocolo de atividades por lote**, ainda sem tabela e sem tela. Requisitos:
-**RF-25 a RF-28 e RF-29** para o protocolo, **RF-49** para a divisão de lote. As regras de
+**RF-22 a RF-24 e RF-25** para o protocolo, **RF-42** para a divisão de lote. As regras de
 acesso que não se leem direto da matriz estão em §3.8.
 
 **Vinte e cinco recursos.** A matriz encolheu com o escopo, e o que ela perdeu foi sobretudo
@@ -134,7 +134,7 @@ funcionário na agenda. O que ela não lê é a ficha fiscal.
 
 ### 3.2 Confirmar pedido é privativo da chefia
 
-Confirmar o pedido é o ato que trava itens, quantidades e preços (RF-69). É decisão comercial, e
+Confirmar o pedido é o ato que trava itens, quantidades e preços (RF-61). É decisão comercial, e
 quem responde por preço é a chefia (RN-58). A gerência **não lê pedido**, e é deliberado: o que a
 produção precisa saber do comercial é quanto foi vendido de cada espécie, e isso ela lê pelo saldo
 disponível, sem precisar da carteira de pedidos.

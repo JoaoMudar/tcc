@@ -35,12 +35,12 @@ Nada funciona antes disto, porque é o que as outras duas áreas consomem.
 | T1.1 | Autenticação, troca de senha no primeiro acesso e sessões ativas | RF-01 a RF-04, RF-07 | ✅ feito |
 | T1.2 | Gestão de usuários e perfis, com os três papéis | RF-05, RF-06 | ✅ feito |
 | T1.3 | Guarda de permissão por recurso, no servidor, a cada operação | RF-06, RNF-12 | ✅ feito |
-| T1.4 | Cadastro de espécie, com nomes populares e foto no banco | RF-10, RF-11 | ✅ feito |
-| T1.5 | Cadastro de recipiente e de insumo | RF-12, RF-13 | ✅ feito |
-| T1.6 | Esquema `cadastro`: pessoa, papel e endereço | RF-16 | ✅ feito |
-| T1.7 | Tela de pessoas com filtro por papel, e cadastro rápido no pedido | RF-17 a RF-20, RF-21, RF-22 | ✅ feito |
-| T1.8 | Cadastro de áreas e canteiros | RF-14, RF-15 | ⬜ |
-| T1.9 | Catálogo de tipos de tarefa, com as três declarações que comandam o formulário | RF-23, RF-24 | ⬜ |
+| T1.4 | Cadastro de espécie, com nomes populares e foto no banco | RF-10 | ✅ feito |
+| T1.5 | Cadastro de recipiente e de insumo | RF-11, RF-12 | ✅ feito |
+| T1.6 | Esquema `cadastro`: pessoa, papel e endereço | RF-14 | ✅ feito |
+| T1.7 | Tela de pessoas com filtro por papel, e cadastro rápido no pedido | RF-14 a RF-20 | ✅ feito |
+| T1.8 | Cadastro de áreas e canteiros | RF-13 | ⬜ |
+| T1.9 | Catálogo de tipos de tarefa, com as três declarações que comandam o formulário | RF-21 | ⬜ |
 | T1.10 | Configurações do sistema: período de trabalho e parâmetros | RF-08, RF-09 | ⬜ |
 
 **T1.10 é a única tarefa de tela nova que não é cadastro**, e existe porque o mapa de lotes lê os
@@ -53,14 +53,14 @@ O lote é o que dá endereço à muda, e é pré-requisito da agenda e do pedido
 
 | # | Tarefa | Requisitos | Situação |
 |---|---|---|---|
-| T2.1 | Criar lote informando espécie, recipiente, quantidade e canteiro | RF-40 | ⬜ |
-| T2.2 | Ocupação do viveiro por área e canteiro, com os livres distinguíveis | RF-41, RF-45 | ⬜ |
-| T2.3 | Movimentos do lote, com o saldo auditável contra a soma deles | RF-43, RF-44 | ⬜ |
-| T2.4 | Repicagem, criando o lote de destino ligado ao de origem | RF-42 | ⬜ |
-| T2.5 | Perda como movimento, com causa em lista fechada | RF-47, RF-46 | ⬜ |
-| T2.6 | Contagem física, gerando o movimento de ajuste | RF-48 | ⬜ |
-| T2.7 | Divisão de lote | RF-49 | ⬜ |
-| T2.8 | Saldo de muda pronta por espécie e recipiente | RF-53 | ⬜ |
+| T2.1 | Criar lote informando espécie, recipiente, quantidade e canteiro | RF-34 | ⬜ |
+| T2.2 | Ocupação do viveiro por área e canteiro, com os livres distinguíveis | RF-35 | ⬜ |
+| T2.3 | Movimentos do lote, com o saldo auditável contra a soma deles | RF-37, RF-38 | ⬜ |
+| T2.4 | Repicagem, criando o lote de destino ligado ao de origem | RF-36 | ⬜ |
+| T2.5 | Perda como movimento, com causa em lista fechada | RF-40, RF-39 | ⬜ |
+| T2.6 | Contagem física, gerando o movimento de ajuste | RF-41 | ⬜ |
+| T2.7 | Divisão de lote | RF-42 | ⬜ |
+| T2.8 | Saldo de muda pronta por espécie e recipiente | RF-46 | ⬜ |
 
 **T2.3 é a tarefa que decide se o resto vale alguma coisa.** O saldo materializado em
 `batches.current_quantity` só se justifica se a soma dos movimentos o reproduzir, e o teste TA-65
@@ -70,16 +70,16 @@ existe para conferir isso contra uma contagem manual.
 
 | # | Tarefa | Requisitos | Situação |
 |---|---|---|---|
-| T3.1 | Grade da semana por funcionário, dia e turno | RF-31, RF-34 | ⬜ |
-| T3.2 | Copiar a semana anterior, com as tarefas recorrentes preenchidas | RF-32 | ⬜ |
-| T3.3 | Situação da semana: rascunho, publicada, fechada | RF-33 | ⬜ |
-| T3.4 | Confirmar a tarefa, com os campos que o tipo de tarefa exigir | RF-36, RF-37, RF-35, RF-38 | ⬜ |
-| T3.5 | Fechamento da semana assumindo o não confirmado, com a marca | RF-39 | ⬜ |
-| T3.6 | Entrada da área em duas abas: agenda e mapa | RF-30 | ⬜ |
-| T3.7 | Cadastro do protocolo por recipiente, com etapas e âncoras | RF-25 a RF-28, RF-29 | ⬜ |
-| T3.8 | Motor: atribuir protocolo ao lote e gerar as ordens na agenda | RF-58, RF-59 | ⬜ |
-| T3.9 | Motor: avanço de fase, contagem da execução real, uma ordem em aberto | RF-60 a RF-62 | ⬜ |
-| T3.10 | Ficha do protocolo do lote, com vencimentos e situações | RF-63, RF-64, RF-65 | ⬜ |
+| T3.1 | Grade da semana por funcionário, dia e turno | RF-27 | ⬜ |
+| T3.2 | Copiar a semana anterior, com as tarefas recorrentes preenchidas | RF-28 | ⬜ |
+| T3.3 | Situação da semana: rascunho, publicada, fechada | RF-29 | ⬜ |
+| T3.4 | Confirmar a tarefa, com os campos que o tipo de tarefa exigir | RF-30, RF-31, RF-32 | ⬜ |
+| T3.5 | Fechamento da semana assumindo o não confirmado, com a marca | RF-33 | ⬜ |
+| T3.6 | Entrada da área em duas abas: agenda e mapa | RF-26 | ⬜ |
+| T3.7 | Cadastro do protocolo por recipiente, com etapas e âncoras | RF-22 a RF-24, RF-25 | ⬜ |
+| T3.8 | Motor: atribuir protocolo ao lote e gerar as ordens na agenda | RF-50, RF-51 | ⬜ |
+| T3.9 | Motor: avanço de fase, contagem da execução real, uma ordem em aberto | RF-52 a RF-54 | ⬜ |
+| T3.10 | Ficha do protocolo do lote, com vencimentos e situações | RF-55, RF-56, RF-57 | ⬜ |
 
 **T3.8 e T3.9 são o único código do sistema que roda sem ninguém acionar**, e são os requisitos
 sem caso de uso ([`C1` §4.1](../docs/engenharia/C-modelagem/C1-diagrama-casos-de-uso.md)). Escrever
@@ -93,15 +93,14 @@ ancoram mutuamente nunca vencem, em silêncio.
 
 | # | Tarefa | Requisitos | Situação |
 |---|---|---|---|
-| T4.1 | Visão `batch_health` e o mapa desenhado por área e canteiro | RF-54, RF-55 | ⬜ |
-| T4.2 | Tarefa pendente e atraso ao apontar o lote | RF-56 | ⬜ |
-| T4.3 | Mortalidade no mapa, com destaque acima do limite | RF-52, RF-57 | ⬜ |
-| T4.4 | Cadastro de pedido com cliente, canal, itens e preço digitado | RF-66, RF-67 | ✅ feito |
-| T4.5 | Saldo de muda pronta ao lado de cada item | RF-68 | ⬜ |
-| T4.6 | Confirmação do pedido, travando os itens | RF-69 | ⬜ |
-| T4.7 | Lista de pedidos com filtro por cliente, canal e período | RF-70 | ✅ feito |
+| T4.1 | Visão `batch_health`, o mapa por área e canteiro, e a tarefa pendente ao apontar o lote | RF-47, RF-48 | ⬜ |
+| T4.2 | Mortalidade no mapa, com destaque acima do limite | RF-45, RF-49 | ⬜ |
+| T4.3 | Cadastro de pedido com cliente, canal, itens e preço digitado | RF-58, RF-59 | ✅ feito |
+| T4.4 | Saldo de muda pronta ao lado de cada item | RF-60 | ⬜ |
+| T4.5 | Confirmação do pedido, travando os itens | RF-61 | ⬜ |
+| T4.6 | Lista de pedidos com filtro por cliente, canal e período | RF-62 | ✅ feito |
 
-**T4.5 é a tarefa que o trabalho existe para demonstrar.** É uma consulta, não um fluxo: soma os
+**T4.4 é a tarefa que o trabalho existe para demonstrar.** É uma consulta, não um fluxo: soma os
 lotes prontos daquela espécie e recipiente e exibe o número ao lado do item. Se ela funcionar, a
 afirmação de que o sistema interliga produção e comercial deixa de ser promessa.
 
@@ -111,7 +110,7 @@ afirmação de que o sistema interliga produção e comercial deixa de ser prome
 
 ```
 Fase 1 ─┬─> Fase 2 ─┬─> Fase 4 (mapa)
-        │           └─> Fase 4 (pedido: T4.5 depende de T2.8)
+        │           └─> Fase 4 (pedido: T4.4 depende de T2.8)
         └─> Fase 3 ──> Fase 4 (mapa: T4.1 depende de T3.4 e T3.8)
 ```
 

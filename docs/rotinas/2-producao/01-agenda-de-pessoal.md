@@ -268,7 +268,7 @@ existem na agenda mesmo sem nunca terem feito login.
 |---|---|
 | [`A2`](../../engenharia/A-fundacao/A2-glossario-dominio.md) | §5 nova: Turno, Período de trabalho, Tipo de tarefa, Atribuição, Situação da atribuição, Semana |
 | [`B3`](../../engenharia/B-requisitos/B3-regras-de-negocio.md) | RN-23 a RN-25, RN-26, RN-27, RN-29, RN-33; RN-12 e RN-14 emendadas; ressalvas em §2.4 |
-| [`B2`](../../engenharia/B-requisitos/B2-especificacao-requisitos.md) | RF-23, RF-24 e RF-08; RF-31 a RF-39, RF-34, RF-36, RF-37, RF-35 e RF-38; RF-30 na entrada da área, com **RNF-15** e a emenda de RNF-06 |
+| [`B2`](../../engenharia/B-requisitos/B2-especificacao-requisitos.md) | RF-21 e RF-08; RF-27 a RF-33, a agenda e a confirmação; RF-26 na entrada da área, com **RNF-15** e a emenda de RNF-06 |
 | [`C1`](../../engenharia/C-modelagem/C1-diagrama-casos-de-uso.md) / [`C2`](../../engenharia/C-modelagem/C2-especificacao-casos-de-uso.md) | UC-15, UC-19, UC-20, UC-21 e UC-05; UC-20 detalhado |
 | [`C6`](../../engenharia/C-modelagem/C6-modelo-entidade-relacionamento.md) / [`C8`](../../engenharia/C-modelagem/C8-dicionario-de-dados.md) | `week_plans`, `assignments`, `assignment_members`, `work_shifts` e `task_types`; `assignments` guarda o planejado e o confirmado na mesma linha, e por isso não há entidade de apontamento |
 | [`D4`](../../engenharia/D-arquitetura/D4-matriz-rbac.md) | recursos **Agenda da semana**, **Confirmação de tarefa**, **Fechamento da semana** e **Período de trabalho**; §3.3 |

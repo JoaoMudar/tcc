@@ -1,7 +1,7 @@
 -- Migration: 20260901000005_producao_agenda.sql
 -- Descricao: A agenda da semana: o planejado e o confirmado, na mesma linha.
 --
--- Requisitos: RF-31 a RF-39 · Regras: RN-12 a RN-14, RN-24 a RN-26, RN-33
+-- Requisitos: RF-27 a RF-33 · Regras: RN-12 a RN-14, RN-24 a RN-26, RN-33
 -- Entidades: C8 `week_plans`, `assignments`, `assignment_members`
 --
 -- NAO HA APONTAMENTO POR RELOGIO. `assignments.status` percorre planejada,
@@ -48,12 +48,12 @@ CREATE TABLE assignments (
 
   task_type_id     UUID NOT NULL REFERENCES task_types(id),
 
-  -- Preenchidos conforme o tipo de tarefa declarar exigir (RF-24, RN-25).
+  -- Preenchidos conforme o tipo de tarefa declarar exigir (RF-21, RN-25).
   species_id       UUID REFERENCES species(id),
   container_id     UUID REFERENCES containers(id),
   batch_id         UUID REFERENCES batches(id),
 
-  -- Area ou canteiro da tarefa que NAO exige lote (RF-38). Quando ha lote, ele ja
+  -- Area ou canteiro da tarefa que NAO exige lote (RF-32). Quando ha lote, ele ja
   -- carrega o canteiro, e pedi-lo de novo e redundancia.
   area_id          UUID REFERENCES areas(id),
   bed_id           UUID REFERENCES beds(id),
@@ -62,7 +62,7 @@ CREATE TABLE assignments (
 
   -- E UMA MARCA, E NAO UMA REGRA DE CALENDARIO (RN-33). Diz que a atribuicao faz
   -- parte da rotina fixa e, por isso, vem preenchida ao copiar a semana anterior
-  -- (RF-32). Uma entidade de recorrencia existiria para gerar dias sozinha, e o que
+  -- (RF-28). Uma entidade de recorrencia existiria para gerar dias sozinha, e o que
   -- gera dia sozinho neste modelo e o protocolo, cujo sujeito e o lote.
   is_recurring     BOOLEAN NOT NULL DEFAULT false,
 
@@ -93,7 +93,7 @@ CREATE TABLE assignments (
 CREATE INDEX assignments_semana_idx ON assignments (week_plan_id, work_date);
 CREATE INDEX assignments_lote_idx   ON assignments (batch_id) WHERE batch_id IS NOT NULL;
 
--- RF-55: a situacao do lote sai da atribuicao que segue planejada e cuja data ja
+-- RF-48: a situacao do lote sai da atribuicao que segue planejada e cuja data ja
 -- passou. Este indice e o que torna o mapa barato.
 CREATE INDEX assignments_pendentes_idx
   ON assignments (batch_id, work_date) WHERE status = 'planejada';

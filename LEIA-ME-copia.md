@@ -24,7 +24,7 @@ requisitos.
 
 | | Antes | Depois |
 |---|---:|---:|
-| Requisitos funcionais | 138 | **70** |
+| Requisitos funcionais | 138 | **62** |
 | Requisitos não funcionais | 27 | **27** |
 | Regras de negócio | 105 | **60** |
 | Casos de uso | 59 | **34** |
@@ -48,6 +48,8 @@ deles é planejado e confirmado pela gerência.
 Configurações atravessando as três. O argumento do trabalho passou a ser a **interconexão**: o que
 se cadastra alimenta as outras duas áreas, e o que a Produção deixa pronto é o que o Comercial
 consegue vender.
+
+**Os requisitos caíram duas vezes, e só a primeira tirou funcionalidade.** O corte de 28/08 levou de 138 a 70. A passagem de 70 a 62, em 30/08, fundiu oito pares que compartilhavam o mesmo caso de uso e o mesmo teste de aceite, e portanto eram um requisito escrito em duas linhas: o critério está em `B2` §1.
 
 **Os identificadores foram renumerados** em sequência contínua, na ordem de leitura. A numeração
 antiga sobrevive apenas em `docs/auditoria-divergencias.md`, que é registro histórico e cita, de

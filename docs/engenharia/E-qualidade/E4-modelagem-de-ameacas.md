@@ -184,8 +184,8 @@ mudado depois de fechados.
 
 **Controles:**
 
-- *Prevenção*: semana fechada recusa alteração (RF-33, RN-13); pedido confirmado recusa alteração
-  de item (RF-69, RN-56); nenhum perfil tem permissão de exclusão sobre movimento de lote
+- *Prevenção*: semana fechada recusa alteração (RF-29, RN-13); pedido confirmado recusa alteração
+  de item (RF-61, RN-56); nenhum perfil tem permissão de exclusão sobre movimento de lote
   ([`D4` §3.6](../D-arquitetura/D4-matriz-rbac.md)).
 - *Prevenção*: a correção de saldo é um movimento de `ajuste_contagem`, que **registra** a correção
   em vez de esconder o erro (RN-09).
@@ -270,6 +270,6 @@ Registrar os controles **descartados** e o motivo evita que a ausência seja lid
 | A-06 | RNF-12, RNF-22, RNF-23 |
 | A-07 | RNF-11, RNF-13 |
 | A-08 | RNF-05, RF-06 |
-| A-09 | RF-33, RF-44, RF-69 |
+| A-09 | RF-29, RF-38, RF-61 |
 | A-10 | RNF-14 |
 | A-11 | RNF-05 |

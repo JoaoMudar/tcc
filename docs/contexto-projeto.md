@@ -40,7 +40,7 @@ o trabalho deles é planejado e confirmado pela gerência. Restaram três perfis
 
 | Antes | Depois |
 |---|---:|
-| 138 requisitos funcionais | 70 |
+| 138 requisitos funcionais | 62 |
 | 105 regras de negócio | 60 |
 | 59 casos de uso | 34 |
 | 62 entidades | 27, mais 2 visões |
@@ -49,6 +49,12 @@ o trabalho deles é planejado e confirmado pela gerência. Restaram três perfis
 
 O registro do corte está na oitava passada de
 [`auditoria-divergencias.md`](auditoria-divergencias.md).
+
+**Os requisitos caíram duas vezes, por motivos diferentes.** O corte de 28/08 levou de 138 a 70, e
+tirou funcionalidade: módulos inteiros saíram. A passagem de 70 a 62, em 30/08, **não tirou nada**:
+fundiu oito pares de requisitos que compartilhavam o mesmo caso de uso e o mesmo teste de aceite,
+e portanto eram um requisito escrito em duas linhas. O critério está declarado em
+[`B2` §1](engenharia/B-requisitos/B2-especificacao-requisitos.md).
 
 ## O que o sistema faz, em uma linha
 

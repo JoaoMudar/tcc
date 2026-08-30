@@ -34,8 +34,8 @@ São documentos de projeto, não relatórios de código.
 
 | Código | Artefato | Destino no TCC | Situação |
 |---|---|---|---|
-| [B2](B-requisitos/B2-especificacao-requisitos.md) | Especificação de Requisitos (ERS) | 4.2 Requisitos do sistema | ✅ escrito: 70 RF, 27 RNF |
-| [B3](B-requisitos/B3-regras-de-negocio.md) | Regras de negócio e vínculo com os requisitos | 4.3 Regras de negócio | ✅ escrito: 60 regras, 66 dos 70 RF vinculados. **§4 e §7 geradas** por `scripts/build-b3-derivado.mjs` |
+| [B2](B-requisitos/B2-especificacao-requisitos.md) | Especificação de Requisitos (ERS) | 4.2 Requisitos do sistema | ✅ escrito: 62 RF, 27 RNF |
+| [B3](B-requisitos/B3-regras-de-negocio.md) | Regras de negócio e vínculo com os requisitos | 4.3 Regras de negócio | ✅ escrito: 60 regras, 58 dos 62 RF vinculados. **§4 e §7 geradas** por `scripts/build-b3-derivado.mjs` |
 | [B4](B-requisitos/B4-quadros-tcc.md) | Quadros de regras de negócio e requisitos | Apêndice D | ✅ **gerado** por `scripts/build-b4-quadros.mjs`: 10 quadros |
 | [B5](B-requisitos/B5-matriz-rastreabilidade.md) | Matriz de rastreabilidade | 4.10 + Apêndice | ✅ escrito: **§2 e §6 geradas** por `scripts/build-b5-matriz.mjs`; revelou 19 requisitos sem teste, todos fechados |
 

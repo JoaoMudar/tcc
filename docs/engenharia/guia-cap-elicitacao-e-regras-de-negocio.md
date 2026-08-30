@@ -40,7 +40,7 @@ capítulos.
 **Teste de 5 segundos para saber se algo é regra de negócio:** apague mentalmente o sistema. Se a
 frase continua verdadeira no viveiro, é regra. Se ela começa com *"O sistema deve"*, é requisito.
 
-Exemplo do par: **RN-11** "mortalidade acima do limite é anormal e exige providência" → **RF-52**
+Exemplo do par: **RN-11** "mortalidade acima do limite é anormal e exige providência" → **RF-45**
 "o sistema deve emitir alerta para o lote cuja mortalidade ultrapasse o limite definido em
 Configurações". A regra é do viveiro; o requisito é a resposta do software a ela. Repare que o
 requisito fala em **lote** e em **limite mantido**, e não em espécie e em 20% fixos: quem escreve o
@@ -67,8 +67,8 @@ capítulo tem de copiar o enunciado do `B2`, e não a lembrança dele.
 
 ## 1.2 Tabela pronta: requisitos por técnica de elicitação
 
-Contagem extraída de `B2` (70 RF). Requisito com duas origens aparece em ambas as linhas, por isso
-a soma dá 73 e não 70. **Recontar antes de usar**: a tabela abaixo é resultado, e resultado que se
+Contagem extraída de `B2` (62 RF). Requisito com duas origens aparece em ambas as linhas, por isso
+a soma dá 71 e não 62. **Recontar antes de usar**: a tabela abaixo é resultado, e resultado que se
 copia de uma versão anterior é como as contagens deste projeto já erraram três vezes.
 
 | Técnica (código em `B2`) | Requisitos funcionais | Leitura |
@@ -156,14 +156,14 @@ As regras estão agrupadas em **cinco áreas**:
 
 Cada regra em `B3` traz **tipo** (fato, restrição, derivação, acionamento), **onde já estava
 documentada** e **quais RF e RNF ela origina**. As tabelas inversas (RF → RN e RNF → origem) estão
-nas seções 4 e 5 de lá, e o texto integral dos 70 RF e 27 RNF no apêndice (§7): o arquivo é
+nas seções 4 e 5 de lá, e o texto integral dos 62 RF e 27 RNF no apêndice (§7): o arquivo é
 autossuficiente para gerar as tabelas do trabalho.
 
 > ⚠️ **As seções 4 e 7 do `B3` são geradas** por `scripts/build-b3-derivado.mjs`, e o mesmo vale
 > para o `B4` inteiro, para `B5` §2 e §6 e para `E2` §9. Editá-las à mão é trabalho que o próximo
 > `node scripts/build-b3-derivado.mjs` apaga. Corrija a fonte, que é o `B2` §2/§3 ou o `B3` §3.
 
-**Dois números que valem parágrafo no capítulo:** 66 dos 70 requisitos funcionais nascem de regra de
+**Dois números que valem parágrafo no capítulo:** 58 dos 62 requisitos funcionais nascem de regra de
 negócio, mas apenas 3 dos 27 não funcionais: os outros 24 vêm das restrições do ambiente (RE-1 a
 RE-5) ou de política do projeto. As regras determinam **o que** o sistema faz; o ambiente determina
 **como** ele precisa ser.
@@ -187,7 +187,7 @@ RE-5) ou de política do projeto. As regras determinam **o que** o sistema faz; 
 
 A seção 9 é a que fecha o capítulo com rigor: mostra que nenhuma regra ficou sem implementação e
 nenhuma implementação ficou sem regra: o mesmo raciocínio de `B5`. As quatro exceções (RF-02,
-RF-03, RF-07 e RF-30, que não decorrem de regra alguma) estão justificadas em `B3` §6 e valem um
+RF-03, RF-07 e RF-26, que não decorrem de regra alguma) estão justificadas em `B3` §6 e valem um
 parágrafo.
 
 ---
