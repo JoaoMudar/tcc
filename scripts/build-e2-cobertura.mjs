@@ -7,12 +7,13 @@
 //   node scripts/build-e2-cobertura.mjs
 
 import { readFileSync, writeFileSync } from 'node:fs';
+import { leia } from './leia.mjs';
 
 const E2 = 'docs/engenharia/E-qualidade/E2-casos-de-teste-de-aceite.md';
 const B2 = 'docs/engenharia/B-requisitos/B2-especificacao-requisitos.md';
 
-const e2 = readFileSync(E2, 'utf8');
-const b2 = readFileSync(B2, 'utf8');
+const e2 = leia(E2);
+const b2 = leia(B2);
 
 // Prioridade de cada RF, para saber quais "deve ter" ficaram sem caso.
 const prioridade = new Map();

@@ -10,12 +10,13 @@
 //   node scripts/build-b3-derivado.mjs
 
 import { readFileSync, writeFileSync } from 'node:fs';
+import { leia } from './leia.mjs';
 
 const B2 = 'docs/engenharia/B-requisitos/B2-especificacao-requisitos.md';
 const B3 = 'docs/engenharia/B-requisitos/B3-regras-de-negocio.md';
 
-const b2 = readFileSync(B2, 'utf8');
-const b3 = readFileSync(B3, 'utf8');
+const b2 = leia(B2);
+const b3 = leia(B3);
 
 // ---------------------------------------------------------------- B2: os requisitos
 // Linha de RF:  | **RF-10** | texto | ator | prior | origem | verificação |
@@ -26,7 +27,10 @@ for (const line of b2.split('\n')) {
   const m = line.match(/^\| \*\*(RNF-\d+|RF-\d+)\*\* \|(.*)$/);
   if (!m) continue;
   const cols = m[2].split('|').map((c) => c.trim());
-  if (m[1].startsWith('RNF-')) rnf.push({ id: m[1], texto: cols[0], origem: cols[2] });
+  // A tabela de RNF tem uma coluna a menos que a de RF (nao tem ator nem
+  // prioridade): a origem e a coluna 1, e nao a 2. Com o indice errado, as 27
+  // linhas da §7.2 saiam com o cabecalho "Origem" e o conteudo de "Verificacao".
+  if (m[1].startsWith('RNF-')) rnf.push({ id: m[1], texto: cols[0], origem: cols[1] });
   else rf.push({ id: m[1], texto: cols[0], prior: cols[2], origem: cols[3] });
 }
 

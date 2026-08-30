@@ -9,6 +9,7 @@
 //   node scripts/build-b5-matriz.mjs
 
 import { readFileSync, writeFileSync } from 'node:fs';
+import { leia } from './leia.mjs';
 
 const B2 = 'docs/engenharia/B-requisitos/B2-especificacao-requisitos.md';
 const B5 = 'docs/engenharia/B-requisitos/B5-matriz-rastreabilidade.md';
@@ -91,9 +92,9 @@ const MAPA = {
 };
 
 // ---------------------------------------------------------------- leitura das fontes
-const b2 = readFileSync(B2, 'utf8');
-const c1 = readFileSync(C1, 'utf8');
-const e2 = readFileSync(E2, 'utf8');
+const b2 = leia(B2);
+const c1 = leia(C1);
+const e2 = leia(E2);
 
 // RF na ordem do B2, com a seção em que está e a prioridade.
 const requisitos = [];
@@ -205,7 +206,7 @@ if (deveTerSemTeste.length) {
 }
 
 // ---------------------------------------------------------------- escrita
-let b5 = readFileSync(B5, 'utf8');
+let b5 = leia(B5);
 
 function trocaSecao(texto, inicio, fim, conteudo) {
   const re = new RegExp(`^${inicio}[\\s\\S]*?(?=^${fim})`, 'm');

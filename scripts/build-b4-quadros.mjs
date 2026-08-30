@@ -8,6 +8,7 @@
 //   node scripts/build-b4-quadros.mjs
 
 import { readFileSync, writeFileSync } from 'node:fs';
+import { leia } from './leia.mjs';
 
 const A1 = 'docs/engenharia/A-fundacao/A1-documento-de-visao.md';
 const B2 = 'docs/engenharia/B-requisitos/B2-especificacao-requisitos.md';
@@ -89,9 +90,9 @@ const NOME = {
 };
 
 // ---------------------------------------------------------------- leitura
-const a1 = readFileSync(A1, 'utf8');
-const b2 = readFileSync(B2, 'utf8');
-const b3 = readFileSync(B3, 'utf8');
+const a1 = leia(A1);
+const b2 = leia(B2);
+const b3 = leia(B3);
 
 // Converte o enunciado de engenharia em frase de quadro: sem negrito, terminada em ponto.
 function frase(texto) {
