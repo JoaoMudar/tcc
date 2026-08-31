@@ -70,8 +70,10 @@ confere, nos dois sentidos, os identificadores citados contra os definidos.
 - **Preço é digitado no item do pedido.** O sistema registra por quanto se vendeu; não calcula custo,
   margem nem piso.
 - **Canais de venda**: atacado (padrão), compensação ambiental, paisagismo, prefeitura, varejo.
-- **A agenda registra o turno, e não a hora.** Não há apontamento por relógio: seria controle de
-  ponto, e está fora do escopo.
+- **A unidade da agenda é o turno**, e a tarefa que tem hora marcada de verdade (a irrigação das
+  sete às oito) declara a sua: a hora é opcional, o turno é sempre exigido. Registrar a hora da
+  **tarefa** não é apontar a hora da **pessoa**: apontamento por relógio seria controle de ponto, e
+  está fora do escopo.
 
 ## Workflow
 1. Ler o plan file em `plans/P{N}-*.md`; implementar task por task marcando `[x]` ao concluir cada uma.

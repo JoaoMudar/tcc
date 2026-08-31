@@ -2,8 +2,8 @@
 
 > **O que o lote tem de receber, lembre alguém ou não.** É a peça que faltava entre o lote
 > ([`04-lotes-e-canteiros.md`](04-lotes-e-canteiros.md)), o catálogo de tarefas e a agenda
-> ([`01-agenda-de-pessoal.md`](01-agenda-de-pessoal.md)). O apontamento, que é a execução,
-> continua em [`05-apontamento-de-tarefas.md`](05-apontamento-de-tarefas.md).
+> ([`01-agenda-de-pessoal.md`](01-agenda-de-pessoal.md)), onde a ordem gerada vira atribuição
+> comum e é confirmada como qualquer outra.
 
 **Status: especificado em 26/08/2026. Nada implementado.** Não há migration, Server Action nem
 tela. O roteiro de implementação é o [`P15`](../../../plans/P15-protocolo-de-atividades.md).
@@ -34,13 +34,13 @@ Três perguntas que hoje ninguém no viveiro consegue responder:
 
 ## Por que a tarefa recorrente que já existe não resolve
 
-O sistema já tem `task_recurrences`, e ela **não serve para isto**. São duas coisas diferentes com
-o mesmo apelido:
+A marca de tarefa recorrente da agenda **não serve para isto**. São duas coisas diferentes com o
+mesmo apelido:
 
 | | Recorrência de calendário (existe) | Protocolo do lote (esta rotina) |
 |---|---|---|
 | Sujeito | a equipe | **o lote** |
-| Quando repete | dias da semana, hora fixa | **X dias depois da última execução real** |
+| Quando repete | toda semana, porque a semana é copiada | **X dias depois da última execução real** |
 | Exemplo | "irrigar de segunda a sábado, das 7h às 8h" | "limpar 90 dias depois da última limpeza deste lote" |
 | Avança fase do lote | não | **as etapas sequenciais sim** |
 | Se atrasar | o dia seguinte vem do mesmo jeito | **não vem ocorrência nova até a atrasada ser feita** |
@@ -250,7 +250,7 @@ cor. É a resposta para "este lote já foi classificado?" e para "quando é a pr
 
 ### Mapa de produção: sem tela nova
 
-O quadradinho do lote já mostra situação (RF-47). O que muda é **de onde a cor vem**: passa a
+O quadradinho do lote já mostra situação (RF-44). O que muda é **de onde a cor vem**: passa a
 sair do protocolo, e não do atraso das tarefas que alguém lembrou de lançar. **É a correção do
 problema desta rotina**, e não uma tela a mais.
 
@@ -293,13 +293,13 @@ A ordem do protocolo é atribuição comum e aparece onde as atribuições apare
 
 | Artefato | O que esta rotina acrescentou |
 |---|---|
-| [`B2`](../../engenharia/B-requisitos/B2-especificacao-requisitos.md) | RF-22 a RF-24 e RF-25 no cadastro; RF-50 a RF-57 na operação |
+| [`B2`](../../engenharia/B-requisitos/B2-especificacao-requisitos.md) | RF-22 a RF-24 e RF-25 no cadastro; RF-46 a RF-53 na operação |
 | [`B3`](../../engenharia/B-requisitos/B3-regras-de-negocio.md) | RN-32 a RN-43; RN-18 e RN-30 emendadas |
 | [`C2`](../../engenharia/C-modelagem/C2-especificacao-casos-de-uso.md) | UC-17, UC-24 e UC-18 |
 | [`C6`](../../engenharia/C-modelagem/C6-modelo-entidade-relacionamento.md) / [`C8`](../../engenharia/C-modelagem/C8-dicionario-de-dados.md) | `protocols`, `protocol_steps`, `species_protocol_overrides`, `batch_protocol_steps` e a visão `batch_protocol_due`; `batches`, `assignments` e `containers` emendadas. O protocolo pendura-se no **recipiente**, e `container_types` deixou de existir |
 | [`B5`](../../engenharia/B-requisitos/B5-matriz-rastreabilidade.md) | 16 linhas novas |
 | [`D4`](../../engenharia/D-arquitetura/D4-matriz-rbac.md) | recursos **Tipos de embalagem** e **Protocolo de atividades** |
-| [`E2`](../../engenharia/E-qualidade/E2-casos-de-teste-de-aceite.md) | TA-34 a TA-45 |
+| [`E2`](../../engenharia/E-qualidade/E2-casos-de-teste-de-aceite.md) | TA-35 a TA-46 |
 | [`P15`](../../../plans/P15-protocolo-de-atividades.md) | o roteiro de implementação |
 
 ## Prova de mesa

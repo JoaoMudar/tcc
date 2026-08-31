@@ -1,50 +1,57 @@
 # Subrotina: Agenda de Pessoal
 
 > Onde se anota **o que cada funcionário vai fazer** e **o que ele fez de fato**. É a porta de
-> entrada da rotina de produção: ver [`00-visao-geral.md`](00-visao-geral.md). O apontamento em si,
-> que é a parte da execução, tem documento próprio em
-> [`05-apontamento-de-tarefas.md`](05-apontamento-de-tarefas.md).
+> entrada da rotina de produção: ver [`00-visao-geral.md`](00-visao-geral.md).
+>
+> **Reescrita em 31/08/2026.** A versão anterior descrevia apontamento por relógio, horas reais e
+> custo de mão de obra, tudo cortado na redução de escopo, e afirmava que o viveiro nunca planeja
+> por hora marcada, o que é falso. Ver a décima passada da
+> [auditoria](../../auditoria-divergencias.md).
 
 ## A ideia em 1 frase
 
 **Uma grade de uma semana: linhas são pessoas, colunas são dias.** Preenche-se na segunda de
-manhã em poucos minutos, e ela vira a agenda do dia que uma pessoa opera para a equipe inteira.
+manhã em poucos minutos, e ela vira a agenda do dia que a gerência opera para a equipe inteira.
 
 ## O problema
 
-Débora distribui tarefas verbalmente. Três consequências:
+Débora distribui tarefas verbalmente. Duas consequências:
 
-1. **Nada fica registrado**: no fim do mês ninguém sabe quanto tempo foi gasto em quê.
+1. **Nada fica registrado**: no fim do mês ninguém sabe o que foi feito, por quem, em qual lote.
 2. **Esquecimento é invisível**: se a irrigação do canteiro 4 não foi feita, só se descobre
    pela muda morta.
-3. **Custo de mão de obra não existe**: é o maior custo do viveiro e o único que o custeio
-   (P1) ainda não consegue calcular.
 
-## As 5 decisões de desenho
+## As 4 decisões de desenho
 
-### 1. Turno no planejamento, hora na execução
+### 1. O turno é a unidade, e a hora existe onde ela existe de verdade
 
-A unidade da agenda é **dia × turno** (manhã / tarde), nunca hora marcada. Ninguém no viveiro
-planeja a semana de hora em hora, e pedir horário exato no planejamento garantiria que a agenda
-não é preenchida.
+A unidade da agenda é **dia × turno** (manhã / tarde). Ninguém no viveiro planeja a semana inteira
+de hora em hora, e exigir horário exato de toda tarefa garantiria que a agenda não é preenchida.
 
-**A hora aparece do outro lado**, na execução, e não custa digitação a ninguém: ela vem do relógio
-quando se toca em "começar" e em "encerrar" (ver decisão 5).
+**Mas parte do trabalho tem hora marcada, e negar isso seria mentir sobre o viveiro.** A irrigação
+das sete às oito tem horário na vida real. A carga de terra chega meio-dia. Essas tarefas
+**declaram a sua hora**, e as demais não declaram nada: a hora é opcional (RN-12).
 
-**O turno não vale mais quatro horas por decreto.** A hora de início e de fim de cada turno é
+> **Por que o turno continua obrigatório mesmo havendo hora.** Os turnos **não cobrem o dia
+> inteiro**: entre as 11h e as 13h não há turno nenhum, e a carga de terra que chega meio-dia
+> cairia num vazio se a hora tivesse de determinar o turno. Quem sabe se aquilo conta como manhã ou
+> como tarde é quem monta a agenda, e não o relógio.
+
+**O turno não vale quatro horas por decreto.** A hora de início e de fim de cada turno é
 **cadastro**, na tela de configurações. Muda com a estação e com a combinação da equipe, e
-convenção que muda é dado, não constante escondida no código.
+convenção que muda é dado, não constante escondida no código (RN-27).
 
-**Há uma exceção, e é declarada: a tarefa recorrente tem hora** (ver decisão 3). A irrigação das
-sete às oito já tem horário na vida real, e é justamente por tê-lo que ela não precisa ser lançada
-todo dia. O resto da agenda continua sendo turno.
+**A hora da tarefa não é a hora da pessoa.** Registrar que a irrigação é das sete às oito diz
+quando a tarefa acontece. Medir quando cada funcionário chegou e saiu é **controle de ponto**, que
+é relação de trabalho e não gestão de produção: está fora do escopo
+([`A1` §7](../../engenharia/A-fundacao/A1-documento-de-visao.md)) e continua fora.
 
 ### 2. Escolher, não digitar
 
 Tudo é lista fechada: funcionário (do cadastro), tipo de tarefa (do catálogo), espécie,
 recipiente e lote (quando o tipo de tarefa exigir). Campo livre só em "observação", opcional.
 
-> Mesma regra do financeiro: **sem campo aberto = sem typo = dado que serve para somar.**
+> **Sem campo aberto = sem typo = dado que serve para somar.**
 
 **O catálogo de tarefas comanda o formulário.** Cada tipo de tarefa tem um nome e quatro
 declarações: se é **quantitativa por unidade**, se tem **lote específico**, e se exige espécie ou
@@ -58,40 +65,14 @@ A semana do viveiro se parece muito com a anterior. O botão principal da tela �
 **"Copiar semana passada"**: traz tudo preenchido, e ajusta-se o que mudou. Preencher do
 zero é a exceção.
 
-Tarefas recorrentes (irrigação diária, por exemplo) deixaram de ser uma **marca** e viraram
-**regra própria**: escolhe-se um funcionário ou um grupo, os dias da semana, a hora de início e de
-fim, e até quando vale. Dali em diante a agenda nasce com elas dentro, sem ninguém lançar nada.
+**Tarefa recorrente é uma marca, e não uma entidade de calendário.** Marcar a irrigação como
+recorrente faz com que ela **nasça preenchida** na cópia da semana, com o turno e a hora que ela
+tinha. É o suficiente para o gesto que o viveiro faz.
 
-```
-Nova tarefa recorrente
-
-  Tarefa       [ Irrigação                  ▾ ]
-  Quem         [ Rogério, Amélia, Jaison    ▾ ]   ← um ou um grupo
-  Dias         [x] seg [x] ter [x] qua [x] qui [x] sex [x] sáb [ ] dom
-  Turno        [ Manhã                      ▾ ]   ← o que o dia gerado herda
-  Horário      [ 07:00 ] às [ 08:00 ]
-  Vale de      [ 26/08/2026 ] até [ (sem prazo) ]
-
-  [ Salvar ]
-```
-
-> **Por que a marca não bastava.** Um "é fixa" no sim ou não dizia que a tarefa se repetia sem
-> dizer **em que dias**, **em que horário** e **até quando**. Servia para copiar a semana; não
-> serve para a irrigação de segunda a sábado que muda quando o verão acaba.
-
-> **Por que o turno aparece junto da hora, e não em vez dela.** O dia gerado é uma atribuição
-> comum, e atribuição sem turno não existe: é dele que saem as horas dos dias em que ninguém
-> aponta. E a hora não diz qual é o turno, porque os turnos não cobrem o dia inteiro: entre as 11h
-> e as 13h não há turno nenhum, e a carga de terra que chega meio-dia cairia num vazio. Quem sabe
-> se aquilo conta como manhã ou como tarde é quem monta a agenda, não o relógio.
-
-**Uma recorrência gera um dia de cada vez.** Irrigar de manhã **e** de tarde são **duas regras**,
-não uma com dois horários. Parece repetição, e é o que permite encerrar a da tarde no fim do verão
-sem mexer na da manhã.
-
-**O dia gerado é um dia comum.** Excluir a ocorrência de uma quarta não mexe na regra, e mexer na
-regra não reescreve o que já foi trabalhado. Encerrar a recorrência é preencher a data de fim, e
-não apagá-la: os dias que ela gerou continuam na agenda e no custo.
+> **Por que não uma regra de recorrência com dias, hora e vigência.** Uma entidade dessas existiria
+> para **gerar dias sozinha**, e o que gera dia sozinho neste modelo é o **protocolo**, cujo sujeito
+> é o lote, e não a equipe. Duas máquinas de gerar dia, uma olhando a semana e outra olhando o lote,
+> produziriam a mesma ordem duas vezes.
 
 E uma tarefa pode ser lançada **para um intervalo de dias** de uma vez, em vez de cinco vezes.
 
@@ -99,125 +80,78 @@ E uma tarefa pode ser lançada **para um intervalo de dias** de uma vez, em vez 
 
 Metade da equipe enchendo saquinho enquanto a outra metade repica é a **norma**, não a exceção.
 Por isso uma atribuição tem **um grupo de funcionários**, e o mesmo turno comporta duas tarefas
-com grupos diferentes.
+com grupos diferentes (RN-26).
 
 > **Por que não uma linha por pessoa.** Escalar quatro pessoas na mesma tarefa criaria quatro
 > atribuições idênticas, e a tarefa deixaria de ser uma coisa só para virar quatro coisas
-> parecidas. Somar horas por tarefa passaria a depender de reconhecer que as quatro são a mesma.
+> parecidas.
 
-### 5. O planejado vira realizado pelo relógio, e o turno é a rede de proteção
-
-Durante o dia, quem coordena marca na faixa do funcionário quando ele **começa** e quando
-**encerra**. Daí saem as horas reais.
-
-**Onde ninguém apontou, o planejado é assumido como realizado**, pelo turno, com uma marca de
-"não confirmado".
-
-> **Por que os dois, e não um só.** Exigir apontamento sempre produziria dias sem hora nenhuma,
-> e agenda com buraco não serve para calcular custo. Assumir sempre o turno, como a versão
-> anterior deste documento fazia, joga fora a precisão nos dias em que alguém de fato apontou. O
-> híbrido fica com o melhor dos dois: **mede quando há medida, estima quando não há, e diz qual é
-> qual.**
->
-> A decisão original do [`B2` §4](../../engenharia/B-requisitos/B2-especificacao-requisitos.md)
-> descartou o apontamento individual para não impor **controle de ponto**, e essa preocupação
-> segue de pé: quem aponta **não é o funcionário**, é quem coordena, de um aparelho só. Ninguém
-> bate ponto, ninguém registra a própria entrada e saída, e o valor-hora continua sendo médio da
-> equipe (ver "Do planejamento ao custo").
+**A quantidade, porém, é de cada um.** Quatro pessoas enchendo saquinho produzem quatro números, e
+é assim que o viveiro fala (RN-24). Nunca um total dividido pelo tamanho do grupo, que inventaria
+um rendimento que ninguém teve.
 
 ## As telas
 
-### Gerência: a agenda na escala de semana (planejamento)
+### A agenda na escala de semana (planejamento)
 
 **Não é uma tela própria**: é a mesma agenda da entrada da Produção, com o botão de escala em
-*Semana*. A escala de dia é onde se aponta ([`05`](05-apontamento-de-tarefas.md)); a de semana é
-onde se planeja. Como a agenda do dia, é tela de computador, e por RNF-15.
+*Semana*. É tela de computador, por RNF-14.
 
 ```
-Semana de 10/08 a 15/08   [ Dia | Semana | Mês ]   [Copiar semana passada] [Publicar]
+Semana de 10/08 a 15/08   [ Dia | Semana ]   [Copiar semana passada] [Publicar]
 
               SEG        TER        QUA        QUI        SEX        SÁB
 Rogério      Repicagem  Repicagem  Irrigação  Semeadura  Semeadura  Limpeza
-Amélia       Repicagem  Repicagem  Semeadura  Semeadura  Semeadura  —
+Amélia       Repicagem  Repicagem  Semeadura  Semeadura  Semeadura  --
              Ipê-amar.  Ipê-amar.  Aroeira    Aroeira    Aroeira
-             2026-0147  2026-0147  —          —          —
-             M+T        M          M          M+T        M          M
+             2026-0147  2026-0147  --         --         --
+             M+T        M          M 7h-8h    M+T        M          M
 
-Jaison       Separação  Entrega    Adubação   Adubação   Separação  —
-             Ped. #124  Blumenau   —          —          Ped. #131
+Jaison       Separação  Entrega    Adubação   Adubação   Separação  --
+             Ped. #124  Blumenau   --         --         Ped. #131
              M          M+T        M          M          M+T
 ```
 
 Rogério e Amélia aparecem **na mesma célula** de segunda e terça: é uma tarefa com duas pessoas,
-não duas tarefas.
+não duas tarefas. A irrigação de quarta mostra `M 7h-8h`: tem turno **e** hora. As demais mostram
+só o turno, porque é só isso que têm.
 
 No celular a agenda vira **lista**: um dia por tela, uma linha por pessoa, deslizando entre os
 dias. A grade completa não cabe e **não deve ser espremida**, e é por isso que a redução troca de
 desenho em vez de encolher o mesmo. Montar a semana inteira, esse é gesto de mesa.
 
-Cadastrar uma tarefa são **3 toques**: pessoas → tipo de tarefa → turno. Espécie, recipiente e
-lote só aparecem se o tipo de tarefa exigir.
+Cadastrar uma tarefa são **3 toques**: pessoas, tipo de tarefa e turno. Hora, espécie, recipiente
+e lote só aparecem se a tarefa tiver hora ou se o tipo de tarefa os exigir.
 
-### Gerência: agenda do dia (execução)
-
-É a tela do dia a dia, e está descrita em
-[`05-apontamento-de-tarefas.md`](05-apontamento-de-tarefas.md): **uma linha do tempo horizontal,
-com uma faixa por funcionário** e as tarefas como barras posicionadas pelo horário.
+### A agenda do dia (confirmação)
 
 É a **primeira aba da tela inicial da Produção**; a segunda é o mapa de produção
-([`04`](04-lotes-e-canteiros.md)). São as duas perguntas que se faz ao entrar no módulo: *quem
-está fazendo o quê agora* e *como está o viveiro*.
+([`04`](04-lotes-e-canteiros.md)). São as duas perguntas que se faz ao entrar no módulo: *quem está
+fazendo o quê hoje* e *como está o viveiro*.
 
-### Colaborador: hoje
+**Confirmar é marcar que foi feita**, e informar a quantidade de cada participante quando o tipo de
+tarefa for quantitativo por unidade. Tarefa não quantitativa confirma sem pedir número nenhum.
 
-```
-Segunda, 10 de agosto
+**Quem confirma é a gerência.** Os seis colaboradores de campo não operam o sistema: o trabalho
+deles é planejado e confirmado por quem coordena, de um aparelho só.
 
-☐  MANHÃ    Repicagem · Ipê-amarelo · lote 2026-0147 (A-3) · saco 10x18
-☐  TARDE    Repicagem · Ipê-amarelo · lote 2026-0147 (A-3) · saco 10x18
-
-            [Concluir]  → pergunta só a quantidade
-```
-
-Uma lista curta, sem menu, sem navegação. Concluir pede **um número** e nada mais, e só quando o
-tipo de tarefa for quantitativo por unidade: tarefa não quantitativa conclui sem pedir nada. É a
-mesma disciplina de formulário de campo da tela de consumo de insumo do P1 (removida em
-26/08/2026; o consumo passa a ser lançado no apontamento), inclusive a fila offline de
-`src/lib/offline-queue.ts`.
-
-O número que o colaborador informa é **o dele**. Quando quem coordena encerra a tarefa do grupo
-inteiro (a tela da equipe, não a do colaborador), aparece um campo por participante: quatro
-pessoas encheram saquinho, quatro números. Nunca um total dividido pelo tamanho do grupo, que
-inventaria um rendimento que ninguém teve.
-
-### Chefia: custo do período
-
-Horas planejadas × realizadas, custo total de mão de obra e quanto disso foi para cada
-espécie e cada lote.
-
-## Do planejamento ao custo
-
-O ponto que faltava no custeio (P1):
+## O ciclo da semana
 
 ```
-horas apontadas (fim − início)          quando houve apontamento
-turnos planejados × duração do turno    quando não houve, marcado como não confirmado
-                    ↓
-horas  ×  valor-hora médio da equipe  =  custo de mão de obra
-custo  →  rateado sobre a espécie e o lote da tarefa
+rascunho  ->  publicada  ->  fechada
+   |             |              |
+monta-se      a equipe       não se altera mais
+              trabalha       o que ficou sem confirmação entra
+                             como realizado, MARCADO de não confirmado
 ```
 
-**O valor-hora é médio da equipe, não individual.** Vem da folha do mês (financeiro)
-dividida pelas horas trabalhadas no mês: um número só, atualizado mensalmente.
+**A marca existe para que a suposição não se disfarce de medição** (RN-14). A alternativa, uma
+agenda com buracos, não distingue o trabalho que não foi feito do que ninguém teve tempo de
+confirmar.
 
-> **Por que médio, mesmo com apontamento.** O apontamento diz **quanto tempo** a tarefa levou, e
-> essa é a informação que varia entre espécies e é a que o custeio precisa. Guardar valor-hora
-> **por pessoa** transformaria a agenda num instrumento de avaliação de desempenho, o que muda a
-> relação da equipe com o app e derruba o preenchimento. Medir o tempo da tarefa e não o
-> rendimento da pessoa é o que mantém a ferramenta sendo de planejamento.
-
-Tarefa **sem espécie e sem lote** (limpeza de canteiro, manutenção) é custo indireto: entra no
-rateio geral, junto dos custos fixos. Tarefa **com lote** vira custo direto daquele lote.
+**A ordem que o protocolo gerou e ninguém pegou é a exceção**: sem ninguém escalado, o fechamento
+**não** a assume como realizada. Dar por feita uma tarefa que ninguém pegou apagaria exatamente o
+esquecimento que o protocolo existe para denunciar.
 
 ## Modelo de dados (esboço)
 
@@ -225,51 +159,43 @@ rateio geral, junto dos custos fixos. Tarefa **com lote** vira custo direto daqu
 |---|---|
 | `task_types` | catálogo de tipos de tarefa: nome, categoria, quantitativa por unidade?, lote específico?, exige espécie?, exige recipiente?. Vive nos [Cadastros](../1-cadastros/00-visao-geral.md) |
 | `work_shifts` | o período de trabalho: hora de início e fim de cada turno |
-| `week_plans` | a semana: `week_start`, `status` (rascunho · publicada · fechada) |
-| `assignments` | a célula da grade: data, turno, tipo de tarefa, espécie?, recipiente?, lote?, área?, canteiro?, quantidade planejada, hora de início e fim quando a declara |
-| `task_recurrences` | a regra da rotina fixa: tipo de tarefa, dias da semana, hora de início e fim, vigência |
-| `task_recurrence_members` | o grupo que a recorrência escala |
-| `assignment_members` | o grupo escalado na atribuição |
-| `task_executions` | o apontamento: uma linha por pessoa, com início e fim |
-| `labor_rates` | valor-hora médio por período (mês) |
+| `week_plans` | a semana: `week_start`, `status` (rascunho, publicada, fechada) |
+| `assignments` | a célula da grade: data, turno, **hora de início e fim quando a tarefa a tem**, tipo de tarefa, espécie?, recipiente?, lote?, área?, canteiro?, quantidade planejada, situação |
+| `assignment_members` | o grupo escalado, e quanto cada um fez |
+
+**Não há entidade de apontamento.** O planejado e o confirmado moram na mesma linha, e é a
+situação que distingue os dois.
 
 Funcionário é `cadastro.parties` com papel `funcionario`: **não** `users`. Amélia e Jaison
 existem na agenda mesmo sem nunca terem feito login.
 
 ## Regras invioláveis
 
-1. **Semana fechada não muda.** Depois de fechada, correção só por lançamento de ajuste, o
-   custo do mês já foi calculado em cima dela.
-2. **Toda tarefa tem ao menos um responsável.** Não existe tarefa sem pessoa; existe pessoa sem
-   tarefa.
+1. **Semana fechada não muda.** Depois de fechada, correção só por lançamento na semana seguinte.
+2. **Toda tarefa tem ao menos um responsável**, salvo a ordem recém-gerada pelo protocolo, que
+   nasce sem ninguém e fica pendente até alguém pegá-la.
 3. **Tipo de tarefa vem do catálogo.** Nunca texto livre.
-4. **Só a tarefa recorrente declara hora no planejamento.** O resto é turno, e a recorrente
-   declara os dois.
-5. **A regra da recorrência e o dia gerado por ela são coisas separadas.** Mexer num não mexe no
-   outro.
-6. **Uma pessoa faz uma tarefa por vez.** Começar outra encerra a anterior, sem perguntar.
-7. **Funcionário inativo some da grade, mas não do histórico.**
-8. **Colaborador só vê e edita as próprias tarefas**: a grade da semana inteira é de
-   gerência e chefia (matriz RBAC, D4).
+4. **Toda atribuição tem turno; hora, só a que tiver.** O turno nunca é derivado da hora: os turnos
+   não cobrem o dia inteiro.
+5. **A quantidade é de cada pessoa**, nunca um total rateado pelo tamanho do grupo.
+6. **Funcionário inativo some da grade, mas não do histórico.**
 
 ## O que isso destrava
 
 | Destrava | Como |
 |---|---|
-| **P1 Custeio** | fecha a última peça: mão de obra por espécie e por lote |
-| **P3 Precificação** | preço com custo real, não estimado |
-| **Estoque** | produção registrada com regularidade alimenta o saldo |
-| **Perdas (P2)** | perda registrada no mesmo gesto da tarefa, já ligada ao lote |
-| **Indicadores (G2)** | horas por espécie, planejado × realizado, tarefas não confirmadas |
+| **Mapa de lotes** | a situação do lote sai da tarefa planejada cuja data já passou |
+| **Perdas** | perda registrada no mesmo gesto da tarefa, já ligada ao lote |
+| **Protocolo** | a ordem que o protocolo gera é uma atribuição comum, e cai na mesma grade |
 
 ## Engenharia
 
 | Artefato | O que esta rotina acrescentou |
 |---|---|
-| [`A2`](../../engenharia/A-fundacao/A2-glossario-dominio.md) | §5 nova: Turno, Período de trabalho, Tipo de tarefa, Atribuição, Situação da atribuição, Semana |
-| [`B3`](../../engenharia/B-requisitos/B3-regras-de-negocio.md) | RN-23 a RN-25, RN-26, RN-27, RN-24, RN-31; RN-12 e RN-14 emendadas; ressalvas em §2.4 |
-| [`B2`](../../engenharia/B-requisitos/B2-especificacao-requisitos.md) | RF-21 e RF-08; RF-27 a RF-33, a agenda e a confirmação; RF-26 na entrada da área, com **RNF-15** e a emenda de RNF-06 |
+| [`A2`](../../engenharia/A-fundacao/A2-glossario-dominio.md) | §5: Turno, Período de trabalho, Tipo de tarefa, Atribuição, Situação da atribuição, Semana |
+| [`B3`](../../engenharia/B-requisitos/B3-regras-de-negocio.md) | RN-23 a RN-26, RN-27, RN-24, RN-31; RN-12 e RN-14 emendadas; ressalvas em §2.4 |
+| [`B2`](../../engenharia/B-requisitos/B2-especificacao-requisitos.md) | RF-21 e RF-08; RF-26 a RF-31, a agenda e a confirmação; RF-26 na entrada da área, com **RNF-14** e a emenda de RNF-06 |
 | [`C1`](../../engenharia/C-modelagem/C1-diagrama-casos-de-uso.md) / [`C2`](../../engenharia/C-modelagem/C2-especificacao-casos-de-uso.md) | UC-15, UC-19, UC-20, UC-21 e UC-05; UC-20 detalhado |
 | [`C6`](../../engenharia/C-modelagem/C6-modelo-entidade-relacionamento.md) / [`C8`](../../engenharia/C-modelagem/C8-dicionario-de-dados.md) | `week_plans`, `assignments`, `assignment_members`, `work_shifts` e `task_types`; `assignments` guarda o planejado e o confirmado na mesma linha, e por isso não há entidade de apontamento |
 | [`D4`](../../engenharia/D-arquitetura/D4-matriz-rbac.md) | recursos **Agenda da semana**, **Confirmação de tarefa**, **Fechamento da semana** e **Período de trabalho**; §3.3 |
-| [`E2`](../../engenharia/E-qualidade/E2-casos-de-teste-de-aceite.md) | TA-10 a TA-12, TA-26, TA-27, TA-28, TA-58 e TA-29 a TA-33 |
+| [`E2`](../../engenharia/E-qualidade/E2-casos-de-teste-de-aceite.md) | TA-10 a TA-12, TA-26 a TA-33, TA-58, TA-27 e TA-28 |

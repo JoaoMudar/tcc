@@ -125,7 +125,7 @@ abertura, e a referência espacial se perderia.
 Canteiro livre é canteiro **sem nenhum lote aberto**. Lote que zera encerra sozinho e larga o
 canteiro.
 
-**É tela de computador**, como a agenda do dia, e pelo mesmo motivo (RNF-15): o mapa existe para
+**É tela de computador**, como a agenda do dia, e pelo mesmo motivo (RNF-14): o mapa existe para
 mostrar o viveiro **inteiro de uma vez**, e trinta canteiros lado a lado não cabem na largura de um
 celular. Espremer não encolhe o mapa, desfaz a comparação entre áreas, que é o que se veio ver.
 
@@ -202,10 +202,10 @@ nasce da repicagem, dentro do gesto de encerrar a tarefa.
 | Rotina | Relação |
 |---|---|
 | **Cadastros** | consome espécie, recipiente, área e canteiro |
-| **Agenda de pessoal** | a tarefa que exige lote o recebe daqui; a repicagem cria lote de dentro do apontamento |
+| **Agenda de pessoal** | a tarefa que exige lote o recebe daqui; a repicagem cria lote de dentro da confirmação da tarefa |
 | **Perdas** | a perda passa a ser **do lote**, e com isso ganha lugar sem ganhar campo |
 | **Estoque** | o estoque da espécie é a soma dos lotes abertos dela, menos o que saiu |
-| **Custeio (P1)** | gasto e hora de tarefa com lote viram custo direto daquele lote |
+| **Protocolo** | o percurso do lote pelas etapas é o que gera as ordens de trabalho dele |
 
 ## O que isso destrava
 
@@ -224,9 +224,9 @@ nasce da repicagem, dentro do gesto de encerrar a tarefa.
 | [`A1`](../../engenharia/A-fundacao/A1-documento-de-visao.md) | §7: lote saiu do fora-de-escopo, com a justificativa da revisão declarada; entrou "rastreamento individual da muda" |
 | [`A2`](../../engenharia/A-fundacao/A2-glossario-dominio.md) | verbetes Lote, Lote de origem, Área, Canteiro e Classificação; "Lote" saiu dos termos não adotados |
 | [`B3`](../../engenharia/B-requisitos/B3-regras-de-negocio.md) | RN-17 a RN-22 e RN-28; em 26/08/2026, RN-29 e RN-30, com RN-19 e RN-22 emendadas |
-| [`B2`](../../engenharia/B-requisitos/B2-especificacao-requisitos.md) | RF-34 a RF-39 e RF-42; RF-13 no catálogo; RF-47 a RF-49 no mapa de lotes; **RNF-15** e a emenda de RNF-06 |
+| [`B2`](../../engenharia/B-requisitos/B2-especificacao-requisitos.md) | RF-32 a RF-37 e RF-40; RF-13 no catálogo; RF-44 a RF-49 no mapa de lotes; **RNF-14** e a emenda de RNF-06 |
 | [`C1`](../../engenharia/C-modelagem/C1-diagrama-casos-de-uso.md) / [`C2`](../../engenharia/C-modelagem/C2-especificacao-casos-de-uso.md) | UC-16, UC-22, UC-23, UC-24 e UC-27; os quatro primeiros detalhados; UC-25 emendado |
 | [`C6`](../../engenharia/C-modelagem/C6-modelo-entidade-relacionamento.md) / [`C8`](../../engenharia/C-modelagem/C8-dicionario-de-dados.md) | `areas`, `beds`, `batches` e `batch_movements`; perda e contagem física viraram **tipos de movimento**, e não entidades próprias; a visão `batch_health` e `batches.position`, com a cardinalidade canteiro-lote em 1:N |
 | [`D4`](../../engenharia/D-arquitetura/D4-matriz-rbac.md) | recursos **Áreas e canteiros** e **Lotes**; §3.13 |
-| [`E2`](../../engenharia/E-qualidade/E2-casos-de-teste-de-aceite.md) | TA-09, TA-16 a TA-21, TA-58 e TA-46 a TA-48 |
+| [`E2`](../../engenharia/E-qualidade/E2-casos-de-teste-de-aceite.md) | TA-09, TA-16 a TA-21, TA-58 e TA-47 a TA-48 |
 | [`auditoria-divergencias.md`](../../auditoria-divergencias.md) | achado L: o conflito entre `A1`/`A2`/`C2` e o `P2`, e a decisão que o resolveu |
