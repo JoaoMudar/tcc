@@ -1,10 +1,10 @@
 -- Migration: 20260901000007_situacao_do_lote.sql
 -- Descricao: A visao que pinta o lote no mapa.
 --
--- Requisitos: RF-47 a RF-49 · Regras: RN-30, RN-31, RN-32
+-- Requisitos: RF-47 a RF-49 · Regras: RN-29, RN-30, RN-27
 -- Entidades: C8 `batch_health` (visao)
 --
--- E VISAO, E NAO COLUNA (RN-31). Status gravado envelhece sozinho: o lote que
+-- E VISAO, E NAO COLUNA (RN-30). Status gravado envelhece sozinho: o lote que
 -- estava verde ontem continuaria verde no banco hoje, e a tela existe justamente
 -- para dizer o contrario. E a mesma razao de o saldo disponivel e a mortalidade
 -- tambem serem derivados.
@@ -81,4 +81,4 @@ LEFT JOIN pendencia p ON p.batch_id = b.id
 WHERE b.closed_at IS NULL;
 
 COMMENT ON VIEW batch_health IS
-  'Situacao do lote: saudavel, atencao, critico. Derivada do atraso da tarefa, nunca digitada. RN-31.';
+  'Situacao do lote: saudavel, atencao, critico. Derivada do atraso da tarefa, nunca digitada. RN-30.';

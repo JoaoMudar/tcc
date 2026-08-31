@@ -1,7 +1,7 @@
 -- Migration: 20260901000004_producao_lotes_e_movimentos.sql
 -- Descricao: O lote e o razao que explica o seu saldo.
 --
--- Requisitos: RF-34 a RF-42, RF-50 · Regras: RN-08 a RN-11, RN-18 a RN-22, RN-28, RN-29
+-- Requisitos: RF-34 a RF-42, RF-50 · Regras: RN-08 a RN-11, RN-18 a RN-22, RN-28, RN-24
 -- Entidades: C8 `batches`, `batch_movements`
 --
 -- O LOTE E O ENDERECO DA MUDA. Especie e recipiente dizem O QUE a muda e; `bed_id`
@@ -23,7 +23,7 @@ CREATE TABLE batches (
   bed_id             UUID REFERENCES beds(id),
 
   -- Reflexivo: e o que a repicagem produz (RN-20) e o que a divisao produz
-  -- (RN-44). A muda que passa do tubete para o saco mudou de recipiente, e
+  -- (RN-41). A muda que passa do tubete para o saco mudou de recipiente, e
   -- recipiente define produto e preco: comercialmente, virou outra coisa.
   -- Percorrer esta cadeia responde, de cada mil sementes semeadas, quantas mudas
   -- chegaram a venda.
@@ -46,7 +46,7 @@ CREATE TABLE batches (
   stage              TEXT NOT NULL DEFAULT 'semeado',
 
   -- Data em que a leva foi plantada e passou a ocupar o canteiro. E a ancora das
-  -- etapas do protocolo que contam da criacao do lote (RN-35).
+  -- etapas do protocolo que contam da criacao do lote (RN-33).
   planted_at         DATE NOT NULL DEFAULT CURRENT_DATE,
 
   -- Ordem do lote dentro do canteiro, a partir de 1. Da ao mapa um desenho estavel
@@ -76,7 +76,7 @@ CREATE TABLE batches (
     OR (closed_at IS NOT NULL AND bed_id IS NULL)
   ),
 
-  -- RN-43: o motivo do encerramento existe se e somente se o lote estiver
+  -- RN-40: o motivo do encerramento existe se e somente se o lote estiver
   -- encerrado.
   CONSTRAINT batches_motivo_com_encerramento CHECK (
     (closed_at IS NULL AND closed_reason IS NULL)
@@ -129,7 +129,7 @@ CREATE TABLE batch_movements (
   -- inventar uma perda que nao houve. A FK e acrescentada na migration da agenda.
   assignment_id     UUID,
 
-  -- RN-60: todo registro tem autor identificado.
+  -- RN-54: todo registro tem autor identificado.
   recorded_by       UUID NOT NULL REFERENCES users(id),
 
   notes             TEXT,

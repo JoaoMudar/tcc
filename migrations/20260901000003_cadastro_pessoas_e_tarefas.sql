@@ -2,10 +2,10 @@
 -- Descricao: Identidade unica de pessoas (schema `cadastro`) e catalogo de tipos
 --            de tarefa.
 --
--- Requisitos: RF-14 a RF-21 · Regras: RN-15, RN-19, RN-20, RN-50 a RN-53, RN-57
+-- Requisitos: RF-14 a RF-21 · Regras: RN-15, RN-19, RN-20, RN-45 a RN-47, RN-51
 -- Entidades: C8 `cadastro.parties`, `cadastro.party_roles`, `cadastro.addresses`, `task_types`
 --
--- UMA PESSOA, VARIOS PAPEIS (RN-52). Quem vende muda ao viveiro e as vezes compra
+-- UMA PESSOA, VARIOS PAPEIS (RN-47). Quem vende muda ao viveiro e as vezes compra
 -- dele e um cadastro so. Tres tabelas de pessoa produziriam tres verdades sobre o
 -- mesmo telefone.
 --
@@ -22,7 +22,7 @@ CREATE TABLE cadastro.parties (
   kind       cadastro.party_kind NOT NULL,
   name       TEXT NOT NULL,
 
-  -- CPF ou CNPJ, apenas digitos. Nulo no cadastro rapido (RF-15, RN-51): nome e
+  -- CPF ou CNPJ, apenas digitos. Nulo no cadastro rapido (RF-15, RN-46): nome e
   -- telefone bastam para registrar o pedido, e a ficha se completa depois.
   document   TEXT UNIQUE,
 
@@ -62,7 +62,7 @@ CREATE TABLE cadastro.party_roles (
 CREATE INDEX party_roles_por_papel ON cadastro.party_roles (role) WHERE active;
 
 -- UMA PESSOA TEM MAIS DE UM ENDERECO, e o de entrega pode nao ser o de cobranca
--- (RN-57).
+-- (RN-51).
 CREATE TABLE cadastro.addresses (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   party_id   UUID NOT NULL REFERENCES cadastro.parties(id) ON DELETE CASCADE,
@@ -98,7 +98,7 @@ CREATE TABLE task_types (
   name               TEXT NOT NULL UNIQUE,
   category           TEXT NOT NULL,
 
-  -- Faz a confirmacao pedir um numero POR PARTICIPANTE (RF-30, RN-29).
+  -- Faz a confirmacao pedir um numero POR PARTICIPANTE (RF-30, RN-24).
   is_quantitative    BOOLEAN NOT NULL DEFAULT false,
 
   -- Faz aparecer o campo de lote, e dispensa o canteiro, que vem dele (RN-25).
@@ -141,8 +141,8 @@ INSERT INTO task_types (name, category, is_quantitative, requires_batch, require
   ('Carregar caminhao',     'expedicao',  false, false, false, false);
 
 COMMENT ON SCHEMA cadastro IS
-  'Identidade unica de pessoas. Esquema proprio porque nao pertence a nenhuma das tres areas. RN-52.';
+  'Identidade unica de pessoas. Esquema proprio porque nao pertence a nenhuma das tres areas. RN-47.';
 COMMENT ON TABLE cadastro.party_roles IS
-  'Papeis de uma mesma pessoa: cliente, fornecedor, funcionario. Chave composta. RN-52.';
+  'Papeis de uma mesma pessoa: cliente, fornecedor, funcionario. Chave composta. RN-47.';
 COMMENT ON TABLE task_types IS
   'Catalogo de tarefas. As tres declaracoes comandam o que a tela pede. RF-21, RN-15.';

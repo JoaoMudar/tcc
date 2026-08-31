@@ -1,7 +1,7 @@
 -- Migration: 20260901000005_producao_agenda.sql
 -- Descricao: A agenda da semana: o planejado e o confirmado, na mesma linha.
 --
--- Requisitos: RF-27 a RF-33 · Regras: RN-12 a RN-14, RN-24 a RN-26, RN-33
+-- Requisitos: RF-27 a RF-33 · Regras: RN-12 a RN-14, RN-24 a RN-26, RN-31
 -- Entidades: C8 `week_plans`, `assignments`, `assignment_members`
 --
 -- NAO HA APONTAMENTO POR RELOGIO. `assignments.status` percorre planejada,
@@ -60,20 +60,20 @@ CREATE TABLE assignments (
 
   planned_quantity INTEGER,
 
-  -- E UMA MARCA, E NAO UMA REGRA DE CALENDARIO (RN-33). Diz que a atribuicao faz
+  -- E UMA MARCA, E NAO UMA REGRA DE CALENDARIO (RN-31). Diz que a atribuicao faz
   -- parte da rotina fixa e, por isso, vem preenchida ao copiar a semana anterior
   -- (RF-28). Uma entidade de recorrencia existiria para gerar dias sozinha, e o que
   -- gera dia sozinho neste modelo e o protocolo, cujo sujeito e o lote.
   is_recurring     BOOLEAN NOT NULL DEFAULT false,
 
-  -- Etapa do protocolo daquele lote que gerou esta ordem (RN-46). Nula = lancada a
+  -- Etapa do protocolo daquele lote que gerou esta ordem (RN-43). Nula = lancada a
   -- mao. A FK entra com `batch_protocol_steps`, quando o protocolo existir.
   batch_protocol_step_id UUID,
 
   -- Vencimento que a ordem representa, congelado na geracao. Distingue-se de
   -- `work_date`, que a gerencia pode remarcar: sem separar os dois, empurrar a
   -- ordem para a semana seguinte apagaria o atraso que ela existe para denunciar
-  -- (RN-47).
+  -- (RN-43).
   protocol_due_on  DATE,
 
   status           TEXT NOT NULL DEFAULT 'planejada',
@@ -82,7 +82,7 @@ CREATE TABLE assignments (
   updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
   -- `nao_confirmada` e a que o fechamento da semana assume como realizada (RN-14),
-  -- e `cancelada` e a ordem que o encerramento do lote invalidou (RN-43).
+  -- e `cancelada` e a ordem que o encerramento do lote invalidou (RN-40).
   CONSTRAINT assignments_status_valido CHECK (status IN
     ('planejada', 'confirmada', 'nao_confirmada', 'cancelada')),
 
@@ -105,11 +105,11 @@ CREATE TRIGGER assignments_set_updated_at
 -- ------------------------------------------------------------
 -- Quem executa, e quanto cada um fez
 -- ------------------------------------------------------------
--- A QUANTIDADE E DE CADA PESSOA, E NAO DA TAREFA (RN-29). Quatro pessoas enchendo
+-- A QUANTIDADE E DE CADA PESSOA, E NAO DA TAREFA (RN-24). Quatro pessoas enchendo
 -- saquinho produzem quatro numeros, e e assim que o viveiro fala. Guardar um total
 -- na atribuicao perderia justamente o dado que ela quer.
 --
--- A ordem do protocolo nasce SEM NENHUMA LINHA AQUI (RN-48): o protocolo diz o que
+-- A ordem do protocolo nasce SEM NENHUMA LINHA AQUI (RN-43): o protocolo diz o que
 -- fazer e quando, e quem faz continua sendo de quem monta a agenda.
 CREATE TABLE assignment_members (
   assignment_id UUID NOT NULL REFERENCES assignments(id) ON DELETE CASCADE,
@@ -140,6 +140,6 @@ COMMENT ON TABLE week_plans IS
 COMMENT ON TABLE assignments IS
   'A celula da agenda. O planejado e o confirmado na mesma linha: status distingue os dois. RN-14.';
 COMMENT ON COLUMN assignments.is_recurring IS
-  'Marca de rotina fixa: vem preenchida ao copiar a semana. Nao e regra de calendario. RN-33.';
+  'Marca de rotina fixa: vem preenchida ao copiar a semana. Nao e regra de calendario. RN-31.';
 COMMENT ON TABLE assignment_members IS
-  'Quem executou e quanto fez. A quantidade e de cada pessoa. RN-26, RN-29.';
+  'Quem executou e quanto fez. A quantidade e de cada pessoa. RN-26, RN-24.';
