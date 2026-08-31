@@ -139,7 +139,7 @@ recuperação nunca medido é uma intenção.
 | [`E3`](E3-analise-de-riscos.md) | **R-07**: perda de dados, impacto crítico |
 | [`E4`](E4-modelagem-de-ameacas.md) | **A-10**: perda por falha de infraestrutura, ameaça à disponibilidade |
 | [`E4`](E4-modelagem-de-ameacas.md) | **A-09**: alteração indevida de dado consolidado; a retenção de 30 dias é o que permite reverter |
-| [`B2`](../B-requisitos/B2-especificacao-requisitos.md) | **RNF-14**: rotina de backup com objetivos declarados |
+| [`B2`](../B-requisitos/B2-especificacao-requisitos.md) | **RNF-13**: rotina de backup com objetivos declarados |
 | [`D3`](../D-arquitetura/D3-diagrama-implantacao.md) | Ponto único de falha aceito; este plano é a contrapartida que torna a aceitação defensável |
 
 ---

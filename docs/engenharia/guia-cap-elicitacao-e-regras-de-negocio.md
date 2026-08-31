@@ -40,7 +40,7 @@ capítulos.
 **Teste de 5 segundos para saber se algo é regra de negócio:** apague mentalmente o sistema. Se a
 frase continua verdadeira no viveiro, é regra. Se ela começa com *"O sistema deve"*, é requisito.
 
-Exemplo do par: **RN-11** "mortalidade acima do limite é anormal e exige providência" → **RF-45**
+Exemplo do par: **RN-11** "mortalidade acima do limite é anormal e exige providência" → **RF-42**
 "o sistema deve emitir alerta para o lote cuja mortalidade ultrapasse o limite definido em
 Configurações". A regra é do viveiro; o requisito é a resposta do software a ela. Repare que o
 requisito fala em **lote** e em **limite mantido**, e não em espécie e em 20% fixos: quem escreve o
@@ -187,7 +187,7 @@ RE-5) ou de política do projeto. As regras determinam **o que** o sistema faz; 
 
 A seção 9 é a que fecha o capítulo com rigor: mostra que nenhuma regra ficou sem implementação e
 nenhuma implementação ficou sem regra: o mesmo raciocínio de `B5`. As quatro exceções (RF-02,
-RF-03, RF-07 e RF-26, que não decorrem de regra alguma) estão justificadas em `B3` §6 e valem um
+RF-03 e RF-07, que não decorrem de regra alguma) estão justificadas em `B3` §6 e valem um
 parágrafo.
 
 ---

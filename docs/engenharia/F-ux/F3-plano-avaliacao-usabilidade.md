@@ -234,12 +234,12 @@ Cada critério de aprovação verifica um requisito não funcional de usabilidad
 
 | Critério | Requisito verificado |
 |---|---|
-| Aprendizado sem intervenção | RNF-08: vocabulário da empresa na interface |
+| Aprendizado sem intervenção | RNF-07: vocabulário da empresa na interface |
 | Eficiência em campo | RNF-01, RNF-02: limite de campos e listas fechadas |
 | Ausência de erro grave | RNF-02, RNF-04: listas fechadas e confirmação imediata |
 | Execução no celular, em campo | RNF-03, RNF-06: alvo de toque e concepção móvel |
-| Coordenação do dia em tela larga | RNF-15: agenda do dia e mapa de produção |
-| Conclusão sob conexão instável | RNF-05, RNF-07: uso sem conexão e sob rede lenta |
+| Coordenação do dia em tela larga | RNF-14: agenda do dia e mapa de produção |
+| Conclusão sob conexão instável | RNF-05: uso sem conexão, com envio ao restabelecer a rede |
 
 As sessões são conduzidas **junto à execução dos casos de aceite** de
 [`E2`](../E-qualidade/E2-casos-de-teste-de-aceite.md): as mesmas tarefas servem à verificação

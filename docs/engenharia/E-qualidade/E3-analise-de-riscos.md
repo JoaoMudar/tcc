@@ -146,7 +146,7 @@ A empresa opera há mais de três décadas sem registro estruturado. O sistema a
 uma rotina que hoje não a tem, e uma etapa percebida como burocracia é abandonada na primeira semana
 de pressão.
 
-**Mitigação:** os requisitos não funcionais de campo (RNF-01 a RNF-08) existem por esta razão, e não
+**Mitigação:** os requisitos não funcionais de campo (RNF-01 a RNF-07) existem por esta razão, e não
 por preferência estética. O limite de cinco campos, as listas fechadas e a resposta visual imediata
 são a contramedida direta a este risco. A decisão de manter o registro de perda em quatro campos, em
 vez de cinco, é a aplicação explícita dessa lógica.

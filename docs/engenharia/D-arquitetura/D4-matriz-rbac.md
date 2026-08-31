@@ -107,7 +107,7 @@ papéis da mesma identidade (RN-47): dar acesso a um e negar a outro exigiria um
 papel sobre a mesma linha. Requisitos: **RF-15 a RF-18, RF-19, RF-20, RF-14**.
 
 ³ **Recursos do protocolo de atividades por lote**, ainda sem tabela e sem tela. Requisitos:
-**RF-22 a RF-24 e RF-25** para o protocolo, **RF-42** para a divisão de lote. As regras de
+**RF-22 a RF-24 e RF-25** para o protocolo, **RF-40** para a divisão de lote. As regras de
 acesso que não se leem direto da matriz estão em §3.8.
 
 **Vinte e cinco recursos.** A matriz encolheu com o escopo, e o que ela perdeu foi sobretudo
@@ -134,7 +134,7 @@ funcionário na agenda. O que ela não lê é a ficha fiscal.
 
 ### 3.2 Confirmar pedido é privativo da chefia
 
-Confirmar o pedido é o ato que trava itens, quantidades e preços (RF-61). É decisão comercial, e
+Confirmar o pedido é o ato que trava itens, quantidades e preços (RF-57). É decisão comercial, e
 quem responde por preço é a chefia (RN-52). A gerência **não lê pedido**, e é deliberado: o que a
 produção precisa saber do comercial é quanto foi vendido de cada espécie, e isso ela lê pelo saldo
 disponível, sem precisar da carteira de pedidos.
@@ -233,7 +233,7 @@ protege contra uma classe distinta de falha.
 | **Rota** | Recusa a navegação para a tela sem permissão | Acesso por endereço digitado ou por link salvo |
 | **Operação** | Verifica a permissão a cada leitura e a cada gravação, no servidor | Requisição forjada, e defeito de interface |
 
-**Só o terceiro é controle de segurança** (RNF-12, RF-06). Os dois primeiros são usabilidade: uma
+**Só o terceiro é controle de segurança** (RNF-11, RF-06). Os dois primeiros são usabilidade: uma
 interface que oferece o que vai ser recusado é uma interface que mente. A guarda que decide é a do
 servidor, e ela não confia em nada que venha do navegador.
 
@@ -246,7 +246,7 @@ Reproduzir a identidade no banco exigiria uma conexão por usuário, o que o amb
 sem servidor torna proibitivo.
 
 A consequência é assumida: **quem tiver a credencial do banco contorna a matriz inteira**. É a
-razão de RNF-23 proibir versionar credencial, e de a modelagem de ameaças
+razão de RNF-20 proibir versionar credencial, e de a modelagem de ameaças
 ([`E4`](../E-qualidade/E4-modelagem-de-ameacas.md)) tratar o vazamento dela como ameaça de maior
 severidade.
 
@@ -280,6 +280,6 @@ A correspondência entre recurso e requisito está em
 **A matriz não é verificada célula a célula, e é bom dizer.** São 25 recursos por 3 perfis, e
 [`E2`](../E-qualidade/E2-casos-de-teste-de-aceite.md) traz quatro casos de acesso: TA-03, a
 operação restrita recusada quando acionada pelo endereço; TA-08, a leitura permitida onde a
-escrita não é; TA-61, a regra que roda no servidor e não no navegador; e TA-63, o perfil atribuído
+escrita não é; TA-60, a regra que roda no servidor e não no navegador; e TA-62, o perfil atribuído
 valendo no primeiro acesso. Eles verificam o **mecanismo**, e não as 75 células: testar cada uma
 seria reescrever a matriz em forma de teste, e o que quebra na prática é o mecanismo, não a linha.

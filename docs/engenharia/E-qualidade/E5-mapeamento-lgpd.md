@@ -82,7 +82,7 @@ cumpre parte dessa transparência ao exibir ao próprio usuário os dados regist
 |---|---|---|---|
 | Nome e contato do funcionário | Escala de trabalho e identificação na agenda | Execução de contrato de trabalho (art. 7º, V) | Enquanto durar o vínculo, e 5 anos depois, por prazo prescricional trabalhista |
 | Vínculo (fixo ou diarista) | Distinguir quem está na escala permanente de quem aparece por temporada | Execução de contrato (art. 7º, V) | Idem |
-| Tarefa atribuída, dia e turno | Planejamento e registro do trabalho | Execução de contrato (art. 7º, V) | Idem |
+| Tarefa atribuída, dia, turno e a hora da tarefa quando ela a tem | Planejamento e registro do trabalho. A hora é **da tarefa**, e não da pessoa: não há apontamento de entrada e saída, e daqui não se extrai jornada de ninguém (RN-12) | Execução de contrato (art. 7º, V) | Idem |
 | Quantidade realizada por pessoa | Registro do que foi produzido | **Legítimo interesse** (art. 7º, IX) | Idem |
 
 **Três características tornam este o tratamento mais delicado do sistema.**

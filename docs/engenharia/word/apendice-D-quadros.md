@@ -43,7 +43,7 @@ Fonte: Elaborado pelo autor (2026).
 | RN-09 | A contagem física prevalece sobre a quantidade calculada: onde os dois divergem, o que vale é o que se contou, e o ajuste fica registrado. |
 | RN-10 | A perda é evento normal da produção e exige causa classificada em lista fechada, seca, praga, geada, manuseio, outro. |
 | RN-11 | A mortalidade é a razão entre as mudas perdidas de um lote e a quantidade inicial dele. Acima do limite definido, inicialmente 20%, dispara alerta. |
-| RN-12 | O trabalho do viveiro é planejado por turno, não por horário: a unidade da agenda é dia × turno (manhã ou tarde). |
+| RN-12 | A unidade de planejamento da agenda é dia × turno (manhã ou tarde), e a tarefa que tem hora marcada na vida real a declara: a hora é opcional e o turno é sempre exigido, porque os turnos não cobrem o dia inteiro e a hora não diz a qual deles a tarefa pertence. |
 | RN-13 | A semana fecha e, fechada, não se altera: sem isso o registro do período muda depois de consolidado. |
 | RN-14 | A atribuição não confirmada até o fechamento da semana é assumida como realizada, e a condição fica registrada, para que a suposição não se confunda com a confirmação. |
 | RN-15 | O tipo de tarefa é vocabulário fechado, e não digitação livre: é ele que declara o que a confirmação vai pedir. |
@@ -140,10 +140,10 @@ Fonte: Elaborado pelo autor (2026).
 | RF-07 | Consulta e encerramento de sessões ativas | O sistema deveria permitir ao usuário visualizar e encerrar suas sessões ativas. | – |
 | RF-08 | Manutenção do período de trabalho | O sistema deve permitir manter o período de trabalho, com hora de início e de fim de cada turno, e adotá-lo como jornada padrão da agenda. | RN-12, RN-27 |
 | RF-09 | Manutenção dos parâmetros de operação | O sistema deve permitir alterar o valor dos parâmetros de operação, os limites de atenção e de atraso do lote e o limite de mortalidade, sem permitir criar nem excluir parâmetro. | RN-11, RN-27 |
-| RF-10 | Cadastro de espécie | O sistema deve permitir cadastrar espécie com nome científico, nomes populares, características e fotografia, e localizá-la por qualquer um desses nomes. | RN-01, RN-02, RN-03 |
+| RF-10 | Cadastro e busca de espécie | O sistema deve permitir cadastrar espécie com nome científico, nomes populares, características e fotografia, e localizá-la por qualquer um desses nomes. | RN-01, RN-02, RN-03 |
 | RF-11 | Cadastro de recipiente | O sistema deve permitir cadastrar recipientes com nome e volume. | RN-04 |
 | RF-12 | Cadastro de insumo | O sistema deve permitir cadastrar insumos com unidade de medida e categoria. | RN-07 |
-| RF-13 | Cadastro de área do viveiro | O sistema deve permitir cadastrar áreas do viveiro identificadas por letra e canteiros numerados dentro de cada área, recusando número repetido na mesma área. | RN-17 |
+| RF-13 | Cadastro de área e canteiro | O sistema deve permitir cadastrar áreas do viveiro identificadas por letra e canteiros numerados dentro de cada área, recusando número repetido na mesma área. | RN-17 |
 | RF-14 | Identidade única de pessoa com múltiplos papéis | O sistema deve manter uma identidade única por pessoa, à qual se atribuem os papéis de cliente, fornecedor e funcionário, sem duplicar o cadastro quando a mesma pessoa exercer mais de um. | RN-47 |
 | RF-15 | Cadastro rápido de cliente | O sistema deve permitir cadastro rápido de cliente com nome e telefone, sem sair da tela de pedido. | RN-46 |
 | RF-16 | Cadastro completo de cliente | O sistema deve permitir cadastro completo de cliente com dados fiscais de pessoa física ou jurídica. | RN-45, RN-51 |
@@ -151,48 +151,44 @@ Fonte: Elaborado pelo autor (2026).
 | RF-18 | Busca de pessoa | O sistema deve permitir localizar pessoa por nome, telefone ou documento. | RN-47 |
 | RF-19 | Cadastro de fornecedor | O sistema deve permitir cadastrar fornecedor com contato e localização. | RN-47 |
 | RF-20 | Cadastro de funcionário | O sistema deve permitir cadastrar funcionário com contato e vínculo (fixo ou diarista), inclusive quando ele não tem acesso ao sistema. | RN-47 |
-| RF-21 | Catálogo de tipos de tarefa | O sistema deve permitir manter o catálogo de tipos de tarefa, com nome, categoria e a declaração de se a tarefa é quantitativa por unidade e de se exige lote específico, espécie e recipiente, e deve pedir, no planejamento e na confirmação, exatamente os dados que o tipo declarar exigir, e nenhum outro. | RN-15, RN-23, RN-24, RN-25 |
+| RF-21 | Catálogo de tipos de tarefa e formulário que ele comanda | O sistema deve permitir manter o catálogo de tipos de tarefa, com nome, categoria e a declaração de se a tarefa é quantitativa por unidade e de se exige lote específico, espécie e recipiente, e deve pedir, no planejamento e na confirmação, exatamente os dados que o tipo declarar exigir, e nenhum outro. | RN-15, RN-23, RN-24, RN-25 |
 | RF-22 | Protocolo de atividades por recipiente | O sistema deve permitir manter, por recipiente, um protocolo de atividades como sequência ordenada de etapas, cada etapa referenciando um tipo de tarefa do catálogo e declarando se o agendamento é sequencial ou recorrente, com o tempo em dias. | RN-05, RN-32, RN-36, RN-39 |
 | RF-23 | Evento de referência da etapa | O sistema deve permitir que cada etapa do protocolo declare o seu evento de referência: a criação do lote ou a conclusão de uma etapa específica do mesmo protocolo. | RN-33 |
 | RF-24 | Alerta e janela de aviso por etapa | O sistema deve permitir ligar e desligar o alerta de atraso por etapa do protocolo, e sobrescrever nela a janela de aviso padrão. | RN-37 |
 | RF-25 | Tempo de etapa customizado por espécie | O sistema deveria permitir, no cadastro da espécie, sobrescrever o tempo em dias de uma etapa específica do protocolo. | RN-38 |
-| RF-26 | Entrada da área Produção em duas abas | O sistema deve apresentar, na entrada da área Produção, as visões de agenda da semana e mapa de lotes alternadas por aba, com as demais rotinas listadas abaixo delas. | – |
-| RF-27 | Montagem da agenda da semana | O sistema deve permitir montar a agenda da semana atribuindo, por funcionário e por dia, o tipo de tarefa e o turno, manhã ou tarde, admitindo a mesma tarefa para mais de um funcionário e mais de uma tarefa no mesmo turno com grupos diferentes. | RN-12, RN-26 |
-| RF-28 | Cópia da semana e tarefa recorrente | O sistema deve permitir copiar a agenda da semana anterior e marcar tarefas como recorrentes, que passam a nascer preenchidas na cópia. | RN-31 |
-| RF-29 | Situação da semana | O sistema deve controlar a situação da semana (rascunho, publicada e fechada) e impedir alteração depois do fechamento. | RN-13 |
-| RF-30 | Confirmação da tarefa realizada | O sistema deve permitir confirmar a atribuição como realizada, apresentando os campos que o tipo de tarefa exigir, o lote uma vez para a tarefa e a quantidade uma vez por participante, e pedindo a quantidade apenas quando o tipo for quantitativo por unidade. | RN-24, RN-25, RN-28 |
-| RF-31 | Lote exigido na confirmação | O sistema deve exigir o lote na confirmação da tarefa quando o tipo de tarefa declarar lote específico, dispensando o canteiro, que vem do próprio lote. | RN-25 |
-| RF-32 | Área ou canteiro da tarefa sem lote | O sistema deve permitir registrar a área ou o canteiro da tarefa que não exige lote, e dispensá-los quando o lote os determinar. | RN-25 |
-| RF-33 | Tarefa não confirmada assumida no fechamento | O sistema deve assumir como realizada, ao fechar a semana, a tarefa planejada que não foi confirmada, registrando essa condição. | RN-14 |
-| RF-34 | Criação de lote | O sistema deve permitir criar lote informando espécie, recipiente, quantidade, área e canteiro. | RN-01, RN-04, RN-18, RN-19 |
-| RF-35 | Ocupação do viveiro por área e canteiro | O sistema deve apresentar a ocupação do viveiro por área e canteiro, indicando os lotes de cada canteiro ocupado e quais estão livres, e deve encerrar o lote quando o saldo chegar a zero, liberando o canteiro e preservando o histórico. | RN-19, RN-22, RN-29 |
-| RF-36 | Repicagem com lote de origem | O sistema deve permitir registrar repicagem transferindo parte ou todo o lote para recipiente maior, criando um lote novo que aponta para o de origem. | RN-20 |
-| RF-37 | Histórico de movimentos do lote | O sistema deve apresentar o histórico de movimentos do lote, com a quantidade e o motivo de cada um. | RN-08 |
-| RF-38 | Recusa de saldo negativo | O sistema não deve permitir movimento que deixe o saldo do lote negativo. | RN-21 |
-| RF-39 | Registro de perda, contagem e venda sobre o lote | O sistema deve permitir registrar perda, contagem física e saída de venda sobre o lote, dispensando informar espécie e recipiente, que o lote determina. | RN-25 |
-| RF-40 | Perda com causa em lista fechada | O sistema deve permitir registrar a perda com quantidade e causa selecionada em lista fechada. | RN-10 |
-| RF-41 | Contagem física do lote | O sistema deve permitir registrar contagem física do lote, gerando o movimento de ajuste que reconcilia o saldo. | RN-09 |
-| RF-42 | Divisão de lote | O sistema deve permitir dividir um lote em dois, com cada resultante seguindo o protocolo de forma independente e herdando do original a fase e a data da última execução de cada etapa. | RN-41 |
-| RF-43 | Listagem de perdas com filtro | O sistema deve listar as perdas registradas com filtro por período, espécie e causa. | RN-10 |
-| RF-44 | Cálculo da taxa de mortalidade | O sistema deve calcular a taxa de mortalidade do lote, como a razão entre as perdas dele e a sua quantidade inicial. | RN-11 |
-| RF-45 | Alerta de mortalidade acima do limite | O sistema deve emitir alerta para o lote cuja mortalidade ultrapasse o limite definido em Configurações. | RN-11 |
-| RF-46 | Quantidade de muda pronta disponível | O sistema deve apresentar a quantidade de muda pronta disponível por espécie e recipiente, somada dos lotes abertos. | RN-04, RN-06, RN-08, RN-16 |
-| RF-47 | Mapa do viveiro com áreas, canteiros e lotes | O sistema deve apresentar o mapa do viveiro com as áreas, os canteiros de cada área e os lotes abertos de cada canteiro, cada lote com a sua situação. | RN-29, RN-30 |
-| RF-48 | Classificação da situação do lote | O sistema deve classificar o lote em saudável, atenção e crítico a partir das etapas do protocolo vencidas ou a vencer nele, sem que a situação seja digitada, e apresentar, ao apontar o lote, a tarefa pendente que determina essa situação e o atraso em dias. | RN-30, RN-42 |
-| RF-49 | Mortalidade destacada no mapa | O sistema deve apresentar, no mapa, a mortalidade de cada lote e destacar os que ultrapassam o limite. | RN-11 |
-| RF-50 | Atribuição do protocolo ao lote na criação | O sistema deve atribuir ao lote, na criação, o protocolo vigente do recipiente dele, e acompanhar o lote etapa a etapa. | RN-32 |
-| RF-51 | Geração das ordens do protocolo na agenda | O sistema deve gerar as ordens de tarefa do protocolo na agenda sem digitação, abrindo em rascunho a semana do vencimento quando ela ainda não existir, e permitir alterar ou excluir a ordem de um dia sem alterar a etapa. | RN-43 |
-| RF-52 | Avanço de fase por etapa sequencial | O sistema deve avançar a fase do lote ao concluir uma etapa sequencial que declare fase resultante, e não deve avançá-la ao concluir etapa recorrente. | RN-36 |
-| RF-53 | Contagem a partir da execução real | O sistema deve contar a ocorrência seguinte de etapa recorrente a partir da data real da execução anterior, e nunca de uma data de calendário prevista. | RN-34 |
-| RF-54 | Uma ocorrência em aberto por etapa | O sistema deve manter no máximo uma ordem em aberto por etapa e por lote, sem gerar ocorrência nova enquanto a anterior estiver pendente. | RN-35 |
-| RF-55 | Ficha do lote com etapas e vencimentos | O sistema deve apresentar, no lote, as etapas do protocolo com a data da última execução, o próximo vencimento e a situação de cada uma. | RN-42 |
-| RF-56 | Etapa em atenção e em atraso | O sistema deve apresentar a etapa em atenção dentro da janela de aviso e em atraso depois do vencimento, e sem indicação de situação quando o alerta da etapa estiver desligado. | RN-37 |
-| RF-57 | Encerramento do protocolo do lote | O sistema deve encerrar o protocolo do lote quando ele se encerra por saldo zero, por expedição total ou por divisão, cancelando as ordens ainda em aberto sem removê-las. | RN-40 |
-| RF-58 | Registro de pedido com cliente, canal e itens | O sistema deve permitir registrar pedido com cliente, canal de venda e itens compostos por espécie, recipiente e quantidade. | RN-01, RN-04, RN-44, RN-48 |
-| RF-59 | Preço unitário informado no item | O sistema deve registrar o preço unitário informado em cada item do pedido, e apresentar o total do item e o do pedido. | RN-52 |
-| RF-60 | Saldo disponível ao lado do item | O sistema deve apresentar, ao lado de cada item do pedido, a quantidade de muda pronta que a produção tem daquela espécie e recipiente. | RN-06, RN-08 |
-| RF-61 | Situação do pedido | O sistema deve controlar a situação do pedido (rascunho, confirmado e cancelado), impedindo alteração de item depois da confirmação. | RN-50 |
-| RF-62 | Listagem de pedidos com filtro | O sistema deve listar os pedidos com filtro por cliente, canal e período. | RN-44 |
+| RF-26 | Montagem da agenda da semana | O sistema deve permitir montar a agenda da semana atribuindo, por funcionário e por dia, o tipo de tarefa e o turno, manhã ou tarde, admitindo a mesma tarefa para mais de um funcionário e mais de uma tarefa no mesmo turno com grupos diferentes, e deve permitir declarar a hora de início e de fim da tarefa que tiver hora marcada, sem exigi-la das demais. | RN-12, RN-26 |
+| RF-27 | Cópia da semana e tarefa recorrente | O sistema deve permitir copiar a agenda da semana anterior e marcar tarefas como recorrentes, que passam a nascer preenchidas na cópia. | RN-31 |
+| RF-28 | Situação da semana | O sistema deve controlar a situação da semana (rascunho, publicada e fechada) e impedir alteração depois do fechamento. | RN-13 |
+| RF-29 | Confirmação da tarefa realizada | O sistema deve permitir confirmar a atribuição como realizada, apresentando os campos que o tipo de tarefa exigir, o lote uma vez para a tarefa e a quantidade uma vez por participante, exigindo o lote quando o tipo declarar lote específico e pedindo a quantidade apenas quando o tipo for quantitativo por unidade. | RN-24, RN-25, RN-28 |
+| RF-30 | Área ou canteiro da tarefa sem lote | O sistema deve permitir registrar a área ou o canteiro da tarefa que não exige lote, e dispensá-los quando o lote os determinar. | RN-25 |
+| RF-31 | Tarefa não confirmada assumida no fechamento | O sistema deve assumir como realizada, ao fechar a semana, a tarefa planejada que não foi confirmada, registrando essa condição. | RN-14 |
+| RF-32 | Criação de lote | O sistema deve permitir criar lote informando espécie, recipiente, quantidade, área e canteiro. | RN-01, RN-04, RN-18, RN-19 |
+| RF-33 | Ocupação do viveiro e encerramento do lote | O sistema deve apresentar a ocupação do viveiro por área e canteiro, indicando os lotes de cada canteiro ocupado e quais estão livres, e deve encerrar o lote quando o saldo chegar a zero, liberando o canteiro e preservando o histórico. | RN-19, RN-22, RN-29 |
+| RF-34 | Repicagem com lote de origem | O sistema deve permitir registrar repicagem transferindo parte ou todo o lote para recipiente maior, criando um lote novo que aponta para o de origem. | RN-20 |
+| RF-35 | Histórico de movimentos do lote | O sistema deve apresentar o histórico de movimentos do lote, com a quantidade e o motivo de cada um. | RN-08 |
+| RF-36 | Recusa de saldo negativo | O sistema não deve permitir movimento que deixe o saldo do lote negativo. | RN-21 |
+| RF-37 | Registro de perda, contagem e venda sobre o lote | O sistema deve permitir registrar perda, contagem física e saída de venda sobre o lote, dispensando informar espécie e recipiente, que o lote determina. | RN-25 |
+| RF-38 | Perda com causa em lista fechada | O sistema deve permitir registrar a perda com quantidade e causa selecionada em lista fechada. | RN-10 |
+| RF-39 | Contagem física do lote | O sistema deve permitir registrar contagem física do lote, gerando o movimento de ajuste que reconcilia o saldo. | RN-09 |
+| RF-40 | Divisão de lote | O sistema deve permitir dividir um lote em dois, com cada resultante seguindo o protocolo de forma independente e herdando do original a fase e a data da última execução de cada etapa. | RN-41 |
+| RF-41 | Listagem de perdas com filtro | O sistema deve listar as perdas registradas com filtro por período, espécie e causa. | RN-10 |
+| RF-42 | Taxa de mortalidade e destaque no mapa | O sistema deve calcular a taxa de mortalidade do lote, como a razão entre as perdas dele e a sua quantidade inicial, apresentá-la no mapa e destacar ali o lote cuja taxa ultrapasse o limite definido em Configurações. | RN-11 |
+| RF-43 | Quantidade de muda pronta disponível | O sistema deve apresentar a quantidade de muda pronta disponível por espécie e recipiente, somada dos lotes abertos. | RN-04, RN-06, RN-08, RN-16 |
+| RF-44 | Mapa do viveiro com áreas, canteiros e lotes | O sistema deve apresentar o mapa do viveiro com as áreas, os canteiros de cada área e os lotes abertos de cada canteiro, cada lote com a sua situação. | RN-29, RN-30 |
+| RF-45 | Situação do lote e tarefa pendente que a determina | O sistema deve classificar o lote em saudável, atenção e crítico a partir das etapas do protocolo vencidas ou a vencer nele, sem que a situação seja digitada, e apresentar, ao apontar o lote, a tarefa pendente que determina essa situação e o atraso em dias. | RN-30, RN-42 |
+| RF-46 | Atribuição do protocolo ao lote na criação | O sistema deve atribuir ao lote, na criação, o protocolo vigente do recipiente dele, e acompanhar o lote etapa a etapa. | RN-32 |
+| RF-47 | Geração das ordens do protocolo na agenda | O sistema deve gerar as ordens de tarefa do protocolo na agenda sem digitação, abrindo em rascunho a semana do vencimento quando ela ainda não existir, e permitir alterar ou excluir a ordem de um dia sem alterar a etapa. | RN-43 |
+| RF-48 | Avanço de fase por etapa sequencial | O sistema deve avançar a fase do lote ao concluir uma etapa sequencial que declare fase resultante, e não deve avançá-la ao concluir etapa recorrente. | RN-36 |
+| RF-49 | Contagem a partir da execução real | O sistema deve contar a ocorrência seguinte de etapa recorrente a partir da data real da execução anterior, e nunca de uma data de calendário prevista. | RN-34 |
+| RF-50 | Uma ocorrência em aberto por etapa | O sistema deve manter no máximo uma ordem em aberto por etapa e por lote, sem gerar ocorrência nova enquanto a anterior estiver pendente. | RN-35 |
+| RF-51 | Ficha do lote com etapas e vencimentos | O sistema deve apresentar, no lote, as etapas do protocolo com a data da última execução, o próximo vencimento e a situação de cada uma. | RN-42 |
+| RF-52 | Etapa em atenção e em atraso | O sistema deve apresentar a etapa em atenção dentro da janela de aviso e em atraso depois do vencimento, e sem indicação de situação quando o alerta da etapa estiver desligado. | RN-37 |
+| RF-53 | Encerramento do protocolo do lote | O sistema deve encerrar o protocolo do lote quando ele se encerra por saldo zero, por expedição total ou por divisão, cancelando as ordens ainda em aberto sem removê-las. | RN-40 |
+| RF-54 | Registro de pedido com cliente, canal e itens | O sistema deve permitir registrar pedido com cliente, canal de venda e itens compostos por espécie, recipiente e quantidade. | RN-01, RN-04, RN-44, RN-48 |
+| RF-55 | Preço unitário informado no item | O sistema deve registrar o preço unitário informado em cada item do pedido, e apresentar o total do item e o do pedido. | RN-52 |
+| RF-56 | Saldo disponível ao lado do item | O sistema deve apresentar, ao lado de cada item do pedido, a quantidade de muda pronta que a produção tem daquela espécie e recipiente. | RN-06, RN-08 |
+| RF-57 | Situação do pedido | O sistema deve controlar a situação do pedido (rascunho, confirmado e cancelado), impedindo alteração de item depois da confirmação. | RN-50 |
+| RF-58 | Listagem de pedidos com filtro | O sistema deve listar os pedidos com filtro por cliente, canal e período. | RN-44 |
 
 Fonte: Elaborado pelo autor (2026).
 
@@ -206,27 +202,24 @@ Fonte: Elaborado pelo autor (2026).
 | RNF-04 | Toda ação de gravação deve produzir resposta visual imediata de confirmação. | RE-4 |
 | RNF-05 | O registro de dados em campo deve funcionar sem conexão, com envio automático ao restabelecer a rede. | RE-3 |
 | RNF-06 | A interface deve ser concebida para uso em celular, e não adaptada a partir de tela de computador, nas rotinas de registro em campo. | RE-2 |
-| RNF-07 | O sistema deve permanecer utilizável sob conexão móvel lenta. | RE-3 |
-| RNF-08 | A interface deve empregar o vocabulário da empresa, conforme o glossário, e não termos técnicos do sistema. | RE-1 |
-| RNF-09 | Senhas devem ser armazenadas de forma cifrada, por técnica que impeça sua recuperação. | ORG |
-| RNF-10 | Identificadores de sessão devem ser armazenados apenas em formato protegido. | ORG |
-| RNF-11 | Cookies de sessão devem receber as marcações de segurança que restringem seu uso a comunicação cifrada e impedem leitura por código do navegador. | ORG |
-| RNF-12 | As regras de acesso aos dados devem ser executadas no servidor, nunca no navegador. | ORG |
-| RNF-13 | Toda comunicação entre cliente e servidor deve ser cifrada em trânsito. | ORG |
-| RNF-14 | O sistema deve dispor de rotina de backup e procedimento de recuperação com objetivos declarados. | RE-5 |
-| RNF-15 | As telas de coordenação da produção, agenda da semana e mapa de lotes, devem ser concebidas para tela larga, e apresentar no celular uma versão reduzida em lista, sem rolagem horizontal. | RE-2 |
-| RNF-16 | Arquivos, identificadores e estruturas de dados devem ser nomeados em inglês; a documentação, em português. | ORG |
-| RNF-17 | Cada funcionalidade deve ser desenvolvida em ramificação própria e integrada por solicitação de incorporação. | ORG |
-| RNF-18 | Alteração direta na versão principal deve ser impedida por controle automático. | ORG |
-| RNF-19 | Mensagens de alteração devem seguir padrão fixo. | ORG |
-| RNF-20 | Alterações na estrutura do banco devem ser versionadas em arquivos aplicados de forma controlada, preservando compatibilidade retroativa. | ORG |
-| RNF-21 | Toda alteração de código deve incluir testes automatizados cobrindo utilitários, regras de negócio e validações. | ORG |
-| RNF-22 | Verificação automática executada antes de cada alteração deve bloquear o envio em caso de arquivo sensível, falha de teste ou desvio de padronização. | ORG |
-| RNF-23 | Credenciais, chaves e dados sensíveis não devem ser versionados. | ORG |
-| RNF-24 | O tratamento de dados pessoais deve observar a Lei nº 13.709/2018, com finalidade, base legal e prazo de retenção declarados para cada dado coletado. | LEG |
-| RNF-25 | Os dados cadastrais de cliente devem comportar o conjunto exigido para emissão de nota fiscal no sistema externo em uso. | LEG |
-| RNF-26 | O nome científico da espécie deve estar disponível para atender exigências de projetos de compensação ambiental. | LEG, DOM |
-| RNF-27 | O sistema deve operar em navegador de celular de uso corrente pela equipe, sem exigir instalação a partir de loja de aplicativos. | RE-2, RE-5 |
+| RNF-07 | A interface deve empregar o vocabulário da empresa, conforme o glossário, e não termos técnicos do sistema. | RE-1 |
+| RNF-08 | Senhas devem ser armazenadas de forma cifrada, por técnica que impeça sua recuperação. | ORG |
+| RNF-09 | Identificadores de sessão devem ser armazenados apenas em formato protegido. | ORG |
+| RNF-10 | Cookies de sessão devem receber as marcações de segurança que restringem seu uso a comunicação cifrada e impedem leitura por código do navegador. | ORG |
+| RNF-11 | As regras de acesso aos dados devem ser executadas no servidor, nunca no navegador. | ORG |
+| RNF-12 | Toda comunicação entre cliente e servidor deve ser cifrada em trânsito. | ORG |
+| RNF-13 | O sistema deve dispor de rotina de backup e procedimento de recuperação com objetivos declarados. | RE-5 |
+| RNF-14 | As telas de coordenação da produção, agenda da semana e mapa de lotes, devem ser concebidas para tela larga, e apresentar no celular uma versão reduzida em lista, sem rolagem horizontal. | RE-2 |
+| RNF-15 | Arquivos, identificadores e estruturas de dados devem ser nomeados em inglês; a documentação, em português. | ORG |
+| RNF-16 | Cada funcionalidade deve ser desenvolvida em ramificação própria e integrada por solicitação de incorporação. | ORG |
+| RNF-17 | Mensagens de alteração devem seguir padrão fixo. | ORG |
+| RNF-18 | Alterações na estrutura do banco devem ser versionadas em arquivos aplicados de forma controlada, preservando compatibilidade retroativa. | ORG |
+| RNF-19 | Toda alteração de código deve incluir testes automatizados cobrindo utilitários, regras de negócio e validações. | ORG |
+| RNF-20 | Credenciais, chaves e dados sensíveis não devem ser versionados. | ORG |
+| RNF-21 | O tratamento de dados pessoais deve observar a Lei nº 13.709/2018, com finalidade, base legal e prazo de retenção declarados para cada dado coletado. | LEG |
+| RNF-22 | Os dados cadastrais de cliente devem comportar o conjunto exigido para emissão de nota fiscal no sistema externo em uso. | LEG |
+| RNF-23 | O nome científico da espécie deve estar disponível para atender exigências de projetos de compensação ambiental. | LEG, DOM |
+| RNF-24 | O sistema deve operar em navegador de celular de uso corrente pela equipe, sem exigir instalação a partir de loja de aplicativos. | RE-2, RE-5 |
 
 Fonte: Elaborado pelo autor (2026).
 
@@ -234,11 +227,11 @@ Fonte: Elaborado pelo autor (2026).
 
 | Código | Descrição | Origem | Requisitos originados |
 |---|---|---|---|
-| RE-1 | Usuários sem formação técnica. | Perfil da equipe | RNF-01, RNF-02, RNF-08 |
-| RE-2 | Celular como dispositivo principal. | Contexto de campo | RNF-06, RNF-15, RNF-27 |
-| RE-3 | Conexão instável no viveiro. | Ambiente físico | RNF-05, RNF-07 |
+| RE-1 | Usuários sem formação técnica. | Perfil da equipe | RNF-01, RNF-02, RNF-07 |
+| RE-2 | Celular como dispositivo principal. | Contexto de campo | RNF-06, RNF-14, RNF-24 |
+| RE-3 | Conexão instável no viveiro. | Ambiente físico | RNF-05 |
 | RE-4 | Uso com as mãos sujas, sob sol e chuva. | Ambiente físico | RNF-03, RNF-04 |
-| RE-5 | Orçamento de microempresa. | Porte da organização | RNF-14, RNF-27 |
+| RE-5 | Orçamento de microempresa. | Porte da organização | RNF-13, RNF-24 |
 | RE-6 | Prazo até novembro de 2026. | Calendário acadêmico | – |
 | RE-7 | Dados pessoais de clientes e de funcionários sujeitos à legislação de proteção de dados. | Legal | – |
 
@@ -248,13 +241,13 @@ Fonte: Elaborado pelo autor (2026).
 
 | Origem | RF: Qtd. | RF: % | RNF: Qtd. | RNF: % |
 |---|---:|---:|---:|---:|
-| Observação participante (OP) | 23 | 33,3 | 0 | 0,0 |
-| Entrevista (EN) | 16 | 23,2 | 0 | 0,0 |
-| Análise documental (AD) | 2 | 2,9 | 0 | 0,0 |
-| Estudo do domínio (DOM) | 6 | 8,7 | 1 | 5,9 |
-| Exigência legal (LEG) | 2 | 2,9 | 3 | 17,6 |
-| Política do projeto (ORG) | 20 | 29,0 | 13 | 76,5 |
-| **Total de menções** | **69** | | **17** | |
+| Observação participante (OP) | 21 | 32,3 | 0 | 0,0 |
+| Entrevista (EN) | 14 | 21,5 | 0 | 0,0 |
+| Análise documental (AD) | 2 | 3,1 | 0 | 0,0 |
+| Estudo do domínio (DOM) | 6 | 9,2 | 1 | 6,7 |
+| Exigência legal (LEG) | 2 | 3,1 | 3 | 20,0 |
+| Política do projeto (ORG) | 20 | 30,8 | 11 | 73,3 |
+| **Total de menções** | **65** | | **15** | |
 
 Fonte: Elaborado pelo autor (2026).
 

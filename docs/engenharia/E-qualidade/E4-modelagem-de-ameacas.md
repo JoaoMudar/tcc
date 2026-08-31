@@ -99,7 +99,7 @@ pelo tipo de controle de Sommerville.
 **Controles:**
 - *Prevenção*: verificação de permissão **a cada operação**, e não por ocultação de elementos da
   interface (RF-06). Ocultar um botão não é controle de acesso.
-- *Prevenção*: regras de acesso executadas exclusivamente no servidor (RNF-12).
+- *Prevenção*: regras de acesso executadas exclusivamente no servidor (RNF-11).
 - *Prevenção*: nenhum perfil de negócio administra usuários ou perfis, o que remove a escalada do
   conjunto de caminhos de uso normal.
 
@@ -127,11 +127,11 @@ pelo tipo de controle de Sommerville.
 | **Probabilidade** | Média: é erro comum e de consequência máxima |
 
 **Controles:**
-- *Prevenção*: credenciais em configuração de ambiente, jamais no código (RNF-23).
+- *Prevenção*: credenciais em configuração de ambiente, jamais no código (RNF-20).
 - *Prevenção*: acesso ao banco restrito à camada de servidor; o navegador nunca recebe credencial
-  (RNF-12).
+  (RNF-11).
 - *Detecção*: verificação automática antes de cada envio ao repositório, que bloqueia o envio ao
-  identificar arquivo sensível (RNF-22).
+  identificar arquivo sensível (RNF-20).
 
 > A detecção automática é o controle que importa aqui, porque este é um risco de **erro humano**, e
 > não de ataque. Sommerville observa que a maioria das falhas de segurança decorre de erro humano.
@@ -147,9 +147,9 @@ pelo tipo de controle de Sommerville.
 | **Probabilidade** | Baixa |
 
 **Controles:**
-- *Prevenção*: comunicação cifrada obrigatória em todas as fronteiras (RNF-13).
+- *Prevenção*: comunicação cifrada obrigatória em todas as fronteiras (RNF-12).
 - *Prevenção*: cookie de sessão marcado para trafegar somente por canal cifrado e para não ser
-  legível por código de página (RNF-11).
+  legível por código de página (RNF-10).
 
 ### A-08 · Dado sensível retido no dispositivo
 
@@ -184,8 +184,8 @@ mudado depois de fechados.
 
 **Controles:**
 
-- *Prevenção*: semana fechada recusa alteração (RF-29, RN-13); pedido confirmado recusa alteração
-  de item (RF-61, RN-50); nenhum perfil tem permissão de exclusão sobre movimento de lote
+- *Prevenção*: semana fechada recusa alteração (RF-28, RN-13); pedido confirmado recusa alteração
+  de item (RF-57, RN-50); nenhum perfil tem permissão de exclusão sobre movimento de lote
   ([`D4` §3.6](../D-arquitetura/D4-matriz-rbac.md)).
 - *Prevenção*: a correção de saldo é um movimento de `ajuste_contagem`, que **registra** a correção
   em vez de esconder o erro (RN-09).
@@ -262,14 +262,14 @@ Registrar os controles **descartados** e o motivo evita que a ausência seja lid
 
 | Ameaça | Requisitos que a tratam |
 |---|---|
-| A-01 | RF-02, RNF-09 |
-| A-02 | RF-04, RF-07, RNF-09 |
+| A-01 | RF-02, RNF-08 |
+| A-02 | RF-04, RF-07, RNF-08 |
 | A-03 | RF-07, RF-04, RF-06 |
-| A-04 | RF-06, RNF-12 |
-| A-05 | RNF-12 |
-| A-06 | RNF-12, RNF-22, RNF-23 |
-| A-07 | RNF-11, RNF-13 |
+| A-04 | RF-06, RNF-11 |
+| A-05 | RNF-11 |
+| A-06 | RNF-11, RNF-20 |
+| A-07 | RNF-10, RNF-12 |
 | A-08 | RNF-05, RF-06 |
-| A-09 | RF-29, RF-38, RF-61 |
-| A-10 | RNF-14 |
+| A-09 | RF-28, RF-36, RF-57 |
+| A-10 | RNF-13 |
 | A-11 | RNF-05 |

@@ -93,4 +93,4 @@ fontes de pendência, a atribuição lançada à mão e a ordem gerada pelo prot
 **Continuam valendo, ainda que o campo não opere o sistema.** Quem registra passou a ser a gerência,
 e ela registra em pé, no viveiro, com a leva na frente: o que mudou foi de quem é o dedo que toca a
 tela, não o lugar em que ela é usada. As duas exceções declaradas são a agenda da semana e o mapa
-de lotes, que não registram nada e existem para comparar (RNF-15).
+de lotes, que não registram nada e existem para comparar (RNF-14).
