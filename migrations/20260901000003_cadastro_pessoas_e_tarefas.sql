@@ -98,7 +98,7 @@ CREATE TABLE task_types (
   name               TEXT NOT NULL UNIQUE,
   category           TEXT NOT NULL,
 
-  -- Faz a confirmacao pedir um numero POR PARTICIPANTE (RF-30, RN-24).
+  -- Faz a confirmacao pedir um numero POR PARTICIPANTE (RF-29, RN-24).
   is_quantitative    BOOLEAN NOT NULL DEFAULT false,
 
   -- Faz aparecer o campo de lote, e dispensa o canteiro, que vem dele (RN-25).

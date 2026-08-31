@@ -1,7 +1,7 @@
 -- Migration: 20260901000006_comercial_pedidos.sql
 -- Descricao: Cadastro de pedidos.
 --
--- Requisitos: RF-58 a RF-62 · Regras: RN-44, RN-50, RN-52
+-- Requisitos: RF-54 a RF-58 · Regras: RN-44, RN-50, RN-52
 -- Entidades: C8 `orders`, `order_items`
 --
 -- DUAS TABELAS, E E O TAMANHO CERTO. Nao ha carga, separacao, entrega, cotacao nem
@@ -59,7 +59,7 @@ CREATE TABLE order_items (
   container_id UUID NOT NULL REFERENCES containers(id),
   quantity     INTEGER NOT NULL,
 
-  -- O PRECO E DIGITADO, e o sistema nao o calcula (RF-59, RN-52). Nao ha
+  -- O PRECO E DIGITADO, e o sistema nao o calcula (RF-55, RN-52). Nao ha
   -- referencia a tabela de preco, piso minimo nem margem: o valor e o que foi
   -- negociado na conversa com o cliente, e ao sistema cabe guarda-lo.
   unit_price   NUMERIC(10,2) NOT NULL,
@@ -78,13 +78,13 @@ CREATE TRIGGER order_items_set_updated_at
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 -- NAO HA COLUNA DE DISPONIBILIDADE. O saldo que a tela exibe ao lado do item
--- (RF-60) e somado dos lotes prontos daquela especie e recipiente a cada consulta.
+-- (RF-56) e somado dos lotes prontos daquela especie e recipiente a cada consulta.
 -- Guarda-lo aqui congelaria uma leitura que muda a cada perda registrada, e o item
 -- passaria a mentir sobre o estoque de hoje. E a mesma decisao que fez a situacao
 -- do lote ser visao e nao coluna (RN-30).
 
 COMMENT ON TABLE orders IS
-  'Pedido. Tres situacoes; confirmado nao aceita alteracao de item. RF-61, RN-50.';
+  'Pedido. Tres situacoes; confirmado nao aceita alteracao de item. RF-57, RN-50.';
 COMMENT ON COLUMN orders.customer_id IS
   'Pessoa do cadastro unico que exerce o papel de cliente. RN-47.';
 COMMENT ON COLUMN order_items.unit_price IS

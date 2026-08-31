@@ -53,7 +53,7 @@ CREATE TABLE sessions (
   id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id      UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 
-  -- RNF-10: nunca o token em si, apenas o resumo criptografico dele.
+  -- RNF-09: nunca o token em si, apenas o resumo criptografico dele.
   token_hash   TEXT NOT NULL UNIQUE,
 
   expires_at   TIMESTAMPTZ NOT NULL,
