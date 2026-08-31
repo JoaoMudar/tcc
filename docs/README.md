@@ -37,7 +37,7 @@
 | [`banco-local-espelho.md`](banco-local-espelho.md) | Espelhar o Neon para um Postgres local descartável (`npm run db:refresh-local`) para testes seguros. |
 | [`EXECUTION-GUIDE.md`](EXECUTION-GUIDE.md) | Como conduzir as sessões de desenvolvimento e a ordem dos sprints. |
 | [`plano-seguranca-commits.md`](plano-seguranca-commits.md) | Plano histórico de segurança de commits (hooks, gitignore). |
-| [`auditoria-divergencias.md`](auditoria-divergencias.md) | **Auditoria, oito passadas entre 10/08 e 28/08/2026**: divergências entre docs, planos e código, e a redução de escopo na oitava. É registro histórico: cita identificadores que já não existem, de propósito. |
+| [`auditoria-divergencias.md`](auditoria-divergencias.md) | **Auditoria, dez passadas entre 10/08 e 31/08/2026**: divergências entre docs, planos e código, a redução de escopo na oitava e, na décima, a regra que afirmava um fato falso sobre o viveiro. É registro histórico: cita identificadores que já não existem, de propósito. |
 | [`divida-tecnica.md`](divida-tecnica.md) | **Trabalho futuro (11/08/2026)**: o que falta para a produção ser segura de operar: backup, teste contra banco real, drift de schema. Prontidão medida: ~85%. |
 
 ### Engenharia de software (`docs/engenharia/`)

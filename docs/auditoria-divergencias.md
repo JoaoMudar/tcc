@@ -957,3 +957,161 @@ unica declarada para ele.
 **Os identificadores foram renumerados outra vez**, so os RN desta vez, com RF, RNF, UC e TA saindo
 com zero alteracoes. Este arquivo continua sendo o registro historico, e cita, de proposito, numeros
 que ja nao existem.
+
+---
+
+## Decima passada: uma regra que afirmava um fato falso sobre o viveiro (31/08/2026)
+
+A nona passada conferiu se os documentos batiam **entre si**. Esta passada e outra pergunta, e e a
+mais dificil de automatizar: se o que os documentos afirmam sobre o viveiro **e verdade**. A
+resposta, num ponto, era nao.
+
+### Achado R: RN-12 negava a hora marcada, que existe no viveiro
+
+RN-12 estava classificada como **Fato**, a categoria reservada ao que sobrevive ao teste da §2.1 do
+`B3` (apague o sistema e veja se o enunciado continua verdadeiro), e dizia:
+
+> "O trabalho do viveiro e **planejado por turno, nao por horario**: a unidade da agenda e dia x
+> turno (manha ou tarde)."
+
+A primeira metade e verdade. A segunda nao: a irrigacao das sete as oito tem horario na vida real,
+e a carga de terra chega meio-dia. O enunciado nao sobrevivia ao proprio teste que o classificou.
+
+**A causa nao foi descuido de redacao, foi uma fusao indevida.** Duas coisas diferentes tinham sido
+tratadas como uma so:
+
+| | O que e | Decisao |
+|---|---|---|
+| Planejar com hora | A tarefa tem horario e a agenda o registra | Existe no viveiro. RN-12 negava |
+| Apontar hora de entrada e saida da pessoa | Medir quando cada um chegou e saiu | Controle de ponto, fora do escopo (`A1` §7) |
+
+A segunda foi excluida por uma razao boa, e continua excluida. A primeira foi excluida **de
+carona**, sem que ninguem a tivesse decidido: o enunciado que justificava a exclusao do controle de
+ponto passou a valer tambem para a hora da tarefa, e o documento acabou afirmando que o viveiro
+nunca planeja por hora.
+
+### O repositorio ja denunciava a contradicao, e ninguem tinha lido os dois lados juntos
+
+`rotinas/2-producao/01-agenda-de-pessoal.md` abria uma **excecao declarada** ("ha uma excecao, e e
+declarada: a tarefa recorrente tem hora"), e o mesmo documento era citado como a **origem** de
+RN-12. A regra e a sua propria fonte discordavam, no mesmo repositorio, em arquivos que se citam.
+Enquanto isso, `assignments` nao tinha coluna de hora nenhuma: a excecao declarada nao tinha onde
+morar.
+
+**Nenhum script pegaria isto.** `verifica-rastreabilidade.mjs` confere se um identificador citado
+existe; `confere-modelo-pt.mjs` confere se duas figuras desenham o mesmo modelo. Nenhum dos dois
+le o que a frase diz. Foi o usuario, que conhece o viveiro, quem apontou.
+
+### O que foi corrigido
+
+- **RN-12** reescrita: o turno e a unidade e continua obrigatorio, e a tarefa que tem hora marcada a
+  declara. A hora e opcional. O turno segue exigido porque os turnos **nao cobrem o dia inteiro**:
+  entre as 11h e as 13h nao ha turno nenhum, e a hora sozinha nao diz a qual deles a tarefa
+  pertence.
+- **RF-27** emendado, sem RF novo: a contagem segue em 62.
+- **`assignments`** ganhou `start_time` e `end_time`, nulaveis, na migration
+  `20260901000008_agenda_hora_opcional.sql`, com `CHECK` que recusa fim sem inicio. `C6`, `C8` e a
+  `fig14` do `modelo-dados-pt` acompanharam.
+- **`A1` §7** mantem a exclusao do apontamento por relogio, agora justificada pelo que ela e
+  (relacao de trabalho, e nao gestao de producao), e nao por uma afirmacao falsa sobre o viveiro.
+- **`E2`** ganhou TA-69 e TA-70, e TA-12 foi reescrito: ele testava horas assumidas por turno, que e
+  logica do custeio, cortado na oitava passada.
+
+### O que a passada limpou de quebra
+
+`rotinas/2-producao/01-agenda-de-pessoal.md` foi **reescrito por inteiro**. Ele ainda descrevia o
+sistema anterior a reducao de escopo: apontamento por relogio, horas reais, valor-hora medio,
+custo de mao de obra rateado por especie, tela do colaborador (que nao tem acesso ao sistema) e
+quatro entidades que nao existem (`task_executions`, `labor_rates`, `task_recurrences`,
+`task_recurrence_members`). Citava tambem `05-apontamento-de-tarefas.md`, arquivo que nao existe, e
+`src/lib/offline-queue.ts`, num repositorio que nao tem `src/`.
+
+O mesmo residuo aparecia em `00-visao-geral.md` da producao (que listava quatro subrotinas, uma
+delas o apontamento), em `04-lotes-e-canteiros.md`, em `06-protocolo-de-atividades.md` e no
+prototipo `F1`, cujo UC-21 mostrava um mockup de **fechar o dia** com horas apontadas por pessoa.
+Todos corrigidos.
+
+**A licao:** a oitava passada cortou o escopo nos artefatos de engenharia e parou ali. A
+documentacao de dominio, que e a **fonte** citada por eles, ficou descrevendo o sistema antigo, e
+foi por ali que uma afirmacao falsa voltou a entrar na engenharia. Fonte que nao acompanha o corte
+nao fica so desatualizada: ela realimenta o que foi cortado.
+
+---
+
+## Decima primeira passada: o requisito que ninguem precisaria ler (31/08/2026)
+
+> **Os identificadores desta secao sao os que vigoravam antes do corte**, e varios ja nao existem
+> ou passaram a designar outro requisito depois da renumeracao. E a convencao deste arquivo, e aqui
+> ela importa mais do que de costume: sete ids foram apagados e trinta e tres mudaram de numero na
+> mesma passada.
+
+As duas passadas anteriores de reducao perguntaram se dois enunciados eram **o mesmo**: a de 30/08
+fundiu oito pares de RF (70 -> 62), a de 31/08 fundiu cinco grupos de RN (60 -> 54). Esta pergunta e
+outra, e e a primeira que **apaga** em vez de fundir:
+
+> Dado o resto da especificacao, quem fosse implementar o sistema chegaria ao mesmo resultado sem
+> este enunciado? Se sim, ele nao acrescenta informacao nem muda decisao.
+
+### Tres formas de obvio, e sete cortes
+
+| Forma | O que e | Cortados |
+|---|---|---|
+| **Exemplo resolvido** | Instancia um requisito mais geral, que ja o decide | RF-31 (exigir o lote), caso particular de RF-21, que ja manda pedir exatamente o que o tipo de tarefa declarar exigir |
+| **Definicao travestida de exigencia** | Define um termo do glossario em vez de exigir comportamento | RF-44, que enunciava a razao que define mortalidade, ja dita em RN-11 e em `A2` |
+| **Mecanismo de fiscalizacao** | Diz como outro RNF e cobrado, e nao uma exigencia propria | RNF-18 (bloquear alteracao na main), mecanismo de RNF-17; RNF-22 (verificacao antes do envio), mecanismo de RNF-19, RNF-21 e RNF-23 |
+
+Sairam ainda **RF-49**, que reapresentava o alerta de RF-45 (cuja propria coluna de verificacao ja
+dizia "visivel no mapa"), **RF-26**, que prescrevia um componente de abas e por isso pertence ao
+prototipo `F1`, e **RNF-07**, contido em RNF-05: o que funciona sem conexao funciona em rede lenta, e
+"tempo aceitavel para uso real" nao era criterio verificavel.
+
+**Nenhuma funcionalidade saiu.** O que cada corte dizia de proprio foi absorvido: RF-30 passou a
+exigir o lote do tipo que o declara, e RF-45 a calcular a taxa, apresenta-la no mapa e destacar quem
+passa do limite. Os testes seguiram o mesmo caminho: TA-30 foi reapontada para RF-30, TA-48 foi
+absorvida por TA-24, e so TA-33 e TA-59 desapareceram, porque o que elas verificavam deixou de ser
+requisito. Contagens novas: **RF 62 -> 58, RNF 27 -> 24, TA 70 -> 67**.
+
+### Dois sinais que o proprio documento ja dava, e ninguem tinha lido como sinal
+
+- **A coluna Verificacao de RF-45 dizia "alerta visivel no mapa"**, que e literalmente o enunciado de
+  RF-49. Um requisito descrevia o outro na sua propria condicao de aprovacao.
+- **RF-44 e RF-45 compartilhavam UC-30 e TA-24.** O criterio de granularidade de `B2` §1, escrito na
+  passada de 30/08, diz que isso e um requisito so. O par sobreviveu aquela passada porque ela
+  procurava enunciados *parecidos*, e estes dois nao se parecem: um calcula, o outro alerta. So o
+  compartilhamento de teste denunciava.
+
+### As regras de negocio: nada a cortar, e e resultado
+
+Aplicado o mesmo criterio as 54 RN, **nenhuma se mostrou dispensavel**, e as duas mais fracas se
+defendem sozinhas: RN-29 (ocupacao = soma dos saldos) parece aritmetica decorrente de RN-19 e RN-22,
+mas e nela que `B3` §6.3 pendura um achado real, o aviso de que a leva nao cabe no canteiro, que
+nenhum RF realiza; e RN-49 (LGPD) origina zero RF, mas cortar a linha leria-se como abandonar o
+mapeamento de `E5`. RN-21 ("nenhum lote tem saldo negativo") e obviedade fisica, e continua porque e
+o exemplo canonico das §2.1 e §2.2 do proprio `B3`.
+
+**Quatro RF/RNF foram examinados e mantidos**, e ficam registrados para nao serem reexaminados a
+cada passada: RF-32 espelha o RF de lote que saiu, mas carrega campo proprio (a area da tarefa sem
+lote); RF-35 e RF-47 dizem a ocupacao duas vezes, em lista e em desenho, e o desenho e o que este
+trabalho demonstra; RNF-10 divide TA-62 com RNF-09, mas protege outro objeto; RF-03 e banal, porem e
+o unico *deve ter* de encerramento de sessao, ja que RF-07 e *deveria ter*. A decisao esta repetida
+em `B2` §1, ali com a numeracao nova, para nao ser reaberta a cada leitura.
+
+### O que a passada limpou de quebra
+
+O mapa `NOME` de `scripts/build-b4-quadros.mjs`, que guarda o nome curto de cada RF e nao existe em
+nenhum artefato, tinha **oito chaves duplicadas**: `RF-11`, `RF-15`, `RF-24`, `RF-26`, `RF-34`,
+`RF-36`, `RF-45` e `RF-56`. Sao residuo da fusao de 30/08: `renumerar.mjs` reescreve `scripts/*.mjs`,
+e ao renumerar o RF absorvido a chave dele caiu em cima de uma existente. Em objeto literal a ultima
+vence **em silencio**, e por sorte a ultima era a certa em todos os oito, entao o `B4` publicado
+nunca chegou a ficar errado. O mapa foi reescrito sem duplicatas.
+
+**Nenhum script pegaria nem uma coisa nem outra.** `verifica-rastreabilidade.mjs` confere se um
+identificador citado existe, e os oito existiam; `build-b4-quadros.mjs` so avisa `FALTA NOME` quando
+falta chave, e nao quando sobra. Duplicata em objeto literal nao e erro de sintaxe, e obviedade de
+requisito nao e erro de nada: as duas exigem leitura.
+
+**A licao:** o pipeline confere **correspondencia** (o id citado existe, as duas figuras desenham o
+mesmo modelo, a tabela derivada bate com a fonte). Nao ha, e provavelmente nao pode haver,
+verificacao automatica de que um enunciado **valha a pena estar escrito**. Tres passadas seguidas de
+reducao encontraram tres criterios diferentes (mesmo enunciado partido, mesmo caso de uso e teste,
+enunciado dispensavel), e nenhum deles saiu de um script.

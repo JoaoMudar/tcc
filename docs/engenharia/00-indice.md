@@ -60,7 +60,7 @@ São documentos de projeto, não relatórios de código.
 
 | Código | Artefato | Destino no TCC | Situação |
 |---|---|---|---|
-| [E2](E-qualidade/E2-casos-de-teste-de-aceite.md) | Casos de teste de aceite | 4.8 + Apêndice | ✅ escrito: 68 casos; **§9 gerada** por `scripts/build-e2-cobertura.mjs` |
+| [E2](E-qualidade/E2-casos-de-teste-de-aceite.md) | Casos de teste de aceite | 4.8 + Apêndice | ✅ escrito: 70 casos; **§9 gerada** por `scripts/build-e2-cobertura.mjs` |
 | [E3](E-qualidade/E3-analise-de-riscos.md) | Análise de riscos do projeto | **Capítulo 3** (metodologia) | ✅ escrito: 10 riscos |
 | [E4](E-qualidade/E4-modelagem-de-ameacas.md) | Modelagem de ameaças e controles | 4.7 Segurança e controle de acesso | ✅ escrito: 11 ameaças |
 | [E5](E-qualidade/E5-mapeamento-lgpd.md) | Mapeamento LGPD | 4.7 + parágrafos novos no Cap. 2.5 | ✅ escrito |
