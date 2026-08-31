@@ -22,7 +22,7 @@ tarefa verbalmente. A segunda continua inteira mesmo depois de a agenda ficar pr
 > muda morta.
 
 A agenda registra **o que a Débora lembrou de lançar**. Se ela não lançou, o sistema não sabe que
-faltou. Pior: a situação do lote (RN-31) deriva do atraso das tarefas **já lançadas**, então o lote
+faltou. Pior: a situação do lote (RN-30) deriva do atraso das tarefas **já lançadas**, então o lote
 esquecido por completo aparece **verde**, porque não há nenhuma tarefa atrasada nele. A tela que
 existe para mostrar o problema mostra o contrário do problema.
 
@@ -161,7 +161,7 @@ Amarelo é "está chegando a hora". Vermelho é "passou". Sem cor é "isto é ro
 ### 4. A ordem gerada é atribuição comum, e alterar o dia não altera a regra
 
 A ordem cai na agenda como qualquer outra tarefa: aparece na grade da semana e na confirmação.
-**Nenhuma tela precisa aprender um conceito novo** (RN-46).
+**Nenhuma tela precisa aprender um conceito novo** (RN-43).
 
 Débora pode mudar o dia, mudar o turno, excluir a ordem daquele dia. Nada disso mexe na etapa. E
 mexer na etapa não reescreve ordem já emitida nem dia já trabalhado: **o passado não se reescreve.**
@@ -294,7 +294,7 @@ A ordem do protocolo é atribuição comum e aparece onde as atribuições apare
 | Artefato | O que esta rotina acrescentou |
 |---|---|
 | [`B2`](../../engenharia/B-requisitos/B2-especificacao-requisitos.md) | RF-22 a RF-24 e RF-25 no cadastro; RF-50 a RF-57 na operação |
-| [`B3`](../../engenharia/B-requisitos/B3-regras-de-negocio.md) | RN-34 a RN-48; RN-18 e RN-31 emendadas |
+| [`B3`](../../engenharia/B-requisitos/B3-regras-de-negocio.md) | RN-32 a RN-43; RN-18 e RN-30 emendadas |
 | [`C2`](../../engenharia/C-modelagem/C2-especificacao-casos-de-uso.md) | UC-17, UC-24 e UC-18 |
 | [`C6`](../../engenharia/C-modelagem/C6-modelo-entidade-relacionamento.md) / [`C8`](../../engenharia/C-modelagem/C8-dicionario-de-dados.md) | `protocols`, `protocol_steps`, `species_protocol_overrides`, `batch_protocol_steps` e a visão `batch_protocol_due`; `batches`, `assignments` e `containers` emendadas. O protocolo pendura-se no **recipiente**, e `container_types` deixou de existir |
 | [`B5`](../../engenharia/B-requisitos/B5-matriz-rastreabilidade.md) | 16 linhas novas |

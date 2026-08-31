@@ -71,7 +71,7 @@ CREATE TABLE species_photos (
 -- Recipiente e insumo
 -- ------------------------------------------------------------
 -- O RECIPIENTE DETERMINA O PORTE E O PRECO (RN-04), e e por ele que o protocolo de
--- atividades chega ao lote (RN-34).
+-- atividades chega ao lote (RN-32).
 CREATE TABLE containers (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name          TEXT NOT NULL UNIQUE,
@@ -124,7 +124,7 @@ CREATE TABLE beds (
   area_id    UUID NOT NULL REFERENCES areas(id) ON DELETE CASCADE,
   number     INTEGER NOT NULL,
 
-  -- Existe para o AVISO de RN-30, e nao para recusar o lote: quem sabe se cabe e
+  -- Existe para o AVISO de RN-29, e nao para recusar o lote: quem sabe se cabe e
   -- quem esta com a muda na mao.
   capacity   INTEGER,
 
@@ -168,7 +168,7 @@ INSERT INTO work_shifts (name, starts_at, ends_at) VALUES
 
 COMMENT ON TABLE species IS 'Especie botanica. Entidade central do modelo. RN-01.';
 COMMENT ON TABLE species_photos IS 'Fotografia da especie, em bytes. Entra no backup do banco.';
-COMMENT ON TABLE containers IS 'Recipiente. Determina o porte, o preco e o protocolo de manejo. RN-04, RN-34.';
+COMMENT ON TABLE containers IS 'Recipiente. Determina o porte, o preco e o protocolo de manejo. RN-04, RN-32.';
 COMMENT ON TABLE inputs IS 'Catalogo de insumos. Nada o consome no escopo atual. RN-07.';
 COMMENT ON TABLE beds IS 'Canteiro. Um lote ocupa um canteiro; um canteiro comporta varios lotes. RN-19.';
 COMMENT ON TABLE work_shifts IS 'Turno de trabalho. A duracao sai daqui, e nao de constante. RN-27.';

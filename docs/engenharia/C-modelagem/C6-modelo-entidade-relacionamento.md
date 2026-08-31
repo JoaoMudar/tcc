@@ -107,16 +107,16 @@ Seis leituras que o modelo conceitual já entrega:
   único. É a confirmação estrutural da centralidade declarada em RN-01. Um deles é de outra
   natureza que os demais: em `ESPECIE customiza o tempo de ETAPA_PROTOCOLO`, a espécie deixa de
   apenas participar do ciclo produtivo e passa a **parametrizá-lo**, decidindo em quantos dias
-  cada etapa do manejo vence naquela espécie (RN-41).
+  cada etapa do manejo vence naquela espécie (RN-38).
 - **O modelo tem duas entidades reflexivas.** `LOTE dá origem a LOTE` é a repicagem: a leva que
   muda de recipiente vira outra leva, ligada à primeira. Percorrer essa cadeia responde de quantas
   sementes semeadas saiu cada muda vendida, que é a pergunta que o viveiro nunca pôde responder. É
   também a entidade que dá **lugar** à muda: até 24/08/2026 o modelo dizia o que a muda era e não
   onde ela estava. A outra reflexiva é `ETAPA_PROTOCOLO é âncora de ETAPA_PROTOCOLO`, e ela diz
   **quando**: uma etapa do protocolo conta o prazo a partir da conclusão de outra, que não precisa
-  ser a imediatamente anterior (RN-35).
+  ser a imediatamente anterior (RN-33).
 - **O protocolo é o que liga a receita ao relógio.** `RECIPIENTE define PROTOCOLO`: o manejo é
-  determinado pelo vasilhame em que a muda cresce (RN-34). É o que permite ao lote cobrar sozinho o
+  determinado pelo vasilhame em que a muda cresce (RN-32). É o que permite ao lote cobrar sozinho o
   que tem de receber, em vez de depender de alguém lembrar de lançar a tarefa.
 - **O lote é o único caminho entre a Produção e o Comercial.** `LOTE dá saldo a ITEM_PEDIDO` é uma
   aresta de leitura, e não de chave estrangeira: o item não guarda de qual lote a muda saiu, ele
@@ -127,7 +127,7 @@ Seis leituras que o modelo conceitual já entrega:
   o que se gastou continua fora dele.
 - **A pessoa é uma, e os papéis é que se multiplicam.** `PESSOA é papel de CLIENTE` e
   `PESSOA é papel de FUNCIONARIO` desenham a mesma identidade vista de dois lados. Quem vende muda
-  ao viveiro e às vezes compra dele é um cadastro só (RN-52).
+  ao viveiro e às vezes compra dele é um cadastro só (RN-47).
 
 ---
 
@@ -234,7 +234,7 @@ conceito**: ali é vínculo de trabalho, aqui é permissão de acesso.
 **`settings` é transversal e não é cadastro.** Guarda parâmetro escalar do sistema em chave e valor
 tipado: o limite de mortalidade, os limites de atraso que pintam o lote no mapa. Todos morariam em
 constante de código, e **são regra de negócio, não infraestrutura**: quem os decide é a chefia, e
-mudar qualquer um deles exigiria uma implantação (RF-09, RN-32).
+mudar qualquer um deles exigiria uma implantação (RF-09, RN-27).
 
 > **Onde está a fronteira entre `settings` e cadastro.** Parâmetro que é **um valor** vai para
 > `settings`. Parâmetro que é **uma lista de coisas com atributos** vira entidade: é o caso do
@@ -415,7 +415,7 @@ a que apontar no momento da gravação. Quem liga as duas é o texto de `species
 formato `/api/fotos/<uuid>`.
 
 **O canteiro tem capacidade, e ela não é restrição.** `beds.capacity` existe para o aviso de
-RN-30, que informa que a leva talvez não caiba, e não para recusar o lote: quem sabe se cabe é
+RN-29, que informa que a leva talvez não caiba, e não para recusar o lote: quem sabe se cabe é
 quem está com a muda na mão.
 
 **`party_roles` é chave composta, e o papel é que carrega o vínculo.** `employment_kind` (fixo ou
@@ -428,16 +428,16 @@ coluna que é nula em toda pessoa que só compra.
 viveiro faz em voz alta.
 
 - **`schedule_kind`** separa a etapa **sequencial**, que ocorre uma vez e pode avançar a fase do
-  lote, da **recorrente**, que repete indefinidamente e não avança fase nenhuma (RN-38).
+  lote, da **recorrente**, que repete indefinidamente e não avança fase nenhuma (RN-36).
 - **`anchor_step_id`** é a âncora, e é reflexiva: a etapa conta o prazo a partir da conclusão de
-  **outra etapa declarada**, e não da anterior na lista (RN-35). Classificar pós-germinação conta
+  **outra etapa declarada**, e não da anterior na lista (RN-33). Classificar pós-germinação conta
   do plantio, e não da criação do lote, porque a semente pode ficar dias esperando plantio.
   Âncora nula significa contar da criação do lote.
 - **`days` e `interval_days`** são o prazo e, na recorrente, o intervalo entre ocorrências.
 - **`warn_window_pct`** é a janela de aviso **em percentual do intervalo**, e não em dias fixos
-  (RN-39): três dias de antecedência não servem à etapa trimestral e à diária ao mesmo tempo.
+  (RN-37): três dias de antecedência não servem à etapa trimestral e à diária ao mesmo tempo.
 - **`alert_enabled`** desliga a cor de uma etapa que se repete tanto que sinalizá-la seria ruído
-  (RN-40).
+  (RN-37).
 - **`resulting_stage`** é opcional: nem toda etapa sequencial promove o lote de fase, e obrigar a
   escolher uma faria inventar transições que o ciclo produtivo não tem.
 
@@ -605,34 +605,34 @@ realizado é o planejado com a marca de que aconteceu. `nao_confirmada` é o que
 semana grava no que ninguém confirmou (RN-14), e é o que preserva a distinção entre o que se
 confirmou e o que se presumiu.
 
-**A quantidade é de cada pessoa, e por isso mora em `assignment_members`** (RN-29). Quatro pessoas
+**A quantidade é de cada pessoa, e por isso mora em `assignment_members`** (RN-24). Quatro pessoas
 enchendo saquinho produzem quatro números, e é assim que o viveiro fala. Guardar um total na
 atribuição perderia justamente o dado que ele quer.
 
 **`is_recurring` é uma marca, e não uma regra de calendário.** Ela diz que a atribuição faz parte da
-rotina fixa e, por isso, vem preenchida quando se copia a semana anterior (RF-28, RN-33). Uma
+rotina fixa e, por isso, vem preenchida quando se copia a semana anterior (RF-28, RN-31). Uma
 entidade de recorrência, com dias da semana e vigência, existiria para gerar dias sozinha, e o que
 gera dia sozinho neste modelo é o protocolo, cujo sujeito é o lote e não a equipe.
 
-**`batch_protocol_step_id` é o que faz a ordem do protocolo ser atribuição comum** (RN-46). A
+**`batch_protocol_step_id` é o que faz a ordem do protocolo ser atribuição comum** (RN-43). A
 ordem gerada não é uma entidade nova: é uma linha de `assignments` que sabe de que etapa veio, e
 que nasce **sem ninguém em `assignment_members`**, porque o protocolo diz o que e quando, e quem faz
-continua sendo de quem monta a agenda (RN-48).
+continua sendo de quem monta a agenda (RN-43).
 
 #### O percurso do lote pelo protocolo
 
 `batch_protocol_steps` é a única entidade de movimento do protocolo, e guarda três datas por etapa
 e por lote: a última execução, o próximo vencimento e a situação.
 
-**`due_at` é derivado, nunca digitado** (RN-45): sai da âncora, da última execução e do tempo
+**`due_at` é derivado, nunca digitado** (RN-42): sai da âncora, da última execução e do tempo
 declarado, com a customização por espécie sobrescrevendo o tempo do protocolo quando existir
-(RN-41). É o que a visão `batch_protocol_due` calcula, e é dela que sai a cor do lote no mapa.
+(RN-38). É o que a visão `batch_protocol_due` calcula, e é dela que sai a cor do lote no mapa.
 
-**Uma etapa tem no máximo uma ocorrência em aberto** (RN-37). Etapa trimestral esquecida há cinco
+**Uma etapa tem no máximo uma ocorrência em aberto** (RN-35). Etapa trimestral esquecida há cinco
 meses apresenta **uma** pendência, e não cinco: gerar uma ordem por trimestre vencido encheria a
 agenda com um passado que ninguém vai executar.
 
-**A situação do lote é visão, e não coluna** (RN-31). `batch_health` é calculada a cada leitura
+**A situação do lote é visão, e não coluna** (RN-30). `batch_health` é calculada a cada leitura
 porque status gravado envelhece sozinho: o lote que estava verde ontem continuaria verde no banco
 hoje, e a tela existe justamente para dizer o contrário. É a mesma razão de a mortalidade e o saldo
 disponível também serem derivados.
@@ -674,13 +674,13 @@ erDiagram
 ```
 
 **`orders.customer_id` aponta para `cadastro.parties`, e não para uma tabela de clientes.** É a
-materialização do cadastro único (RN-52): o cliente é uma pessoa que exerce o papel de cliente, e o
+materialização do cadastro único (RN-47): o cliente é uma pessoa que exerce o papel de cliente, e o
 pedido referencia a pessoa. Uma tabela `customers` própria duplicaria nome, telefone e documento de
 quem também é fornecedor.
 
-**`unit_price` é digitado, e não referencia tabela de preço** (RN-58). Não há entidade de canal de
+**`unit_price` é digitado, e não referencia tabela de preço** (RN-52). Não há entidade de canal de
 venda nem de tabela de preços: `sale_channel` é enumeração em `orders`, porque canal de venda é uma
-lista fechada de cinco valores sem atributos próprios (RN-49), e o preço é o que foi acordado na
+lista fechada de cinco valores sem atributos próprios (RN-44), e o preço é o que foi acordado na
 conversa.
 
 **Não há entidade de disponibilidade.** O saldo que o item exibe (RF-60) é calculado dos lotes

@@ -254,7 +254,7 @@ propagaria o erro para o estoque. A correção é uma contagem física (UC-26), 
 ### FA-1: A leva não cabe em um canteiro
 
 No passo 3, a quantidade excede o que o canteiro ainda comporta, contando os lotes já abertos nele.
-O sistema **avisa e não recusa** (RN-30), e a gerência escolhe: apertar mais, ou criar **dois
+O sistema **avisa e não recusa** (RN-29), e a gerência escolhe: apertar mais, ou criar **dois
 lotes**, um por canteiro, em vez de um lote em dois lugares (RN-19).
 
 > **Por que não um lote em dois canteiros.** Seria uma entidade a mais e um campo a mais em toda
@@ -423,7 +423,7 @@ confirmar já entrou no realizado com a marca de não confirmado (RF-33).
 7. A gerência informa o turno e decide se a etapa tem **alerta de atraso** ligado (RF-24).
 8. Quando sequencial, a gerência escolhe, de forma opcional, a fase do lote que a conclusão da etapa passa a gravar.
 9. O sistema valida a etapa e a acrescenta ao protocolo, na ordem escolhida.
-10. A alteração passa a valer **apenas para o que ainda vai ser gerado** (RN-42).
+10. A alteração passa a valer **apenas para o que ainda vai ser gerado** (RN-39).
 
 ### FA-1: Etapa que não altera a fase
 
@@ -434,13 +434,13 @@ escolher uma fase faria inventar transições que o ciclo produtivo não tem.
 ### FA-2: Etapa com janela de aviso própria
 
 No passo 7, a etapa precisa avisar antes ou depois do padrão. A gerência informa a janela própria,
-em percentual do intervalo, e ela prevalece sobre o parâmetro geral (RN-39).
+em percentual do intervalo, e ela prevalece sobre o parâmetro geral (RN-37).
 
 ### FA-3: Alteração de protocolo com lotes em andamento
 
 No passo 10, existem lotes seguindo o protocolo. O sistema **não** reescreve as ordens já emitidas
-nem as datas já cumpridas: a alteração vale para a próxima geração de cada lote (RN-42). É a
-mesma garantia que a ordem já gerada tem em RN-46, e a razão é a mesma: regra que reescrevesse o
+nem as datas já cumpridas: a alteração vale para a próxima geração de cada lote (RN-39). É a
+mesma garantia que a ordem já gerada tem em RN-43, e a razão é a mesma: regra que reescrevesse o
 passado apagaria dia já trabalhado.
 
 ### FE-1: Âncora circular
@@ -481,8 +481,8 @@ lote novo segue.
 2. O sistema apresenta o saldo atual e pede a quantidade que vai para o segundo lote.
 3. A gerência informa a quantidade e o canteiro de cada resultante, que podem ser o mesmo.
 4. O sistema cria os dois lotes, ambos apontando para o original como lote de origem.
-5. O sistema **copia para cada um o acompanhamento do protocolo do original**: a fase e a data da última execução de cada etapa (RN-44).
-6. O sistema encerra o original com motivo `dividido`, e **cancela** as ordens dele ainda em aberto (RN-43).
+5. O sistema **copia para cada um o acompanhamento do protocolo do original**: a fase e a data da última execução de cada etapa (RN-41).
+6. O sistema encerra o original com motivo `dividido`, e **cancela** as ordens dele ainda em aberto (RN-40).
 7. O sistema grava os movimentos que explicam o saldo dos três lotes.
 8. Daí em diante, os dois resultantes vencem e cumprem etapas de forma independente.
 
@@ -527,7 +527,7 @@ hora trabalhada perderia destino.
 1. A gerência abre o cadastro da espécie e a seção de tempos do protocolo.
 2. O sistema apresenta as etapas dos protocolos, com o tempo padrão de cada uma.
 3. A gerência informa o tempo próprio da espécie na etapa que difere.
-4. O sistema grava apenas o que foi preenchido, e o que ficou em branco continua vindo do protocolo (RN-41).
+4. O sistema grava apenas o que foi preenchido, e o que ficou em branco continua vindo do protocolo (RN-38).
 5. Lotes daquela espécie criados a partir daí passam a usar o tempo próprio.
 
 ### FA-1: Remover a customização
@@ -545,7 +545,7 @@ caminho a mais para chegar ao mesmo número.
 ### FE-2: Alteração com lotes em andamento
 
 No passo 5, existem lotes da espécie em curso. O novo tempo vale para os vencimentos **ainda não
-gerados**, e não reescreve ordem já emitida (RN-42). O sistema informa quantos lotes serão
+gerados**, e não reescreve ordem já emitida (RN-39). O sistema informa quantos lotes serão
 afetados na próxima geração, para que a gerência saiba o alcance antes de confirmar.
 
 ---

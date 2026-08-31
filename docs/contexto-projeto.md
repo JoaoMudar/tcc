@@ -41,7 +41,7 @@ o trabalho deles é planejado e confirmado pela gerência. Restaram três perfis
 | Antes | Depois |
 |---|---:|
 | 138 requisitos funcionais | 62 |
-| 105 regras de negócio | 60 |
+| 105 regras de negócio | 54 |
 | 59 casos de uso | 34 |
 | 62 entidades | 27, mais 2 visões |
 | 4 perfis de acesso | 3 |

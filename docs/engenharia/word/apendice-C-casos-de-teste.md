@@ -137,7 +137,7 @@ qualquer implementação do motor tem de reproduzir.
 | **TA-45** | RF-42 | Lote com a limpeza executada em 15 de setembro, próximo vencimento em 14 de dezembro | 1. Dividir o lote em dois, em 20 de dezembro<br>2. Consultar o vencimento da limpeza nos dois resultantes<br>3. Concluir a limpeza apenas no primeiro, em 22 de dezembro<br>4. Consultar os dois de novo | Os dois herdam o vencimento **14 de dezembro**, já em atraso, e não recomeçam em 20 de março; depois do passo 3, o primeiro vence em **22 de março** e o segundo continua em atraso desde 14 de dezembro | Não executado |
 
 > **TA-40 e TA-45 são os casos que decidem se o motor está certo.** Os dois separam a contagem a
-> partir da **execução real** (RN-36, RN-44) de uma contagem de calendário, e é a diferença que o
+> partir da **execução real** (RN-34, RN-41) de uma contagem de calendário, e é a diferença que o
 > módulo inteiro existe para produzir. Implementação que passe em todos os outros e falhe nestes
 > dois entregou uma agenda recorrente comum, e não um protocolo de lote.
 
@@ -147,7 +147,7 @@ qualquer implementação do motor tem de reproduzir.
 > ordens do dia, e as horas planejadas dobrariam com elas.
 
 > **TA-36 é o caso que protege o mapa de virar ruído.** Etapa diária com cor deixaria o viveiro
-> inteiro em atraso toda manhã (RN-40), e o teste falha se a irrigação receber qualquer indicação
+> inteiro em atraso toda manhã (RN-37), e o teste falha se a irrigação receber qualquer indicação
 > de situação, mesmo verde.
 
 ---

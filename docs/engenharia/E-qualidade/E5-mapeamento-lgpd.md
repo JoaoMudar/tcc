@@ -92,7 +92,7 @@ cumpre parte dessa transparência ao exibir ao próprio usuário os dados regist
    quando um registro é feito, e não têm, pela própria interface, como exercer o direito de acesso.
    É o oposto da situação do cliente, que ao menos negocia diretamente com quem digita.
 2. **O dado é sobre desempenho individual, e não sobre a equipe.** A quantidade realizada é gravada
-   **por pessoa**, e não por tarefa (RN-29): é a granularidade que o negócio pediu, e é também a
+   **por pessoa**, e não por tarefa (RN-24): é a granularidade que o negócio pediu, e é também a
    que permite comparar pessoas entre si. O sistema não faz essa comparação em tela nenhuma, mas o
    dado a permite, e é isso que precisa estar declarado.
 3. **A finalidade declarada é planejamento, não avaliação.** O registro existe para responder o que

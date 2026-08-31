@@ -185,7 +185,7 @@ mudado depois de fechados.
 **Controles:**
 
 - *Prevenção*: semana fechada recusa alteração (RF-29, RN-13); pedido confirmado recusa alteração
-  de item (RF-61, RN-56); nenhum perfil tem permissão de exclusão sobre movimento de lote
+  de item (RF-61, RN-50); nenhum perfil tem permissão de exclusão sobre movimento de lote
   ([`D4` §3.6](../D-arquitetura/D4-matriz-rbac.md)).
 - *Prevenção*: a correção de saldo é um movimento de `ajuste_contagem`, que **registra** a correção
   em vez de esconder o erro (RN-09).

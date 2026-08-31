@@ -910,5 +910,50 @@ aceite**, e portanto eram um requisito escrito em duas linhas. O criterio esta d
 `B2` §1, com a excecao de RF-46 e RF-60, que compartilham TA-65 e ficam separados de proposito
 por serem a unica aresta entre a Producao e o Comercial.
 
-**Os identificadores foram renumerados outra vez.** Este arquivo continua sendo o registro
-historico, e cita, de proposito, numeros que ja nao existem.
+### A fusao de cinco grupos de regras (31/08/2026)
+
+Um dia depois, o mesmo criterio foi levado ao catalogo de regras: **duas regras que enunciam a
+mesma coisa sobre o mesmo objeto sao uma regra so**, e o sinal de alerta e a coluna *RF originados*,
+quando uma regra origina exatamente os mesmos requisitos que a vizinha ou um subconjunto deles.
+Cinco grupos se enquadravam, e as regras passaram de 60 para 54 (numeracao anterior):
+
+  RN-24 + RN-29                contar por unidade e contar por pessoa
+  RN-27 + RN-32                turno e limite de atraso, ambos parametro mantido
+  RN-39 + RN-40                a janela de aviso e o alerta desligado da etapa
+  RN-46 + RN-47 + RN-48        a ordem gerada pelo protocolo
+  RN-50 + RN-53                o conjunto fiscal e a nota emitida fora daqui
+
+**Nenhuma regra do viveiro foi descartada:** os enunciados sobreviventes absorveram o texto inteiro
+dos absorvidos, e o catalogo continua originando os mesmos requisitos.
+
+### O grupo que nao foi fundido, e por que
+
+RN-08 (a quantidade disponivel), RN-31 (a situacao do lote) e RN-45 (o vencimento da etapa) foram
+apontados como candidatos, porque as tres terminam em "e derivado, nunca digitado". **Nao foram
+fundidas**, e a razao vale registro porque e o unico ponto em que o criterio foi recusado.
+
+O que cada uma carrega de substantivo e a **formula**, e as tres formulas sao diferentes: a
+quantidade sai da soma dos lotes abertos descontadas perdas e vendas, a situacao sai das etapas
+vencidas, e o vencimento sai do evento de referencia com a ultima execucao. Fundi-las guardaria o
+principio comum e jogaria fora o conteudo, e a primeira delas e o que sustenta o saldo de muda
+pronta que este trabalho existe para demonstrar.
+
+Mais de fundo: **"valor derivado nao se digita" falha no teste da propria §2.1 do B3.** Apague o
+sistema e nao ha onde digitar. E principio de projeto, e nao regra do viveiro. A regra e cada
+formula; o principio ja estava registrado na ressalva de RN-31, e continua la.
+
+**A licao, e ela e nova:** o criterio de granularidade nao substitui o criterio de existencia. Duas
+regras podem se parecer porque compartilham um principio de projeto, e nesse caso o parecido nao e
+o negocio, e sim o software. Fundir por semelhanca de forma teria escondido isso.
+
+### O que a fusao das regras corrigiu de quebra
+
+Ao mover a ressalva de RN-32 para RN-27, apareceram duas afirmacoes que ja estavam erradas na §2.4:
+RN-27 constava da lista das regras que **nao** precisam de ressalva, e a frase que atribui a origem
+**ORG** as cinco citava quatro RF, faltando o de RN-12, cujos requisitos estao marcados como **EN**
+e **OP**. O que e convencao do projeto em RN-12 nao e o turno, que foi observado, e sim a duracao
+unica declarada para ele.
+
+**Os identificadores foram renumerados outra vez**, so os RN desta vez, com RF, RNF, UC e TA saindo
+com zero alteracoes. Este arquivo continua sendo o registro historico, e cita, de proposito, numeros
+que ja nao existem.

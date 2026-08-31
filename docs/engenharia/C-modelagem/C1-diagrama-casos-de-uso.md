@@ -294,8 +294,8 @@ ator, e inventar um seria registrar uma interação que não existe.
 
 | RF | O que o sistema faz sem ator | Caso de uso | Onde o resultado aparece |
 |---|---|---|---|
-| RF-44 | Calcula a taxa de mortalidade do lote | UC-30 | UC-30 |
-| RF-48 | Classifica o lote em saudável, atenção e crítico | UC-27 | UC-27 |
+| RF-44 | Calcula a taxa de mortalidade do lote | UC-30 | no próprio UC-30 |
+| RF-48 | Classifica o lote em saudável, atenção e crítico | UC-27 | no próprio UC-27 |
 | RF-51 | Gera as ordens de tarefa do protocolo na agenda | *nenhum* | UC-19 |
 | RF-52 | Avança a fase do lote ao concluir etapa sequencial | *nenhum* | UC-28 |
 | RF-53 | Conta a ocorrência seguinte a partir da execução real | *nenhum* | UC-28 |

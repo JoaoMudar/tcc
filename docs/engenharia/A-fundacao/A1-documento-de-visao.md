@@ -135,7 +135,7 @@ Delimitação deliberada. Cada exclusão tem motivo declarado.
 | **Integração automática com o WhatsApp para fechar pedidos sem intervenção humana** | A negociação por WhatsApp é conduzida por pessoa e assim permanece. O sistema recebe o pedido já negociado. |
 | **Aplicativo nativo para Android ou iOS** | O uso móvel é atendido por aplicação web progressiva. Publicação em loja de aplicativos não agrega ao problema de pesquisa e adiciona custo de distribuição. |
 | **Funcionamento offline pleno** | O registro em campo funciona sem conexão, com envio posterior. Consultas que dependem de dado agregado exigem conexão. |
-| **Apuração de custo e formação de preço** | O preço é o que foi negociado na conversa com o cliente (RN-58). Apurar custo exigiria medir consumo de insumo e tempo por lote, e nenhum dos dois é registrado hoje: o sistema calcularia sobre dado que não tem. |
+| **Apuração de custo e formação de preço** | O preço é o que foi negociado na conversa com o cliente (RN-52). Apurar custo exigiria medir consumo de insumo e tempo por lote, e nenhum dos dois é registrado hoje: o sistema calcularia sobre dado que não tem. |
 | **Módulo financeiro: extrato, conciliação, lançamentos e centros de custo** | A base bancária é pessoal e da empresa ao mesmo tempo, e separá-la é problema contábil antes de ser problema de software. |
 | **Cotação com fornecedores e estoque de insumo** | O insumo permanece como catálogo, sem consumo nem saldo. Sem custeio, não há a quem entregar o número. |
 | **Entregas, cargas e roteirização** | O pedido registra a data prevista de entrega e para aí. Logística é operação de terceiro, e o viveiro a combina por telefone. |

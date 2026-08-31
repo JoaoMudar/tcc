@@ -51,7 +51,7 @@ Comece por [`engenharia/README.md`](engenharia/README.md), explica a estrutura d
 | Bloco | Artefatos |
 |-------|-----------|
 | A: Fundação | Documento de Visão, Glossário do domínio |
-| B: Requisitos | Especificação de Requisitos (62 RF, 27 RNF), Regras de negócio (60 RN), Quadros do TCC, Matriz de rastreabilidade |
+| B: Requisitos | Especificação de Requisitos (62 RF, 27 RNF), Regras de negócio (54 RN), Quadros do TCC, Matriz de rastreabilidade |
 | C: Modelagem | Casos de uso (34 UC), Especificação de casos de uso, MER/DER (27 entidades), Dicionário de dados |
 | D: Arquitetura | Arquitetura C4, Diagrama de implantação, Matriz RBAC |
 | E: Qualidade | Casos de teste de aceite, Riscos, Modelagem de ameaças, LGPD, Backup |

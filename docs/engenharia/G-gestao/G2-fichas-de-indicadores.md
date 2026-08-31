@@ -69,7 +69,7 @@ indicadores para um painel que não existia.
 | **Responsável** | Gerência |
 | **Perfis** | Chefia, Gerência |
 
-**O limiar não é constante: é parâmetro** (RF-09, RN-32). Os 20% de RN-11 são o valor inicial, e a
+**O limiar não é constante: é parâmetro** (RF-09, RN-27). Os 20% de RN-11 são o valor inicial, e a
 chefia o altera em Configurações sem que ninguém implante nada.
 
 **É por lote, e não por espécie, e a diferença é o achado.** A taxa por espécie diz que o ipê morre
@@ -90,7 +90,7 @@ regra dos 20% aponta um problema que ninguém consegue localizar.
 | **Fonte** | Visão `batch_health`, que lê `assignments` e `batch_protocol_steps` |
 | **Unidade** | Contagem absoluta e percentual do total de lotes abertos |
 | **Janela** | Instantâneo do dia |
-| **Periodicidade** | A cada leitura: **nunca gravado** (RN-31) |
+| **Periodicidade** | A cada leitura: **nunca gravado** (RN-30) |
 | **Meta** | Nenhum lote crítico |
 | **Faixas** | Definidas por parâmetro: `producao.atraso_atencao_dias` e `producao.atraso_critico_dias` |
 | **Comparação** | O mesmo dia da semana anterior |

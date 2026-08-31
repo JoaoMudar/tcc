@@ -71,6 +71,6 @@ Regra adotada: **mínimo legal brasileiro + e-mail obrigatório** (para enviar D
 ## Dependências com outras rotinas
 - **Pedidos** (`../3-comercial/pedidos.md`): o fechamento passa a perguntar sobre NF e a
   validar a completude do cliente: ver `clientes/04-integracao-pedidos-nf.md`.
-- **Emissão de nota fiscal**: acontece em sistema externo (RN-53), e o destino dos dados
+- **Emissão de nota fiscal**: acontece em sistema externo (RN-45), e o destino dos dados
   estruturados aqui é alimentá-la. A área Financeiro saiu do escopo em 28/08/2026, e com ela a
   rotina que este item citava.
