@@ -37,8 +37,16 @@ a gerência. É decisão de escopo, registrada em
 ![Mapa do sistema: três áreas](img/mapa-sistema-v2.png)
 
 **Como ler o status.** O critério é contado sobre a tabela de etapas de cada área, mais abaixo
-nesta página: **cinza sólido** = toda etapa tem tela · **tracejado largo** = parte tem ·
-**tracejado fino, sem preenchimento** = nenhuma tem. A fração aparece no próprio nó.
+nesta página: **borda sólida, preenchimento cinza** = toda etapa tem tela · **tracejado largo,
+cinza claro** = parte tem · **pontilhado fino, sem preenchimento** = nenhuma tem. **A fração não
+aparece dentro da figura**: quantas telas já existem é andamento de obra, não conteúdo de figura
+de TCC, e o número escrito no nó envelhecia sozinho toda vez que a tabela de etapas crescia. Quem
+quiser a contagem lê a tabela da área.
+
+Este parágrafo **é** a legenda da figura, e é por isso que ela não tem uma dentro. A versão
+anterior desenhava a legenda como um `subgraph`, que comia a metade esquerda da largura e ainda
+saía azulado, porque usava uma classe que a tabela de conversão do `render-mapas` não conhecia.
+Ao colar a figura no Word, cole este parágrafo com ela.
 
 **Três leituras que o diagrama torna imediatas:**
 
@@ -72,10 +80,41 @@ de cinza numa cópia temporária, renderiza e joga a cópia fora. O que vai para
 para o TCC é o cinza, que sobrevive à impressão em preto e branco; o que se edita continua
 colorido.
 
+**O cinza não distingue só por tom, distingue por traço**, e é o traço que carrega a leitura.
+A versão anterior separava os três status por três cinzas quase brancos, `#e8e8e8`, `#f2f2f2` e
+`#fbfbfb`: os dois últimos diferiam do papel em 9 e em 4 níveis de 255, e impresso não se
+distinguia nada. Agora cada status tem tom e padrão de borda próprios, que é exatamente a chave
+que a seção "Como ler o status" sempre descreveu.
+
 As três classes de status chamam-se `ok`, `meio` e `falta` nos seis diagramas: quem acrescentar um
 mapa deve usar os mesmos nomes, senão o script não encontra o que trocar. A largura também mora no
 script, uma só para todos: antes disso cada mapa tinha sido gerado com um `-w` diferente, e regerar
 com o valor errado reescalava a figura sem ninguém perceber.
+
+**A renderização é a `-s 3`**, como a de [`modelo-dados-pt/`](../engenharia/modelo-dados-pt/README.md):
+no Word a imagem entra reduzida e continua nítida na impressão. Sem isso, os dois mapas pequenos
+precisavam ser **ampliados** para preencher a coluna e chegavam ao papel a 88 e a 117 dpi.
+
+**Os mapas são desenhados em faixa horizontal, e o que fixa a forma é o comprimento da cadeia.**
+Em `LR` cada seta empurra a caixa seguinte para o lado, então uma cadeia de seis níveis vira uma
+tira de 9,4 para 1 e derruba o rótulo a 5,2 pt, abaixo do piso de 6 pt que
+[`mede-figuras.mjs`](../../scripts/mede-figuras.mjs) usa. A saída não foi girar a figura para `TD`,
+que devolvia uma coluna alta e cheia de setas longas passando por fora, e sim **encurtar a cadeia**:
+a Produção fundiu a confirmação da tarefa dentro do nó da agenda, que é onde ela acontece, e o mapa
+consolidado passou a receber uma única seta do Acesso em vez de uma para cada área. Onde não há
+cadeia, como no Cadastro único, três ligações `~~~` invisíveis quebram a coluna em uma grade de três
+colunas. Nenhum mapa tem hoje seta cruzando seta, e o menor rótulo do conjunto está em 7,0 pt.
+
+Depois de regerar, rode a conferência:
+
+```bash
+node scripts/confere-mapas.mjs
+```
+
+Ele mede a fonte útil de cada PNG na mancha do TCC e verifica que nenhum nó voltou a contar telas.
+As duas verificações existem porque as duas falhas já aconteceram: a figura mais importante do
+conjunto chegou ao Word a 5,2 pt, e o mapa consolidado ficou meses anunciando "8 etapas" para uma
+Produção de 10, que é o motivo de a contagem ter saído do desenho.
 
 O PNG é a fonte para leitura e para o TCC; o `.mmd` é a fonte para edição.
 

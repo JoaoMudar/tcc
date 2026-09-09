@@ -1,23 +1,27 @@
 %% Producao: o trabalho da semana e a muda no canteiro.
+%% Desenhado em LR e em cinco caixas, e nao em TD e seis. A cadeia
+%% lote -> protocolo -> agenda -> confirmacao -> movimento -> mapa tem seis niveis:
+%% em pe virava uma coluna de meio metro, e as duas setas de atalho (lote -> movimento
+%% e agenda -> mapa) desciam pela lateral cruzando a figura toda.
+%% Duas mudancas resolvem: a confirmacao da tarefa passou para dentro do no da agenda,
+%% que e onde ela acontece, e a leitura agenda -> mapa saiu, porque o atraso ja chega
+%% ao mapa pelo protocolo. Sobra um unico atalho, lote -> movimento, que passa por baixo.
+%%{init: {'flowchart': {'rankSpacing': 50, 'nodeSpacing': 40, 'curve': 'basis'}}}%%
 flowchart LR
-  AG["agenda da semana<br/><small>rascunho → publicada → fechada</small>"]
-  CF["confirmar tarefa<br/><small>quantidade por participante</small>"]
-  LO["lotes<br/><small>espécie, recipiente, canteiro</small>"]
-  MV["movimentos do lote<br/><small>perda, repicagem, venda, ajuste</small>"]
-  PL["protocolo do lote<br/><small>etapas e vencimentos</small>"]
-  MA["mapa de lotes<br/><small>atraso, mortalidade, ocupação</small>"]
+  LO["lotes<br/><small>espécie<br/>recipiente<br/>canteiro</small>"]
+  PL["protocolo<br/>do lote<br/><small>etapas e<br/>vencimentos</small>"]
+  AG["agenda da<br/>semana<br/><small>rascunho →<br/>publicada →<br/>fechada<br/>confirmação<br/>da tarefa</small>"]
+  MV["movimentos<br/>do lote<br/><small>perda<br/>repicagem<br/>venda<br/>ajuste</small>"]
+  MA["mapa de lotes<br/><small>atraso<br/>mortalidade<br/>ocupação</small>"]
 
-  AG --> CF
-  CF --> MV
-  LO --> MV
   LO --> PL
-  PL -->|"gera ordem"| AG
+  PL --> AG
+  AG --> MV
   MV --> MA
-  AG --> MA
+  LO --> MV
 
   classDef ok fill:#dcfce7,stroke:#16a34a,stroke-width:2px,color:#111
   classDef meio fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#111
   classDef falta fill:#fee2e2,stroke:#dc2626,stroke-width:2px,color:#111
-  classDef grupo fill:#f8fafc,stroke:#cbd5e1,stroke-width:1px,color:#334155
 
-  class AG,CF,LO,MV,PL,MA falta
+  class AG,LO,MV,PL,MA falta

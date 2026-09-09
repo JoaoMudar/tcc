@@ -51,7 +51,7 @@ Comece por [`engenharia/README.md`](engenharia/README.md), explica a estrutura d
 | Bloco | Artefatos |
 |-------|-----------|
 | A: Fundação | Documento de Visão, Glossário do domínio |
-| B: Requisitos | Especificação de Requisitos (62 RF, 27 RNF), Regras de negócio (54 RN), Quadros do TCC, Matriz de rastreabilidade |
+| B: Requisitos | Especificação de Requisitos (58 RF, 24 RNF), Regras de negócio (54 RN), Quadros do TCC, Matriz de rastreabilidade |
 | C: Modelagem | Casos de uso (34 UC), Especificação de casos de uso, MER/DER (27 entidades), Dicionário de dados |
 | D: Arquitetura | Arquitetura C4, Diagrama de implantação, Matriz RBAC |
 | E: Qualidade | Casos de teste de aceite, Riscos, Modelagem de ameaças, LGPD, Backup |
@@ -100,6 +100,7 @@ suas fontes, e rodar os scripts é parte de alterar qualquer artefato:
 | `build-e2-cobertura.mjs` | `E2` §9 (cobertura por seção e requisitos sem caso) |
 | `mede-figuras.mjs` | A fonte útil de cada figura do `modelo-dados-pt` |
 | `render-mapas.mjs` | Os PNG em escala de cinza de `rotinas/img/` |
+| `confere-mapas.mjs` | Mede a fonte útil de cada PNG de `rotinas/img/` e verifica que nenhum nó voltou a contar telas |
 | `verifica-rastreabilidade.mjs` | Confere, nos dois sentidos, os identificadores citados contra os definidos |
 | `confere-modelo-pt.mjs` | Confere o conjunto de arestas das figuras em português contra o do `C6` |
 | `leia.mjs` | Leitura dos geradores, normalizando a quebra de linha. Não se roda sozinho |

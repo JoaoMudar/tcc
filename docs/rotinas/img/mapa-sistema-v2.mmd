@@ -2,18 +2,38 @@
 %% Fonte unica da taxonomia, espelhada nos artefatos de engenharia.
 %% Este mapa e de nivel de area de proposito: o que tem dentro de cada uma esta
 %% em mapa-1-cadastros, mapa-2-producao e mapa-3-comercial.
+%% ---
+%% Sem legenda dentro da figura: a chave de leitura e o paragrafo "Como ler o status"
+%% logo abaixo dela em 00-mapa-de-rotinas.md.
+%% ---
+%% Em LR e em quatro niveis. Em TD a figura era uma coluna alta, e o Acesso mandava
+%% uma seta para cada uma das tres areas: tres arcos longos passando por cima das
+%% caixas do meio, que e o emaranhado que a versao anterior tinha. Agora o Acesso
+%% entra uma vez, na porta da fila, e a frase dentro do no diz o que a seta deixou
+%% de dizer, que ele precede as tres. As Configuracoes ficam ao lado do Cadastro,
+%% de onde alcancam a Producao com uma seta curta. Sobra um unico atalho,
+%% Cadastro -> Comercial, que passa por baixo.
+%% ---
+%% As fracoes de etapa com tela sairam dos nos, como no mapa-4-areas: quem quiser o
+%% numero le a tabela de etapas da area em 00-mapa-de-rotinas.md. O `&nbsp;` no fim
+%% do rotulo da seta empurra o texto para cima da curva, senao a linha risca a
+%% palavra "pronta".
+%%{init: {'flowchart': {'rankSpacing': 68, 'nodeSpacing': 35, 'curve': 'basis'}}}%%
 flowchart LR
-  ACC["<b>ACESSO</b><br/><i>transversal as tres areas</i><br/>login · senha · aparelhos conectados<br/>usuários e permissões<br/><b>todas as etapas têm tela</b>"]
+  ACC["<b>ACESSO</b><br/><i>precede as três</i><br/>login · senha<br/>aparelhos<br/>conectados<br/>usuários<br/>e permissões"]
 
-  CFG["<b>CONFIGURAÇÕES</b><br/><i>transversal as tres areas</i><br/>período de trabalho<br/>limites de atraso e de mortalidade<br/><b>nenhuma das 2 etapas tem tela</b>"]
+  CFG["<b>CONFIGURAÇÕES</b><br/><i>parametriza</i><br/><i>a produção</i><br/>período de<br/>trabalho<br/>limites de atraso<br/>e de mortalidade"]
 
-  CAD["<b>1 · CADASTRO ÚNICO</b><br/><i>não consome nada, alimenta tudo</i><br/>espécies · recipientes · insumos<br/><b>pessoas</b>: cliente · fornecedor · funcionário<br/>tipos de tarefa · áreas e canteiros · protocolos<br/><b>6 de 9 etapas têm tela</b>"]
+  CAD["<b>1 · CADASTRO</b><br/><b>ÚNICO</b><br/><i>alimenta tudo</i><br/>espécies<br/>recipientes<br/>insumos · pessoas<br/>tipos de tarefa<br/>áreas e canteiros<br/>protocolos"]
 
-  PRO["<b>2 · PRODUÇÃO</b><br/><i>o trabalho e a muda</i><br/>agenda da semana · confirmação de tarefa<br/>lotes e movimentos · perdas<br/>protocolo do lote · mapa de lotes<br/><b>nenhuma das 8 etapas tem tela</b>"]
+  PRO["<b>2 · PRODUÇÃO</b><br/><i>o trabalho</i><br/><i>e a muda</i><br/>agenda da semana<br/>confirmar tarefa<br/>lotes<br/>movimentos<br/>perdas · protocolo<br/>mapa de lotes"]
 
-  COM["<b>3 · COMERCIAL</b><br/>cadastro de pedidos:<br/>rascunho → confirmado<br/>com preço digitado e saldo disponível<br/><b>3 de 4 etapas têm tela</b>"]
+  COM["<b>3 · COMERCIAL</b><br/><i>o pedido</i><br/><i>registrado</i><br/>pedidos<br/>rascunho →<br/>confirmado<br/>preço por item<br/>saldo ao lado"]
 
+  %% O Acesso precede as tres areas, e por isso entra na porta da fila.
   ACC ==> CAD
+
+  %% As Configuracoes so alimentam a Producao: turno para a agenda, limites para o mapa.
   CFG ==> PRO
 
   %% O Cadastro unico alimenta as duas outras e nao consome nada.
@@ -21,22 +41,12 @@ flowchart LR
   CAD ==> COM
 
   %% A UNICA aresta entre Producao e Comercial, e ela e de leitura.
-  PRO ==>|"saldo de muda pronta"| COM
-
-  subgraph LEG["Legenda"]
-    direction LR
-    L1["implementado no protótipo"]
-    L2["parcialmente implementado"]
-    L3["especificado, não implementado"]
-    L1 ~~~ L2 ~~~ L3
-  end
+  PRO ==>|"saldo de<br/>muda pronta<br/>&nbsp;<br/>&nbsp;"| COM
 
   classDef ok fill:#dcfce7,stroke:#16a34a,stroke-width:2px,color:#111
   classDef meio fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#111
   classDef falta fill:#fee2e2,stroke:#dc2626,stroke-width:2px,color:#111
-  classDef grupo fill:#f8fafc,stroke:#cbd5e1,stroke-width:1px,color:#334155
 
-  class ACC,L1 ok
-  class CAD,COM,L2 meio
-  class PRO,CFG,L3 falta
-  class LEG grupo
+  class ACC ok
+  class CAD,COM meio
+  class PRO,CFG falta

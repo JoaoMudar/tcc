@@ -42,6 +42,10 @@ for (const line of b3.split('\n')) {
   const m = line.match(/^\| \*\*(RN-\d+)\*\* \|(.*)$/);
   if (!m) continue;
   const cols = m[2].split('|').map((c) => c.trim());
+  // A tabela de ressalvas da §2.4 usa o mesmo formato de linha e repete cinco
+  // ids do catalogo. Ela tem duas colunas, e o catalogo tem cinco: sem este
+  // filtro a contagem saia 59 em vez de 54.
+  if (cols.length < 5) continue;
   regras.push({ id: m[1], tipo: cols[1] });
   for (const alvo of (cols[3] || '').match(/RF-\d+/g) || []) {
     if (!origem.has(alvo)) {

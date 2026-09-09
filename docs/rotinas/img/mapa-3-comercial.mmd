@@ -1,20 +1,22 @@
 %% Comercial: o pedido negociado fora do sistema, registrado dentro dele.
+%% Em LR: sao cinco caixas e uma so ramificacao, entao a rotina cabe numa faixa
+%% horizontal com a consulta de saldo pendurada embaixo, sem seta cruzando outra.
+%%{init: {'flowchart': {'rankSpacing': 55, 'nodeSpacing': 40, 'curve': 'basis'}}}%%
 flowchart LR
-  CR["cadastrar pedido<br/><small>cliente, canal, itens</small>"]
-  PC["informar preço<br/><small>digitado por item</small>"]
-  SD["consultar saldo<br/><small>muda pronta da produção</small>"]
-  CO["confirmar pedido<br/><small>trava os itens</small>"]
-  AC["acompanhar pedidos"]
+  CR["cadastrar pedido<br/><small>cliente · canal<br/>itens</small>"]
+  PC["informar preço<br/><small>digitado<br/>por item</small>"]
+  CO["confirmar pedido<br/><small>trava<br/>os itens</small>"]
+  AC["acompanhar pedidos<br/><small>por cliente, canal<br/>e período</small>"]
+  SD["consultar saldo<br/><small>muda pronta<br/>da produção</small>"]
 
   CR --> PC
-  CR --> SD
   PC --> CO
   CO --> AC
+  CR --> SD
 
   classDef ok fill:#dcfce7,stroke:#16a34a,stroke-width:2px,color:#111
   classDef meio fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#111
   classDef falta fill:#fee2e2,stroke:#dc2626,stroke-width:2px,color:#111
-  classDef grupo fill:#f8fafc,stroke:#cbd5e1,stroke-width:1px,color:#334155
 
   class CR,SD,AC ok
   class PC,CO meio

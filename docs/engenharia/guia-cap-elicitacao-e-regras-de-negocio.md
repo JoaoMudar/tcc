@@ -67,15 +67,15 @@ capítulo tem de copiar o enunciado do `B2`, e não a lembrança dele.
 
 ## 1.2 Tabela pronta: requisitos por técnica de elicitação
 
-Contagem extraída de `B2` (62 RF). Requisito com duas origens aparece em ambas as linhas, por isso
-a soma dá 71 e não 62. **Recontar antes de usar**: a tabela abaixo é resultado, e resultado que se
+Contagem extraída de `B2` (58 RF). Requisito com duas origens aparece em ambas as linhas, por isso
+a soma dá 65 e não 58. **Recontar antes de usar**: a tabela abaixo é resultado, e resultado que se
 copia de uma versão anterior é como as contagens deste projeto já erraram três vezes.
 
 | Técnica (código em `B2`) | Requisitos funcionais | Leitura |
 |---|---:|---|
-| **OP**: Observação participante | 26 | Técnica dominante: o autor integra a operação |
+| **OP**: Observação participante | 21 | Técnica dominante: o autor integra a operação |
 | **ORG**: Política do projeto | 20 | Quase toda em acesso, segurança e fechamento de período |
-| **EN**: Entrevista com chefia e gerência | 17 | O conhecimento estava na memória das pessoas |
+| **EN**: Entrevista com chefia e gerência | 14 | O conhecimento estava na memória das pessoas |
 | **DOM**: Estudo do domínio florestal | 6 | Ciclo produtivo, protocolo de manejo, nome científico |
 | **AD**: Análise documental (notas de compra, planilhas de nota fiscal) | 2 | Concentrada nos dados fiscais do cliente |
 | **LEG**: Exigência legal/fiscal | 2 | Documento fiscal e nome científico |
@@ -86,8 +86,9 @@ chefia **pediu em entrevista** e o autor nunca viu operando, custeio, precifica�
 que ficou foi o que ele **viu acontecer**, a leva plantada, a semana combinada de boca, o pedido
 anotado depois. O escopo encolheu na direção do que estava observado, e não do que estava desejado.
 
-Nos **27 requisitos não funcionais** a origem é outra: 13 vêm de política do projeto (**ORG**),
-11 derivam das restrições **RE-1 a RE-5** de `A1` e 3 de exigência legal (**LEG**). Ou seja: **os
+Nos **24 requisitos não funcionais** a origem é outra: 11 vêm de política do projeto (**ORG**),
+10 derivam das restrições **RE-1 a RE-5** de `A1` e 3 de exigência legal (**LEG**), um deles somado
+ao estudo do domínio (**DOM**). Ou seja: **os
 RNF não foram elicitados com os usuários, foram deduzidos das restrições do ambiente.** Esse é um
 parágrafo de análise que a banca valoriza.
 
@@ -156,17 +157,17 @@ As regras estão agrupadas em **cinco áreas**:
 
 Cada regra em `B3` traz **tipo** (fato, restrição, derivação, acionamento), **onde já estava
 documentada** e **quais RF e RNF ela origina**. As tabelas inversas (RF → RN e RNF → origem) estão
-nas seções 4 e 5 de lá, e o texto integral dos 62 RF e 27 RNF no apêndice (§7): o arquivo é
+nas seções 4 e 5 de lá, e o texto integral dos 58 RF e 24 RNF no apêndice (§7): o arquivo é
 autossuficiente para gerar as tabelas do trabalho.
 
 > ⚠️ **As seções 4 e 7 do `B3` são geradas** por `scripts/build-b3-derivado.mjs`, e o mesmo vale
 > para o `B4` inteiro, para `B5` §2 e §6 e para `E2` §9. Editá-las à mão é trabalho que o próximo
 > `node scripts/build-b3-derivado.mjs` apaga. Corrija a fonte, que é o `B2` §2/§3 ou o `B3` §3.
 
-**Dois números que valem parágrafo no capítulo:** 58 dos 62 requisitos funcionais nascem de regra de
-negócio, mas apenas 3 dos 27 não funcionais: os outros 24 vêm das restrições do ambiente (RE-1 a
-RE-5) ou de política do projeto. As regras determinam **o que** o sistema faz; o ambiente determina
-**como** ele precisa ser.
+**Dois números que valem parágrafo no capítulo:** 55 dos 58 requisitos funcionais nascem de regra de
+negócio, e nenhum dos 24 não funcionais: 21 vêm das restrições do ambiente (RE-1 a RE-5) ou de
+política do projeto, e 3 de exigência legal. As regras determinam **o que** o sistema faz; o
+ambiente determina **como** ele precisa ser.
 
 > ⚠️ **Não inclua** no capítulo de regras: "no máximo cinco campos por tela", "funcionar sem
 > conexão", "senha cifrada". Essas são **RNF**, restrições do ambiente, não regras do viveiro. Já

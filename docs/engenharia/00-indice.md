@@ -34,8 +34,8 @@ São documentos de projeto, não relatórios de código.
 
 | Código | Artefato | Destino no TCC | Situação |
 |---|---|---|---|
-| [B2](B-requisitos/B2-especificacao-requisitos.md) | Especificação de Requisitos (ERS) | 4.2 Requisitos do sistema | ✅ escrito: 62 RF, 27 RNF |
-| [B3](B-requisitos/B3-regras-de-negocio.md) | Regras de negócio e vínculo com os requisitos | 4.3 Regras de negócio | ✅ escrito: 54 regras, 58 dos 62 RF vinculados. **§4 e §7 geradas** por `scripts/build-b3-derivado.mjs` |
+| [B2](B-requisitos/B2-especificacao-requisitos.md) | Especificação de Requisitos (ERS) | 4.2 Requisitos do sistema | ✅ escrito: 58 RF, 24 RNF |
+| [B3](B-requisitos/B3-regras-de-negocio.md) | Regras de negócio e vínculo com os requisitos | 4.3 Regras de negócio | ✅ escrito: 54 regras, 55 dos 58 RF vinculados. **§4 e §7 geradas** por `scripts/build-b3-derivado.mjs` |
 | [B4](B-requisitos/B4-quadros-tcc.md) | Quadros de regras de negócio e requisitos | Apêndice D | ✅ **gerado** por `scripts/build-b4-quadros.mjs`: 10 quadros |
 | [B5](B-requisitos/B5-matriz-rastreabilidade.md) | Matriz de rastreabilidade | 4.10 + Apêndice | ✅ escrito: **§2 e §6 geradas** por `scripts/build-b5-matriz.mjs`; revelou 19 requisitos sem teste, todos fechados |
 
@@ -60,7 +60,7 @@ São documentos de projeto, não relatórios de código.
 
 | Código | Artefato | Destino no TCC | Situação |
 |---|---|---|---|
-| [E2](E-qualidade/E2-casos-de-teste-de-aceite.md) | Casos de teste de aceite | 4.8 + Apêndice | ✅ escrito: 70 casos; **§9 gerada** por `scripts/build-e2-cobertura.mjs` |
+| [E2](E-qualidade/E2-casos-de-teste-de-aceite.md) | Casos de teste de aceite | 4.8 + Apêndice | ✅ escrito: 67 casos; **§9 gerada** por `scripts/build-e2-cobertura.mjs` |
 | [E3](E-qualidade/E3-analise-de-riscos.md) | Análise de riscos do projeto | **Capítulo 3** (metodologia) | ✅ escrito: 10 riscos |
 | [E4](E-qualidade/E4-modelagem-de-ameacas.md) | Modelagem de ameaças e controles | 4.7 Segurança e controle de acesso | ✅ escrito: 11 ameaças |
 | [E5](E-qualidade/E5-mapeamento-lgpd.md) | Mapeamento LGPD | 4.7 + parágrafos novos no Cap. 2.5 | ✅ escrito |

@@ -1,4 +1,7 @@
 %% Acesso e Configuracoes: transversais as tres areas de negocio.
+%% O `init` fixa o espacamento: sem ele o dagre abre o leque de "entrar no sistema"
+%% mais do que precisa e a figura chega ao Word com meia pagina de branco.
+%%{init: {'flowchart': {'rankSpacing': 55, 'nodeSpacing': 30, 'curve': 'basis'}}}%%
 flowchart LR
   L["entrar no sistema"]
   S["trocar a senha"]
@@ -16,7 +19,6 @@ flowchart LR
   classDef ok fill:#dcfce7,stroke:#16a34a,stroke-width:2px,color:#111
   classDef meio fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#111
   classDef falta fill:#fee2e2,stroke:#dc2626,stroke-width:2px,color:#111
-  classDef grupo fill:#f8fafc,stroke:#cbd5e1,stroke-width:1px,color:#334155
 
   class L,S,D,U ok
   class T,P falta

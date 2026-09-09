@@ -1,17 +1,24 @@
 %% A visao do dono: as tres areas de negocio e nada mais.
+%% Em LR, tres caixas numa faixa horizontal: e a figura que entra na largura da
+%% pagina do TCC sem virar coluna. O `rankSpacing` folgado existe para o rotulo
+%% "saldo de muda pronta" caber entre a Producao e o Comercial sem a seta passar
+%% por cima da palavra.
+%% As fracoes de etapa com tela sairam dos nos: contagem de obra nao e conteudo de
+%% figura de TCC, e quem quiser o numero le a tabela de etapas de 00-mapa-de-rotinas.
+%% O status continua no traco da borda, que e o que a legenda da pagina descreve.
+%%{init: {'flowchart': {'rankSpacing': 80, 'nodeSpacing': 50, 'curve': 'basis'}}}%%
 flowchart LR
-  C["🗂️ <b>Cadastro único</b><br/><small>espécies, recipientes, insumos<br/>pessoas, tipos de tarefa<br/>áreas e canteiros, protocolos<br/><b>6 de 9</b></small>"]
-  R["🌱 <b>Produção</b><br/><small>agenda, lotes, movimentos<br/>perdas, protocolo, mapa<br/><b>0 de 8</b></small>"]
-  P["🤝 <b>Comercial</b><br/><small>cadastro de pedidos<br/><b>3 de 4</b></small>"]
+  C["<b>Cadastro único</b><br/><small>espécies<br/>recipientes · insumos<br/>pessoas<br/>tipos de tarefa<br/>áreas e canteiros<br/>protocolos</small>"]
+  R["<b>Produção</b><br/><small>agenda da semana<br/>lotes<br/>movimentos<br/>perdas<br/>protocolo do lote<br/>mapa de lotes</small>"]
+  P["<b>Comercial</b><br/><small>pedidos<br/>preço por item<br/>saldo disponível<br/>confirmação</small>"]
 
   C --> R
-  C --> P
   R -->|"saldo de muda pronta"| P
+  C --> P
 
   classDef ok fill:#dcfce7,stroke:#16a34a,stroke-width:2px,color:#111
   classDef meio fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#111
   classDef falta fill:#fee2e2,stroke:#dc2626,stroke-width:2px,color:#111
-  classDef grupo fill:#f8fafc,stroke:#cbd5e1,stroke-width:1px,color:#334155
 
   class C,P meio
   class R falta

@@ -1,12 +1,25 @@
 %% Cadastro unico: o que alimenta as outras duas areas.
-flowchart LR
+%% Desenhado como grade de tres colunas, e nao como coluna unica. Em LR os seis
+%% cadastros empilhavam numa tira vertical e "tipos de tarefa" mandava uma seta de
+%% um palmo ate "protocolos", atravessando a figura inteira.
+%% As tres ligacoes `~~~` sao INVISIVEIS: existem so para empurrar insumos, pessoas e
+%% areas para a linha de cima, deixando na linha de baixo os tres cadastros que
+%% alimentam o protocolo. Sem elas o dagre poe os seis lado a lado.
+%%{init: {'flowchart': {'rankSpacing': 55, 'nodeSpacing': 40, 'curve': 'basis'}}}%%
+flowchart TD
+  I["insumos"]
+  PE["pessoas<br/><small>cliente · fornecedor<br/>funcionário</small>"]
+  AC["áreas e canteiros"]
+
   E["espécies<br/><small>nomes populares, foto</small>"]
   R["recipientes"]
-  I["insumos"]
-  PE["pessoas<br/><small>cliente · fornecedor · funcionário</small>"]
   TT["tipos de tarefa"]
-  AC["áreas e canteiros"]
+
   PR["protocolos de atividade"]
+
+  I ~~~ E
+  PE ~~~ R
+  AC ~~~ TT
 
   E --> PR
   R --> PR
@@ -15,7 +28,6 @@ flowchart LR
   classDef ok fill:#dcfce7,stroke:#16a34a,stroke-width:2px,color:#111
   classDef meio fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#111
   classDef falta fill:#fee2e2,stroke:#dc2626,stroke-width:2px,color:#111
-  classDef grupo fill:#f8fafc,stroke:#cbd5e1,stroke-width:1px,color:#334155
 
   class E,R,I,PE ok
   class TT,AC meio
