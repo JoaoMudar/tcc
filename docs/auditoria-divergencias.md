@@ -233,7 +233,7 @@ implementar o dashboard lendo só o plano vai construir a coisa errada.
 Cadastro único e agenda de pessoal ainda não constam da engenharia: faltam ~8 RF em `B2`, o
 subsistema Cadastros em `C1`, quatro entidades em `C6`/`C8`, a regra do colaborador em `D4` e
 as linhas novas em `B5`. Lista completa em
-[`plans/P13-producao-agenda-cadastros.md`](../plans/P13-producao-agenda-cadastros.md).
+`plans/P13-producao-agenda-cadastros.md`, apagado na redução de escopo.
 
 > ✅ **Resolvido em 19/08/2026**: RF-69 a RF-76 no `B2`, RN-48 a RN-55 no `B3`, UC-41 a UC-44 no
 > `C1`, as quatro entidades da agenda em `C6`/`C8`, a regra §3.11 no `D4` e as linhas do `B5`.
@@ -1162,3 +1162,149 @@ esquema define do nome que o documento apenas menciona. Onde as duas coisas conv
 arquivo, o script nao serve, e a escolha e traduzir a mao ou nao traduzir. Aqui foi nao traduzir, e
 fica registrado que `docs/rotinas/` segue falando em `customers` e `orders` enquanto o banco fala
 em `pessoas` e `pedidos`.
+
+> **Superado em 10/09/2026 pela decima terceira passada**, que traduziu os tres alvos a mao. O
+> registro acima fica porque descreve por que a substituicao automatica falhou, e essa parte
+> continua valendo.
+
+
+---
+
+## Decima terceira passada: os tres alvos que a passada anterior deixou em ingles (10/09/2026)
+
+A decima segunda passada renomeou o modelo de dados e parou em tres arquivos: `docs/rotinas/`,
+`docs/divida-tecnica.md` e `plans/P1-sistema-reduzido.md`. Esta passada os fecha, e o caminho foi o
+que a anterior ja tinha diagnosticado: **a mao, caso a caso**, porque nenhum script distingue o
+nome que o esquema define do nome que o documento apenas menciona.
+
+### Tres regras de corte
+
+1. **Identificador do repositorio do aplicativo fica em ingles.** Caminho (`src/lib/parties.ts`),
+   funcao (`mergeParties`, `listParties`), branch (`refactor/politica-e-parties`), script de `npm`
+   e arquivo de configuracao. Sao nomes reais de outro repositorio, e traduzi-los tornaria o
+   documento falso. E a regra que faltava na tentativa automatica.
+2. **Nome de tabela historica se resolve reescrevendo a frase**, e nao substituindo o token.
+   "partida entre `customers` e `suppliers`" virou "cadastros separados de cliente e de
+   fornecedor". O fato sobrevive sem o identificador.
+3. **Bloco SQL que reproduz um esquema inexistente nao se traduz.** Ou sai junto com o arquivo, ou
+   some.
+
+### O achado: dez arquivos nao estavam so em ingles, estavam obsoletos
+
+Nao ha uma frase em ingles nos tres alvos. A prosa ja era portuguesa, e o ingles estava sempre em
+identificador entre crases. Mas dez arquivos de `docs/rotinas/` descreviam a tabela `customers`,
+os campos fiscais, a emissao de nota, as cargas e as notificacoes, e citavam sete migrations
+(`20260521100001_pedidos_customers.sql` e as seguintes) que **nao existem mais**. O `P1` diz
+explicitamente que o sistema nao emite nota. Traduzi-los produziria SQL em portugues que nunca
+rodou em banco nenhum.
+
+Sairam `1-cadastros/clientes.md` e a pasta `1-cadastros/clientes/` (sete arquivos, 774 linhas), e
+`3-comercial/pedidos/01-banco-de-dados.md` e `03-cadastro-pedido.md`. No lugar,
+`1-cadastros/01-cadastro-unico.md` foi reescrito contra
+`migrations/20260901000003_cadastro_pessoas_e_tarefas.sql`, e `3-comercial/pedidos.md` virou
+indice curto do que existe.
+
+**A reducao de escopo da oitava passada cortou os artefatos de engenharia e nao chegou as
+rotinas.** E a mesma licao da decima passada, num diretorio diferente: o documento que ninguem
+regera continua afirmando o mundo em que foi escrito.
+
+### O que sobrou em ingles, e por que
+
+`src/lib/parties.ts`, `mergeParties`, `listParties`, `refactor/politica-e-parties`,
+`feat/cadastro-unico-casamento-pessoa`, `information_schema`, `_migrations`, `vi.mock`, `BYTEA` e
+os `npm run *`, todos pela regra 1. E `input_usages` e `input_price_history` em
+`divida-tecnica.md`, agora com a frase dizendo que sao os nomes da epoca: sao o fato do achado J,
+e sem eles o achado deixa de ser verificavel.
+
+### O que a passada nao resolveu
+
+> **Superado em 10/09/2026 pela decima quarta passada**, que reduziu os dois arquivos, apagou
+> `3-comercial/pedidos/` e fechou os links quebrados.
+
+`1-cadastros/00-visao-geral.md` e `3-comercial/00-visao-geral.md` continuam descrevendo escopo
+cortado (centros de custo, cotacao com fornecedor, custeio, valor-hora, entregas por carga,
+`/financeiro`). Isso e conteudo, nao idioma, e fica para a proxima passada de reducao. Os links
+para `plans/P13`, `plans/P15` e `centros-de-custo.md` ja estavam quebrados antes desta passada,
+pelo mesmo motivo.
+
+**Nenhum script pega nada disso.** `verifica-rastreabilidade.mjs` le os tres alvos, mas so confere
+identificador de requisito; nome de tabela e invisivel para ele. Nao existe verificacao automatica
+de idioma no repositorio, e a conferencia foi um `grep` da lista de tabelas antigas com inspecao de
+cada ocorrencia restante contra as tres regras acima.
+
+---
+
+## Decima quarta passada: a reducao chega as visoes gerais das rotinas (10/09/2026)
+
+A passada anterior fechou o idioma e deixou escrito o que faltava: as duas visoes gerais de area
+continuavam descrevendo escopo cortado. Esta passada as fecha, e o alvo cresceu no caminho, porque
+o mesmo problema estava em mais tres arquivos.
+
+### A fonte da verdade usada em cada caso
+
+Nao foi julgamento de escopo. Cada afirmacao foi conferida contra o artefato que a define, e onde
+os dois discordavam, quem estava errado era a rotina:
+
+| Alvo | Conferido contra |
+|---|---|
+| Quem cadastra o que | `D4` §2 (a matriz) e §3.1, §3.2, §3.4 |
+| Campo de tabela | `migrations/20260901000003` e `20260901000006` |
+| Enunciado de requisito | `B2`, RF-10 a RF-25 e RF-54 a RF-58 |
+| Taxonomia de area e etapa | `00-mapa-de-rotinas.md`, que ja estava reduzido |
+
+### O que saiu
+
+`1-cadastros/00-visao-geral.md` foi reescrito inteiro. Sairam os centros de custo (linha de tabela,
+no da arvore, paragrafo proprio e link para `centros-de-custo.md`, que nao existe), a cotacao com
+fornecedor e as quatro rotas dela, o valor-hora medio da equipe, o encadeamento do tipo de tarefa
+ate o custo de mao de obra, `/financeiro/custos-fixos`, as linhas Financeiro e Custeio/Precificacao
+da tabela final e as citacoes a `P11`, `P12`, `P13`, `T13.3` e `T13.7`.
+
+`3-comercial/00-visao-geral.md`, de 47 linhas, perdeu o miolo: o diagrama de quatro etapas com
+cargas e separacao, o ramo de cotacao, o paragrafo sobre entrega nao ser a quinta etapa, a linha
+"4 · Financeiro" da tabela e o "Modulo 3 de 4" do cabecalho. Sao tres areas, e nao quatro.
+
+`3-comercial/pedidos/` foi apagada. Sobrara um arquivo da versao pre-reducao, com cargas
+multi-viagem, oito status, notificacoes in-app e uma lista de seis arquivos de implementacao que a
+passada anterior ja tinha apagado. O `README` e o mapa apontavam para a pasta.
+
+`2-producao/00-visao-geral.md` perdeu a tela de custo de mao de obra e a secao `### Colaborador`
+inteira, que descrevia duas telas para um perfil que saiu do sistema em 28/08/2026.
+
+`06-protocolo-de-atividades.md` perdeu os dois links para `plans/P15`.
+
+### O achado: o arquivo ja reduzido tambem estava errado
+
+`3-comercial/pedidos.md` e `1-cadastros/01-cadastro-unico.md` foram reescritos na passada anterior
+e passaram por reduzidos. Nao estavam.
+
+- `pedidos.md` descrevia o fluxo como `cadastro (chefia) -> verificacao (gerencia) -> confirmacao
+  (chefia)` e dedicava uma secao ao **item generico**, em que a gerencia escolhe as especies. O
+  `D4` §3.2 diz que a gerencia **nao le pedido**, e `pedidos_itens.especie_id` e `NOT NULL`. As
+  duas coisas sairam, e o fluxo virou `rascunho -> confirmado`, com `cancelado` ao lado, que e o
+  `CHECK` da migration.
+- `01-cadastro-unico.md` afirmava que "a leitura nao e uniforme" e que a gerencia nao fica sabendo
+  que uma pessoa tambem e fornecedora. A nota 2 do `D4` §2 diz o contrario: Pessoas e **um recurso
+  so**, e os papeis nao se separam. A unica restricao e a ficha fiscal (§3.1).
+
+**A licao e a mesma da decima terceira passada, um nivel mais fundo:** reescrever um documento
+contra a migration acerta o schema e nao acerta o processo. Quem descreve quem faz o que tem de ler
+a matriz de acesso, e nao so o `CREATE TABLE`.
+
+De quebra, `1-cadastros/00-visao-geral.md` era o unico arquivo de `docs/rotinas/` que citava
+caminho de codigo (`src/lib/modules.ts`, `src/app/cadastros/pessoas/actions.ts`,
+`src/lib/parties.ts`). Este repositorio nao tem `src/`. As citacoes foram trocadas por migration e
+`C8`, que e a ancora que os outros arquivos usam.
+
+### O que os scripts pegaram, e o que nao pegaram
+
+`verifica-rastreabilidade.mjs` e `confere-mapas.mjs` passam limpos, antes e depois: nenhum dos dois
+enxerga escopo. A conferencia foi um `grep` da lista de termos cortados sobre `docs/rotinas/`, mais
+um verificador de link relativo escrito para esta passada. Ele achou um link morto fora do alvo, o
+`plans/P13` no achado H deste arquivo, que virou texto simples: o registro historico fica, o 404
+sai.
+
+As tres mencoes a "carga" que sobreviveram sao a carga de terra que chega meio-dia
+(`01-agenda-de-pessoal.md`) e a que este arquivo acabou de escrever. A quarta,
+em `04-lotes-e-canteiros.md`, dizia que "carga" continuava sendo um dos sentidos do termo no
+sistema, e virou carregamento de caminhao, que nao e modelado.

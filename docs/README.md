@@ -37,7 +37,7 @@
 | [`banco-local-espelho.md`](banco-local-espelho.md) | Espelhar o Neon para um Postgres local descartável (`npm run db:refresh-local`) para testes seguros. |
 | [`EXECUTION-GUIDE.md`](EXECUTION-GUIDE.md) | Como conduzir as sessões de desenvolvimento e a ordem dos sprints. |
 | [`plano-seguranca-commits.md`](plano-seguranca-commits.md) | Plano histórico de segurança de commits (hooks, gitignore). |
-| [`auditoria-divergencias.md`](auditoria-divergencias.md) | **Auditoria, dez passadas entre 10/08 e 31/08/2026**: divergências entre docs, planos e código, a redução de escopo na oitava e, na décima, a regra que afirmava um fato falso sobre o viveiro. É registro histórico: cita identificadores que já não existem, de propósito. |
+| [`auditoria-divergencias.md`](auditoria-divergencias.md) | **Auditoria, catorze passadas entre 10/08 e 10/09/2026**: divergências entre docs, planos e código, a redução de escopo na oitava, a regra que afirmava um fato falso sobre o viveiro na décima, o modelo de dados em português na décima segunda e a redução das rotinas na décima quarta. É registro histórico: cita identificadores que já não existem, de propósito. |
 | [`divida-tecnica.md`](divida-tecnica.md) | **Trabalho futuro (11/08/2026)**: o que falta para a produção ser segura de operar: backup, teste contra banco real, drift de schema. Prontidão medida: ~85%. |
 
 ### Engenharia de software (`docs/engenharia/`)
@@ -72,13 +72,12 @@ O mapa traz também o **diagrama de como as três áreas se relacionam** e um di
 |--------|--------|---------|
 | **1 · Cadastro único** | Cadastro único (agrupador) | [`rotinas/1-cadastros/00-visao-geral.md`](rotinas/1-cadastros/00-visao-geral.md) |
 | **1 · Cadastro único** | Identidade única: pessoa, papel e endereço | [`rotinas/1-cadastros/01-cadastro-unico.md`](rotinas/1-cadastros/01-cadastro-unico.md) |
-| **1 · Cadastro único** | Clientes (visão geral + detalhamento) | [`rotinas/1-cadastros/clientes.md`](rotinas/1-cadastros/clientes.md) e a pasta [`rotinas/1-cadastros/clientes/`](rotinas/1-cadastros/clientes/) |
 | **2 · Produção** | Produção (visão geral) | [`rotinas/2-producao/00-visao-geral.md`](rotinas/2-producao/00-visao-geral.md) |
 | **2 · Produção** | Agenda de pessoal | [`rotinas/2-producao/01-agenda-de-pessoal.md`](rotinas/2-producao/01-agenda-de-pessoal.md) |
 | **2 · Produção** | Lotes e canteiros | [`rotinas/2-producao/04-lotes-e-canteiros.md`](rotinas/2-producao/04-lotes-e-canteiros.md) |
 | **2 · Produção** | Protocolo de atividades por lote | [`rotinas/2-producao/06-protocolo-de-atividades.md`](rotinas/2-producao/06-protocolo-de-atividades.md) |
 | **3 · Comercial** | Comercial (visão geral) | [`rotinas/3-comercial/00-visao-geral.md`](rotinas/3-comercial/00-visao-geral.md) |
-| **3 · Comercial** | Pedidos (visão geral + detalhamento) | [`rotinas/3-comercial/pedidos.md`](rotinas/3-comercial/pedidos.md) e a pasta [`rotinas/3-comercial/pedidos/`](rotinas/3-comercial/pedidos/) |
+| **3 · Comercial** | Pedidos | [`rotinas/3-comercial/pedidos.md`](rotinas/3-comercial/pedidos.md) |
 
 ### Planos de implementação (`plans/`)
 

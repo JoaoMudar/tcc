@@ -157,16 +157,16 @@ esquecimento que o protocolo existe para denunciar.
 
 | Entidade | Papel |
 |---|---|
-| `task_types` | catálogo de tipos de tarefa: nome, categoria, quantitativa por unidade?, lote específico?, exige espécie?, exige recipiente?. Vive nos [Cadastros](../1-cadastros/00-visao-geral.md) |
-| `work_shifts` | o período de trabalho: hora de início e fim de cada turno |
-| `week_plans` | a semana: `week_start`, `status` (rascunho, publicada, fechada) |
-| `assignments` | a célula da grade: data, turno, **hora de início e fim quando a tarefa a tem**, tipo de tarefa, espécie?, recipiente?, lote?, área?, canteiro?, quantidade planejada, situação |
-| `assignment_members` | o grupo escalado, e quanto cada um fez |
+| `tipos_tarefa` | catálogo de tipos de tarefa: nome, categoria, quantitativa por unidade?, lote específico?, exige espécie?, exige recipiente?. Vive nos [Cadastros](../1-cadastros/00-visao-geral.md) |
+| `turnos_trabalho` | o período de trabalho: hora de início e fim de cada turno |
+| `semanas` | a semana: `inicio_semana`, `situacao` (rascunho, publicada, fechada) |
+| `atribuicoes` | a célula da grade: data, turno, **hora de início e fim quando a tarefa a tem**, tipo de tarefa, espécie?, recipiente?, lote?, área?, canteiro?, quantidade planejada, situação |
+| `atribuicoes_participantes` | o grupo escalado, e quanto cada um fez |
 
 **Não há entidade de apontamento.** O planejado e o confirmado moram na mesma linha, e é a
 situação que distingue os dois.
 
-Funcionário é `cadastro.parties` com papel `funcionario`: **não** `users`. Amélia e Jaison
+Funcionário é `cadastro.pessoas` com papel `funcionario`: **não** `usuarios`. Amélia e Jaison
 existem na agenda mesmo sem nunca terem feito login.
 
 ## Regras invioláveis
@@ -196,6 +196,6 @@ existem na agenda mesmo sem nunca terem feito login.
 | [`B3`](../../engenharia/B-requisitos/B3-regras-de-negocio.md) | RN-23 a RN-26, RN-27, RN-24, RN-31; RN-12 e RN-14 emendadas; ressalvas em §2.4 |
 | [`B2`](../../engenharia/B-requisitos/B2-especificacao-requisitos.md) | RF-21 e RF-08; RF-26 a RF-31, a agenda e a confirmação; RF-26 na entrada da área, com **RNF-14** e a emenda de RNF-06 |
 | [`C1`](../../engenharia/C-modelagem/C1-diagrama-casos-de-uso.md) / [`C2`](../../engenharia/C-modelagem/C2-especificacao-casos-de-uso.md) | UC-15, UC-19, UC-20, UC-21 e UC-05; UC-20 detalhado |
-| [`C6`](../../engenharia/C-modelagem/C6-modelo-entidade-relacionamento.md) / [`C8`](../../engenharia/C-modelagem/C8-dicionario-de-dados.md) | `week_plans`, `assignments`, `assignment_members`, `work_shifts` e `task_types`; `assignments` guarda o planejado e o confirmado na mesma linha, e por isso não há entidade de apontamento |
+| [`C6`](../../engenharia/C-modelagem/C6-modelo-entidade-relacionamento.md) / [`C8`](../../engenharia/C-modelagem/C8-dicionario-de-dados.md) | `semanas`, `atribuicoes`, `atribuicoes_participantes`, `turnos_trabalho` e `tipos_tarefa`; `atribuicoes` guarda o planejado e o confirmado na mesma linha, e por isso não há entidade de apontamento |
 | [`D4`](../../engenharia/D-arquitetura/D4-matriz-rbac.md) | recursos **Agenda da semana**, **Confirmação de tarefa**, **Fechamento da semana** e **Período de trabalho**; §3.3 |
 | [`E2`](../../engenharia/E-qualidade/E2-casos-de-teste-de-aceite.md) | TA-10 a TA-12, TA-26 a TA-33, TA-58, TA-27 e TA-28 |

@@ -1,167 +1,81 @@
-# Fase 1: Cadastro único (schema `cadastro`)
+# Cadastro único de pessoas
 
-> Pré-requisito do financeiro. **Não depende dos extratos, pode ser implementado já.**
+> Uma identidade, vários papéis. Cliente, fornecedor e funcionário não são três cadastros: são
+> três papéis da mesma pessoa (RN-47).
+>
+> Modelo em [`C6`](../../engenharia/C-modelagem/C6-modelo-entidade-relacionamento.md) e
+> [`C8`](../../engenharia/C-modelagem/C8-dicionario-de-dados.md); origem no banco em
+> `migrations/20260901000003_cadastro_pessoas_e_tarefas.sql`.
 
-## O problema
+## O problema que ele resolve
 
-Hoje o cadastro de pessoas está partido em duas tabelas sem ligação, ambas em `public`:
+Quem vende semente ao viveiro às vezes compra muda dele. Com um cadastro de cliente e outro de
+fornecedor, essa pessoa aparece duas vezes, e o mesmo telefone passa a ter duas verdades. Pior:
+não há como perguntar quanto se comprou e quanto se vendeu para ela sem casar os dois cadastros
+por nome a cada consulta.
 
-- `customers`: quem compra. Tem campos fiscais completos (PF/PJ, documento, endereço).
-- `suppliers`: quem vende muda para revenda. Tem só cidade/UF, sem documento nem endereço.
+**A identidade é uma só, e o papel é que se multiplica.** É o que RN-47 afirma e o que as três
+tabelas do esquema `cadastro` implementam.
 
-Três consequências:
-
-1. **A mesma pessoa vira dois registros.** Márcio Kuhar vende muda (fornecedor) e pode
-   comprar (cliente). São dois cadastros que não se sabem o mesmo.
-2. **Falta todo mundo que não é nem um nem outro.** O dinheiro sai para funcionário, sócio,
-   contador, banco, prefeitura, membro da família. Nenhuma das duas tabelas os representa.
-3. **Endereço é coluna, não entidade.** `customers` tem um endereço embutido; um cliente com
-   endereço de cobrança diferente do de entrega não cabe.
-
-O financeiro precisa apontar "com quem foi" em cada linha do extrato, e essa contraparte
-pode ser qualquer um dos seis papéis acima.
-
-## A solução: aditiva, não migratória
-
-Cria-se a identidade única **sem mexer no que existe**. `customers` e `suppliers` continuam
-onde estão, com as mesmas colunas; ganham só um `party_id` apontando para a identidade.
-Nenhuma tela, nenhuma Server Action e nenhum teste atual quebra.
+## As três tabelas
 
 ```
-cadastro.parties            quem é (pessoa ou empresa) — A IDENTIDADE
-cadastro.party_roles        o que essa pessoa é para nós (N papéis por party)
-cadastro.addresses          endereços (N por party)
-        ▲                ▲
-        │                └── public.suppliers.party_id   (NULL-able, aditivo)
-        └─────────────────── public.customers.party_id   (NULL-able, aditivo)
-        ▲
-        └─────────────────── financeiro.transactions.party_id
+cadastro.pessoas             quem é: tipo, nome, documento, telefone, e-mail
+cadastro.pessoas_papeis      cliente · fornecedor · funcionario, com o vínculo do funcionário
+cadastro.pessoas_enderecos   entrega · cobranca · residencial
 ```
 
-### `cadastro.parties`
+### `cadastro.pessoas`
 
-| Coluna | Tipo | Nota |
-|---|---|---|
-| `id` | UUID PK | `gen_random_uuid()` |
-| `kind` | `'pf'` \| `'pj'` | CHECK |
-| `document` | VARCHAR(14) | só dígitos; **UNIQUE parcial** `WHERE document IS NOT NULL`, mesmo padrão do `idx_customers_document` |
-| `name` | TEXT NOT NULL | nome usual (o que aparece nas listas) |
-| `legal_name`, `trade_name` | TEXT | razão social / fantasia (PJ) |
-| `email`, `phone`, `whatsapp` | | whatsapp só dígitos, como em `suppliers` |
-| `notes`, `active` | | soft-delete via `active`, padrão do sistema |
-| `created_at`, `updated_at` | TIMESTAMPTZ | trigger `set_updated_at()` |
+| Coluna | Nota |
+|---|---|
+| `tipo` | `pf` ou `pj`, pelo enum `cadastro.tipo_pessoa` |
+| `nome` | obrigatório, e é o rótulo que a tela exibe |
+| `documento` | CPF ou CNPJ, só dígitos, único. **Nulo no cadastro rápido** |
+| `telefone`, `email`, `observacoes` | opcionais |
+| `ativa` | inativar retira a pessoa das listas e preserva o histórico |
 
-### `cadastro.party_roles`
+**`documento` é nulo até que precise não ser.** A negociação nasce no WhatsApp e o cliente
+frequentemente é novo, então nome e telefone bastam para registrar o pedido, e a ficha se completa
+depois (RN-46, RF-15). A unicidade do documento é índice de banco, e vale só quando ele existe.
 
-`(party_id, role)` UNIQUE. `role` é lista fechada:
+O conjunto fiscal completo é exigência de quem emite a nota, não deste sistema: a nota é emitida
+em sistema externo, e aqui fica apenas o cadastro capaz de alimentá-la (RN-45, RF-16).
 
-`cliente` · `fornecedor` · `funcionario` · `socio` · `familiar` · `banco` · `governo` ·
-`contador` · `outro`
+### `cadastro.pessoas_papeis`
 
-Um party pode acumular papéis: é exatamente o caso do Márcio Kuhar.
+Chave primária composta por `pessoa_id` e `papel`, o que impede o mesmo papel duas vezes na mesma
+pessoa. `tipo_vinculo` (`fixo` ou `diarista`) só é aceito no papel `funcionario`, e a restrição
+`pessoas_papeis_vinculo_so_em_funcionario` é quem garante isso. A coluna vive no papel, e não em
+`pessoas`, para não deixar nula em toda pessoa que só compra.
 
-### `cadastro.addresses`
+**Funcionário existe sem login.** A chave estrangeira `usuarios.pessoa_id` é opcional nos dois
+sentidos, porque há administrador sem vínculo e há funcionário sem acesso ao sistema. Seis dos
+nove colaboradores nunca abrem o aplicativo, e mesmo assim aparecem na agenda (RF-20).
 
-`party_id`, `label` (`principal` | `entrega` | `cobranca` | `outro`), `zip_code`, `street`,
-`number`, `complement`, `neighborhood`, `city`, `state(2)`, `ibge_code`, `lat`, `lng`,
-`geocoded_at`, `is_primary`.
+### `cadastro.pessoas_enderecos`
 
-Reaproveita `src/lib/geocode.ts` e `src/lib/geo.ts`, que já geocodificam fornecedores para o
-mapa da rede (P11 Fase 4).
+`logradouro`, `cidade`, `uf` e `cep`, com o tipo pelo enum `cadastro.tipo_endereco`. Uma pessoa
+tem mais de um endereço, e o de entrega pode não ser o de cobrança (RN-51).
 
-## Backfill
+## Como a tela usa isso
 
-Na própria migration, **sem guarda condicional** (lição nº 7 do post-mortem: migration com
-`IF ... THEN RETURN` roda como no-op e ainda assim é marcada como aplicada):
+`/cadastros/pessoas` é **uma lista com filtro por papel**, e não uma aba por papel. A pessoa
+aparece uma vez, com um selo por papel que ela exerce, e o selo é o link para a tela daquele papel.
+O nome abre a ficha, que mostra a identidade e o histórico dos dois lados, e não edita nada.
 
-1. Uma party para cada `customers`, herdando `person_type` → `kind`, `document`, `name`,
-   `legal_name`, `trade_name`, `email`, `phone`. Papel `cliente`. Endereço vira uma linha em
-   `addresses` quando houver CEP ou rua.
-2. Uma party para cada `suppliers`, papel `fornecedor`, com `name`, `whatsapp`, `phone`,
-   `email`, `city`, `state`, `lat`, `lng`.
-3. **Casamento entre os dois:** por `document` quando os dois lados tiverem; por
-   `lower(trim(name))` quando não. Encontrou → uma party só, com os dois papéis.
-4. Grava o `party_id` de volta em `customers` e `suppliers`.
+A busca localiza por nome, telefone ou documento, e indica os papéis (RF-18).
 
-**Ambiguidade é aceita, não resolvida:** mesmo nome com documentos diferentes vira duas
-parties. A fusão é manual depois: `src/app/clientes/actions.ts` já tem `mergeCustomers`
-como precedente de UX para isso.
+**O papel não se esconde; a ficha fiscal, sim.** Pessoas é um recurso só na matriz de acesso, e
+separar a leitura de cliente da de fornecedor exigiria uma permissão por papel sobre a mesma linha
+(`D4` §2, nota 2). O que a gerência não lê é CPF, CNPJ e endereço, que é a única restrição de
+privacidade da matriz (`D4` §3.1).
 
-## O casamento é uma regra, não um evento (corrigido em 19/08/2026)
+## Rastreabilidade
 
-O backfill acima roda **uma vez**. Durante os primeiros dias, `createCustomer` e
-`createSupplier` continuaram criando uma party nova a cada cadastro, sem procurar identidade
-existente: então um fornecedor que virasse cliente ganhava um segundo registro e a
-duplicidade voltava sozinha. Isso foi corrigido:
-
-- **Procura antes de criar.** `findPartyMatch` (em `src/lib/parties.ts`) busca por `document`
-  quando existe e por `lower(trim(name))` quando não, e **só devolve resultado se a identidade
-  encontrada ainda não tiver o papel** que está sendo cadastrado, do contrário seria duplicata
-  do mesmo papel, caso que o `idx_customers_document` já trata.
-- **O sistema nunca une sozinho**, nem quando o documento bate. A tela pergunta *"É a mesma
-  pessoa?"* e só liga se alguém confirmar. Mantém a linha do backfill, ambiguidade é aceita,
-  não resolvida: e deixa a decisão com quem conhece as pessoas.
-- **A pergunta também aparece ao editar**, não só ao cadastrar. É o caminho de conserto dos
-  duplicados criados entre o backfill e a correção: abrir e salvar levanta a questão, sem
-  precisar de tela de manutenção.
-- **Unir clientes une as identidades.** `mergeCustomers` chama `mergeParties`, que move os
-  papéis, completa as lacunas, repointa `customers`/`suppliers` e **apaga** a party redundante.
-  O DELETE é exceção deliberada ao soft-delete do sistema: `idx_parties_document` é UNIQUE
-  parcial e não filtra por `active`, então uma identidade inativa com documento prenderia
-  aquele CPF/CNPJ para sempre.
-
-## Convivência (o ponto delicado)
-
-Depois do backfill, o mesmo nome existe em dois lugares: em `parties` e na coluna antiga de
-`customers`/`suppliers`. Isso é dívida deliberada e temporária, com uma trava:
-
-- **`parties` é a verdade de identidade** (nome, documento, contato, endereço).
-- **`customers`/`suppliers` guardam o que é do papel**, `reliability_score`, `status` de
-  outreach, notas comerciais.
-- Enquanto as telas não migram, **toda escrita passa por um único arquivo**,
-  `src/lib/parties.ts` (`upsertPartyFromCustomer`, `upsertPartyFromSupplier`), coberto por
-  teste. Um ponto de estrangulamento é um lugar só onde a duplicidade pode divergir.
-- **`undefined` ≠ `null` na identidade.** Chave ausente quer dizer "este formulário não conhece
-  o campo" e preserva o que existe (o de fornecedor não tem documento); `null` quer dizer "o
-  usuário apagou" e grava NULL. Antes as duas coisas eram a mesma, um COALESCE em todas as
-  colunas, e o efeito era que apagar um telefone errado em `/clientes` zerava
-  `customers.phone` e **mantinha o valor errado** em `parties.phone`.
-- **Exceção na hora de ligar:** ao vincular um cadastro a uma identidade que já existia,
-  `fillOnly` desliga o apagar. O formulário preenchido ali nunca mostrou os dados do outro
-  papel, então campo em branco é "não preenchi", e não "apague o que o fornecedor tinha".
-- Uma fase futura faz as telas lerem de `parties` e remove as colunas duplicadas por migration.
-
-## O que muda para quem usa
-
-Na Fase 1, **nada**: era só fundação. Depois da correção de 19/08/2026, uma coisa só.
-cadastrar (ou salvar) alguém cujo nome ou documento já existe em outro papel mostra um aviso
-perguntando se é a mesma pessoa, com dois botões. Respondeu, o cadastro segue normalmente.
-`/clientes`, `/fornecedores` e `/pedidos` continuam idênticos no resto.
-
-O valor maior aparece na Fase 2, quando o financeiro tem para onde apontar.
-
-## Verificação
-
-```sql
-\dn                                            -- lista o schema cadastro
-SELECT count(*) FROM customers WHERE party_id IS NULL AND active;   -- 0
-SELECT count(*) FROM suppliers WHERE party_id IS NULL AND active;   -- 0
-SELECT document, count(*) FROM cadastro.parties
-  WHERE document IS NOT NULL GROUP BY 1 HAVING count(*) > 1;        -- vazio
-```
-
-Candidatos a duplicata que ainda restem (nomes repetidos nesta lista são a mesma pessoa em
-duas identidades: a fusão é manual, abrindo o cadastro e salvando):
-
-```sql
-SELECT p.id, p.name, array_agg(r.role) AS papeis
-  FROM cadastro.parties p
-  JOIN cadastro.party_roles r ON r.party_id = p.id
- GROUP BY p.id, p.name
-HAVING count(*) = 1
- ORDER BY LOWER(TRIM(p.name));
-```
-
-Mais `npm test` (validação de documento em `src/lib/parties.ts`, reusando as funções de
-`src/lib/customers.ts`) e uma passada em `/clientes`, `/fornecedores` e `/pedidos` no
-`npm run dev`.
+| Documento | O que |
+|---|---|
+| [`B2`](../../engenharia/B-requisitos/B2-especificacao-requisitos.md) | RF-14 a RF-20 |
+| [`B3`](../../engenharia/B-requisitos/B3-regras-de-negocio.md) | RN-45, RN-46, RN-47, RN-51 |
+| [`C6`](../../engenharia/C-modelagem/C6-modelo-entidade-relacionamento.md) / [`C8`](../../engenharia/C-modelagem/C8-dicionario-de-dados.md) | `cadastro.pessoas`, `cadastro.pessoas_papeis`, `cadastro.pessoas_enderecos` |
+| [`D4`](../../engenharia/D-arquitetura/D4-matriz-rbac.md) | recursos **Pessoas** e **Dados fiscais de pessoa** |

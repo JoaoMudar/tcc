@@ -1,48 +1,47 @@
 # Comercial: visão geral
 
-> Módulo 3 de 4. O que acontece entre o cliente pedir e a muda sair do viveiro.
-> Mapa dos quatro módulos em [`../00-mapa-de-rotinas.md`](../00-mapa-de-rotinas.md).
+> Área 3 de 3. O que acontece entre o cliente pedir e o pedido ficar registrado.
+> Mapa das três áreas em [`../00-mapa-de-rotinas.md`](../00-mapa-de-rotinas.md).
 
-## O que este módulo é
+## O que esta área é
 
 Tudo aqui é **movimento**: acontece uma vez e vira histórico. O que é estável, cliente,
-espécie, fornecedor: é Cadastros, e o Comercial só consome.
+espécie, recipiente, é Cadastros, e o Comercial só consome.
 
 A negociação continua sendo por WhatsApp, conduzida por pessoa. O sistema não substitui a
-conversa; ele registra o que ficou combinado e encadeia as etapas seguintes com notificação,
-para que nada dependa de alguém lembrar de avisar.
+conversa; ele registra o que ficou combinado, com o preço digitado por quem registra, e mostra ao
+lado o que a produção tem pronto.
 
-## As três rotinas
+## A rotina da área
 
 | # | Rotina | Pergunta que responde | Documento |
 |---|---|---|---|
-| 1 | **Pedidos** | O que o cliente quer, tem, e por quanto? | [`pedidos.md`](pedidos.md) → [`pedidos/`](pedidos/) |
-| 2 | **Cotação com fornecedor** | Quando falta muda nossa, quem tem e a que preço? | plano [`P11`](../../../plans/P11-fornecedores-cotacao.md) |
-| 3 | **Entregas** | Quando cada carga vira viagem? | [`entregas.md`](entregas.md) |
+| 1 | **Pedidos** | O que o cliente quer, tem, e por quanto? | [`pedidos.md`](pedidos.md) |
 
-O ciclo do pedido tem quatro etapas, cada uma com um dono:
+O ciclo é curto e é todo da chefia, que é quem responde por preço
+([`D4` §3.2](../../engenharia/D-arquitetura/D4-matriz-rbac.md)):
 
 ```
-cadastro (chefia)  →  verificação (gerência)  →  aprovação (chefia)  →  cargas e separação (gerência)
-                                    │                                              │
-                              falta muda                                    cada carga
-                                    ↓                                              ↓
-                            cotação (chefia)                                   entrega
+registrar  →  informar o preço de cada item  →  confirmar  →  acompanhar
+                          │
+                   consultar o saldo
 ```
 
-**Entrega não é a 5ª etapa do pedido.** Uma carga é uma viagem, e viagem tem calendário
-próprio: por isso entregas é rotina irmã, e não o último estado do pedido.
+**A confirmação trava os itens, e é o fim do ciclo** (RF-57). O que sai do viveiro depois disso é
+combinado entre pessoas, como a negociação foi. Entrega, carga e roteiro de viagem estão fora do
+escopo ([`A1` §7](../../engenharia/A-fundacao/A1-documento-de-visao.md)).
 
-## Relação com os outros módulos
+## Relação com as outras áreas
 
-| Módulo | Relação |
+| Área | Relação |
 |---|---|
-| **1 · Cadastros** | cliente e espécie no pedido; fornecedor na cotação |
-| **2 · Produção** | o estoque disponível é o que a verificação consulta |
-| **4 · Financeiro** | a venda e a compra de fornecedor viram lançamento; o preço por canal volta de lá para a aprovação |
+| **1 · Cadastros** | cliente, espécie e recipiente no item do pedido |
+| **2 · Produção** | o saldo de muda pronta aparece ao lado de cada item (RF-56) |
+
+**A consulta de saldo é a única ligação entre as duas áreas de movimento**, e ela é de leitura. O
+pedido não reserva, não baixa e não move lote.
 
 ## Onde estão as telas
 
-Área `/comercial`. As telas seguem nas URLs de origem (`/pedidos/*` e `/fornecedores/*`)
-porque a rotina de pedidos aponta para elas e `notifications.link` guarda caminho já gravado
-no banco. O agrupamento é de navegação, não de rota.
+Área `/comercial`. As telas seguem nas URLs de origem (`/pedidos/*`) porque a rotina de pedidos
+aponta para elas e o caminho já está gravado no banco. O agrupamento é de navegação, não de rota.

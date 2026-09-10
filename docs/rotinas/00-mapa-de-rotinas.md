@@ -159,7 +159,7 @@ Rotina **agrupadora**, sem processo próprio. Reúne o que é estável e se repe
 | Cadastrar/editar espécie, com nomes populares e foto | Chefia |
 | Cadastrar/editar recipiente e insumo | Chefia |
 | Consultar pessoas por papel (`/cadastros/pessoas`) | Chefia |
-| Cadastrar/editar cliente ([`1-cadastros/clientes.md`](1-cadastros/clientes.md)) | Chefia |
+| Cadastrar/editar cliente ([`1-cadastros/01-cadastro-unico.md`](1-cadastros/01-cadastro-unico.md)) | Chefia |
 | Cadastrar/editar fornecedor | Chefia |
 | Cadastrar/editar funcionário | Chefia |
 | Cadastrar/editar tipo de tarefa | Gerência |
@@ -167,7 +167,7 @@ Rotina **agrupadora**, sem processo próprio. Reúne o que é estável e se repe
 | Montar o protocolo de atividades ([`2-producao/06-protocolo-de-atividades.md`](2-producao/06-protocolo-de-atividades.md)) | Gerência / Chefia |
 
 **Pessoas são uma identidade só.** Cliente, fornecedor e funcionário são papéis de
-`cadastro.parties`: quem vende muda e às vezes compra é um cadastro só
+`cadastro.pessoas`: quem vende muda e às vezes compra é um cadastro só
 ([`1-cadastros/01-cadastro-unico.md`](1-cadastros/01-cadastro-unico.md)). Por isso
 `/cadastros/pessoas` é **uma lista com filtro por papel**, e não uma aba por papel: a pessoa
 aparece uma vez, com um selo por papel que leva à tela daquele papel. O nome abre a **ficha**
@@ -240,16 +240,15 @@ docs/rotinas/
 ├── img/                            ← os diagramas (.mmd é a fonte, .png é a leitura)
 ├── 1-cadastros/
 │   ├── 00-visao-geral.md           a rotina agrupadora e a regra de corte
-│   ├── 01-cadastro-unico.md        o schema `cadastro`: pessoa, papel, endereço
-│   └── clientes.md  +  clientes/   cadastro fiscal e o portão da nota
+│   └── 01-cadastro-unico.md        o esquema `cadastro`: pessoa, papel, endereço
 ├── 2-producao/
 │   ├── 00-visao-geral.md           as subrotinas e o fluxo
 │   ├── 01-agenda-de-pessoal.md     o planejamento da semana e a confirmação
 │   ├── 04-lotes-e-canteiros.md     onde a muda está e de que leva veio
 │   └── 06-protocolo-de-atividades.md  o que o lote tem de receber
 └── 3-comercial/
-    ├── 00-visao-geral.md           o cadastro de pedidos
-    └── pedidos.md  +  pedidos/     as etapas, uma por documento
+    ├── 00-visao-geral.md           a área e o que ela consome
+    └── pedidos.md                  o cadastro de pedidos, a única rotina
 ```
 
 **Acesso e Configurações não têm pasta.** São transversais e não têm rotina de negócio própria:

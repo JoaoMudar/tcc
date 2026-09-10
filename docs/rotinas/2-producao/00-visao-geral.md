@@ -24,7 +24,7 @@ ficar pronto.
 
 > **A numeração dos arquivos não acompanha a das subrotinas**, e é deliberado: `02-estoque.md` e
 > `03-perdas.md` já ocupavam os números quando estas foram escritas, e renumerá-los quebraria
-> ligações em `B3`, `C6`, `C8`, no mapa de rotinas e no `P13`.
+> ligações em `B3`, `C6`, `C8` e no mapa de rotinas.
 
 O encadeamento é um ciclo simples:
 
@@ -50,29 +50,28 @@ abertos dela. Sem lote, as três subrotinas funcionam por espécie agregada, e n
 ### Chefia
 - **Visão de produção**: o que está sendo produzido, previsão de disponibilidade, gargalos
 - **Decisão de produção**: quais espécies produzir em maior volume (com base em vendas e estoque)
-- **Custo de mão de obra do período**: horas planejadas × realizadas, valor total
 
 ### Gerência
-- **Agenda**: uma tela só, em três escalas. **Dia** para apontar quem trocou de serviço, com uma
-  faixa por funcionário (subrotina 2); **semana** para preencher o que cada um faz (subrotina 1);
-  **mês** para conferir o que deixou de se repetir
-- **Ocupação do viveiro**: o mapa, com o que há em cada canteiro e quais estão livres (subrotina 3)
+- **Agenda**: uma tela só, em três escalas (subrotina 1). **Dia** para ver quem está em quê, com
+  uma faixa por funcionário; **semana** para preencher o que cada um faz; **mês** para conferir o
+  que deixou de se repetir
+- **Ocupação do viveiro**: o mapa, com o que há em cada canteiro e quais estão livres (subrotina 2)
 - **Ficha do lote**: semeado → germinando → repicado → pronto, com o histórico que explica o saldo
 
 > **A agenda e o mapa são as duas telas de mesa do sistema** (RNF-14): abrem juntas na entrada da
 > Produção, alternadas por aba, e são concebidas para computador. No celular viram lista. Todo o
 > resto do sistema é de campo, e continua sendo do celular.
 
-### Colaborador
-- **Minhas tarefas de hoje**: lista curta, vinda da agenda; marcar como feito
-- **Registro de atividade**: lote e quantidade, pré-preenchidos pela tarefa
+> **Não há tela de colaborador.** Os seis trabalhadores de campo aparecem no cadastro como
+> funcionário, recebem tarefa na agenda e têm a quantidade produzida registrada, e nunca abrem uma
+> tela: quem planeja e confirma o trabalho deles é a gerência
+> ([`A1` §5](../../engenharia/A-fundacao/A1-documento-de-visao.md)).
 
 ## Relação com as outras rotinas
 
 | Rotina | Relação |
 |---|---|
 | **Cadastros** | consome espécie, recipiente, funcionário, tipo de tarefa, área, canteiro e período de trabalho |
-| **Estoque** | produção registrada é a entrada do saldo (estoque = produção − perdas − vendas) |
-| **Perdas** | perda é registrada no mesmo gesto da atividade, quando ocorre |
+| **Lotes** | perda e contagem física são movimento do lote, registrados no mesmo gesto da atividade; o saldo de muda pronta é a soma dos lotes, e não uma tabela à parte |
 | **Protocolo** | a etapa vencida do lote vira ordem na agenda, e é confirmada como qualquer outra tarefa |
-| **Pedidos** | separação de pedido também é tarefa e entra na agenda |
+| **Pedidos** | o saldo de muda pronta é lido pela verificação do pedido, e nada volta de lá |

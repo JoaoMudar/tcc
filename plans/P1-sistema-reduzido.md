@@ -63,7 +63,7 @@ O lote é o que dá endereço à muda, e é pré-requisito da agenda e do pedido
 | T2.8 | Saldo de muda pronta por espécie e recipiente | RF-43 | ⬜ |
 
 **T2.3 é a tarefa que decide se o resto vale alguma coisa.** O saldo materializado em
-`batches.current_quantity` só se justifica se a soma dos movimentos o reproduzir, e o teste TA-64
+`lotes.quantidade_atual` só se justifica se a soma dos movimentos o reproduzir, e o teste TA-64
 existe para conferir isso contra uma contagem manual.
 
 ## Fase 3: Agenda da semana e protocolo
@@ -93,7 +93,7 @@ ancoram mutuamente nunca vencem, em silêncio.
 
 | # | Tarefa | Requisitos | Situação |
 |---|---|---|---|
-| T4.1 | Visão `batch_health`, o mapa por área e canteiro, e a tarefa pendente ao apontar o lote | RF-44, RF-45 | ⬜ |
+| T4.1 | Visão `situacao_lote`, o mapa por área e canteiro, e a tarefa pendente ao apontar o lote | RF-44, RF-45 | ⬜ |
 | T4.2 | Mortalidade no mapa, com destaque acima do limite | RF-42 | ⬜ |
 | T4.3 | Cadastro de pedido com cliente, canal, itens e preço digitado | RF-54, RF-55 | ✅ feito |
 | T4.4 | Saldo de muda pronta ao lado de cada item | RF-56 | ⬜ |
@@ -114,7 +114,7 @@ Fase 1 ─┬─> Fase 2 ─┬─> Fase 4 (mapa)
         └─> Fase 3 ──> Fase 4 (mapa: T4.1 depende de T3.4 e T3.8)
 ```
 
-**A Fase 1 bloqueia tudo**, e não por convenção: a agenda escala `cadastro.parties`, o lote
+**A Fase 1 bloqueia tudo**, e não por convenção: a agenda escala `cadastro.pessoas`, o lote
 referencia espécie e canteiro, e o pedido referencia pessoa. Sem cadastro, não há o que registrar.
 
 **O mapa é a última coisa a funcionar**, porque depende das duas fontes de pendência: a atribuição
