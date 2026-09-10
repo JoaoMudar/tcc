@@ -1,85 +1,85 @@
 -- Migration: 20260901000001_acesso_e_configuracoes.sql
--- Descricao: Acesso (users, sessions, login_events) e parametros do sistema (settings).
+-- Descricao: Acesso (usuarios, sessoes, eventos_login) e parametros do sistema (parametros).
 --
 -- Requisitos: RF-01 a RF-07, RF-09 · Regras: RN-27, RN-53, RN-54
--- Entidades: C8 `users`, `sessions`, `login_events`, `settings`
+-- Entidades: C8 `usuarios`, `sessoes`, `eventos_login`, `parametros`
 --
 -- TRES PERFIS, E NAO QUATRO. O enum nao tem `colaborador`: os seis trabalhadores
 -- de campo nao operam o sistema, e o trabalho deles e planejado e confirmado pela
--- gerencia (A1 §5). Nao confundir com `cadastro.party_roles.role`, que tem o valor
+-- gerencia (A1 §5). Nao confundir com `cadastro.pessoas_papeis.papel`, que tem o valor
 -- `funcionario` e significa VINCULO DE TRABALHO, nao permissao.
 --
 -- SEM BEGIN/COMMIT PROPRIOS e SEM GUARDA CONDICIONAL.
 
-CREATE OR REPLACE FUNCTION set_updated_at() RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION define_atualizado_em() RETURNS TRIGGER AS $$
 BEGIN
-  NEW.updated_at = NOW();
+  NEW.atualizado_em = NOW();
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TYPE user_role AS ENUM ('admin', 'chefia', 'gerencia');
+CREATE TYPE perfil_usuario AS ENUM ('admin', 'chefia', 'gerencia');
 
-CREATE TABLE users (
-  id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  username              TEXT NOT NULL UNIQUE,
-  display_name          TEXT NOT NULL,
-  password_hash         TEXT NOT NULL,
-  role                  user_role NOT NULL DEFAULT 'gerencia',
+CREATE TABLE usuarios (
+  id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  login                   TEXT NOT NULL UNIQUE,
+  nome_exibicao           TEXT NOT NULL,
+  senha_hash              TEXT NOT NULL,
+  perfil                  perfil_usuario NOT NULL DEFAULT 'gerencia',
 
   -- RF-02: o usuario recem-criado e conduzido a troca antes de qualquer tela.
-  must_change_password  BOOLEAN NOT NULL DEFAULT true,
+  deve_trocar_senha       BOOLEAN NOT NULL DEFAULT true,
 
-  active                BOOLEAN NOT NULL DEFAULT true,
-  failed_login_attempts INTEGER NOT NULL DEFAULT 0,
-  locked_until          TIMESTAMPTZ,
+  ativo                   BOOLEAN NOT NULL DEFAULT true,
+  tentativas_login_falhas INTEGER NOT NULL DEFAULT 0,
+  bloqueado_ate           TIMESTAMPTZ,
 
   -- Pessoa do cadastro a que esta credencial pertence. NULO de proposito: ha
   -- administrador sem vinculo, e ha funcionario sem login (seis dos nove). A FK e
-  -- acrescentada na migration do cadastro unico, quando `cadastro.parties` existir.
-  party_id              UUID,
+  -- acrescentada na migration do cadastro unico, quando `cadastro.pessoas` existir.
+  pessoa_id               UUID,
 
-  created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  criado_em               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  atualizado_em           TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX users_username_idx ON users (username);
+CREATE INDEX usuarios_login_idx ON usuarios (login);
 
-CREATE TRIGGER users_set_updated_at
-  BEFORE UPDATE ON users
-  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+CREATE TRIGGER usuarios_define_atualizado_em
+  BEFORE UPDATE ON usuarios
+  FOR EACH ROW EXECUTE FUNCTION define_atualizado_em();
 
-CREATE TABLE sessions (
-  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id      UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+CREATE TABLE sessoes (
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  usuario_id     UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
 
   -- RNF-09: nunca o token em si, apenas o resumo criptografico dele.
-  token_hash   TEXT NOT NULL UNIQUE,
+  token_hash     TEXT NOT NULL UNIQUE,
 
-  expires_at   TIMESTAMPTZ NOT NULL,
-  ip           TEXT,
-  user_agent   TEXT,
-  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  last_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  expira_em      TIMESTAMPTZ NOT NULL,
+  ip             TEXT,
+  agente_usuario TEXT,
+  criado_em      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  ultimo_uso_em  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX sessions_token_hash_idx ON sessions (token_hash);
-CREATE INDEX sessions_user_idx       ON sessions (user_id);
+CREATE INDEX sessoes_token_hash_idx ON sessoes (token_hash);
+CREATE INDEX sessoes_usuario_idx       ON sessoes (usuario_id);
 
--- RF-04: toda tentativa, bem e malsucedida. `user_id` e nulo quando o
+-- RF-04: toda tentativa, bem e malsucedida. `usuario_id` e nulo quando o
 -- identificador digitado nao corresponde a usuario nenhum, e e justamente esse o
 -- caso que interessa detectar.
-CREATE TABLE login_events (
-  id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id            UUID REFERENCES users(id) ON DELETE SET NULL,
-  username_attempted TEXT NOT NULL,
-  success            BOOLEAN NOT NULL,
-  ip                 TEXT,
-  user_agent         TEXT,
-  created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
+CREATE TABLE eventos_login (
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  usuario_id     UUID REFERENCES usuarios(id) ON DELETE SET NULL,
+  login_tentado  TEXT NOT NULL,
+  sucesso        BOOLEAN NOT NULL,
+  ip             TEXT,
+  agente_usuario TEXT,
+  criado_em      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX login_events_created_idx ON login_events (created_at DESC);
+CREATE INDEX eventos_login_criado_idx ON eventos_login (criado_em DESC);
 
 -- ------------------------------------------------------------
 -- Parametros do sistema
@@ -87,23 +87,23 @@ CREATE INDEX login_events_created_idx ON login_events (created_at DESC);
 -- NINGUEM CRIA E NINGUEM EXCLUI (RF-09, D4 §3.7). A chave nasce aqui, porque ha
 -- consulta que a le pelo nome: apagar uma delas nao deixaria a tela vazia,
 -- deixaria a leitura sem resposta, e o mapa passaria a considerar todo lote
--- saudavel. O que a operacao faz e alterar `value`.
-CREATE TABLE settings (
-  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  key         TEXT NOT NULL UNIQUE,
-  value       TEXT NOT NULL,
-  value_type  TEXT NOT NULL,
-  description TEXT NOT NULL,
-  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_by  UUID REFERENCES users(id),
+-- saudavel. O que a operacao faz e alterar `valor`.
+CREATE TABLE parametros (
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  chave          TEXT NOT NULL UNIQUE,
+  valor          TEXT NOT NULL,
+  tipo_valor     TEXT NOT NULL,
+  descricao      TEXT NOT NULL,
+  atualizado_em  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  atualizado_por UUID REFERENCES usuarios(id),
 
-  CONSTRAINT settings_value_type_valido CHECK (value_type IN ('texto', 'numero', 'booleano', 'data'))
+  CONSTRAINT parametros_tipo_valor_valido CHECK (tipo_valor IN ('texto', 'numero', 'booleano', 'data'))
 );
 
 -- Os limites sao PARAMETRO, nao literal (RN-27): mudam com a estacao e com a
 -- tarefa. Zero em "atencao" significa que a tarefa que vence hoje ja pinta de
 -- amarelo.
-INSERT INTO settings (key, value, value_type, description) VALUES
+INSERT INTO parametros (chave, valor, tipo_valor, descricao) VALUES
   ('producao.atraso_atencao_dias', '0', 'numero',
    'Dias de atraso a partir dos quais o lote fica em atencao (RN-30, RN-27)'),
   ('producao.atraso_critico_dias', '3', 'numero',
@@ -111,9 +111,9 @@ INSERT INTO settings (key, value, value_type, description) VALUES
   ('producao.mortalidade_limite_pct', '20', 'numero',
    'Percentual de mortalidade do lote a partir do qual ele e destacado (RN-11)');
 
-COMMENT ON TABLE users IS
+COMMENT ON TABLE usuarios IS
   'Credencial de acesso. Tres perfis: admin, chefia, gerencia. RN-53.';
-COMMENT ON COLUMN users.party_id IS
+COMMENT ON COLUMN usuarios.pessoa_id IS
   'Pessoa do cadastro unico. Opcional: ha login sem vinculo e vinculo sem login.';
-COMMENT ON TABLE settings IS
+COMMENT ON TABLE parametros IS
   'Parametro escalar do sistema. Ninguem cria e ninguem exclui: so se altera o valor. RF-09.';

@@ -105,7 +105,7 @@ São três papéis, e correspondem às três pessoas que operam o sistema:
 - **gerencia**: agenda da semana, lotes, protocolo e mapa
 
 > **Não há perfil de campo.** Os seis colaboradores do viveiro não operam o sistema: o trabalho
-> deles é planejado e confirmado pela gerência. Eles existem em `cadastro.party_roles` com o papel
+> deles é planejado e confirmado pela gerência. Eles existem em `cadastro.pessoas_papeis` com o papel
 > `funcionario`, que diz *esta pessoa trabalha aqui* e não implica acesso. A matriz completa está em
 > [`docs/engenharia/D-arquitetura/D4-matriz-rbac.md`](docs/engenharia/D-arquitetura/D4-matriz-rbac.md).
 
@@ -161,7 +161,7 @@ O plano detalhado, tarefa a tarefa, está em
 ## Convenções
 
 - Arquivos e identificadores em inglês; comentários podem ser em português.
-- Tabelas: `snake_case` no plural (ex.: `species`, `loss_events`).
+- Tabelas: `snake_case` no plural (ex.: `especies`, `eventos_perda`).
 - Commits: Conventional Commits em português (ex.: `feat(pedidos): adiciona separação por cargas`).
 - **Toda alteração de código deve incluir testes** (`*.test.ts` em `__tests__/`).
   O pre-commit hook roda lint e testes: commits são bloqueados se algo falhar.
