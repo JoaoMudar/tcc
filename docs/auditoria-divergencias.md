@@ -1115,3 +1115,50 @@ mesmo modelo, a tabela derivada bate com a fonte). Nao ha, e provavelmente nao p
 verificacao automatica de que um enunciado **valha a pena estar escrito**. Tres passadas seguidas de
 reducao encontraram tres criterios diferentes (mesmo enunciado partido, mesmo caso de uso e teste,
 enunciado dispensavel), e nenhum deles saiu de um script.
+
+## Decima segunda passada: o modelo de dados deixou de ser bilingue (10/09/2026)
+
+O banco nomeava tabelas e colunas em ingles porque o **RNF-15** mandava. A pasta
+`modelo-dados-pt` existia por causa disso: as figuras do TCC precisavam do portugues, e alguem
+traduzia a mao. O `confere-modelo-pt.mjs` carregava uma tabela de 27 pares so para conseguir
+comparar os dois lados.
+
+**As duas linguas acabaram.** O banco passou a ser o que as figuras ja eram. O que mudou:
+
+- As oito migrations foram **reescritas no lugar**, e nao acrescidas de uma migration de `ALTER`.
+  Banco de desenvolvimento se recria do zero; o de producao vive noutro repositorio, e e de la que
+  o ajuste sai. Isso contraria a compatibilidade retroativa que o `CLAUDE.md` exige, e a excecao
+  foi decidida em conjunto: manter o historico em ingles conservaria justamente o que a passada
+  existe para remover.
+- `C6` §3 e `C8` inteiro seguiram. O `C6` §2, o conceitual, ja estava em portugues e nao mudou.
+- O `RNF-15` foi removido, e os RNF fecharam de 24 para 23 por `renumerar.mjs`.
+- O `confere-modelo-pt.mjs` perdeu a tabela `PT` e o fallback `?? m[1]`: os dois lados escrevem o
+  mesmo nome, e nao ha mais o que traduzir antes de comparar.
+- O de-para completo (33 entidades e tipos, 136 colunas, 70 indices, restricoes e gatilhos) ficou
+  em `docs/engenharia/modelo-dados-pt/de-para-ingles-portugues.md`. Ele existe para o repositorio
+  do aplicativo, que continua apontando para os nomes antigos.
+
+**Tres tokens mudavam de destino conforme a tabela**, e sao os unicos: `role` e `perfil` em
+`usuarios` e `papel` em `cadastro.pessoas_papeis`; `closed_at` e `encerrado_em` no lote e
+`fechada_em` na semana; `active` e `ativa` em `especies` e `cadastro.pessoas`, pelo genero do nome
+da entidade, e `ativo` em todas as demais. Traducao por token inteiro, aplicada de uma vez, nao
+resolve nenhum dos tres sozinha, e cada um exigiu decisao escrita.
+
+### O que a passada deixou de proposito em ingles
+
+`docs/rotinas/` **nao foi traduzido**, e a primeira tentativa mostrou por que. Aqueles documentos
+citam, lado a lado, tabelas deste esquema e identificadores do repositorio do aplicativo: caminhos
+(`src/lib/customers.ts`), nomes de funcao (`listParties`, `toggleUserActive`), nomes de branch
+(`refactor/politica-e-parties`), scripts de `npm` (`db:migrate:status`) e tabelas que nunca
+existiram aqui (`customers`, `suppliers`). A substituicao por token inteiro transformou
+`fluxo-claude-code-git.md` em `fluxo-claude-codigo-git.md` e `.claude/settings.json` em
+`.claude/parametros.json`. Foi revertida.
+
+`docs/divida-tecnica.md` e `plans/P1-sistema-reduzido.md` ficaram de fora pelo mesmo motivo, e
+`auditoria-divergencias.md` pelo motivo de sempre: registro historico cita o nome da epoca.
+
+**A licao e a mesma de sempre, por outro caminho.** Renomeacao mecanica nao distingue o nome que o
+esquema define do nome que o documento apenas menciona. Onde as duas coisas convivem no mesmo
+arquivo, o script nao serve, e a escolha e traduzir a mao ou nao traduzir. Aqui foi nao traduzir, e
+fica registrado que `docs/rotinas/` segue falando em `customers` e `orders` enquanto o banco fala
+em `pessoas` e `pedidos`.

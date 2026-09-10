@@ -22,22 +22,24 @@ Sistema de gestão para viveiro de mudas nativas (Alto Vale do Itajaí, SC). ~10
 - **Frontend**: Next.js 16 (App Router) + React 19 + Tailwind. TypeScript em todo o ecossistema.
 - **Dados**: Server Actions com SQL direto (`pool.query`).
 - **Infra**: PWA mobile, deploy VPS/local. **Sem integração com WhatsApp**: a negociação é conversa entre pessoas, e o pedido é registrado depois, à mão.
-- **Fotos de espécies**: linha em `species_photos` (BYTEA), referenciada por `species.photo_url` no formato `/api/fotos/<uuid>`. **Não gravar em `public/uploads/`**: o filesystem da Vercel é somente-leitura fora de `/tmp` e é descartado a cada deploy, ou seja, o upload em disco nunca funcionou em produção (migration `20260811000001_species_photos.sql`). Ganho colateral: a imagem entra no mesmo backup do banco.
+- **Fotos de espécies**: linha em `especies_fotos` (BYTEA), referenciada por `especies.foto_url` no formato `/api/fotos/<uuid>`. **Não gravar em `public/uploads/`**: o filesystem da Vercel é somente-leitura fora de `/tmp` e é descartado a cada deploy, ou seja, o upload em disco nunca funcionou em produção (migration `20260811000001_species_photos.sql`). Ganho colateral: a imagem entra no mesmo backup do banco.
 
 ## Banco de dados (schema compartilhado entre projetos)
-Toda alteração no banco: (1) arquivo `.sql` em `migrations/` (psql puro), (2) manter compatibilidade retroativa, (3) documentar no CHANGELOG. Tabelas: snake_case, plural (`species`, `batches`, `batch_movements`).
+Toda alteração no banco: (1) arquivo `.sql` em `migrations/` (psql puro), (2) manter compatibilidade retroativa, (3) documentar no CHANGELOG. Tabelas: snake_case, plural (`especies`, `lotes`, `movimentos_lote`).
 
 **O modelo de dados tem três documentos que andam juntos.** Mexeu em entidade, atributo, chave ou
 cardinalidade, atualize os três na mesma alteração:
 `docs/engenharia/C-modelagem/C6-modelo-entidade-relacionamento.md` (MER),
 `docs/engenharia/C-modelagem/C8-dicionario-de-dados.md` (dicionário) e
-`docs/engenharia/modelo-dados-pt/` (as mesmas figuras em português, para o TCC).
+`docs/engenharia/modelo-dados-pt/` (as mesmas figuras, recortadas para o TCC).
 O `modelo-dados-pt` é **fonte separada e renderizada à mão**: nenhum gerador passa por ele. Edite o
 `.mmd` da figura, regere o `.png` com o comando do
 [`README`](docs/engenharia/modelo-dados-pt/README.md) e rode `node scripts/mede-figuras.mjs` para
 conferir a fonte útil, que muda quando a figura muda de proporção. Depois,
 `node scripts/confere-modelo-pt.mjs`: ele compara o **conjunto** de arestas das figuras com o do
 `C6`, nos dois sentidos, e é o que pega a aresta perdida numa divisão de figura.
+
+**O modelo inteiro é nomeado em português**, sem acento nem cedilha no identificador (`observacoes`, `codigo`, `situacao`). Até 10/09/2026 o banco era em inglês e o `modelo-dados-pt` era a tradução; o de-para do que mudou está em [`de-para-ingles-portugues.md`](docs/engenharia/modelo-dados-pt/de-para-ingles-portugues.md), e é o que o repositório do aplicativo precisa acompanhar.
 
 **A fonte da verdade do modelo é a migration.** Onde `C6` ou `C8` discordarem do SQL, quem está
 errado é o documento. O que ainda não existe no banco vem marcado como *especificado, não
@@ -65,7 +67,7 @@ confere, nos dois sentidos, os identificadores citados contra os definidos.
 - **Lote** é a leva plantada junta num canteiro: um lote ocupa um canteiro, e um canteiro comporta
   vários lotes. É o que diz **onde** a muda está e **de que leva** ela veio.
 - **Todo movimento do lote passa pela mesma porta**: perda, repicagem, venda, ajuste de contagem e
-  transferência são linhas de `batch_movements`. A soma delas tem de reproduzir o saldo.
+  transferência são linhas de `movimentos_lote`. A soma delas tem de reproduzir o saldo.
 - **Mortalidade** acima do limite definido em Configurações, inicialmente 20%, destaca o lote.
 - **Preço é digitado no item do pedido.** O sistema registra por quanto se vendeu; não calcula custo,
   margem nem piso.

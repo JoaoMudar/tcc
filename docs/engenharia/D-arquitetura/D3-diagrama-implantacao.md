@@ -136,4 +136,4 @@ adia registros, e o registro adiado é recuperado pela fila local do dispositivo
 | Dispositivo → aplicação | Canal cifrado obrigatório (RNF-12); sessão identificada por resumo criptográfico, com marcações que impedem leitura por código de página (RNF-09, RNF-10) |
 | Aplicação → banco | Conexão cifrada; credencial mantida exclusivamente no servidor, nunca entregue ao navegador (RNF-11) |
 | Aplicação → serviços externos | Sem credencial de terceiro embarcada no cliente; a mensageria é acionada por ação do usuário, não pelo servidor |
-| Repositório | Credenciais e dados sensíveis jamais versionados, com verificação automática que bloqueia o envio (RNF-20) |
+| Repositório | Credenciais e dados sensíveis jamais versionados, com verificação automática que bloqueia o envio (RNF-19) |

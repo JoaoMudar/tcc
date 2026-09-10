@@ -140,7 +140,7 @@ As regras estavam dissolvidas em cinco lugares:
 | [`A2-glossario-dominio.md`](A-fundacao/A2-glossario-dominio.md) | **Dentro da definição.** "Lote: leva de mudas da mesma espécie, no mesmo recipiente, plantada junta" já é uma regra completa, e virou RN-18 |
 | [`C2-especificacao-casos-de-uso.md`](C-modelagem/C2-especificacao-casos-de-uso.md) | Nos fluxos **FE** (exceção) e **FA** (alternativo). Toda exceção existe porque uma regra foi violada: o fluxo que recusa o movimento que deixaria o saldo negativo é RN-21 vista pelo avesso |
 | [`CLAUDE.md`](../../CLAUDE.md) §Regras de negócio | A lista curta e canônica, em 6 linhas. **Comece por ela** |
-| [`C6`](C-modelagem/C6-modelo-entidade-relacionamento.md) / [`C8`](C-modelagem/C8-dicionario-de-dados.md) | Regras que viraram estrutura: chave composta em `party_roles`, lista fechada de causa de perda, `CHECK` que impede saldo negativo. A restrição `batches_encerrado_sem_canteiro` é RN-22 escrita em SQL, nos dois sentidos |
+| [`C6`](C-modelagem/C6-modelo-entidade-relacionamento.md) / [`C8`](C-modelagem/C8-dicionario-de-dados.md) | Regras que viraram estrutura: chave composta em `pessoas_papeis`, lista fechada de causa de perda, `CHECK` que impede saldo negativo. A restrição `lotes_encerrado_sem_canteiro` é RN-22 escrita em SQL, nos dois sentidos |
 | [`G2`](G-gestao/G2-fichas-de-indicadores.md) e [`D4`](D-arquitetura/D4-matriz-rbac.md) | Limiares e regras de acesso (o 20% de mortalidade; a base bancária restrita à chefia) |
 
 ## 2.2 O catálogo: 54 regras, em [`B3`](B-requisitos/B3-regras-de-negocio.md)

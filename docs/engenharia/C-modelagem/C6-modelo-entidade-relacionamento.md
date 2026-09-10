@@ -31,16 +31,16 @@ traduzir de um para o outro.
 | **1 · Cadastro único** | 15 | Catálogo de produção, endereço do viveiro, identidade das pessoas e protocolo de manejo: não consome nada, alimenta tudo |
 | **2 · Produção** | 6 | Agenda da semana, lote, movimento e percurso pelo protocolo |
 | **3 · Comercial** | 2 | Pedido e item |
-| **Total** | **27** | mais 2 visões derivadas (`batch_health` e `batch_protocol_due`), documentadas em [`C8`](C8-dicionario-de-dados.md) |
+| **Total** | **27** | mais 2 visões derivadas (`situacao_lote` e `lotes_etapas_vencimento`), documentadas em [`C8`](C8-dicionario-de-dados.md) |
 
 **O preço da escolha, declarado:** agrupar por propósito faz relacionamentos cruzarem a fronteira
-do diagrama: `assignments` é da Produção e aponta para `species`, `containers`, `task_types` e
-`work_shifts`, que são do Cadastro único. A convenção do §3 resolve isso sem duplicar conteúdo: a
+do diagrama: `atribuicoes` é da Produção e aponta para `especies`, `recipientes`, `tipos_tarefa` e
+`turnos_trabalho`, que são do Cadastro único. A convenção do §3 resolve isso sem duplicar conteúdo: a
 entidade estrangeira aparece como **caixa vazia**, só para a aresta existir.
 
 Uma realocação merece nota, porque contraria a intuição de onde a entidade nasceu:
 
-- **O esquema `cadastro` (`parties`, `party_roles`, `addresses`) resolve um problema anterior ao de
+- **O esquema `cadastro` (`pessoas`, `pessoas_papeis`, `pessoas_enderecos`) resolve um problema anterior ao de
   qualquer módulo.** Cliente, fornecedor e funcionário são papéis de **uma identidade só**, e o
   viveiro tem gente que é os três ao mesmo tempo. Modelar três tabelas de pessoa produziria três
   verdades sobre o mesmo telefone.
@@ -134,14 +134,14 @@ Seis leituras que o modelo conceitual já entrega:
 ### 2.1 Recorte implementado
 
 O modelo descrito aqui é o **especificado**. Das 27 entidades, **23 existem no banco** (mais a
-visão `batch_health`) e **4 permanecem só especificadas**: as três do protocolo, mais o percurso do
+visão `situacao_lote`) e **4 permanecem só especificadas**: as três do protocolo, mais o percurso do
 lote por ele e a visão que daí deriva.
 
 | Área | No banco | Só especificadas | Quais faltam |
 |---|---:|---:|---|
 | *(transversal)* Acesso e configurações | 4 | 0 | - |
-| 1 · Cadastro único | 12 | 3 | `protocols`, `protocol_steps`, `species_protocol_overrides` |
-| 2 · Produção | 5 | 1 | `batch_protocol_steps`, mais a visão `batch_protocol_due` |
+| 1 · Cadastro único | 12 | 3 | `protocolos`, `protocolos_etapas`, `especies_protocolos_tempos` |
+| 2 · Produção | 5 | 1 | `lotes_etapas`, mais a visão `lotes_etapas_vencimento` |
 | 3 · Comercial | 2 | 0 | - |
 | **Total** | **23** | **4** | |
 
@@ -161,284 +161,284 @@ Convenção dos diagramas: entidade de **outra** área aparece como **caixa vazi
 a aresta exista. Os atributos dela estão no diagrama da área a que pertence.
 
 Atributos comuns à maioria das entidades, omitidos dos diagramas para não repetir vinte e sete
-vezes: `id` (chave primária), `created_at` e `updated_at`. Onde `active` aparece, é a marca de
-inativação que substitui a exclusão. As exceções, tabelas sem `updated_at` porque nada nelas se
+vezes: `id` (chave primária), `criado_em` e `atualizado_em`. Onde `ativo` aparece, é a marca de
+inativação que substitui a exclusão. As exceções, tabelas sem `atualizado_em` porque nada nelas se
 altera, e as duas de ligação, sem `id` porque a chave é o par que as define, estão registradas uma
 a uma no [dicionário](C8-dicionario-de-dados.md).
 
 **`text` na coluna de tipo, com lista fechada de valores, é `TEXT` mais restrição `CHECK` no
 banco; `enum` é tipo enumerado de verdade.** A distinção importa na manutenção: acrescentar valor a
 um `CHECK` é reescrever a restrição, e a um `ENUM` é `ALTER TYPE`. Os cinco tipos enumerados são
-`user_role`, `input_category` e os três do esquema `cadastro`.
+`perfil_usuario`, `categoria_insumo` e os três do esquema `cadastro`.
 
 ### 3.1 Acesso e configurações: transversal às três áreas
 
 ```mermaid
 erDiagram
-  users {
+  usuarios {
     uuid    id PK
-    text    username UK
-    text    display_name
-    text    password_hash
-    enum    role
-    boolean must_change_password
-    boolean active
-    int     failed_login_attempts
-    timestamptz locked_until
-    uuid    party_id FK
+    text    login UK
+    text    nome_exibicao
+    text    senha_hash
+    enum    perfil
+    boolean deve_trocar_senha
+    boolean ativo
+    int     tentativas_login_falhas
+    timestamptz bloqueado_ate
+    uuid    pessoa_id FK
   }
-  sessions {
+  sessoes {
     uuid id PK
-    uuid user_id FK
+    uuid usuario_id FK
     text token_hash UK
-    timestamptz expires_at
-    timestamptz last_seen_at
+    timestamptz expira_em
+    timestamptz ultimo_uso_em
     text ip
-    text user_agent
+    text agente_usuario
   }
-  login_events {
+  eventos_login {
     uuid id PK
-    uuid user_id FK
-    text username_attempted
-    boolean success
+    uuid usuario_id FK
+    text login_tentado
+    boolean sucesso
     text ip
-    text user_agent
+    text agente_usuario
   }
-  settings {
+  parametros {
     uuid id PK
-    text key UK
-    text value
-    text value_type
-    text description
-    timestamptz updated_at
-    uuid updated_by FK
+    text chave UK
+    text valor
+    text tipo_valor
+    text descricao
+    timestamptz atualizado_em
+    uuid atualizado_por FK
   }
-  parties {}
+  pessoas {}
 
-  users ||--o{ sessions     : "mantém"
-  users ||--o{ login_events : "gera"
-  users ||--o{ settings     : "ajusta"
-  parties ||--o| users : "pode ter login"
+  usuarios ||--o{ sessoes     : "mantém"
+  usuarios ||--o{ eventos_login : "gera"
+  usuarios ||--o{ parametros     : "ajusta"
+  pessoas ||--o| usuarios : "pode ter login"
 ```
 
-**`users.party_id` é opcional, e a opcionalidade é a regra.** Usuário é *credencial*; funcionário é
-*vínculo* (`cadastro.parties`). Há pessoa com login e sem vínculo (o administrador), e pessoa com
+**`usuarios.pessoa_id` é opcional, e a opcionalidade é a regra.** Usuário é *credencial*; funcionário é
+*vínculo* (`cadastro.pessoas`). Há pessoa com login e sem vínculo (o administrador), e pessoa com
 vínculo e sem login: são seis delas, os colaboradores de campo, que aparecem na agenda sem nunca
 abrir o aplicativo. Fundir as duas numa tabela só obrigaria a inventar um dos dois lados.
 
-**O enum `role` tem três valores**: `chefia`, `gerencia` e `admin`. O quarto, `colaborador`, saiu
+**O enum `perfil` tem três valores**: `chefia`, `gerencia` e `admin`. O quarto, `colaborador`, saiu
 com a decisão de escopo de que o campo não opera o sistema ([`A1` §5](../A-fundacao/A1-documento-de-visao.md)).
-Note que `cadastro.party_roles.role` continua tendo o valor `funcionario`, e **não é o mesmo
+Note que `cadastro.pessoas_papeis.papel` continua tendo o valor `funcionario`, e **não é o mesmo
 conceito**: ali é vínculo de trabalho, aqui é permissão de acesso.
 
-**`settings` é transversal e não é cadastro.** Guarda parâmetro escalar do sistema em chave e valor
+**`parametros` é transversal e não é cadastro.** Guarda parâmetro escalar do sistema em chave e valor
 tipado: o limite de mortalidade, os limites de atraso que pintam o lote no mapa. Todos morariam em
 constante de código, e **são regra de negócio, não infraestrutura**: quem os decide é a chefia, e
 mudar qualquer um deles exigiria uma implantação (RF-09, RN-27).
 
-> **Onde está a fronteira entre `settings` e cadastro.** Parâmetro que é **um valor** vai para
-> `settings`. Parâmetro que é **uma lista de coisas com atributos** vira entidade: é o caso do
-> período de trabalho, que é `work_shifts` no Cadastro único e não duas chaves aqui, ainda que a
+> **Onde está a fronteira entre `parametros` e cadastro.** Parâmetro que é **um valor** vai para
+> `parametros`. Parâmetro que é **uma lista de coisas com atributos** vira entidade: é o caso do
+> período de trabalho, que é `turnos_trabalho` no Cadastro único e não duas chaves aqui, ainda que a
 > **tela** dos dois seja a mesma, em Configurações do sistema. A regra de corte é a do Cadastro
 > único: se apagar deixa um movimento passado sem sentido, é entidade.
 
 ### 3.2 Área 1 · Cadastro único
 
 O que é estável e se repete. Não consome nada e alimenta as outras duas: as únicas arestas que
-saem daqui apontam para entidades da Produção e do Comercial, e é por isso que `assignments`,
-`batches`, `batch_protocol_steps` e `order_items` aparecem como caixa vazia no fim do diagrama.
+saem daqui apontam para entidades da Produção e do Comercial, e é por isso que `atribuicoes`,
+`lotes`, `lotes_etapas` e `pedidos_itens` aparecem como caixa vazia no fim do diagrama.
 
 **O protocolo de atividades é cadastro, e não Produção.** É a mesma regra que já colocava
-`task_types` e `work_shifts` aqui: o que é **mantido uma vez e consultado sempre** é cadastro,
+`tipos_tarefa` e `turnos_trabalho` aqui: o que é **mantido uma vez e consultado sempre** é cadastro,
 ainda que só a Produção o consuma. O que a Produção guarda é o percurso de **cada lote** pelo
-protocolo (`batch_protocol_steps`), que é dado de movimento e fica na §3.3.
+protocolo (`lotes_etapas`), que é dado de movimento e fica na §3.3.
 
 ```mermaid
 erDiagram
-  species {
+  especies {
     uuid    id PK
-    text    scientific_name UK
-    text[]  tags
-    text    photo_url
-    text    notes
-    boolean active
+    text    nome_cientifico UK
+    text[]  caracteristicas
+    text    foto_url
+    text    observacoes
+    boolean ativo
   }
-  species_popular_names {
+  especies_nomes_populares {
     uuid    id PK
-    uuid    species_id FK
-    text    name
-    boolean is_primary
+    uuid    especie_id FK
+    text    nome
+    boolean e_principal
   }
-  species_photos {
+  especies_fotos {
     uuid  id PK
-    text  content_type
-    bytea content
+    text  tipo_conteudo
+    bytea conteudo
   }
-  containers {
+  recipientes {
     uuid    id PK
-    text    name UK
-    numeric volume_liters
-    boolean active
+    text    nome UK
+    numeric volume_litros
+    boolean ativo
   }
-  inputs {
+  insumos {
     uuid    id PK
-    text    name
-    enum    category
-    text    unit_of_measure
-    boolean active
+    text    nome
+    enum    categoria
+    text    unidade_medida
+    boolean ativo
   }
   areas {
     uuid    id PK
-    char    letter UK
-    text    name
+    char    letra UK
+    text    nome
   }
-  beds {
+  canteiros {
     uuid id PK
     uuid area_id FK
-    int  number
-    int  capacity
+    int  numero
+    int  capacidade
   }
-  work_shifts {
+  turnos_trabalho {
     uuid    id PK
-    text    name
-    time    starts_at
-    time    ends_at
-    boolean active
+    text    nome
+    time    inicio
+    time    fim
+    boolean ativo
   }
-  task_types {
+  tipos_tarefa {
     uuid    id PK
-    text    name
-    text    category
-    boolean is_quantitative
-    boolean requires_batch
-    boolean requires_species
-    boolean requires_container
-    boolean active
+    text    nome
+    text    categoria
+    boolean e_quantitativa
+    boolean exige_lote
+    boolean exige_especie
+    boolean exige_recipiente
+    boolean ativo
   }
-  protocols {
+  protocolos {
     uuid    id PK
-    uuid    container_id FK
+    uuid    recipiente_id FK
     int     version
-    boolean active
+    boolean ativo
   }
-  protocol_steps {
+  protocolos_etapas {
     uuid    id PK
-    uuid    protocol_id FK
-    uuid    task_type_id FK
-    text    label
-    int     position
-    enum    schedule_kind
-    int     days
-    int     interval_days
-    uuid    anchor_step_id FK
-    boolean alert_enabled
-    numeric warn_window_pct
-    text    resulting_stage
+    uuid    protocolo_id FK
+    uuid    tipo_tarefa_id FK
+    text    rotulo
+    int     posicao
+    enum    tipo_agendamento
+    int     dias
+    int     intervalo_dias
+    uuid    etapa_ancora_id FK
+    boolean alerta_ligado
+    numeric janela_aviso_pct
+    text    fase_resultante
   }
-  species_protocol_overrides {
+  especies_protocolos_tempos {
     uuid id PK
-    uuid species_id FK
-    uuid protocol_step_id FK
-    int  days
+    uuid especie_id FK
+    uuid protocolo_etapa_id FK
+    int  dias
   }
-  parties {
+  pessoas {
     uuid    id PK
-    enum    kind
-    text    name
-    text    document UK
-    text    phone
+    enum    tipo
+    text    nome
+    text    documento UK
+    text    telefone
     text    email
-    boolean active
+    boolean ativo
   }
-  party_roles {
-    uuid    party_id FK
-    enum    role
-    text    employment_kind
-    boolean active
+  pessoas_papeis {
+    uuid    pessoa_id FK
+    enum    papel
+    text    tipo_vinculo
+    boolean ativo
   }
-  addresses {
+  pessoas_enderecos {
     uuid id PK
-    uuid party_id FK
-    enum kind
-    text street
-    text city
-    char state
-    text zip
+    uuid pessoa_id FK
+    enum tipo
+    text logradouro
+    text cidade
+    char uf
+    text cep
   }
-  assignments {}
-  batches {}
-  batch_protocol_steps {}
-  order_items {}
+  atribuicoes {}
+  lotes {}
+  lotes_etapas {}
+  pedidos_itens {}
 
-  species ||--o{ species_popular_names : "é conhecida por"
-  species ||--o| species_photos        : "é ilustrada por"
-  species ||--o{ species_protocol_overrides : "customiza o tempo de"
-  areas   ||--o{ beds                   : "contém"
-  containers ||--o| protocols           : "define o manejo de"
-  protocols  ||--o{ protocol_steps      : "compõe-se de"
-  protocol_steps ||--o{ protocol_steps  : "é âncora de"
-  protocol_steps ||--o{ species_protocol_overrides : "tem tempo sobrescrito em"
-  task_types ||--o{ protocol_steps      : "é executada em"
-  parties ||--o{ party_roles            : "exerce"
-  parties ||--o{ addresses              : "reside em"
+  especies ||--o{ especies_nomes_populares : "é conhecida por"
+  especies ||--o| especies_fotos        : "é ilustrada por"
+  especies ||--o{ especies_protocolos_tempos : "customiza o tempo de"
+  areas   ||--o{ canteiros                   : "contém"
+  recipientes ||--o| protocolos           : "define o manejo de"
+  protocolos  ||--o{ protocolos_etapas      : "compõe-se de"
+  protocolos_etapas ||--o{ protocolos_etapas  : "é âncora de"
+  protocolos_etapas ||--o{ especies_protocolos_tempos : "tem tempo sobrescrito em"
+  tipos_tarefa ||--o{ protocolos_etapas      : "é executada em"
+  pessoas ||--o{ pessoas_papeis            : "exerce"
+  pessoas ||--o{ pessoas_enderecos              : "reside em"
 
-  species    ||--o{ batches      : "é plantada em"
-  containers ||--o{ batches      : "define o porte de"
-  beds       ||--o{ batches      : "abriga"
-  protocols  ||--o{ batches      : "rege"
-  task_types ||--o{ assignments  : "classifica"
-  work_shifts||--o{ assignments  : "situa"
-  parties    ||--o{ assignment_members : "executa"
-  protocol_steps ||--o{ batch_protocol_steps : "materializa-se em"
-  species    ||--o{ order_items  : "é vendida em"
-  containers ||--o{ order_items  : "define porte de"
+  especies    ||--o{ lotes      : "é plantada em"
+  recipientes ||--o{ lotes      : "define o porte de"
+  canteiros       ||--o{ lotes      : "abriga"
+  protocolos  ||--o{ lotes      : "rege"
+  tipos_tarefa ||--o{ atribuicoes  : "classifica"
+  turnos_trabalho||--o{ atribuicoes  : "situa"
+  pessoas    ||--o{ atribuicoes_participantes : "executa"
+  protocolos_etapas ||--o{ lotes_etapas : "materializa-se em"
+  especies    ||--o{ pedidos_itens  : "é vendida em"
+  recipientes ||--o{ pedidos_itens  : "define porte de"
 ```
 
-**`inputs` não tem aresta neste diagrama, e é informação.** O insumo é catálogo: o sistema registra
+**`insumos` não tem aresta neste diagrama, e é informação.** O insumo é catálogo: o sistema registra
 que ele existe, com unidade e categoria, e nada o consome. O consumo de insumo por tarefa e o saldo
 em estoque ficaram fora do escopo, e mantê-lo no cadastro é o que permite que a tarefa o
 referencie quando isso deixar de ser verdade.
 
-**A espécie tem nomes, e não um nome.** `species_popular_names` existe porque a busca precisa
+**A espécie tem nomes, e não um nome.** `especies_nomes_populares` existe porque a busca precisa
 encontrar a espécie por qualquer denominação regional (RF-10, RN-02), e um campo de texto com nomes
-separados por vírgula não se indexa nem se valida. `is_primary` marca o nome que as telas exibem.
+separados por vírgula não se indexa nem se valida. `e_principal` marca o nome que as telas exibem.
 
-**A foto é linha de tabela, e não arquivo em disco.** `species_photos` guarda os bytes porque o
+**A foto é linha de tabela, e não arquivo em disco.** `especies_fotos` guarda os bytes porque o
 sistema de arquivos do ambiente de publicação é somente-leitura e é descartado a cada implantação:
 a imagem gravada em disco desapareceria na semana seguinte. O ganho colateral é que a foto entra no
 mesmo backup do banco.
 
-**`species é ilustrada por species_photos` é aresta de leitura, e não de chave estrangeira**, do
-mesmo tipo que `LOTE dá saldo a ITEM_PEDIDO` no diagrama conceitual. `species_photos` não tem
-`species_id`: o envio da foto acontece antes de a espécie existir, e a chave estrangeira não teria
-a que apontar no momento da gravação. Quem liga as duas é o texto de `species.photo_url`, no
+**`especies é ilustrada por especies_fotos` é aresta de leitura, e não de chave estrangeira**, do
+mesmo tipo que `LOTE dá saldo a ITEM_PEDIDO` no diagrama conceitual. `especies_fotos` não tem
+`especie_id`: o envio da foto acontece antes de a espécie existir, e a chave estrangeira não teria
+a que apontar no momento da gravação. Quem liga as duas é o texto de `especies.foto_url`, no
 formato `/api/fotos/<uuid>`.
 
-**O canteiro tem capacidade, e ela não é restrição.** `beds.capacity` existe para o aviso de
+**O canteiro tem capacidade, e ela não é restrição.** `canteiros.capacidade` existe para o aviso de
 RN-29, que informa que a leva talvez não caiba, e não para recusar o lote: quem sabe se cabe é
 quem está com a muda na mão.
 
-**`party_roles` é chave composta, e o papel é que carrega o vínculo.** `employment_kind` (fixo ou
-diarista) só faz sentido no papel `funcionario`, e fica nele em vez de poluir `parties` com uma
+**`pessoas_papeis` é chave composta, e o papel é que carrega o vínculo.** `tipo_vinculo` (fixo ou
+diarista) só faz sentido no papel `funcionario`, e fica nele em vez de poluir `pessoas` com uma
 coluna que é nula em toda pessoa que só compra.
 
 #### O protocolo: o que o lote tem de receber, lembre alguém ou não
 
-`protocol_steps` é a entidade com mais atributos do modelo, e cada um resolve uma pergunta que o
+`protocolos_etapas` é a entidade com mais atributos do modelo, e cada um resolve uma pergunta que o
 viveiro faz em voz alta.
 
-- **`schedule_kind`** separa a etapa **sequencial**, que ocorre uma vez e pode avançar a fase do
+- **`tipo_agendamento`** separa a etapa **sequencial**, que ocorre uma vez e pode avançar a fase do
   lote, da **recorrente**, que repete indefinidamente e não avança fase nenhuma (RN-36).
-- **`anchor_step_id`** é a âncora, e é reflexiva: a etapa conta o prazo a partir da conclusão de
+- **`etapa_ancora_id`** é a âncora, e é reflexiva: a etapa conta o prazo a partir da conclusão de
   **outra etapa declarada**, e não da anterior na lista (RN-33). Classificar pós-germinação conta
   do plantio, e não da criação do lote, porque a semente pode ficar dias esperando plantio.
   Âncora nula significa contar da criação do lote.
-- **`days` e `interval_days`** são o prazo e, na recorrente, o intervalo entre ocorrências.
-- **`warn_window_pct`** é a janela de aviso **em percentual do intervalo**, e não em dias fixos
+- **`dias` e `intervalo_dias`** são o prazo e, na recorrente, o intervalo entre ocorrências.
+- **`janela_aviso_pct`** é a janela de aviso **em percentual do intervalo**, e não em dias fixos
   (RN-37): três dias de antecedência não servem à etapa trimestral e à diária ao mesmo tempo.
-- **`alert_enabled`** desliga a cor de uma etapa que se repete tanto que sinalizá-la seria ruído
+- **`alerta_ligado`** desliga a cor de uma etapa que se repete tanto que sinalizá-la seria ruído
   (RN-37).
-- **`resulting_stage`** é opcional: nem toda etapa sequencial promove o lote de fase, e obrigar a
+- **`fase_resultante`** é opcional: nem toda etapa sequencial promove o lote de fase, e obrigar a
   escolher uma faria inventar transições que o ciclo produtivo não tem.
 
 **A âncora circular é validação de aplicação, e não do banco.** Duas etapas que se ancoram
@@ -453,124 +453,124 @@ saldo que o Comercial lê.
 
 ```mermaid
 erDiagram
-  week_plans {
+  semanas {
     uuid        id PK
-    date        week_start UK
-    text        status
-    uuid        published_by FK
-    timestamptz closed_at
+    date        inicio_semana UK
+    text        situacao
+    uuid        publicada_por FK
+    timestamptz fechada_em 
   }
-  assignments {
+  atribuicoes {
     uuid    id PK
-    uuid    week_plan_id FK
-    date    work_date
-    uuid    shift_id FK
-    time    start_time
-    time    end_time
-    uuid    task_type_id FK
-    uuid    species_id FK
-    uuid    container_id FK
-    uuid    batch_id FK
+    uuid    semana_id FK
+    date    data_trabalho
+    uuid    turno_id FK
+    time    hora_inicio
+    time    hora_fim
+    uuid    tipo_tarefa_id FK
+    uuid    especie_id FK
+    uuid    recipiente_id FK
+    uuid    lote_id FK
     uuid    area_id FK
-    uuid    bed_id FK
-    uuid    batch_protocol_step_id FK
-    date    protocol_due_on
-    int     planned_quantity
-    boolean is_recurring
-    text    status
-    text    notes
+    uuid    canteiro_id FK
+    uuid    lote_etapa_id FK
+    date    vencimento_protocolo
+    int     quantidade_planejada
+    boolean e_recorrente
+    text    situacao
+    text    observacoes
   }
-  assignment_members {
-    uuid assignment_id FK
-    uuid party_id FK
-    int  quantity_done
+  atribuicoes_participantes {
+    uuid atribuicao_id FK
+    uuid pessoa_id FK
+    int  quantidade_feita
   }
-  batches {
+  lotes {
     uuid        id PK
-    text        code UK
-    uuid        species_id FK
-    uuid        container_id FK
-    uuid        bed_id FK
-    uuid        parent_batch_id FK
-    uuid        protocol_id FK
-    int         initial_quantity
-    int         current_quantity
-    text        stage
-    date        planted_at
-    int         position
-    timestamptz closed_at
-    text        closed_reason
-    text        notes
+    text        codigo UK
+    uuid        especie_id FK
+    uuid        recipiente_id FK
+    uuid        canteiro_id FK
+    uuid        lote_origem_id FK
+    uuid        protocolo_id FK
+    int         quantidade_inicial
+    int         quantidade_atual
+    text        fase
+    date        data_plantio
+    int         posicao
+    timestamptz encerrado_em
+    text        motivo_encerramento
+    text        observacoes
   }
-  batch_movements {
+  movimentos_lote {
     uuid id PK
-    uuid batch_id FK
-    text movement_type
-    int  quantity
-    date movement_date
-    uuid from_bed_id FK
-    uuid to_bed_id FK
-    uuid assignment_id FK
-    text loss_cause
-    uuid recorded_by FK
-    text notes
+    uuid lote_id FK
+    text tipo_movimento
+    int  quantidade
+    date data_movimento
+    uuid canteiro_origem_id FK
+    uuid canteiro_destino_id FK
+    uuid atribuicao_id FK
+    text causa_perda
+    uuid registrado_por FK
+    text observacoes
   }
-  batch_protocol_steps {
+  lotes_etapas {
     uuid id PK
-    uuid batch_id FK
-    uuid protocol_step_id FK
+    uuid lote_id FK
+    uuid protocolo_etapa_id FK
     date last_done_at
-    date due_at
-    enum status
+    date vence_em
+    enum situacao
   }
-  species {}
-  containers {}
+  especies {}
+  recipientes {}
   areas {}
-  beds {}
-  task_types {}
-  work_shifts {}
-  parties {}
-  protocol_steps {}
-  users {}
+  canteiros {}
+  tipos_tarefa {}
+  turnos_trabalho {}
+  pessoas {}
+  protocolos_etapas {}
+  usuarios {}
 
-  week_plans ||--o{ assignments        : "organiza"
-  assignments ||--o{ assignment_members : "escala"
-  assignments ||--o{ batch_movements    : "produz"
-  batches    ||--o{ batch_movements    : "é explicado por"
-  batches    ||--o{ batches            : "dá origem a"
-  batches    ||--o{ batch_protocol_steps : "percorre"
-  batches    ||--o{ assignments        : "recebe trabalho de"
-  batch_protocol_steps ||--o{ assignments : "gera ordem de"
+  semanas ||--o{ atribuicoes        : "organiza"
+  atribuicoes ||--o{ atribuicoes_participantes : "escala"
+  atribuicoes ||--o{ movimentos_lote    : "produz"
+  lotes    ||--o{ movimentos_lote    : "é explicado por"
+  lotes    ||--o{ lotes            : "dá origem a"
+  lotes    ||--o{ lotes_etapas : "percorre"
+  lotes    ||--o{ atribuicoes        : "recebe trabalho de"
+  lotes_etapas ||--o{ atribuicoes : "gera ordem de"
 
-  species    ||--o{ batches : "é plantada em"
-  containers ||--o{ batches : "define o porte de"
-  beds       ||--o{ batches : "abriga"
-  beds       ||--o{ batch_movements : "origem e destino da transferência"
-  task_types ||--o{ assignments : "classifica"
-  work_shifts||--o{ assignments : "situa"
-  species    ||--o{ assignments : "é objeto de"
-  containers ||--o{ assignments : "é objeto de"
-  areas      ||--o{ assignments : "localiza"
-  beds       ||--o{ assignments : "localiza"
-  parties    ||--o{ assignment_members : "executa"
-  users      ||--o{ week_plans : "publica"
-  protocol_steps ||--o{ batch_protocol_steps : "materializa-se em"
-  users      ||--o{ batch_movements : "registra"
+  especies    ||--o{ lotes : "é plantada em"
+  recipientes ||--o{ lotes : "define o porte de"
+  canteiros       ||--o{ lotes : "abriga"
+  canteiros       ||--o{ movimentos_lote : "origem e destino da transferência"
+  tipos_tarefa ||--o{ atribuicoes : "classifica"
+  turnos_trabalho||--o{ atribuicoes : "situa"
+  especies    ||--o{ atribuicoes : "é objeto de"
+  recipientes ||--o{ atribuicoes : "é objeto de"
+  areas      ||--o{ atribuicoes : "localiza"
+  canteiros       ||--o{ atribuicoes : "localiza"
+  pessoas    ||--o{ atribuicoes_participantes : "executa"
+  usuarios      ||--o{ semanas : "publica"
+  protocolos_etapas ||--o{ lotes_etapas : "materializa-se em"
+  usuarios      ||--o{ movimentos_lote : "registra"
 ```
 
 #### O lote: onde a muda está e de que leva veio
 
-**`batches.current_quantity` é a única quantidade materializada do modelo, e a exceção é
-declarada.** O saldo poderia ser somado de `batch_movements` a cada leitura. Aqui não: a tela de
+**`lotes.quantidade_atual` é a única quantidade materializada do modelo, e a exceção é
+declarada.** O saldo poderia ser somado de `movimentos_lote` a cada leitura. Aqui não: a tela de
 ocupação lê o saldo de todos os lotes abertos de uma vez, no celular, em rede instável.
-`batch_movements` é a fonte que o audita, e **divergência entre os dois é defeito detectável**, que
+`movimentos_lote` é a fonte que o audita, e **divergência entre os dois é defeito detectável**, que
 é o que justifica manter os dois.
 
-**`bed_id` é nulo apenas no lote encerrado.** Enquanto aberto, todo lote tem canteiro: lote sem
+**`canteiro_id` é nulo apenas no lote encerrado.** Enquanto aberto, todo lote tem canteiro: lote sem
 lugar é a situação que a entidade existe para eliminar. Ao encerrar, o canteiro é liberado (RN-22),
 e a restrição que garante os dois lados da regra é uma só.
 
-**`parent_batch_id` é a repicagem.** A muda que passa do tubete para o saco mudou de recipiente, e
+**`lote_origem_id` é a repicagem.** A muda que passa do tubete para o saco mudou de recipiente, e
 recipiente define produto e preço: comercialmente, virou outra coisa (RN-20). Percorrer esta cadeia
 responde, de cada mil sementes semeadas, quantas mudas chegaram à venda.
 
@@ -580,62 +580,62 @@ do tempo, e é assim que ele é usado.
 
 #### O movimento: o razão que explica o saldo
 
-**Toda alteração de `current_quantity` tem uma linha em `batch_movements`.** `movement_type` aceita
+**Toda alteração de `quantidade_atual` tem uma linha em `movimentos_lote`.** `tipo_movimento` aceita
 `entrada`, `perda`, `repicagem_saida`, `repicagem_entrada`, `venda`, `ajuste_contagem` e
 `transferencia`. A quantidade é assinada: positiva na entrada, negativa na saída, e zero apenas na
 transferência, em que o que muda é o canteiro e não o saldo.
 
-**A perda não tem tabela própria, e é decisão de modelagem.** Ela é um `movement_type`, com
-`loss_cause` em lista fechada (RN-10). Uma entidade separada de perda obrigaria a gravar duas
+**A perda não tem tabela própria, e é decisão de modelagem.** Ela é um `tipo_movimento`, com
+`causa_perda` em lista fechada (RN-10). Uma entidade separada de perda obrigaria a gravar duas
 linhas por perda, uma nela e outra no razão do lote, e a divergir quando alguém gravasse só uma.
 Pelo mesmo motivo a contagem física é um movimento de `ajuste_contagem` (RN-09) e não uma entidade
 de contagem: o que interessa da contagem é o ajuste que ela produziu.
 
 **A mortalidade é derivada daqui**, e não guardada: é a soma dos movimentos de tipo `perda` sobre
-`initial_quantity` (RN-11). Guardá-la criaria duas verdades sobre o mesmo número, e ela mudaria a
+`quantidade_inicial` (RN-11). Guardá-la criaria duas verdades sobre o mesmo número, e ela mudaria a
 cada perda registrada.
 
-**`assignment_id` liga o movimento à tarefa que o causou, e é opcional.** Movimento sem origem é o
+**`atribuicao_id` liga o movimento à tarefa que o causou, e é opcional.** Movimento sem origem é o
 ajuste manual da gerência, que existe e precisa caber: prendê-lo a uma origem obrigatória faria a
 correção de um erro de digitação ser impossível sem inventar uma perda que não houve.
 
 #### A agenda: o planejado e o confirmado, na mesma linha
 
-**`assignments` é a célula da agenda, e carrega as duas coisas.** `status` percorre `planejada`,
+**`atribuicoes` é a célula da agenda, e carrega as duas coisas.** `situacao` percorre `planejada`,
 `confirmada` e `nao_confirmada`, e é isso que dispensa uma entidade de execução separada: o
 realizado é o planejado com a marca de que aconteceu. `nao_confirmada` é o que o fechamento da
 semana grava no que ninguém confirmou (RN-14), e é o que preserva a distinção entre o que se
 confirmou e o que se presumiu.
 
-**A quantidade é de cada pessoa, e por isso mora em `assignment_members`** (RN-24). Quatro pessoas
+**A quantidade é de cada pessoa, e por isso mora em `atribuicoes_participantes`** (RN-24). Quatro pessoas
 enchendo saquinho produzem quatro números, e é assim que o viveiro fala. Guardar um total na
 atribuição perderia justamente o dado que ele quer.
 
-**`is_recurring` é uma marca, e não uma regra de calendário.** Ela diz que a atribuição faz parte da
+**`e_recorrente` é uma marca, e não uma regra de calendário.** Ela diz que a atribuição faz parte da
 rotina fixa e, por isso, vem preenchida quando se copia a semana anterior (RF-27, RN-31). Uma
 entidade de recorrência, com dias da semana e vigência, existiria para gerar dias sozinha, e o que
 gera dia sozinho neste modelo é o protocolo, cujo sujeito é o lote e não a equipe.
 
-**`batch_protocol_step_id` é o que faz a ordem do protocolo ser atribuição comum** (RN-43). A
-ordem gerada não é uma entidade nova: é uma linha de `assignments` que sabe de que etapa veio, e
-que nasce **sem ninguém em `assignment_members`**, porque o protocolo diz o que e quando, e quem faz
+**`lote_etapa_id` é o que faz a ordem do protocolo ser atribuição comum** (RN-43). A
+ordem gerada não é uma entidade nova: é uma linha de `atribuicoes` que sabe de que etapa veio, e
+que nasce **sem ninguém em `atribuicoes_participantes`**, porque o protocolo diz o que e quando, e quem faz
 continua sendo de quem monta a agenda (RN-43).
 
 #### O percurso do lote pelo protocolo
 
-`batch_protocol_steps` é a única entidade de movimento do protocolo, e guarda três datas por etapa
+`lotes_etapas` é a única entidade de movimento do protocolo, e guarda três datas por etapa
 e por lote: a última execução, o próximo vencimento e a situação.
 
-**`due_at` é derivado, nunca digitado** (RN-42): sai da âncora, da última execução e do tempo
+**`vence_em` é derivado, nunca digitado** (RN-42): sai da âncora, da última execução e do tempo
 declarado, com a customização por espécie sobrescrevendo o tempo do protocolo quando existir
-(RN-38). É o que a visão `batch_protocol_due` calcula, e é dela que sai a cor do lote no mapa.
+(RN-38). É o que a visão `lotes_etapas_vencimento` calcula, e é dela que sai a cor do lote no mapa.
 
 **Uma etapa tem no máximo uma ocorrência em aberto** (RN-35). Etapa trimestral esquecida há cinco
 meses apresenta **uma** pendência, e não cinco: gerar uma ordem por trimestre vencido encheria a
 agenda com um passado que ninguém vai executar.
 
-**A situação do lote é visão, e não coluna** (RN-30). `batch_health` é calculada a cada leitura
-porque status gravado envelhece sozinho: o lote que estava verde ontem continuaria verde no banco
+**A situação do lote é visão, e não coluna** (RN-30). `situacao_lote` é calculada a cada leitura
+porque situacao gravado envelhece sozinho: o lote que estava verde ontem continuaria verde no banco
 hoje, e a tela existe justamente para dizer o contrário. É a mesma razão de a mortalidade e o saldo
 disponível também serem derivados.
 
@@ -645,43 +645,43 @@ Duas entidades, e é o tamanho certo. O pedido registra o que foi negociado fora
 
 ```mermaid
 erDiagram
-  orders {
+  pedidos {
     uuid    id PK
-    serial  order_number UK
-    uuid    customer_id FK
-    text    sale_channel
-    text    status
-    date    delivery_date
-    text    notes
-    uuid    created_by FK
+    serial  numero_pedido UK
+    uuid    cliente_id FK
+    text    canal_venda
+    text    situacao
+    date    data_entrega
+    text    observacoes
+    uuid    criado_por FK
   }
-  order_items {
+  pedidos_itens {
     uuid    id PK
-    uuid    order_id FK
-    uuid    species_id FK
-    uuid    container_id FK
-    int     quantity
-    numeric unit_price
+    uuid    pedido_id FK
+    uuid    especie_id FK
+    uuid    recipiente_id FK
+    int     quantidade
+    numeric preco_unitario
   }
-  parties {}
-  species {}
-  containers {}
-  users {}
+  pessoas {}
+  especies {}
+  recipientes {}
+  usuarios {}
 
-  orders  ||--o{ order_items : "compõe-se de"
-  parties ||--o{ orders      : "faz"
-  users   ||--o{ orders      : "registra"
-  species    ||--o{ order_items : "é vendida em"
-  containers ||--o{ order_items : "define porte de"
+  pedidos  ||--o{ pedidos_itens : "compõe-se de"
+  pessoas ||--o{ pedidos      : "faz"
+  usuarios   ||--o{ pedidos      : "registra"
+  especies    ||--o{ pedidos_itens : "é vendida em"
+  recipientes ||--o{ pedidos_itens : "define porte de"
 ```
 
-**`orders.customer_id` aponta para `cadastro.parties`, e não para uma tabela de clientes.** É a
+**`pedidos.cliente_id` aponta para `cadastro.pessoas`, e não para uma tabela de clientes.** É a
 materialização do cadastro único (RN-47): o cliente é uma pessoa que exerce o papel de cliente, e o
-pedido referencia a pessoa. Uma tabela `customers` própria duplicaria nome, telefone e documento de
+pedido referencia a pessoa. Uma tabela `clientes` própria duplicaria nome, telefone e documento de
 quem também é fornecedor.
 
-**`unit_price` é digitado, e não referencia tabela de preço** (RN-52). Não há entidade de canal de
-venda nem de tabela de preços: `sale_channel` é enumeração em `orders`, porque canal de venda é uma
+**`preco_unitario` é digitado, e não referencia tabela de preço** (RN-52). Não há entidade de canal de
+venda nem de tabela de preços: `canal_venda` é enumeração em `pedidos`, porque canal de venda é uma
 lista fechada de cinco valores sem atributos próprios (RN-44), e o preço é o que foi acordado na
 conversa.
 
@@ -689,7 +689,7 @@ conversa.
 prontos daquela espécie e recipiente, a cada consulta. Guardá-lo no item congelaria uma leitura que
 muda a cada perda registrada, e o item passaria a mentir sobre o estoque de hoje.
 
-**Não há histórico de estados do pedido.** `status` percorre `rascunho`, `confirmado` e
+**Não há histórico de estados do pedido.** `situacao` percorre `rascunho`, `confirmado` e
 `cancelado`, e o que o negócio precisa saber é em qual deles o pedido está. Uma tabela de histórico
 existiria para responder quem mudou o quê e quando, pergunta que o viveiro de nove pessoas resolve
 perguntando.
@@ -703,8 +703,8 @@ leitura e ambas auditáveis:
 
 | Exceção | Por quê | Como se audita |
 |---|---|---|
-| `batches.current_quantity` | A tela de ocupação lê o saldo de dezenas de lotes de uma vez, no celular, em rede instável. Somar `batch_movements` a cada leitura tornaria a tela inutilizável no dispositivo em que ela é usada | A soma dos movimentos do lote tem de reproduzir o saldo. Divergência é defeito, e é detectável por consulta |
-| `species_popular_names.is_primary` | Evita subconsulta em toda listagem de espécie | Índice único parcial garante um só nome primário por espécie |
+| `lotes.quantidade_atual` | A tela de ocupação lê o saldo de dezenas de lotes de uma vez, no celular, em rede instável. Somar `movimentos_lote` a cada leitura tornaria a tela inutilizável no dispositivo em que ela é usada | A soma dos movimentos do lote tem de reproduzir o saldo. Divergência é defeito, e é detectável por consulta |
+| `especies_nomes_populares.e_principal` | Evita subconsulta em toda listagem de espécie | Índice único parcial garante um só nome primário por espécie |
 
 **As demais derivações não foram materializadas**, e é a decisão que o modelo mais repete: saldo
 disponível, mortalidade, ocupação do canteiro, situação do lote e vencimento da etapa são todos

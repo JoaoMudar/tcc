@@ -2,7 +2,7 @@
 -- Descricao: A atribuicao passa a poder declarar a hora da tarefa.
 --
 -- Requisitos: RF-26 · Regras: RN-12
--- Entidades: C8 `assignments`
+-- Entidades: C8 `atribuicoes`
 --
 -- POR QUE ESTA MIGRATION EXISTE. RN-12 afirmava que o viveiro planeja "por turno,
 -- nao por horario", e isso e falso: a irrigacao das sete as oito TEM horario na
@@ -19,19 +19,19 @@
 --
 -- SEM BEGIN/COMMIT PROPRIOS e SEM GUARDA CONDICIONAL.
 
-ALTER TABLE assignments
-  ADD COLUMN start_time TIME,
-  ADD COLUMN end_time   TIME;
+ALTER TABLE atribuicoes
+  ADD COLUMN hora_inicio TIME,
+  ADD COLUMN hora_fim   TIME;
 
 -- Os tres casos reais: sem hora (a maioria das tarefas), so inicio (a carga que
 -- chega meio-dia e ninguem sabe quando termina) e inicio com fim (a irrigacao das
 -- sete as oito). Fim sem inicio nao e nenhum deles.
-ALTER TABLE assignments
-  ADD CONSTRAINT assignments_hora_coerente CHECK (
-    end_time IS NULL OR (start_time IS NOT NULL AND end_time > start_time)
+ALTER TABLE atribuicoes
+  ADD CONSTRAINT atribuicoes_hora_coerente CHECK (
+    hora_fim IS NULL OR (hora_inicio IS NOT NULL AND hora_fim > hora_inicio)
   );
 
-COMMENT ON COLUMN assignments.start_time IS
+COMMENT ON COLUMN atribuicoes.hora_inicio IS
   'Hora de inicio da tarefa que tem hora marcada. Nula na maioria: a unidade do planejamento e o turno. RN-12.';
-COMMENT ON COLUMN assignments.end_time IS
+COMMENT ON COLUMN atribuicoes.hora_fim IS
   'Hora de fim, quando ha inicio e se sabe o fim. Nao mede jornada de ninguem: nao ha apontamento por relogio. RN-12.';

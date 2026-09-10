@@ -59,7 +59,7 @@ indicadores para um painel que não existia.
 | **Pergunta de negócio** | Que levas estão morrendo além do aceitável, e por quê? |
 | **Definição** | Proporção de mudas perdidas em relação à quantidade inicial da leva |
 | **Fórmula** | `soma dos movimentos de perda do lote ÷ quantidade inicial do lote × 100` |
-| **Fonte** | `batches`, `batch_movements` |
+| **Fonte** | `lotes`, `movimentos_lote` |
 | **Unidade** | Percentual |
 | **Janela** | Vida inteira do lote, da criação ao encerramento |
 | **Periodicidade** | A cada leitura: é derivado, não apurado |
@@ -86,8 +86,8 @@ regra dos 20% aponta um problema que ninguém consegue localizar.
 |---|---|
 | **Pergunta de negócio** | Que levas estão esperando trabalho que ninguém fez? |
 | **Definição** | Distribuição dos lotes abertos entre saudável, atenção e crítico, no geral e por área |
-| **Fórmula** | Contagem de lotes por faixa de `days_late`, comparada aos limites de `settings` |
-| **Fonte** | Visão `batch_health`, que lê `assignments` e `batch_protocol_steps` |
+| **Fórmula** | Contagem de lotes por faixa de `dias_atraso`, comparada aos limites de `parametros` |
+| **Fonte** | Visão `situacao_lote`, que lê `atribuicoes` e `lotes_etapas` |
 | **Unidade** | Contagem absoluta e percentual do total de lotes abertos |
 | **Janela** | Instantâneo do dia |
 | **Periodicidade** | A cada leitura: **nunca gravado** (RN-30) |
@@ -108,8 +108,8 @@ protocolo do lote e não da agenda (RF-45).
 |---|---|
 | **Pergunta de negócio** | Quanto do viveiro está ocupado, e há espaço para a próxima semeadura? |
 | **Definição** | Proporção de canteiros ocupados sobre o total, e saldo de mudas por área |
-| **Fórmula** | `canteiros com lote aberto ÷ total de canteiros × 100`; saldo = soma de `current_quantity` dos lotes abertos |
-| **Fonte** | `areas`, `beds`, `batches` |
+| **Fórmula** | `canteiros com lote aberto ÷ total de canteiros × 100`; saldo = soma de `quantidade_atual` dos lotes abertos |
+| **Fonte** | `areas`, `canteiros`, `lotes` |
 | **Unidade** | Percentual e contagem de mudas |
 | **Janela** | Instantâneo do dia |
 | **Periodicidade** | A cada leitura |

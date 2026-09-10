@@ -24,13 +24,13 @@ escopo limita-se a criar usuários, atribuir perfis e manter o sistema. É repre
 que a matriz de negócio reflita a operação real do viveiro, e não a estrutura interna do sistema.
 
 **Os seis colaboradores de campo não têm perfil de acesso.** Eles existem no sistema como
-`cadastro.parties` com o papel `funcionario`, aparecem na agenda e recebem tarefa, e **nunca abrem
+`cadastro.pessoas` com o papel `funcionario`, aparecem na agenda e recebem tarefa, e **nunca abrem
 uma tela**: quem planeja e confirma o trabalho deles é a gerência. É decisão de escopo, registrada
 em [`A1` §5](../A-fundacao/A1-documento-de-visao.md), e é o que reduz a três o número de perfis.
 
-> **Não confundir os dois sentidos de "funcionário".** `users.role` não tem, e nunca terá enquanto
+> **Não confundir os dois sentidos de "funcionário".** `usuarios.perfil` não tem, e nunca terá enquanto
 > esta decisão valer, o valor `colaborador`: ali estão as **permissões**. Já
-> `cadastro.party_roles.role` tem o valor `funcionario`, e ali está o **vínculo de trabalho**. Uma
+> `cadastro.pessoas_papeis.papel` tem o valor `funcionario`, e ali está o **vínculo de trabalho**. Uma
 > pessoa pode ter o segundo sem o primeiro, e é o caso de seis das nove.
 
 **Princípio adotado:** o menor privilégio que permita à pessoa fazer o seu trabalho. Onde houve
@@ -191,7 +191,7 @@ implantação.
 
 **O período de trabalho tem linha própria e permissão diferente**, ainda que a tela seja a mesma:
 ali a chefia cria e altera turno, porque turno é uma **lista de coisas com atributos** e não um
-valor solto. É a fronteira entre `settings` e entidade, descrita em
+valor solto. É a fronteira entre `parametros` e entidade, descrita em
 [`C6` §3.1](../C-modelagem/C6-modelo-entidade-relacionamento.md).
 
 ### 3.8 O protocolo é da gerência tanto quanto da chefia, e a divisão é só da gerência
@@ -246,7 +246,7 @@ Reproduzir a identidade no banco exigiria uma conexão por usuário, o que o amb
 sem servidor torna proibitivo.
 
 A consequência é assumida: **quem tiver a credencial do banco contorna a matriz inteira**. É a
-razão de RNF-20 proibir versionar credencial, e de a modelagem de ameaças
+razão de RNF-19 proibir versionar credencial, e de a modelagem de ameaças
 ([`E4`](../E-qualidade/E4-modelagem-de-ameacas.md)) tratar o vazamento dela como ameaça de maior
 severidade.
 
