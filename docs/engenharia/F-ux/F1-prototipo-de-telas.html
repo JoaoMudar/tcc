@@ -470,15 +470,13 @@ S.push({
 S.push({
   id:'UC-03', mod:'acesso', actors:['admin'], built:true, route:'/admin/usuarios',
   name:'Gerenciar usuários e perfis', rf:'RF-05, RF-06',
-  why:'Única tela do sistema fechada à chefia: nenhum perfil de negócio cria usuário ou altera perfil (D4 §3.7), para que escalar privilégio não seja um caminho de uso normal. O perfil escolhido aqui é verificado a cada operação no servidor, não apenas escondendo botão.',
+  why:'Única tela do sistema fechada aos dois perfis de negócio: nenhum deles cria usuário ou altera perfil (D4 §3.5), para que escalar privilégio não seja um caminho de uso normal. O perfil escolhido aqui é verificado a cada operação no servidor, não apenas escondendo botão.',
   ui:`<div class="mk-hd"><div class="b">Administração</div><div class="t">Usuários</div></div>
   <div class="mk-body tight">
     <div class="mk-in">🔍 Buscar usuário</div>
     <div class="mk-card"><div class="mk-row"><span class="mk-nm">Gilberto</span><span class="mk-pill g">chefia</span></div><div class="s" style="font-size:10px;color:#6B7280">gilberto &middot; ativo</div></div>
     <div class="mk-card"><div class="mk-row"><span class="mk-nm">Débora</span><span class="mk-pill b">gerência</span></div><div class="s" style="font-size:10px;color:#6B7280">debora &middot; ativo &middot; acumula admin</div></div>
-    <div class="mk-card"><div class="mk-row"><span class="mk-nm">Rogério</span><span class="mk-pill n">colaborador</span></div><div class="s" style="font-size:10px;color:#6B7280">rogerio &middot; ativo</div></div>
-    <div class="mk-card"><div class="mk-row"><span class="mk-nm">Marlene</span><span class="mk-pill n">colaborador</span></div><div class="s" style="font-size:10px;color:#6B7280">marlene &middot; senha provisória</div></div>
-    <div class="mk-card"><div class="mk-row"><span class="mk-nm">Valdir</span><span class="mk-pill n">colaborador</span></div><div class="s" style="font-size:10px;color:#6B7280">valdir &middot; inativo</div></div>
+    <div class="mk-card"><div class="mk-row"><span class="mk-nm">João</span><span class="mk-pill n">administrador</span></div><div class="s" style="font-size:10px;color:#6B7280">joao &middot; senha provisória</div></div>
     <div style="flex:1"></div>
     <div class="mk-btn">+ Novo usuário</div>
   </div>`
@@ -520,11 +518,11 @@ S.push({
     <div class="mk-in">🔍 cedro</div>
     <div class="mk-card" style="flex-direction:row;gap:9px;align-items:center">
       <div class="mk-ph" style="width:42px;height:42px;flex:none">foto</div>
-      <div><div class="mk-nm">Cedro-rosa</div><div class="mk-it">Cedrela fissilis</div><div style="display:flex;gap:3px;margin:2px 0"><span class="mk-pill g">nativa</span><span class="mk-pill b">madeireira</span><span class="mk-pill n">ornamental</span></div><div style="font-size:9.5px;color:#6B7280">germinação 25 d &middot; produção 8 meses</div></div>
+      <div><div class="mk-nm">Cedro-rosa</div><div class="mk-it">Cedrela fissilis</div><div style="display:flex;gap:3px;margin:2px 0"><span class="mk-pill g">nativa</span><span class="mk-pill b">madeireira</span><span class="mk-pill n">ornamental</span></div></div>
     </div>
     <div class="mk-card" style="flex-direction:row;gap:9px;align-items:center">
       <div class="mk-ph" style="width:42px;height:42px;flex:none">foto</div>
-      <div><div class="mk-nm">Cedro-do-brejo</div><div class="mk-it">Cedrela odorata</div><div style="font-size:9.5px;color:#6B7280">germinação 30 d &middot; produção 9 meses</div></div>
+      <div><div class="mk-nm">Cedro-do-brejo</div><div class="mk-it">Cedrela odorata</div></div>
     </div>
     <div class="mk-lbl" style="margin-top:2px">Também encontrado por</div>
     <div style="font-size:10px;color:#6B7280;line-height:1.5">cedro-vermelho, acaju, cedro-batata</div>
@@ -533,30 +531,27 @@ S.push({
 S.push({
   id:'UC-08', mod:'cadastros', actors:['chefia'], built:true, route:'/cadastros/recipientes',
   name:'Manter recipientes', rf:'RF-11',
-  why:'O recipiente define o tamanho da muda, e com ele o custo e o preço. O consumo de substrato por unidade é o que liga este cadastro ao custeio.',
+  why:'O recipiente define o tamanho da muda, e é o tamanho que determina o protocolo de manejo que o lote vai seguir.',
   ui:`<div class="mk-hd"><div class="b">1 &middot; Cadastros</div><div class="t">Recipientes</div></div>
   <div class="mk-tabs"><span>Espécies</span><span class="on">Recipientes</span><span>Insumos</span><span>Pessoas</span></div>
   <div class="mk-rel"><div class="mk-body tight">
-    <div class="mk-card"><div class="mk-row"><span class="mk-nm">Tubete 55</span><span class="mk-pill n">tubete</span></div><div style="font-size:10px;color:#6B7280">55 cm³ &middot; 0,055 L de substrato/un</div></div>
-    <div class="mk-card"><div class="mk-row"><span class="mk-nm">Saco 10&times;18</span><span class="mk-pill n">saco</span></div><div style="font-size:10px;color:#6B7280">0,9 L &middot; 0,90 L de substrato/un</div></div>
-    <div class="mk-card"><div class="mk-row"><span class="mk-nm">Saco 17&times;22</span><span class="mk-pill n">saco</span></div><div style="font-size:10px;color:#6B7280">2,8 L &middot; 2,80 L de substrato/un</div></div>
-    <div class="mk-card"><div class="mk-row"><span class="mk-nm">Saco 20&times;26</span><span class="mk-pill n">saco</span></div><div style="font-size:10px;color:#6B7280">5,2 L &middot; 5,20 L de substrato/un</div></div>
-    <div class="mk-card"><div class="mk-row"><span class="mk-nm">Saco 28&times;32</span><span class="mk-pill n">saco</span></div><div style="font-size:10px;color:#6B7280">12,0 L &middot; 12,00 L de substrato/un</div></div>
+    <div class="mk-card"><div class="mk-row"><span class="mk-nm">Tubete 55</span><span class="mk-pill n">tubete</span></div><div style="font-size:10px;color:#6B7280">55 cm³</div></div>
+    <div class="mk-card"><div class="mk-row"><span class="mk-nm">Saco 10&times;18</span><span class="mk-pill n">saco</span></div><div style="font-size:10px;color:#6B7280">0,9 L</div></div>
+    <div class="mk-card"><div class="mk-row"><span class="mk-nm">Saco 17&times;22</span><span class="mk-pill n">saco</span></div><div style="font-size:10px;color:#6B7280">2,8 L</div></div>
+    <div class="mk-card"><div class="mk-row"><span class="mk-nm">Saco 20&times;26</span><span class="mk-pill n">saco</span></div><div style="font-size:10px;color:#6B7280">5,2 L</div></div>
+    <div class="mk-card"><div class="mk-row"><span class="mk-nm">Saco 28&times;32</span><span class="mk-pill n">saco</span></div><div style="font-size:10px;color:#6B7280">12,0 L</div></div>
     </div><div class="mk-fab">+</div></div>`
 });
 S.push({
   id:'UC-09', mod:'cadastros', actors:['chefia'], built:true, route:'/cadastros/insumos',
   name:'Manter insumos', rf:'RF-12',
-  why:'O histórico de preços é obrigatório: o custo unitário de um lote de março não pode ser recalculado com o substrato que subiu em agosto.',
+  why:'O insumo é só catálogo: nome, categoria e unidade de medida, o suficiente para a tarefa registrar o que gastou. Custo unitário, histórico de preço e saldo em estoque saíram com o custeio.',
   ui:`<div class="mk-hd"><div class="b">1 &middot; Cadastros</div><div class="t">Insumos</div></div>
   <div class="mk-tabs"><span>Espécies</span><span>Recipientes</span><span class="on">Insumos</span><span>Pessoas</span></div>
   <div class="mk-rel"><div class="mk-body tight">
-    <div class="mk-card"><div class="mk-row"><span class="mk-nm">Substrato casca de pinus</span><span style="font-weight:700">R$ 1,85</span></div><div class="mk-row"><span style="font-size:10px;color:#6B7280">por litro</span><span style="font-size:9.5px;color:#15803D">3 preços no histórico</span></div></div>
-    <div class="mk-card"><div class="mk-row"><span class="mk-nm">Osmocote 15-09-12</span><span style="font-weight:700">R$ 38,40</span></div><div class="mk-row"><span style="font-size:10px;color:#6B7280">por kg</span><span style="font-size:9.5px;color:#15803D">2 preços</span></div></div>
-    <div class="mk-card"><div class="mk-row"><span class="mk-nm">Vermiculita</span><span style="font-weight:700">R$ 2,10</span></div><div class="mk-row"><span style="font-size:10px;color:#6B7280">por litro</span><span style="font-size:9.5px;color:#15803D">4 preços</span></div></div>
-    <div class="mk-hr"></div>
-    <div class="mk-lbl">Substrato casca de pinus &middot; histórico</div>
-    <div style="font-size:10px;color:#4B5563;line-height:1.6">12/08/2026 &nbsp; R$ 1,85<br>03/04/2026 &nbsp; R$ 1,62<br>18/11/2025 &nbsp; R$ 1,49</div>
+    <div class="mk-card"><div class="mk-row"><span class="mk-nm">Substrato casca de pinus</span><span class="mk-pill n">substrato</span></div><div style="font-size:10px;color:#6B7280">unidade: litro</div></div>
+    <div class="mk-card"><div class="mk-row"><span class="mk-nm">Osmocote 15-09-12</span><span class="mk-pill n">adubo</span></div><div style="font-size:10px;color:#6B7280">unidade: kg</div></div>
+    <div class="mk-card"><div class="mk-row"><span class="mk-nm">Vermiculita</span><span class="mk-pill n">substrato</span></div><div style="font-size:10px;color:#6B7280">unidade: litro</div></div>
     </div><div class="mk-fab">+</div></div>`
 });
 S.push({
@@ -587,13 +582,13 @@ S.push({
   <div class="mk-body tight">
     <div class="mk-warn">Cadastro fiscal incompleto. O pedido #418 pede nota fiscal.</div>
     <div class="mk-seg"><span class="on">Pessoa jurídica</span><span>Pessoa física</span></div>
-    <div><div class="mk-lbl">Razão social</div><div class="mk-in v" style="margin-top:3px">Boa Vista Agropecuária Ltda</div></div>
+    <div><div class="mk-lbl">Nome</div><div class="mk-in v" style="margin-top:3px">Boa Vista Agropecuária</div></div>
     <div><div class="mk-lbl">CNPJ</div><div class="mk-in f" style="margin-top:3px">08.421.377/0001-05 ✓</div></div>
     <div class="mk-grid2">
       <div><div class="mk-lbl">Cidade</div><div class="mk-in v" style="margin-top:3px">Lontras</div></div>
       <div><div class="mk-lbl">UF</div><div class="mk-in v" style="margin-top:3px">SC</div></div>
     </div>
-    <div><div class="mk-lbl">Inscrição estadual</div><div class="mk-in" style="margin-top:3px">Obrigatória para nota</div></div>
+    <div class="mk-info">Razão social e inscrição estadual não ficam aqui: quem emite a nota é o sistema fiscal externo.</div>
     <div style="flex:1"></div>
     <div class="mk-btn">Salvar</div>
   </div>`
@@ -621,7 +616,7 @@ S.push({
 S.push({
   id:'UC-13', mod:'cadastros', actors:['chefia'], built:true, route:'/fornecedores',
   name:'Manter fornecedor', rf:'RF-19',
-  why:'As espécies que o fornecedor fornece não são texto livre: são a mesma lista do catálogo, e é isso que permite a cotação saber a quem perguntar.',
+  why:'As espécies que o fornecedor fornece não são texto livre: são a mesma lista do catálogo, para saber a quem perguntar quando falta muda pronta de uma espécie.',
   ui:`<div class="mk-hd"><div class="b">3 &middot; Comercial</div><div class="t">Viveiro Santa Clara</div><div class="r">Fornecedor</div></div>
   <div class="mk-body tight">
     <div><div class="mk-lbl">Contato</div><div class="mk-in v" style="margin-top:3px">Marcos &middot; (49) 99188-2210</div></div>
@@ -649,7 +644,7 @@ S.push({
   <div class="mk-tabs"><span>Espécies</span><span>Recipientes</span><span>Insumos</span><span class="on">Pessoas</span></div>
   <div class="mk-body tight">
     <div class="mk-seg"><span>Clientes</span><span class="on">Funcionários</span><span>Fornec.</span></div>
-    <div class="mk-card"><div class="mk-row"><span class="mk-nm">Rogério Steilein</span><span class="mk-pill g">fixo</span></div><div style="font-size:10px;color:#6B7280">(47) 99845-1120 &middot; acessa o sistema</div></div>
+    <div class="mk-card"><div class="mk-row"><span class="mk-nm">Rogério Steilein</span><span class="mk-pill g">fixo</span></div><div style="font-size:10px;color:#6B7280">(47) 99845-1120 &middot; sem acesso</div></div>
     <div class="mk-card"><div class="mk-row"><span class="mk-nm">Marlene Cardoso</span><span class="mk-pill g">fixo</span></div><div style="font-size:10px;color:#6B7280">(47) 99733-0987 &middot; acessa o sistema</div></div>
     <div class="mk-card"><div class="mk-row"><span class="mk-nm">Valdir Hoffmann</span><span class="mk-pill a">diarista</span></div><div style="font-size:10px;color:#6B7280">(47) 99201-7734 &middot; sem acesso</div></div>
     <div class="mk-card"><div class="mk-row"><span class="mk-nm">Cleusa Batista</span><span class="mk-pill a">diarista</span></div><div style="font-size:10px;color:#6B7280">sem telefone &middot; sem acesso</div></div>
@@ -659,12 +654,12 @@ S.push({
 });
 S.push({
   id:'UC-15', mod:'cadastros', actors:['gerencia','chefia'], built:false, route:'',
-  name:'Manter catálogo de tipos de tarefa', rf:'RF-21, RF-24',
+  name:'Manter catálogo de tipos de tarefa', rf:'RF-21',
   why:'Esta tela é a que decide o formulário das outras. O que o tipo de tarefa declarar exigir é exatamente o que a agenda e o encerramento vão pedir, nem um campo a mais.',
   ui:`<div class="mk-hd"><div class="b">1 &middot; Cadastros</div><div class="t">Tipo de tarefa</div><div class="r">Repicagem</div></div>
   <div class="mk-body tight">
     <div><div class="mk-lbl">Nome</div><div class="mk-in v" style="margin-top:3px">Repicagem</div></div>
-    <div><div class="mk-lbl">Categoria</div><div class="mk-in v" style="margin-top:3px">Produção</div></div>
+    <div><div class="mk-lbl">Categoria</div><div class="mk-in v" style="margin-top:3px">Plantio</div></div>
     <div class="mk-hr"></div>
     <div class="mk-lbl">O que esta tarefa exige</div>
     <div class="mk-card"><div class="mk-row"><span>Quantitativa por unidade</span><i class="mk-sw on"></i></div></div>
@@ -678,8 +673,8 @@ S.push({
 });
 
 S.push({
-  id:'UC-16', mod:'cadastros', actors:['gerencia'], built:false, route:'',
-  name:'Manter áreas e canteiros', rf:'RF-13, RF-15',
+  id:'UC-16', mod:'cadastros', actors:['gerencia','chefia'], built:false, route:'',
+  name:'Manter áreas e canteiros', rf:'RF-13',
   why:'Área identificada por letra, canteiro por número, exatamente como a equipe já fala no viveiro. Número repetido na mesma área é recusado na hora.',
   ui:`<div class="mk-hd"><div class="b">1 &middot; Cadastros</div><div class="t">Áreas e canteiros</div></div>
   <div class="mk-body tight">
@@ -698,10 +693,10 @@ S.push({
   </div>`
 });
 S.push({
-  id:'UC-05', mod:'config', actors:['gerencia','chefia'], built:false, route:'',
+  id:'UC-05', mod:'config', actors:['chefia','admin'], built:false, route:'',
   name:'Manter período de trabalho', rf:'RF-08',
   why:'A jornada padrão da agenda. É daqui que sai a duração de cada turno, que muda com a estação, e é por ser cadastro, e não constante de código, que ela pode mudar sem implantação (RN-27).',
-  ui:`<div class="mk-hd"><div class="b">1 &middot; Cadastros</div><div class="t">Período de trabalho</div></div>
+  ui:`<div class="mk-hd"><div class="b">Configurações</div><div class="t">Período de trabalho</div></div>
   <div class="mk-body">
     <div class="mk-card pad">
       <div class="mk-lbl">Turno da manhã</div>
@@ -748,7 +743,7 @@ S.push({
 S.push({
   id:'UC-17', mod:'cadastros', actors:['gerencia','chefia'], built:false, route:'',
   name:'Manter protocolo de atividades', rf:'RF-22 a RF-24',
-  why:'A tela mais consequente do módulo, e a exceção em que a gerência mantém cadastro (D4 §3.16): quem sabe em quantos dias o ipê germina no tubete é quem está no viveiro. O erro aqui é silencioso e diferido, e protocolo não se exclui, desativa-se: excluir deixaria os lotes que o seguem sem receita, em silêncio.',
+  why:'A tela mais consequente do módulo, e a exceção em que a gerência mantém cadastro (D4 §3.8): quem sabe em quantos dias o ipê germina no tubete é quem está no viveiro. O erro aqui é silencioso e diferido, e protocolo não se exclui, desativa-se: excluir deixaria os lotes que o seguem sem receita, em silêncio.',
   ui:`<div class="mk-hd"><div class="b">1 &middot; Cadastros</div><div class="t">Protocolo &middot; Tubete</div><div class="r">Vigente desde 01/07/2026</div></div>
   <div class="mk-body tight">
     <div class="mk-card">
@@ -796,9 +791,9 @@ S.push({
 });
 /* ============ 02 · PRODUÇÃO ============ */
 S.push({
-  id:'PR-ENTRADA', mod:'producao', actors:['gerencia'], built:false, route:'', wide:true,
+  id:'PR-ENTRADA', mod:'producao', actors:['gerencia','chefia'], built:false, route:'', wide:true,
   name:'Entrada da área Produção', rf:'—',
-  why:'A pergunta que a gerência faz ao entrar é sempre uma das duas: quem está fazendo o quê agora, e como está o viveiro. Por isso as duas visões abrem alternadas por aba, e as demais rotinas ficam listadas abaixo: são o que se procura depois de já ter olhado o dia. É tela de computador (RNF-14), e não porque a gerência esteja no escritório: nove faixas ao longo de um dia só mostram o buraco quando cabem juntas na tela.',
+  why:'A pergunta que quem abre a Produção faz é sempre uma das duas: quem está fazendo o quê agora, e como está o viveiro. Por isso as duas visões abrem alternadas por aba, e as demais rotinas ficam listadas abaixo: são o que se procura depois de já ter olhado o dia. É tela de computador (RNF-14), e não porque a gerência esteja no escritório: nove faixas ao longo de um dia só mostram o buraco quando cabem juntas na tela.',
   ui:`<div class="mk-hd row"><div><div class="b">2 &middot; Produção</div><div class="t">Agenda do dia</div></div><div class="r" style="align-self:center">Terça, 01/09 &middot; 09:42</div></div>
   <div class="mk-tabs"><span class="on">Agenda do dia</span><span>Mapa de produção</span></div>
   <div class="mk-body tight">
@@ -874,9 +869,9 @@ S.push({
   </div>`
 });
 S.push({
-  id:'UC-25', mod:'producao', actors:['gerencia','chefia'], built:false, route:'',
+  id:'UC-25', mod:'producao', actors:['gerencia'], built:false, route:'',
   name:'Registrar perda', rf:'RF-38',
-  why:'RN-10 fixa as cinco causas, seca, praga, geada, manuseio e outro: texto livre não vira estatística por causa. Quatro toques e o registro está feito, no canteiro, sem voltar ao escritório.',
+  why:'RN-10 fixa as cinco causas, seca, praga, geada, manuseio e outro: texto livre não vira estatística por causa. Lote, quantidade, causa e observação, e o registro está feito, no canteiro, sem voltar ao escritório.',
   ui:`<div class="mk-hd"><div class="b">2 &middot; Produção</div><div class="t">Registrar perda</div></div>
   <div class="mk-body">
     <div><div class="mk-lbl">Lote</div><div class="mk-in v" style="margin-top:4px;padding:12px">214 &middot; Cedro-rosa &middot; A-07</div></div>
@@ -889,6 +884,7 @@ S.push({
       <div class="mk-btn sec" style="text-align:left;padding:10px 12px">Manuseio</div>
       <div class="mk-btn sec" style="text-align:left;padding:10px 12px">Outro</div>
     </div>
+    <div><div class="mk-lbl">Observação</div><div class="mk-in" style="margin-top:4px;padding:12px">Opcional</div></div>
     <div style="flex:1"></div>
     <div class="mk-btn" style="padding:15px;font-size:15px">Registrar perda</div>
   </div>`
@@ -896,12 +892,12 @@ S.push({
 S.push({
   id:'UC-30', mod:'producao', actors:['gerencia','chefia'], built:false, route:'',
   name:'Analisar perdas', rf:'RF-41 a RF-42',
-  why:'Mortalidade acima de vinte por cento gera alerta. O impacto em reais usa o custo unitário do módulo financeiro: perder muda é perder dinheiro já gasto.',
+  why:'Mortalidade acima de vinte por cento gera alerta. A causa dominante por espécie é o que aponta onde olhar primeiro.',
   ui:`<div class="mk-hd"><div class="b">2 &middot; Produção</div><div class="t">Perdas</div><div class="r">Últimos 90 dias</div></div>
   <div class="mk-body tight">
     <div class="mk-grid2">
       <div class="mk-tile"><div class="k">Perdidas</div><div class="mk-num">4.180</div></div>
-      <div class="mk-tile"><div class="k">Impacto</div><div class="mk-num" style="color:#991B1B">R$ 7.9k</div></div>
+      <div class="mk-tile"><div class="k">Espécies acima do limite</div><div class="mk-num" style="color:#991B1B">1</div></div>
     </div>
     <div class="mk-alert"><b>Guanandi: 27% de mortalidade.</b> Acima do limite de 20%.</div>
     <div class="mk-lbl">Por espécie</div>
@@ -924,7 +920,7 @@ S.push({
 
 S.push({
   id:'UC-19', mod:'producao', actors:['gerencia'], built:false, route:'', wide:true,
-  name:'Montar a agenda da semana', rf:'RF-26 a RF-28, RF-32',
+  name:'Montar a agenda da semana', rf:'RF-26 a RF-28, RF-31',
   why:'Não é outra tela: é a mesma agenda da entrada do módulo, com o botão de escala em Semana. A unidade da barra é o turno, e não a hora, porque é assim que o viveiro planeja a maior parte do trabalho; a tarefa que tem hora marcada de verdade, como a irrigação das sete às oito, exibe a sua ao lado do turno (RN-12). Copiar a semana anterior é o gesto principal: no viveiro a semana repete. A semana fechada trava, e a tarefa planejada não confirmada é assumida como realizada, com essa condição registrada.',
   ui:`<div class="mk-hd row"><div><div class="b">2 &middot; Produção</div><div class="t">Agenda &middot; 31/08 a 05/09</div></div><span class="mk-pill a" style="align-self:center">rascunho</span></div>
   <div class="mk-tabs"><span class="on">Agenda do dia</span><span>Mapa de produção</span></div>
@@ -1057,7 +1053,7 @@ S.push({
 
 S.push({
   id:'UC-20', mod:'producao', actors:['gerencia'], built:false, route:'',
-  name:'Confirmar tarefa realizada', rf:'RF-34, RF-29, RF-30',
+  name:'Confirmar tarefa realizada', rf:'RF-29, RF-30',
   why:'Encerra o grupo inteiro de uma vez: o lote uma vez para a tarefa, a quantidade uma vez por participante. Os campos que aparecem são os que o tipo de tarefa declarou exigir.',
   ui:`<div class="mk-hd"><div class="b">2 &middot; Produção</div><div class="t">Encerrar repicagem</div><div class="r">Iniciada às 09:42 &middot; 3 participantes</div></div>
   <div class="mk-body tight">
@@ -1141,18 +1137,15 @@ S.push({
 S.push({
   id:'UC-31', mod:'comercial', actors:['chefia'], built:true, route:'/pedidos/novo',
   name:'Cadastrar pedido', rf:'RF-54, RF-55',
-  why:'O item genérico é o que torna esta tela fiel ao negócio: o cliente pede "mil mudas nativas de 17×22", sem dizer quais. A espécie entra depois, na verificação.',
+  why:'Cada item exige espécie, recipiente e quantidade: é o cliente dizendo exatamente o que quer, resolvido na conversa e já registrado assim, sem etapa de verificação depois.',
   ui:`<div class="mk-hd"><div class="b">3 &middot; Comercial</div><div class="t">Novo pedido</div></div>
   <div class="mk-body tight">
     <div><div class="mk-lbl">Cliente</div><div class="mk-in v" style="margin-top:3px">Prefeitura de Ibirama</div></div>
     <div><div class="mk-lbl">Canal de venda</div><div class="mk-in v" style="margin-top:3px">Prefeitura</div></div>
     <div class="mk-lbl">Itens</div>
     <div class="mk-card"><div class="mk-row"><span class="mk-nm">Ipê-amarelo</span><span style="font-weight:700">800</span></div><div style="font-size:9.5px;color:#6B7280">saco 10&times;18</div></div>
-    <div class="mk-card" style="border-color:#BFDBFE;background:#EFF6FF">
-      <div class="mk-row"><span class="mk-nm">Nativa a definir</span><span style="font-weight:700">1.000</span></div>
-      <div style="font-size:9.5px;color:#1E40AF">saco 17&times;22 &middot; item genérico</div>
-      <div style="font-size:9.5px;color:#4B5563">Aceita: cedro, canela, aroeira, jacatirão &middot; altura mínima 40 cm</div>
-    </div>
+    <div class="mk-card"><div class="mk-row"><span class="mk-nm">Cedro-rosa</span><span style="font-weight:700">1.000</span></div><div style="font-size:9.5px;color:#6B7280">saco 17&times;22</div></div>
+    <div class="mk-card"><div class="mk-row"><span class="mk-nm">Canela-preta</span><span style="font-weight:700">300</span></div><div style="font-size:9.5px;color:#6B7280">saco 20&times;26</div></div>
     <div class="mk-btn sec">+ Adicionar item</div>
     <div style="flex:1"></div>
     <div class="mk-btn">Salvar pedido</div>

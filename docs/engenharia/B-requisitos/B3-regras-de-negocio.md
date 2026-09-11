@@ -368,7 +368,7 @@ condições do ambiente. Os outros treze vêm de política do projeto (ORG) ou d
 | RN | O que fica de fora |
 |---|---|
 | RN-49 | A regra de proteção de dados é realizada por RNF-20 e pelo mapeamento de [`E5`](../E-qualidade/E5-mapeamento-lgpd.md), e não por requisito funcional: não há tela de LGPD, há uma forma de tratar o dado em todas elas |
-| RN-29 | O **aviso** de que a leva não cabe no que resta do canteiro. RF-32 manda criar o lote informando o canteiro e não menciona conferência nenhuma; a ocupação é apresentada (RF-33, RF-44), mas ninguém é avisado no momento em que a decisão é tomada |
+| RN-29 | O **aviso**, no próprio ato de criar o lote, de que a leva não cabe no que resta do canteiro. RF-32 manda criar o lote informando o canteiro e não menciona conferência nenhuma: quem realiza o aviso é o fluxo de [`UC-22`](../C-modelagem/C2-especificacao-casos-de-uso.md), não um RF que o descreva por escrito |
 
 ---
 
