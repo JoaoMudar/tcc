@@ -1,1 +1,30 @@
+# dependências
 node_modules/
+.pnp
+.pnp.*
+
+# testes
+coverage/
+
+# next.js
+.next/
+out/
+build/
+next-env.d.ts
+*.tsbuildinfo
+
+# segredos (RNF-19): nenhum .env entra no git, só o exemplo
+.env*
+!.env.example
+*.pem
+
+# dumps de banco
+*.dump
+*.sql.gz
+
+# vercel
+.vercel
+
+# logs e sistema
+npm-debug.log*
+.DS_Store
