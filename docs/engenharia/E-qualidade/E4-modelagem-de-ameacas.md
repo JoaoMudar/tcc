@@ -45,7 +45,8 @@ pelo tipo de controle de Sommerville.
 - *Prevenção*: política de senha verificada no momento da definição, recusando as previsíveis.
 - *Prevenção*: troca obrigatória no primeiro acesso (RF-02), para que a senha temporária comunicada
   verbalmente não permaneça em uso.
-- *Detecção*: contagem de tentativas malsucedidas consecutivas, com bloqueio temporário.
+- *Detecção*: contagem de tentativas malsucedidas consecutivas, com bloqueio temporário. Cinco falhas
+  seguidas bloqueiam o login por 15 minutos, e o acesso bem-sucedido zera a contagem.
 
 > **Não adotada:** troca periódica obrigatória. Sommerville usa exatamente este caso como exemplo de
 > falha originada em decisão de projeto: a senha trocada com frequência é anotada em papel, e o
