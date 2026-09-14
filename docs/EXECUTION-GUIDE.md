@@ -30,10 +30,13 @@ viveiro-mudar/
 
 | | Fase | Estado |
 |---|---|---|
-| 🟡 | **Fase 1** Acesso e cadastro único | acesso, catálogo e pessoas prontos; faltam áreas e canteiros, tipos de tarefa e Configurações |
-| ⬜ | **Fase 2** Lotes e movimentos | modelo no banco, nenhuma tela |
-| ⬜ | **Fase 3** Agenda da semana e protocolo | agenda no banco; protocolo só especificado |
-| 🟡 | **Fase 4** Mapa de lotes e pedidos | pedido cadastra e lista; falta preço, confirmação, saldo e o mapa inteiro |
+| ⬜ | **Fase 0** Fundação técnica | não iniciada: não há `src/` nem `package.json` |
+| ⬜ | **Fases 1 a 3** Acesso, Configurações e Cadastro único | modelo no banco, nenhuma tela |
+| ⬜ | **Fases 4 a 7** Lotes, agenda, protocolo e mapa | lote e agenda no banco; protocolo só especificado |
+| ⬜ | **Fases 8 a 10** Comercial, PWA e operação | pedido no banco, nenhuma tela |
+
+**Em 14/09/2026 o código recomeçou do zero neste repositório.** O que as versões anteriores deste
+guia davam como pronto era o aplicativo antigo em inglês, noutro repositório, e não é herdado.
 
 **A redução de escopo de 28/08/2026 é o que mudou o quadro.** Custeio, precificação, financeiro,
 cotação e superfície pública saíram da especificação, e com eles a maior parte do que este guia
