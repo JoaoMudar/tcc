@@ -70,7 +70,15 @@ diagrama de contexto que os desenhasse estaria descrevendo a empresa, e não o s
 As unidades executáveis e de armazenamento, e a correspondência com as três camadas.
 
 ```mermaid
-graph TB
+---
+config:
+  layout: elk
+  elk:
+    nodePlacementStrategy: NETWORK_SIMPLEX
+  flowchart:
+    curve: linear
+---
+graph LR
   subgraph disp["Dispositivo do usuário: camada de apresentação"]
     PWA["<b>Aplicação web progressiva</b><br/>Interface móvel<br/>Instalável, funciona sem conexão"]
     FILA["<b>Fila local de sincronização</b><br/>Armazenamento no navegador<br/>Guarda registros feitos sem rede"]

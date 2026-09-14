@@ -43,15 +43,23 @@ de o pedido ser registrado).
 ## 2. Visão geral: atores e subsistemas
 
 ```mermaid
-graph LR
+---
+config:
+  layout: elk
+  elk:
+    nodePlacementStrategy: NETWORK_SIMPLEX
+  flowchart:
+    curve: linear
+---
+graph TB
   CH(("Chefia"))
   GE(("Gerência"))
   AD(("Administrador"))
 
   subgraph M1["1 · Cadastro único"]
-    S13["Catálogo &mdash; espécies,<br/>recipientes, insumos"]
-    S6["Pessoas &mdash; cliente,<br/>fornecedor, funcionário"]
-    S14["Viveiro &mdash; áreas<br/>e canteiros"]
+    S13["Catálogo: espécies,<br/>recipientes, insumos"]
+    S6["Pessoas: cliente,<br/>fornecedor, funcionário"]
+    S14["Viveiro: áreas<br/>e canteiros"]
     S16["Tarefas e protocolo"]
   end
   subgraph M2["2 · Produção"]
@@ -64,8 +72,12 @@ graph LR
   subgraph M3["3 · Comercial"]
     S7["Pedidos"]
   end
-  S12["Acesso &mdash; transversal"]
-  S18["Configurações &mdash; transversal"]
+  S12["Acesso: transversal"]
+  S18["Configurações: transversal"]
+
+  %% ligações invisíveis: empilham cada subsistema em coluna, para a figura sair na horizontal
+  S13 ~~~ S6 ~~~ S14 ~~~ S16
+  S15 ~~~ S2 ~~~ S4 ~~~ S3 ~~~ S17
 
   CH --- S13
   CH --- S6

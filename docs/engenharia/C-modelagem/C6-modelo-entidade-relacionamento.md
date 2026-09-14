@@ -57,7 +57,14 @@ conexão (RNF-05).
 Apenas entidades e relacionamentos, sem atributos. É a visão que responde "de que o sistema trata".
 
 ```mermaid
+---
+config:
+  layout: elk
+  elk:
+    nodePlacementStrategy: NETWORK_SIMPLEX
+---
 erDiagram
+  direction LR
   ESPECIE      ||--o{ LOTE        : "é plantada em"
   RECIPIENTE   ||--o{ LOTE        : "define o porte de"
   CANTEIRO     ||--o{ LOTE        : "abriga"
