@@ -60,7 +60,7 @@ abaixo estão nomeados pelo que diziam, porque os seus identificadores deixaram 
 |---|---|---|
 | **Exemplo resolvido** | O requisito instancia um mais geral, que já o decide | A exigência do lote na confirmação, caso particular de RF-21, que já manda pedir exatamente o que o tipo de tarefa declarar exigir, e nada além |
 | **Definição travestida de exigência** | O enunciado define um termo do glossário em vez de exigir comportamento | O cálculo da taxa de mortalidade, que enunciava a razão que já define o termo em RN-11 e em [`A2`](../A-fundacao/A2-glossario-dominio.md) |
-| **Mecanismo de fiscalização** | O não funcional descreve como outro é cobrado, e não uma exigência própria | O bloqueio automático da alteração direta na versão principal, que é como RNF-16 se cobra; e a verificação automática antes do envio, que é como RNF-17, RNF-19 e RNF-20 se cobram |
+| **Mecanismo de fiscalização** | O não funcional descreve como outro é cobrado, e não uma exigência própria | O bloqueio automático da alteração direta na versão principal, que é como RNF-15 se cobra; e a verificação automática antes do envio, que é como RNF-16, RNF-18 e RNF-19 se cobram |
 
 Saíram ainda o **realce da mortalidade no mapa**, que reapresentava o alerta de RF-42, cuja própria
 coluna de verificação já dizia "visível no mapa"; a **entrada da área Produção em duas abas**, que
@@ -129,7 +129,7 @@ por que nenhum requisito abaixo tem "Colaborador" como ator.
 ### 2.2 Configurações do sistema: transversal às três áreas
 
 **O que é valor solto mora aqui; o que é lista de coisas com atributos é cadastro.** É a mesma
-regra de fronteira que manteve o período de trabalho como entidade própria (`work_shifts`), com
+regra de fronteira que manteve o período de trabalho como entidade própria (`turnos_trabalho`), com
 hora de início e de fim por turno, e não como quatro chaves soltas: o que muda de lugar é a
 **tela**, que sai dos Cadastros e vem para cá, porque quem a procura está procurando um ajuste do
 sistema, e não um catálogo.
@@ -418,12 +418,11 @@ Derivados das políticas e convenções adotadas pelo projeto.
 
 | ID | Requisito | Origem | Verificação |
 |---|---|---|---|
-| **RNF-15** | Arquivos, identificadores e estruturas de dados devem ser nomeados em inglês; a documentação, em português | ORG | Revisão de nomenclatura |
-| **RNF-16** | Cada funcionalidade deve ser desenvolvida em ramificação própria e integrada por solicitação de incorporação | ORG | Histórico do controle de versão |
-| **RNF-17** | Mensagens de alteração devem seguir padrão fixo | ORG | Revisão do histórico |
-| **RNF-18** | Alterações na estrutura do banco devem ser versionadas em arquivos aplicados de forma controlada, preservando compatibilidade retroativa | ORG | Cada alteração de esquema corresponde a um arquivo versionado |
-| **RNF-19** | Toda alteração de código deve incluir testes automatizados cobrindo utilitários, regras de negócio e validações | ORG | Execução da suíte de testes |
-| **RNF-20** | Credenciais, chaves e dados sensíveis não devem ser versionados | ORG | Varredura do histórico |
+| **RNF-15** | Cada funcionalidade deve ser desenvolvida em ramificação própria e integrada por solicitação de incorporação | ORG | Histórico do controle de versão |
+| **RNF-16** | Mensagens de alteração devem seguir padrão fixo | ORG | Revisão do histórico |
+| **RNF-17** | Alterações na estrutura do banco devem ser versionadas em arquivos aplicados de forma controlada, preservando compatibilidade retroativa | ORG | Cada alteração de esquema corresponde a um arquivo versionado |
+| **RNF-18** | Toda alteração de código deve incluir testes automatizados cobrindo utilitários, regras de negócio e validações | ORG | Execução da suíte de testes |
+| **RNF-19** | Credenciais, chaves e dados sensíveis não devem ser versionados | ORG | Varredura do histórico |
 
 ### 3.3 Requisitos externos
 
@@ -431,10 +430,10 @@ Impostos por fatores legais, regulatórios ou pelo ambiente em que o sistema ope
 
 | ID | Requisito | Origem | Verificação |
 |---|---|---|---|
-| **RNF-21** | O tratamento de dados pessoais deve observar a Lei nº 13.709/2018, com finalidade, base legal e prazo de retenção declarados para cada dado coletado | LEG | Ver [`E5`](../E-qualidade/E5-mapeamento-lgpd.md) |
-| **RNF-22** | Os dados cadastrais de cliente devem comportar o conjunto exigido para emissão de nota fiscal no sistema externo em uso | LEG | Conferência contra os campos exigidos pelo emissor |
-| **RNF-23** | O nome científico da espécie deve estar disponível para atender exigências de projetos de compensação ambiental | LEG, DOM | Documentos gerados exibem o nome científico |
-| **RNF-24** | O sistema deve operar em navegador de celular de uso corrente pela equipe, sem exigir instalação a partir de loja de aplicativos | RE-2, RE-5 | Execução no ambiente-alvo |
+| **RNF-20** | O tratamento de dados pessoais deve observar a Lei nº 13.709/2018, com finalidade, base legal e prazo de retenção declarados para cada dado coletado | LEG | Ver [`E5`](../E-qualidade/E5-mapeamento-lgpd.md) |
+| **RNF-21** | Os dados cadastrais de cliente devem comportar o conjunto exigido para emissão de nota fiscal no sistema externo em uso | LEG | Conferência contra os campos exigidos pelo emissor |
+| **RNF-22** | O nome científico da espécie deve estar disponível para atender exigências de projetos de compensação ambiental | LEG, DOM | Documentos gerados exibem o nome científico |
+| **RNF-23** | O sistema deve operar em navegador de celular de uso corrente pela equipe, sem exigir instalação a partir de loja de aplicativos | RE-2, RE-5 | Execução no ambiente-alvo |
 
 ---
 

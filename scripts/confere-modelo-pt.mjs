@@ -1,4 +1,4 @@
-// Confere as figuras em portugues de `modelo-dados-pt` contra o C6.
+// Confere as figuras de `modelo-dados-pt` contra o C6.
 //
 // O `modelo-dados-pt` e fonte separada, renderizada a mao: nenhum gerador passa por
 // ele. Duas divisoes de figura, no historico deste projeto, perderam relacionamentos
@@ -10,6 +10,9 @@
 // figuras aparece nas duas: `atribuicoes produz movimentos_lote` esta em fig14 e em
 // fig15. A soma das figuras e sempre maior. O que tem de bater e o CONJUNTO.
 //
+// Ate a renomeacao do modelo para portugues, este script tambem traduzia os nomes do
+// C6 antes de comparar. Nao traduz mais: os dois lados escrevem o mesmo nome.
+//
 //   node scripts/confere-modelo-pt.mjs
 //
 // Sai com codigo 1 se alguma aresta existir de um lado so.
@@ -18,21 +21,6 @@ import { readFileSync, globSync } from 'node:fs';
 
 const C6 = 'docs/engenharia/C-modelagem/C6-modelo-entidade-relacionamento.md';
 const MMD = 'docs/engenharia/modelo-dados-pt/mmd/';
-
-// Tabela de correspondencia do README de `modelo-dados-pt`. O esquema `cadastro` entra
-// sem qualificacao porque e assim que o C6 desenha.
-const PT = {
-  users: 'usuarios', sessions: 'sessoes', login_events: 'eventos_login', settings: 'parametros',
-  species: 'especies', species_popular_names: 'especies_nomes_populares',
-  species_photos: 'especies_fotos', containers: 'recipientes', inputs: 'insumos',
-  parties: 'pessoas', party_roles: 'pessoas_papeis', addresses: 'pessoas_enderecos',
-  task_types: 'tipos_tarefa', areas: 'areas', beds: 'canteiros', work_shifts: 'turnos_trabalho',
-  protocols: 'protocolos', protocol_steps: 'protocolos_etapas',
-  species_protocol_overrides: 'especies_protocolos_tempos',
-  week_plans: 'semanas', assignments: 'atribuicoes', assignment_members: 'atribuicoes_participantes',
-  batches: 'lotes', batch_movements: 'movimentos_lote', batch_protocol_steps: 'lotes_etapas',
-  orders: 'pedidos', order_items: 'pedidos_itens',
-};
 
 // Aresta de leitura, e nao de chave estrangeira: mora no conceitual do C6 (§2) e aparece
 // na figura logica do pedido porque e o que o trabalho existe para demonstrar.
@@ -44,7 +32,7 @@ function arestas(texto) {
   const achadas = new Set();
   for (const linha of texto.split('\n')) {
     const m = linha.match(/^\s*(\w+)\s*\|\|--(o\{|o\|)\s*(\w+)\s*:/);
-    if (m) achadas.add(`${PT[m[1]] ?? m[1]} ${m[2]} ${PT[m[3]] ?? m[3]}`);
+    if (m) achadas.add(`${m[1]} ${m[2]} ${m[3]}`);
   }
   return achadas;
 }

@@ -1,8 +1,14 @@
-# Modelo de dados em português (versão para o TCC)
+# Modelo de dados em figuras (versão para o TCC)
 
-Mesmo modelo de [`../C-modelagem/C6-modelo-entidade-relacionamento.md`](../C-modelagem/C6-modelo-entidade-relacionamento.md),
-com tabelas e colunas nomeadas em português. A estrutura (entidades, cardinalidades, chaves,
-caixas vazias para entidade de outro módulo) é idêntica: muda a nomenclatura e o recorte das figuras.
+Mesmo modelo de [`../C-modelagem/C6-modelo-entidade-relacionamento.md`](../C-modelagem/C6-modelo-entidade-relacionamento.md).
+A estrutura (entidades, cardinalidades, chaves, caixas vazias para entidade de outro módulo) é
+idêntica: muda o recorte das figuras, que é mais fino que o dos quatro diagramas lógicos do `C6`.
+
+**Esta pasta já não é uma tradução.** Ela foi criada quando o banco nomeava tabelas e colunas em
+inglês e as figuras impressas precisavam de português. O banco passou a ser em português também, e
+o que restou aqui é o recorte e o cuidado com a legibilidade impressa. O registro do que foi
+renomeado, e do que o aplicativo em outro repositório precisa acompanhar, está em
+[`de-para-ingles-portugues.md`](de-para-ingles-portugues.md).
 
 **São doze figuras para vinte e sete entidades**, e nenhuma precisa ser dividida nem girada. Não
 foi sempre assim: até a redução de escopo eram dezenove figuras para sessenta e duas entidades, com
@@ -66,8 +72,9 @@ conferência é um comando, e não uma lembrança:**
 node scripts/confere-modelo-pt.mjs
 ```
 
-Ele traduz os nomes pela tabela de correspondência acima e compara o **conjunto** de arestas das
-figuras lógicas (fig08 a fig17) com o das seções 3.1 a 3.4 do `C6`, nos dois sentidos.
+Ele compara o **conjunto** de arestas das figuras lógicas (fig08 a fig17) com o das seções 3.1 a
+3.4 do `C6`, nos dois sentidos. Até a renomeação ele também traduzia os nomes antes de comparar;
+não traduz mais, porque os dois lados escrevem o mesmo nome.
 
 > **Contar arestas não serve, e a versão anterior deste README mandava contar.** As figuras são um
 > recorte mais fino que os quatro diagramas lógicos do `C6`, e aresta que cruza a fronteira de duas
@@ -92,49 +99,3 @@ Saída vazia é o resultado esperado. Qualquer linha que apareça é um relacion
 **Confira também contra o [`C6`](../C-modelagem/C6-modelo-entidade-relacionamento.md)**, e não só
 contra a versão anterior: a alteração costuma acontecer junto com a entrada de entidade nova, e o
 que o `C6` desenha e a figura não é a mesma falha por outro caminho.
-
-## Correspondência de nomes de tabela
-
-| Banco (código) | Diagrama (TCC) | Área |
-|---|---|---|
-| `users` | `usuarios` | Acesso |
-| `sessions` | `sessoes` | Acesso |
-| `login_events` | `eventos_login` | Acesso |
-| `settings` | `parametros` | Acesso |
-| `species` | `especies` | Cadastro único |
-| `species_popular_names` | `especies_nomes_populares` | Cadastro único |
-| `species_photos` | `especies_fotos` | Cadastro único |
-| `containers` | `recipientes` | Cadastro único |
-| `inputs` | `insumos` | Cadastro único |
-| `cadastro.parties` | `pessoas` | Cadastro único |
-| `cadastro.party_roles` | `pessoas_papeis` | Cadastro único |
-| `cadastro.addresses` | `pessoas_enderecos` | Cadastro único |
-| `task_types` | `tipos_tarefa` | Cadastro único |
-| `areas` | `areas` | Cadastro único |
-| `beds` | `canteiros` | Cadastro único |
-| `work_shifts` | `turnos_trabalho` | Cadastro único |
-| `protocols` | `protocolos` | Cadastro único |
-| `protocol_steps` | `protocolos_etapas` | Cadastro único |
-| `species_protocol_overrides` | `especies_protocolos_tempos` | Cadastro único |
-| `week_plans` | `semanas` | Produção |
-| `assignments` | `atribuicoes` | Produção |
-| `assignment_members` | `atribuicoes_participantes` | Produção |
-| `batches` | `lotes` | Produção |
-| `batch_movements` | `movimentos_lote` | Produção |
-| `batch_protocol_steps` | `lotes_etapas` | Produção |
-| `batch_health` *(visão)* | `situacao_lote` | Produção |
-| `batch_protocol_due` *(visão)* | `lotes_etapas_vencimento` | Produção |
-| `orders` | `pedidos` | Comercial |
-| `order_items` | `pedidos_itens` | Comercial |
-
-Colunas que mudaram de sentido e não só de idioma, vale registrar:
-
-- `batches.parent_batch_id` virou `lotes.lote_origem_id`. "Pai" descreve a estrutura da árvore;
-  "origem" descreve o que o viveiro faz, que é dizer de onde aquela leva veio.
-- `batch_movements.from_bed_id` / `to_bed_id` viraram `canteiro_origem_id` / `canteiro_destino_id`:
-  preposição em inglês vira substantivo em português.
-- `assignments.status` virou `atribuicoes.situacao`, e o mesmo vale para `week_plans.status` e
-  `orders.status`: "status" foi traduzido como "situação" em todo o modelo.
-- `settings` virou `parametros`, e não `configuracoes`. A tela chama-se Configurações do sistema; a
-  tabela guarda os parâmetros que ela ajusta, e nomear as duas igual confundiria o que é tela com o
-  que é dado.

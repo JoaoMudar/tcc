@@ -127,11 +127,11 @@ pelo tipo de controle de Sommerville.
 | **Probabilidade** | Média: é erro comum e de consequência máxima |
 
 **Controles:**
-- *Prevenção*: credenciais em configuração de ambiente, jamais no código (RNF-20).
+- *Prevenção*: credenciais em configuração de ambiente, jamais no código (RNF-19).
 - *Prevenção*: acesso ao banco restrito à camada de servidor; o navegador nunca recebe credencial
   (RNF-11).
 - *Detecção*: verificação automática antes de cada envio ao repositório, que bloqueia o envio ao
-  identificar arquivo sensível (RNF-20).
+  identificar arquivo sensível (RNF-19).
 
 > A detecção automática é o controle que importa aqui, porque este é um risco de **erro humano**, e
 > não de ataque. Sommerville observa que a maioria das falhas de segurança decorre de erro humano.
@@ -267,7 +267,7 @@ Registrar os controles **descartados** e o motivo evita que a ausência seja lid
 | A-03 | RF-07, RF-04, RF-06 |
 | A-04 | RF-06, RNF-11 |
 | A-05 | RNF-11 |
-| A-06 | RNF-11, RNF-20 |
+| A-06 | RNF-11, RNF-19 |
 | A-07 | RNF-10, RNF-12 |
 | A-08 | RNF-05, RF-06 |
 | A-09 | RF-28, RF-36, RF-57 |

@@ -32,7 +32,7 @@ tinha entre os termos deliberadamente não adotados, por ambiguidade. Os dois mo
 |---|---|
 | "Exigiria disciplina de registro incompatível com a operação" | A disciplina já existe fora do sistema: o viveiro planta por leva e sabe dizer o que está em cada canteiro. Falta o registro escrito. E o lote é **escolhido de uma lista**, não digitado |
 | "O agregado por espécie e recipiente basta" | Não basta. Sem lote não se diz onde a muda está, a mortalidade só se mede sobre a espécie inteira, e a repicagem vira uma soma que entra e outra que sai, sem ligação |
-| "A palavra designa coisas distintas" (glossário) | A ambiguidade era entre leva de semeadura, conjunto à venda e carga. Amarrando o termo a **um canteiro e uma leva plantada junta**, sobra um sentido só. Os outros dois continuam sendo *item de pedido* e *carga* |
+| "A palavra designa coisas distintas" (glossário) | A ambiguidade era entre leva de semeadura, conjunto à venda e carregamento de caminhão. Amarrando o termo a **um canteiro e uma leva plantada junta**, sobra um sentido só. O conjunto à venda é o *item de pedido*, e o carregamento não é modelado, porque entrega ficou fora do escopo |
 
 **O limite não sumiu, subiu de altura**: o rastreamento vai até o lote, **nunca até a muda**. Muda
 com identidade própria exigiria etiqueta e leitura unitária, e isso continua fora de escopo.
@@ -226,7 +226,7 @@ nasce da repicagem, dentro do gesto de encerrar a tarefa.
 | [`B3`](../../engenharia/B-requisitos/B3-regras-de-negocio.md) | RN-17 a RN-22 e RN-28; em 26/08/2026, RN-29 e RN-30, com RN-19 e RN-22 emendadas |
 | [`B2`](../../engenharia/B-requisitos/B2-especificacao-requisitos.md) | RF-32 a RF-37 e RF-40; RF-13 no catálogo; RF-44 a RF-49 no mapa de lotes; **RNF-14** e a emenda de RNF-06 |
 | [`C1`](../../engenharia/C-modelagem/C1-diagrama-casos-de-uso.md) / [`C2`](../../engenharia/C-modelagem/C2-especificacao-casos-de-uso.md) | UC-16, UC-22, UC-23, UC-24 e UC-27; os quatro primeiros detalhados; UC-25 emendado |
-| [`C6`](../../engenharia/C-modelagem/C6-modelo-entidade-relacionamento.md) / [`C8`](../../engenharia/C-modelagem/C8-dicionario-de-dados.md) | `areas`, `beds`, `batches` e `batch_movements`; perda e contagem física viraram **tipos de movimento**, e não entidades próprias; a visão `batch_health` e `batches.position`, com a cardinalidade canteiro-lote em 1:N |
+| [`C6`](../../engenharia/C-modelagem/C6-modelo-entidade-relacionamento.md) / [`C8`](../../engenharia/C-modelagem/C8-dicionario-de-dados.md) | `areas`, `canteiros`, `lotes` e `movimentos_lote`; perda e contagem física viraram **tipos de movimento**, e não entidades próprias; a visão `situacao_lote` e `lotes.posicao`, com a cardinalidade canteiro-lote em 1:N |
 | [`D4`](../../engenharia/D-arquitetura/D4-matriz-rbac.md) | recursos **Áreas e canteiros** e **Lotes**; §3.13 |
 | [`E2`](../../engenharia/E-qualidade/E2-casos-de-teste-de-aceite.md) | TA-09, TA-16 a TA-21, TA-58 e TA-47 a TA-48 |
 | [`auditoria-divergencias.md`](../../auditoria-divergencias.md) | achado L: o conflito entre `A1`/`A2`/`C2` e o `P2`, e a decisão que o resolveu |

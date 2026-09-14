@@ -47,9 +47,9 @@ Todas em `img/`, numeradas em sequência contínua (Figura 1 a Figura 15) e já 
 no texto de cada arquivo, com legenda no padrão ABNT abaixo da imagem.
 
 > **As figuras da seção 4.5 são substituídas à mão.** As que este script gera saem do Mermaid do
-> `C6`, com nomes de tabela em inglês. Para o trabalho impresso, use as de
-> [`modelo-dados-pt/img/`](../modelo-dados-pt/img/), que são o mesmo modelo com nomes em português
-> e recortes que cabem na mancha de 16 x 24 cm. São doze no lugar das do C6, e o
+> `C6`, num recorte largo demais para a página. Para o trabalho impresso, use as de
+> [`modelo-dados-pt/img/`](../modelo-dados-pt/img/), que são o mesmo modelo, com os mesmos nomes,
+> em recortes que cabem na mancha de 16 x 24 cm. São doze no lugar das do C6, e o
 > [`README`](../modelo-dados-pt/README.md) de lá traz a fonte útil medida de cada uma e o
 > deslocamento de numeração que a troca causa nas seções seguintes.
 

@@ -4,40 +4,35 @@
 > *cadastro* (o que é estável e se repete) e separa do que é *movimento* (o que acontece
 > uma vez e vira histórico).
 >
-> Decisões desta rotina em [`plans/P13-producao-agenda-cadastros.md`](../../../plans/P13-producao-agenda-cadastros.md).
+> Modelo em [`C6`](../../engenharia/C-modelagem/C6-modelo-entidade-relacionamento.md) e
+> [`C8`](../../engenharia/C-modelagem/C8-dicionario-de-dados.md); origem no banco em
+> `migrations/20260901000002_cadastro_catalogo.sql` e
+> `migrations/20260901000003_cadastro_pessoas_e_tarefas.sql`.
 
 ## O problema
 
 Os cadastros nasceram espalhados, cada um junto da rotina que precisou dele primeiro:
 
-| Cadastro | Onde está hoje | Quem criou |
-|---|---|---|
-| Espécies | `/admin/especies` | P1 Custeio |
-| Recipientes | `/admin/recipientes` | P1 Custeio |
-| Insumos | `/admin/insumos` | P1 Custeio |
-| Clientes | `/clientes` | Rotina Pedidos |
-| Fornecedores | `/fornecedores` | P11 Cotação |
-| Funcionários | **não existe** | - |
-| Tipos de tarefa | **não existe** | - |
-| Centros de custo | **não existe** | - |
+| Cadastro | Onde estava |
+|---|---|
+| Espécies, recipientes e insumos | `/admin/especies`, `/admin/recipientes`, `/admin/insumos` |
+| Clientes | `/clientes` |
+| Fornecedores | `/fornecedores` |
+| Funcionários | não existia |
+| Tipos de tarefa | não existia |
 
 Três consequências:
 
 1. **Ninguém sabe onde cadastrar.** Espécie fica em `/admin`, cliente não. A divisão é
    histórica, não lógica.
 2. **`/admin` virou depósito.** Mistura cadastro de domínio (espécie) com administração de
-   sistema (usuários, permissões): coisas de natureza e de risco diferentes.
-3. **Funcionário não tem cadastro.** É o buraco que impede a agenda de pessoal e o custo de
-   mão de obra.
+   sistema (usuários, permissões e sessões), coisas de natureza e de risco diferentes.
+3. **Funcionário não tem cadastro.** É o buraco que impede a agenda de pessoal.
 
 ## A solução
 
 Uma área `/cadastros` que agrupa as telas. **É agrupador de navegação, não migração de
-banco**: as tabelas continuam onde estão. Nenhuma tela, Server Action ou teste atual quebra.
-
-A lista de telas de cada módulo vive em `src/lib/modules.ts`, que é o que o painel inicial e
-as abas leem: e o que o teste `src/lib/__tests__/modules.test.ts` confere contra as rotas
-que existem de fato.
+banco**, as tabelas continuam onde estão, e nenhuma tela ou consulta atual quebra.
 
 ```
 /cadastros
@@ -45,75 +40,62 @@ que existem de fato.
 │   ├── [id]          ← a ficha: identidade + histórico dos dois lados
 │   ├── cliente       → /clientes       (a tela do papel, URL antiga)
 │   ├── fornecedor    → /fornecedores   (a tela do papel, URL antiga)
-│   └── funcionário   → sem tela ainda  (P13 T13.3 e T13.7)
+│   └── funcionário   → a tela do papel
 ├── espécies          (veio de /admin/especies)
 ├── recipientes       (veio de /admin/recipientes)
 ├── insumos           (veio de /admin/insumos)
-├── tipos de tarefa   ← NOVO
-└── centros de custo  ← NOVO (tabela no schema `financeiro`, cadastro aqui)
+├── tipos de tarefa
+├── áreas e canteiros
+└── protocolo de atividades
 ```
 
-**Centro de custo é cadastro daqui, tabela de lá.** `financeiro.cost_centers` fica no schema
-restrito porque é ali que ela é consumida (classificação, rateio, regra automática), e a fronteira
-de schema existe por segurança de acesso, não para declarar dono. Quem a mantém é a chefia, por esta
-área, e a tela **não aparece para a gerência**: os centros nomeiam a vida pessoal da família (casa,
-clínica). Detalhe em [`centros-de-custo.md`](centros-de-custo.md).
+**Área, canteiro e protocolo são cadastro, e a descrição deles mora na Produção.** São o lugar
+onde a muda fica e a receita de manejo que ela segue, então quem os lê todos os dias é a gerência,
+e documentá-los longe do lote separaria a definição do uso. Ver
+[`2-producao/04-lotes-e-canteiros.md`](../2-producao/04-lotes-e-canteiros.md) e
+[`2-producao/06-protocolo-de-atividades.md`](../2-producao/06-protocolo-de-atividades.md).
 
-**Pessoas é uma entrada só, não duas.** Com abas irmãs de Clientes e Fornecedores, o Márcio
-Kuhar (que vende muda e às vezes compra) aparecia duas vezes, que é exatamente o problema
-que `cadastro.parties` foi criada para resolver. A lista mostra a pessoa uma vez, com um selo
-por papel; **o selo é o link** para a tela daquele papel.
+**Pessoas é uma entrada só, não duas.** Com abas irmãs de Clientes e Fornecedores, quem vende
+semente ao viveiro e às vezes compra muda dele aparecia duas vezes, que é exatamente o problema
+que `cadastro.pessoas` foi criada para resolver. A lista mostra a pessoa uma vez, com um selo
+por papel, e **o selo é o link** para a tela daquele papel.
 
 **A ficha é a identidade; a tela do papel é o papel.** Na lista, o **nome** abre
-`/cadastros/pessoas/[id]`: quem é a pessoa e o histórico dos dois lados. O **selo** abre a tela
-do papel, onde se editam os campos que são dele. A ficha não edita nada.
+`/cadastros/pessoas/[id]`, que mostra quem é a pessoa e o histórico dos dois lados. O **selo** abre
+a tela do papel, onde se editam os campos que são dele. A ficha não edita nada.
 
-**O que a ficha ainda não responde, e por quê.** A pergunta que motivou o cadastro único.
-*quanto compramos e quanto vendemos para esta pessoa*: **não tem resposta em dinheiro hoje**:
-`order_items` não tem coluna de preço e `orders` não tem total, então o pedido registra o que
-saiu, não por quanto. A ficha mostra **volume** na venda (mudas e número de pedidos) e o valor
-**cotado e escolhido** na compra (que é intenção, não pagamento) e diz isso na tela, porque
-número inventado é pior que número ausente.
+**A ficha responde em volume e em dinheiro, cada um pelo que existe.** Do lado da venda,
+`pedidos_itens.preco_unitario` guarda por quanto se vendeu cada item, então a ficha soma pedidos,
+mudas e valor. Do lado da compra não há registro nenhum, porque o sistema não cota, não lança e não
+importa extrato, e a ficha diz isso na tela, porque número ausente é melhor que número inventado.
 
-O valor vem quando `financeiro.transactions` existir (P12 Fase 2). E vem **do extrato**, não do
-pedido: a transação aponta para a mesma `party_id`, com `amount` assinado, e aí a resposta é
-uma soma que não se importa com papel algum. Foi por isso que unir valeu: sem `parties`, a
-pergunta exigiria casar `customers` com `suppliers` por nome a cada consulta.
-
-> ⚠️ **Antes da Fase 2 do P12, corrigir `mergeParties`**: ele apaga a party redundante
-> repointando só `customers` e `suppliers`, e vai deixar transação órfã ou quebrar na FK.
+> **Fundir duas identidades ainda não é seguro.** `mergeParties` termina apagando a pessoa
+> redundante, e as três chaves estrangeiras que apontam para ela precisam ser repontadas antes.
 > Detalhes em [`divida-tecnica.md`](../../divida-tecnica.md) §8.
 
-**A leitura não é uniforme, e a lista respeita isso.** `cliente:ler` é de chefia, gerência e
-admin; `fornecedor:ler` é só de chefia e admin (D4 §2). Os papéis são filtrados **no
-servidor** (`getPeople` em `src/app/cadastros/pessoas/actions.ts`), e o filtro que vem da tela
-só pode estreitar: nunca ampliar. Uma gerência que abre o Márcio Kuhar vê o selo de cliente
-e não fica sabendo que ele também é fornecedor.
-
-**Funcionário já é opção, sem ser tela.** O papel existe no CHECK de `cadastro.party_roles`
-desde a migration `20260811000004`, e o recurso `funcionario` entrou na matriz de permissões.
-O filtro aparece e devolve lista vazia até a **T13.3** (`users.party_id`) e a **T13.7** (CRUD)
-serem feitas: vazio honesto vale mais que botão que não leva a lugar nenhum.
+**A ficha fiscal é fechada para a gerência**, e é a única restrição de privacidade da matriz de
+acesso ([`D4` §3.1](../../engenharia/D-arquitetura/D4-matriz-rbac.md)). A gerência lê nome,
+telefone e papéis, que é o que ela precisa para escalar funcionário na agenda, e não lê CPF, CNPJ
+nem endereço. O papel, ao contrário, não se esconde: Pessoas é um recurso só na matriz, e separar a
+leitura de cliente da de fornecedor exigiria uma permissão por papel sobre a mesma linha
+([`D4` §2](../../engenharia/D-arquitetura/D4-matriz-rbac.md), nota 2).
 
 `/admin` fica só com o que é administração de sistema: **usuários, permissões e sessões**.
 
-**Custos fixos e coleta de sementes não entram em Cadastros**, nenhum dos dois passa na regra
-de corte abaixo. Custo fixo é valor que muda todo mês e que o extrato bancário vai passar a
-alimentar (P12), então foi para `/financeiro/custos-fixos`. Coleta de sementes é atividade de
-campo, então foi para Produção, onde passa a ser uma atividade da agenda (a tela avulsa
-`/producao/coleta-sementes` saiu em 26/08/2026).
+**Coleta de sementes não entra em Cadastros.** É atividade de campo, então virou tipo de tarefa da
+agenda, e a tela avulsa `/producao/coleta-sementes` saiu em 26/08/2026.
 
-**Fornecedor é cadastro; cotação é movimento.** Os dois dividem a URL `/fornecedores`, mas o
-cadastro da rede é um papel de Pessoas neste módulo e a cotação (`/fornecedores/cotar`, `/cotacoes`,
-`/mapa`, `/dashboard`) pertence ao Comercial. O agrupamento é de navegação: as rotas ficaram
-onde estavam porque `notifications.link` guarda caminho gravado no banco.
+**Fornecedor é cadastro, e é só cadastro.** O papel existe para dizer de quem se compra semente, e
+guarda nome, telefone e endereço como qualquer outra pessoa. Cotar com fornecedor, comparar preço e
+registrar compra estão fora do escopo
+([`A1` §7](../../engenharia/A-fundacao/A1-documento-de-visao.md)).
 
 ### A regra que decide o que entra
 
 > **É cadastro se, ao apagá-lo, um movimento passado ficar sem sentido.**
 
-Espécie, cliente, funcionário e tipo de tarefa passam no teste. Pedido, tarefa atribuída,
-lançamento financeiro e registro de perda **não**, são movimento, vivem nas suas rotinas.
+Espécie, cliente, funcionário e tipo de tarefa passam no teste. Pedido, tarefa atribuída e
+registro de perda **não**, são movimento, e vivem nas suas rotinas.
 
 Por isso **"tarefas" no cadastro é o catálogo de tipos** (semeadura, repicagem, irrigação,
 limpeza de canteiro), não as tarefas atribuídas a alguém. As atribuídas são movimento e
@@ -121,91 +103,98 @@ ficam na [agenda de pessoal](../2-producao/01-agenda-de-pessoal.md).
 
 ## Identidade única de pessoas
 
-Clientes, fornecedores e funcionários são **a mesma coisa vista de ângulos diferentes**:
-uma pessoa. O schema `cadastro.parties` (P12 Fase 1) já resolve isso, uma identidade,
-N papéis.
+Clientes, fornecedores e funcionários são **a mesma coisa vista de ângulos diferentes**,
+uma pessoa. O esquema `cadastro` resolve isso com uma identidade e N papéis, e o detalhamento
+das três tabelas está em [`01-cadastro-unico.md`](01-cadastro-unico.md).
 
 ```
-cadastro.parties          quem é (PF/PJ, documento, contato)
-cadastro.party_roles      cliente · fornecedor · funcionario · socio · familiar · banco · governo
-cadastro.addresses        endereços
+cadastro.pessoas             quem é (PF/PJ, documento, contato)
+cadastro.pessoas_papeis      cliente · fornecedor · funcionario
+cadastro.pessoas_enderecos   endereços
 ```
 
-Três consequências práticas:
+Duas consequências práticas:
 
-- **Márcio Kuhar é um cadastro só**: vende muda (fornecedor) e às vezes compra (cliente).
-- **Funcionário existe sem login.** `users` passa a ser só credencial, com FK opcional para
-  a party. Amélia e Jaison aparecem na agenda e no financeiro mesmo sem nunca abrir o app.
-- **O financeiro tem para onde apontar.** Pagamento de diária aponta para a party do
-  funcionário, não para um texto digitado.
+- **Quem vende e compra é um cadastro só**, com dois papéis na mesma linha de identidade.
+- **Funcionário existe sem login.** `usuarios` é só credencial, com chave estrangeira opcional
+  para a pessoa (`usuarios.pessoa_id`). Seis dos nove colaboradores aparecem na agenda sem nunca
+  abrir o aplicativo.
 
-A tela que materializa isso é `/cadastros/pessoas`, que lê `cadastro.parties` via
-`listParties` (`src/lib/parties.ts`). As telas de papel continuam sendo onde se editam os
-campos **do papel**: dados fiscais e CNPJ no cliente; espécies, confiabilidade e
-geocodificação no fornecedor: porque é isso que a divisão
-`parties` × `customers`/`suppliers` estabelece.
+A tela que materializa isso é `/cadastros/pessoas`. As telas de papel continuam sendo onde se
+editam os campos **do papel**, como os dados fiscais no cliente.
 
-> **Espécies, recipientes, insumos e tipos de tarefa não são pessoas**: não entram em
-> `parties`. Continuam nas suas tabelas. O que os une a clientes e fornecedores é a
+> **Espécies, recipientes, insumos e tipos de tarefa não são pessoas** e não entram em
+> `pessoas`. Continuam nas suas tabelas. O que os une a clientes e fornecedores é a
 > navegação, não o schema.
 
-## Cadastro de funcionário (novo)
+## Cadastro de funcionário
 
-Campos mínimos: o formulário tem que caber numa tela de celular:
+Campos mínimos, porque o formulário tem que caber numa tela de celular. São as colunas de
+`cadastro.pessoas` mais o vínculo, que vive no papel:
 
 | Campo | Obrigatório | Nota |
 |---|---|---|
-| Nome | sim | vira `parties.name` |
+| Nome | sim | `pessoas.nome` |
+| Tipo | sim | `pf` ou `pj`, pelo enum `cadastro.tipo_pessoa` |
 | Telefone / WhatsApp | não | |
-| Papel operacional | sim | chefia · gerência · colaborador |
-| Vínculo | sim | fixo · diarista |
-| Ativo | sim | soft-delete; inativo some da agenda mas o histórico fica |
-| Documento, endereço | não | preenchidos quando o financeiro precisar |
+| Vínculo | sim | `fixo` ou `diarista`, em `pessoas_papeis.tipo_vinculo`, aceito só no papel `funcionario` |
+| Ativa | sim | soft-delete; inativa some da agenda mas o histórico fica |
+| Documento, endereço | não | preenchidos quando a nota precisar (RN-46) |
 
-**Não há valor/hora individual.** O custo de mão de obra usa um valor-hora **médio da
-equipe**: decisão registrada na [agenda de pessoal](../2-producao/01-agenda-de-pessoal.md)
-e que preserva a resolução de conflito do documento de requisitos (B2 §4).
+**Não há valor por hora, nem individual nem médio.** O sistema não apura custo de mão de obra, e
+por isso o cadastro de funcionário não guarda remuneração alguma
+([`A1` §7](../../engenharia/A-fundacao/A1-documento-de-visao.md)).
 
-## Cadastro de tipos de tarefa (novo)
+## Cadastro de tipos de tarefa
 
-O que faz a agenda ser rápida de preencher: sem digitação livre, só escolha da lista.
+O que faz a agenda ser rápida de preencher, porque não há digitação livre, só escolha da lista.
 
 | Campo | Nota |
 |---|---|
-| Nome da atividade | "Colher semente", "Encher saquinho", "Repicar", "Irrigação", "Limpar mato" |
-| Categoria | semente · terra · plantio · manutenção · pós-morte · expedição. **Classifica, não comanda formulário** (RN-23) |
-| É quantitativa por unidade? | quando sim, o encerramento pede **quanto cada participante fez**; quando não, não pede número algum (RF-29) |
-| Lote específico? | quando sim, o encerramento exige o lote, que traz consigo canteiro, espécie e recipiente (RF-29) |
-| Exige espécie? | para a tarefa que pede espécie sem haver lote, como colher semente |
-| Exige recipiente? | para a tarefa que pede recipiente sem haver lote, como encher saquinho |
-| Ativo | soft-delete: inativar é o que retira a tarefa da lista da agenda |
+| Nome da atividade | "Colher semente", "Encher saquinho", "Repicar", "Irrigar", "Capinar" |
+| Categoria | `semente` · `terra` · `plantio` · `manutencao` · `pos_morte` · `expedicao`. **Classifica, não comanda formulário** (RN-23) |
+| `e_quantitativa` | quando verdadeiro, a confirmação pede **quanto cada participante fez**; quando falso, não pede número algum (RF-29, RN-24) |
+| `exige_lote` | quando verdadeiro, a confirmação exige o lote, que traz consigo canteiro, espécie e recipiente (RN-25) |
+| `exige_especie` | para a tarefa que pede espécie sem haver lote, como colher semente |
+| `exige_recipiente` | para a tarefa que pede recipiente sem haver lote, como encher saquinho |
+| `ativo` | soft-delete; inativar é o que retira a tarefa da lista da agenda |
 
-Este cadastro é o que liga a agenda ao custo, mas **não por estimativa**: o custo de mão de obra sai
-das horas apontadas no encerramento, e a contagem por participante é o que dá o rendimento por hora.
-Não há tempo médio por unidade cadastrado, ninguém no viveiro cronometrou isso. Detalhe em
-[`C8` §`task_types`](../../engenharia/C-modelagem/C8-dicionario-de-dados.md).
+**É o tipo de tarefa que comanda o formulário** (RF-21, RN-15). Sem ele, ou a tela pede tudo
+sempre, e ninguém preenche, ou pede o mínimo sempre, e o dado não serve.
 
 ## Telas por perfil
 
+O recorte é o da matriz de acesso
+([`D4` §2](../../engenharia/D-arquitetura/D4-matriz-rbac.md)):
+
 | Etapa | Perfil |
 |---|---|
-| Cadastrar/editar espécie, recipiente, insumo | Gerência |
-| Cadastrar/editar cliente | Chefia / Gerência |
-| Cadastrar/editar fornecedor | Chefia |
-| Cadastrar/editar funcionário | Chefia |
+| Cadastrar/editar espécie, recipiente e insumo | Chefia |
+| Cadastrar/editar pessoa em qualquer papel | Chefia |
+| Ler pessoa (nome, telefone e papéis) | Chefia / Gerência |
+| Ler e editar a ficha fiscal da pessoa | Chefia |
 | Cadastrar/editar tipo de tarefa | Gerência |
-| Consultar qualquer cadastro | Chefia / Gerência |
+| Cadastrar/editar área e canteiro | Gerência |
+| Montar o protocolo de atividades | Chefia / Gerência |
 
-Colaborador **não acessa** `/cadastros`: só consome as listas dentro dos formulários dele.
+**A chefia decide o que o viveiro faz; a gerência decide como o viveiro faz**, e é essa fronteira
+que separa o catálogo de espécie, recipiente e insumo do catálogo de tipo de tarefa, área e
+canteiro ([`D4` §3.4](../../engenharia/D-arquitetura/D4-matriz-rbac.md)).
 
-## Relação com as outras rotinas
+## Relação com as outras áreas
 
-Cadastros não consome nada: é a base de todas as outras.
+Cadastros não consome nada, é a base das outras duas.
 
 | Consome | Para quê |
 |---|---|
-| Produção | espécie, recipiente, funcionário, tipo de tarefa |
-| Pedidos | cliente, espécie, recipiente |
-| Estoque / Perdas | espécie, recipiente, funcionário |
-| Financeiro | party (funcionário, fornecedor, cliente, banco) |
-| Custeio / Precificação | espécie, recipiente, insumo, horas apontadas por tipo de tarefa |
+| Produção | espécie, recipiente, funcionário, tipo de tarefa, área, canteiro e protocolo |
+| Comercial | cliente, espécie e recipiente no item do pedido |
+
+## Rastreabilidade
+
+| Documento | O que |
+|---|---|
+| [`B2`](../../engenharia/B-requisitos/B2-especificacao-requisitos.md) | RF-10 a RF-13 no catálogo; RF-14 a RF-20 nas pessoas; RF-21 nos tipos de tarefa; RF-22 a RF-25 no protocolo |
+| [`B3`](../../engenharia/B-requisitos/B3-regras-de-negocio.md) | RN-15, RN-23, RN-24, RN-25, RN-46, RN-47 |
+| [`C6`](../../engenharia/C-modelagem/C6-modelo-entidade-relacionamento.md) / [`C8`](../../engenharia/C-modelagem/C8-dicionario-de-dados.md) | `especies`, `recipientes`, `insumos`, `areas`, `canteiros`, `tipos_tarefa` e o esquema `cadastro` |
+| [`D4`](../../engenharia/D-arquitetura/D4-matriz-rbac.md) | recursos **Espécies**, **Recipientes**, **Insumos**, **Pessoas**, **Dados fiscais de pessoa**, **Tipos de tarefa**, **Áreas e canteiros** e **Protocolo de atividades** |

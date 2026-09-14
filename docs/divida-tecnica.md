@@ -14,7 +14,7 @@ O que fechou, e por que importava:
 | Buraco | Situação anterior | Hoje |
 |---|---|---|
 | Autorização | nome de papel na mão em 105 lugares | matriz única do D4 em `src/lib/permissions.ts`, verificada por teste tabular e por teste de cobertura estática |
-| Identidade de pessoa | partida entre `customers` e `suppliers` | schema `cadastro` (`parties`, `party_roles`, `addresses`) com ponto único de escrita em `src/lib/parties.ts`; desde 19/08/2026 o casamento cliente↔fornecedor é regra contínua, não só backfill |
+| Identidade de pessoa | cadastros separados de cliente e de fornecedor | schema `cadastro` (`pessoas`, `pessoas_papeis`, `pessoas_enderecos`) com ponto único de escrita em `src/lib/parties.ts`; desde 19/08/2026 o casamento cliente↔fornecedor é regra contínua, não só carga inicial |
 | CI | não existia | `.github/workflows/ci.yml`: lint + typecheck + testes |
 | Erro do Postgres exibido na tela | 24 ocorrências | 0: tudo passa por `safeErrorMessage` |
 | Upload de foto de espécie | **quebrado em produção** (filesystem somente-leitura na Vercel) | `BYTEA` no Postgres + rota `/api/fotos/[id]` |
@@ -23,7 +23,7 @@ O que fechou, e por que importava:
 
 **Os dois refactors estruturais estão feitos.** É o que responde à exigência original de "não
 quero ter que refatorar depois": as fases seguintes podem ser construídas sobre a política de acesso e
-sobre `parties` sem retrabalho.
+sobre `pessoas` sem retrabalho.
 
 O que resta abaixo é risco de **operação**, não de **arquitetura**. Nenhum destes itens impede
 escrever código novo.
@@ -57,7 +57,8 @@ mas confirmar a janela real do plano free antes de depender dela.
 executa SQL de verdade.
 
 **A prova de que isso é um buraco, e não uma preferência:** o achado **J** da auditoria. As tabelas
-`input_usages` e `input_price_history` **não existiam** em nenhum dos dois bancos, embora as tarefas
+de consumo e de histórico de preço de insumo (`input_usages` e `input_price_history`, os nomes da
+época) **não existiam** em nenhum dos dois bancos, embora as tarefas
 P1 T1.10–T1.12 estivessem marcadas `[x]` e a suíte inteira estivesse verde. A rota
 `/insumos/registrar` nunca funcionou em produção e **nenhum teste percebeu**, porque o banco de que
 eles falam é um mock.
@@ -110,39 +111,39 @@ não bloqueio.
 
 ---
 
-## 5. Telas ainda não leem de `parties`
+## 5. Telas ainda não leem de `pessoas`
 
 **Estado:** a identidade única existe e é mantida corretamente na escrita, mas **nenhuma tela lê
-dela**. `/clientes` e `/fornecedores` continuam exibindo as colunas antigas de `customers` e
-`suppliers`, então a mesma pessoa nos dois papéis ainda aparece como dois cadastros na interface.
-mesmo já sendo uma identidade só no banco.
+dela**. `/clientes` e `/fornecedores` continuam exibindo as colunas antigas dos cadastros
+separados de cliente e de fornecedor, então a mesma pessoa nos dois papéis ainda aparece como dois
+cadastros na interface, mesmo já sendo uma identidade só no banco.
 
 Isso é a Fase 1 do roadmap e não é urgente: a duplicidade de *dado* está resolvida, o que
 resta é duplicidade de *exibição*.
 
-> **Parcialmente fechado em 19/08/2026.** `/cadastros/pessoas` lê de `parties` (via `listParties`)
+> **Parcialmente fechado em 19/08/2026.** `/cadastros/pessoas` lê de `pessoas` (via `listParties`)
 > e mostra a pessoa uma vez, com um selo por papel: a duplicidade de exibição acabou na porta de
 > entrada. `/clientes` e `/fornecedores` continuam lendo das colunas antigas, o que está certo:
 > são as telas **do papel**, e é lá que vivem os campos que não são de identidade.
 
 > Corrigido em 19/08/2026 (branch `feat/cadastro-unico-casamento-pessoa`), e que sai desta lista:
-> cadastro novo procurava identidade existente (não procurava: toda criação fazia party nova);
-> `mergeCustomers` deixava a party do duplicado viva e sem dono; e `upsertParty` não sabia apagar
+> cadastro novo procurava identidade existente (não procurava: toda criação fazia pessoa nova);
+> `mergeCustomers` deixava a pessoa do duplicado viva e sem dono; e `upsertParty` não sabia apagar
 > campo, porque o COALESCE em todas as colunas fazia `null` e "não sei" serem a mesma coisa.
 
 ---
 
-## 6. `users.party_id`
+## 6. `usuarios.pessoa_id`
 
-Pendência da Fase 1 do roadmap. A coluna `party_id` de `users` já
-existem e estão preenchidas; `users` ficou de fora. É pré-requisito para a agenda de pessoal
+Pendência da Fase 1 do roadmap. A coluna `pessoa_id` de `usuarios` já
+existem e estão preenchidas; `usuarios` ficou de fora. É pré-requisito para a agenda de pessoal
 (Fase 3 do roadmap), que precisa ligar um usuário do sistema à pessoa física correspondente.
 
 ---
 
 ## 7. Pendências pequenas
 
-- **Fotos órfãs.** O upload grava em `species_photos` *antes* do INSERT da espécie (o formulário
+- **Fotos órfãs.** O upload grava em `especies_fotos` *antes* do INSERT da espécie (o formulário
   funciona assim). Se o cadastro for abandonado no meio, a linha fica sem dono. Não vaza nada e não
   quebra tela nenhuma: só ocupa espaço. Falta uma rotina de limpeza.
 - **Branch `refactor/politica-e-parties`** continua no GitHub depois do merge do PR #20. Excluir
@@ -156,10 +157,10 @@ existem e estão preenchidas; `users` ficou de fora. É pré-requisito para a ag
 
 **Estado:** aberto, e mais simples do que era.
 
-`mergeParties` termina com `DELETE FROM cadastro.parties` e, antes disso, repointa as tabelas que
-referenciam a pessoa. Com a redução de escopo, essas tabelas passaram a ser duas: `orders.customer_id`
-e `assignment_members.party_id`, mais `users.party_id`. As de cliente e fornecedor deixaram de
-existir como tabelas próprias: viraram papéis em `cadastro.party_roles`, que cai em cascata.
+`mergeParties` termina com `DELETE FROM cadastro.pessoas` e, antes disso, repointa as tabelas que
+referenciam a pessoa. Com a redução de escopo, essas tabelas passaram a ser duas: `pedidos.cliente_id`
+e `atribuicoes_participantes.pessoa_id`, mais `usuarios.pessoa_id`. As de cliente e fornecedor deixaram de
+existir como tabelas próprias: viraram papéis em `cadastro.pessoas_papeis`, que cai em cascata.
 
 **A correção é declarativa, e é o que mudou.** Antes o item dependia de disciplina no código de
 fusão; hoje depende de as três chaves estrangeiras serem `RESTRICT`, que é o padrão. Com elas
@@ -175,7 +176,7 @@ cujo histórico tem mais valor.
 ## Ordem sugerida
 
 **1** (backup) antes de qualquer coisa: é uma tarde de trabalho e é o único risco irreversível.
-Depois **3** (drift de schema), que é barato e cobre a falha mais provável. **2** e **7** entram
+Depois **3** (divergência de esquema), que é barato e cobre a falha mais provável. **2** e **7** entram
 quando houver folga; **5** e **6** entram com a Fase 1 do roadmap, que é quem precisa dos dois.
 **4** está fechado (resta só o source map, que é conforto).
 

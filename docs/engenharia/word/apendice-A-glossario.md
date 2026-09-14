@@ -23,7 +23,7 @@ banco de dados usam o equivalente em **inglês**, indicado entre parênteses qua
 
 | Termo | Definição | Como a empresa chama | Forma canônica |
 |---|---|---|---|
-| **Espécie** | Entidade central do sistema. Tipo botânico de árvore produzido pelo viveiro, identificado por nome científico e um ou mais nomes populares. Tudo no sistema (lote, tarefa, perda, item de pedido) se refere a uma espécie. | "planta", "muda", pelo nome popular | **Espécie** (`species`) |
+| **Espécie** | Entidade central do sistema. Tipo botânico de árvore produzido pelo viveiro, identificado por nome científico e um ou mais nomes populares. Tudo no sistema (lote, tarefa, perda, item de pedido) se refere a uma espécie. | "planta", "muda", pelo nome popular | **Espécie** (`especies`) |
 | **Nome popular** | Denominação regional da espécie. Uma mesma espécie admite vários; a busca do sistema deve encontrá-la por qualquer um deles. | o nome usado no dia a dia | **Nome popular** |
 | **Nome científico** | Denominação binomial da espécie. Identificador não ambíguo, usado em documentos oficiais e projetos de compensação ambiental. | "nome de fora", "nome técnico" | **Nome científico** |
 | **Muda** | Exemplar individual de uma espécie, em produção ou pronto para venda. É a unidade de contagem e de venda. | "pé", "planta", "unidade" | **Muda** |
@@ -38,7 +38,7 @@ banco de dados usam o equivalente em **inglês**, indicado entre parênteses qua
 | **Mortalidade** | Razão entre as mudas perdidas de um lote e a quantidade inicial dele. Acima de **20%** dispara alerta, é regra de negócio, não convenção de interface. | "perda", "quanto morreu" | **Taxa de mortalidade** |
 | **Lote** | **Leva de mudas da mesma espécie, no mesmo recipiente, plantada junta e ocupando um canteiro.** É a unidade de rastreamento da produção: onde a muda está, de onde veio e quanto sobrou dela. Um lote ocupa **um** canteiro; leva que não cabe em um canteiro é outro lote. | "a leva", "aquele canteiro de ipê" | **Lote** (`batch`) |
 | **Movimento do lote** | Toda alteração do saldo ou do endereço de um lote: entrada, perda, repicagem que sai, repicagem que entra, venda, ajuste de contagem e transferência de canteiro. É o razão que explica o saldo, e o saldo exibido tem de bater com a soma deles. | "o que entrou e saiu" | **Movimento** (`batch_movement`) |
-| **Situação do lote** | Como o lote está indo, em três estados: **saudável**, **atenção** e **crítico**. Não é digitada: sai do atraso das tarefas que estavam planejadas para aquele lote e ninguém executou. Apontar o lote no mapa mostra qual tarefa falta. | "tá atrasado", "esse aí tá bom" | **Situação do lote** (`batch_health`) |
+| **Situação do lote** | Como o lote está indo, em três estados: **saudável**, **atenção** e **crítico**. Não é digitada: sai do atraso das tarefas que estavam planejadas para aquele lote e ninguém executou. Apontar o lote no mapa mostra qual tarefa falta. | "tá atrasado", "esse aí tá bom" | **Situação do lote** (`situacao_lote`) |
 | **Lote de origem** | Lote do qual outro nasceu. A repicagem para recipiente maior **não move** o lote: encerra parte do lote de origem e cria um lote novo que aponta para ele. É o que permite saber quanto de uma leva sobreviveu até a venda. | "veio daquele tubete" | **Lote de origem** (`parent_batch`) |
 | **Área** | Divisão física do viveiro, identificada por **letra** (A, B, C…). Contém canteiros. | "área A", "lá em cima" | **Área** (`area`) |
 | **Canteiro** | Subdivisão da área, identificada por **número** dentro dela, de 1 até o máximo daquela área. O endereço de uma muda no viveiro é o par letra da área + número do canteiro, escrito **`A-3`**: letra, hífen, número. | "canteiro 4", "o quatro da B" | **Canteiro** (`bed`) |
@@ -77,7 +77,7 @@ banco de dados usam o equivalente em **inglês**, indicado entre parênteses qua
 
 | Termo | Definição | Como a empresa chama | Forma canônica |
 |---|---|---|---|
-| **Perfil** | Papel de acesso atribuído ao usuário, que determina o que ele pode ver e fazer. São dois perfis de negócio (chefia e gerência) mais um papel técnico de administração. | "permissão", "acesso" | **Perfil** (`role`) |
+| **Perfil** | Papel de acesso atribuído ao usuário, que determina o que ele pode ver e fazer. São dois perfis de negócio (chefia e gerência) mais um papel técnico de administração. | "permissão", "acesso" | **Perfil** (`usuarios.perfil`) |
 | **Chefia** | Perfil responsável por vendas, pedidos, parâmetros do sistema e decisões. | "o Gilberto" | **Chefia** |
 | **Gerência** | Perfil responsável pela operação: coordenação, agenda da semana, lotes e planejamento de produção. | "quem coordena" | **Gerência** |
 | **Administrador** | Papel técnico de administração do sistema, gestão de usuários e manutenção. Não corresponde a uma função da empresa e não participa das rotinas de negócio. | - | **Administrador** |

@@ -210,16 +210,15 @@ Fonte: Elaborado pelo autor (2026).
 | RNF-12 | Toda comunicação entre cliente e servidor deve ser cifrada em trânsito. | ORG |
 | RNF-13 | O sistema deve dispor de rotina de backup e procedimento de recuperação com objetivos declarados. | RE-5 |
 | RNF-14 | As telas de coordenação da produção, agenda da semana e mapa de lotes, devem ser concebidas para tela larga, e apresentar no celular uma versão reduzida em lista, sem rolagem horizontal. | RE-2 |
-| RNF-15 | Arquivos, identificadores e estruturas de dados devem ser nomeados em inglês; a documentação, em português. | ORG |
-| RNF-16 | Cada funcionalidade deve ser desenvolvida em ramificação própria e integrada por solicitação de incorporação. | ORG |
-| RNF-17 | Mensagens de alteração devem seguir padrão fixo. | ORG |
-| RNF-18 | Alterações na estrutura do banco devem ser versionadas em arquivos aplicados de forma controlada, preservando compatibilidade retroativa. | ORG |
-| RNF-19 | Toda alteração de código deve incluir testes automatizados cobrindo utilitários, regras de negócio e validações. | ORG |
-| RNF-20 | Credenciais, chaves e dados sensíveis não devem ser versionados. | ORG |
-| RNF-21 | O tratamento de dados pessoais deve observar a Lei nº 13.709/2018, com finalidade, base legal e prazo de retenção declarados para cada dado coletado. | LEG |
-| RNF-22 | Os dados cadastrais de cliente devem comportar o conjunto exigido para emissão de nota fiscal no sistema externo em uso. | LEG |
-| RNF-23 | O nome científico da espécie deve estar disponível para atender exigências de projetos de compensação ambiental. | LEG, DOM |
-| RNF-24 | O sistema deve operar em navegador de celular de uso corrente pela equipe, sem exigir instalação a partir de loja de aplicativos. | RE-2, RE-5 |
+| RNF-15 | Cada funcionalidade deve ser desenvolvida em ramificação própria e integrada por solicitação de incorporação. | ORG |
+| RNF-16 | Mensagens de alteração devem seguir padrão fixo. | ORG |
+| RNF-17 | Alterações na estrutura do banco devem ser versionadas em arquivos aplicados de forma controlada, preservando compatibilidade retroativa. | ORG |
+| RNF-18 | Toda alteração de código deve incluir testes automatizados cobrindo utilitários, regras de negócio e validações. | ORG |
+| RNF-19 | Credenciais, chaves e dados sensíveis não devem ser versionados. | ORG |
+| RNF-20 | O tratamento de dados pessoais deve observar a Lei nº 13.709/2018, com finalidade, base legal e prazo de retenção declarados para cada dado coletado. | LEG |
+| RNF-21 | Os dados cadastrais de cliente devem comportar o conjunto exigido para emissão de nota fiscal no sistema externo em uso. | LEG |
+| RNF-22 | O nome científico da espécie deve estar disponível para atender exigências de projetos de compensação ambiental. | LEG, DOM |
+| RNF-23 | O sistema deve operar em navegador de celular de uso corrente pela equipe, sem exigir instalação a partir de loja de aplicativos. | RE-2, RE-5 |
 
 Fonte: Elaborado pelo autor (2026).
 
@@ -228,10 +227,10 @@ Fonte: Elaborado pelo autor (2026).
 | Código | Descrição | Origem | Requisitos originados |
 |---|---|---|---|
 | RE-1 | Usuários sem formação técnica. | Perfil da equipe | RNF-01, RNF-02, RNF-07 |
-| RE-2 | Celular como dispositivo principal. | Contexto de campo | RNF-06, RNF-14, RNF-24 |
+| RE-2 | Celular como dispositivo principal. | Contexto de campo | RNF-06, RNF-14, RNF-23 |
 | RE-3 | Conexão instável no viveiro. | Ambiente físico | RNF-05 |
 | RE-4 | Uso com as mãos sujas, sob sol e chuva. | Ambiente físico | RNF-03, RNF-04 |
-| RE-5 | Orçamento de microempresa. | Porte da organização | RNF-13, RNF-24 |
+| RE-5 | Orçamento de microempresa. | Porte da organização | RNF-13, RNF-23 |
 | RE-6 | Prazo até novembro de 2026. | Calendário acadêmico | – |
 | RE-7 | Dados pessoais de clientes e de funcionários sujeitos à legislação de proteção de dados. | Legal | – |
 
@@ -244,10 +243,10 @@ Fonte: Elaborado pelo autor (2026).
 | Observação participante (OP) | 21 | 32,3 | 0 | 0,0 |
 | Entrevista (EN) | 14 | 21,5 | 0 | 0,0 |
 | Análise documental (AD) | 2 | 3,1 | 0 | 0,0 |
-| Estudo do domínio (DOM) | 6 | 9,2 | 1 | 6,7 |
-| Exigência legal (LEG) | 2 | 3,1 | 3 | 20,0 |
-| Política do projeto (ORG) | 20 | 30,8 | 11 | 73,3 |
-| **Total de menções** | **65** | | **15** | |
+| Estudo do domínio (DOM) | 6 | 9,2 | 1 | 7,1 |
+| Exigência legal (LEG) | 2 | 3,1 | 3 | 21,4 |
+| Política do projeto (ORG) | 20 | 30,8 | 10 | 71,4 |
+| **Total de menções** | **65** | | **14** | |
 
 Fonte: Elaborado pelo autor (2026).
 

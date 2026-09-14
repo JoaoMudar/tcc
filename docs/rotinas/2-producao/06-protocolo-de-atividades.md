@@ -6,7 +6,7 @@
 > comum e é confirmada como qualquer outra.
 
 **Status: especificado em 26/08/2026. Nada implementado.** Não há migration, Server Action nem
-tela. O roteiro de implementação é o [`P15`](../../../plans/P15-protocolo-de-atividades.md).
+tela.
 
 ## A ideia em 1 frase
 
@@ -61,7 +61,7 @@ código: o dia em que o viveiro adotar bandeja, a gerência cria a bandeja e mon
 
 ### Etapa
 
-Uma linha do protocolo. Aponta para uma tarefa do catálogo (`task_types`, o mesmo de sempre) e diz
+Uma linha do protocolo. Aponta para uma tarefa do catálogo (`tipos_tarefa`, o mesmo de sempre) e diz
 **quando** ela ocorre. Dois tipos de agendamento:
 
 - **Sequencial**: ocorre **uma vez**, X dias depois da âncora. Ao ser concluída, **avança a fase do lote**.
@@ -273,7 +273,7 @@ A ordem do protocolo é atribuição comum e aparece onde as atribuições apare
 
 | Rotina | Relação |
 |---|---|
-| **Cadastros** | consome tarefa (`task_types`), recipiente, espécie e período de trabalho; acrescenta o cadastro de tipo de embalagem |
+| **Cadastros** | consome tarefa (`tipos_tarefa`), recipiente, espécie e período de trabalho; acrescenta o cadastro de tipo de embalagem |
 | **Lotes e canteiros** | o lote ganha protocolo, a segunda data e a divisão; a situação passa a vir daqui |
 | **Agenda de pessoal** | recebe as ordens emitidas, como atribuições comuns |
 | **Apontamento de tarefas** | concluir a ordem é o que move o protocolo; a data real da execução é o relógio |
@@ -296,11 +296,10 @@ A ordem do protocolo é atribuição comum e aparece onde as atribuições apare
 | [`B2`](../../engenharia/B-requisitos/B2-especificacao-requisitos.md) | RF-22 a RF-24 e RF-25 no cadastro; RF-46 a RF-53 na operação |
 | [`B3`](../../engenharia/B-requisitos/B3-regras-de-negocio.md) | RN-32 a RN-43; RN-18 e RN-30 emendadas |
 | [`C2`](../../engenharia/C-modelagem/C2-especificacao-casos-de-uso.md) | UC-17, UC-24 e UC-18 |
-| [`C6`](../../engenharia/C-modelagem/C6-modelo-entidade-relacionamento.md) / [`C8`](../../engenharia/C-modelagem/C8-dicionario-de-dados.md) | `protocols`, `protocol_steps`, `species_protocol_overrides`, `batch_protocol_steps` e a visão `batch_protocol_due`; `batches`, `assignments` e `containers` emendadas. O protocolo pendura-se no **recipiente**, e `container_types` deixou de existir |
+| [`C6`](../../engenharia/C-modelagem/C6-modelo-entidade-relacionamento.md) / [`C8`](../../engenharia/C-modelagem/C8-dicionario-de-dados.md) | `protocolos`, `protocolos_etapas`, `especies_protocolos_tempos`, `lotes_etapas` e a visão `lotes_etapas_vencimento`; `lotes`, `atribuicoes` e `recipientes` emendadas. O protocolo pendura-se no **recipiente**, e a tabela de tipos de embalagem deixou de existir |
 | [`B5`](../../engenharia/B-requisitos/B5-matriz-rastreabilidade.md) | 16 linhas novas |
 | [`D4`](../../engenharia/D-arquitetura/D4-matriz-rbac.md) | recursos **Tipos de embalagem** e **Protocolo de atividades** |
 | [`E2`](../../engenharia/E-qualidade/E2-casos-de-teste-de-aceite.md) | TA-35 a TA-46 |
-| [`P15`](../../../plans/P15-protocolo-de-atividades.md) | o roteiro de implementação |
 
 ## Prova de mesa
 

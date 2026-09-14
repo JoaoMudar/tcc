@@ -15,9 +15,10 @@
 //   node scripts/build-word.mjs --sem-img  # só o texto, sem chamar o mermaid-cli
 //
 // As figuras do Capítulo 4.5 saem do Mermaid do C6. Para o trabalho impresso, elas são
-// **substituídas à mão** pelas figuras em português de `modelo-dados-pt/`, que são o
-// mesmo modelo com nomes em português e recortes que cabem na mancha. O README de lá
-// explica a troca e o deslocamento de numeração que ela causa.
+// **substituídas à mão** pelas de `modelo-dados-pt/`: mesmo modelo, mesmos nomes, porém
+// num recorte mais fino, que cabe na mancha. Até a renomeação do modelo para português a
+// troca também era de idioma; hoje é só de recorte. O README de lá explica a troca e o
+// deslocamento de numeração que ela causa.
 
 import { readFileSync, writeFileSync, mkdirSync, rmSync, readdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
@@ -191,9 +192,9 @@ Todas em \`img/\`, numeradas em sequência contínua (Figura 1 a Figura ${figura
 no texto de cada arquivo, com legenda no padrão ABNT abaixo da imagem.
 
 > **As figuras da seção 4.5 são substituídas à mão.** As que este script gera saem do Mermaid do
-> \`C6\`, com nomes de tabela em inglês. Para o trabalho impresso, use as de
-> [\`modelo-dados-pt/img/\`](../modelo-dados-pt/img/), que são o mesmo modelo com nomes em português
-> e recortes que cabem na mancha de 16 x 24 cm. São doze no lugar das do C6, e o
+> \`C6\`, num recorte largo demais para a página. Para o trabalho impresso, use as de
+> [\`modelo-dados-pt/img/\`](../modelo-dados-pt/img/), que são o mesmo modelo, com os mesmos nomes,
+> em recortes que cabem na mancha de 16 x 24 cm. São doze no lugar das do C6, e o
 > [\`README\`](../modelo-dados-pt/README.md) de lá traz a fonte útil medida de cada uma e o
 > deslocamento de numeração que a troca causa nas seções seguintes.
 
