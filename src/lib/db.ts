@@ -1,5 +1,5 @@
 import 'server-only';
-import type { Pool } from 'pg';
+import type { Pool, PoolClient } from 'pg';
 import { createPool } from './db-pool';
 
 // Singleton guardado em globalThis para sobreviver ao hot reload do `next dev`
@@ -19,7 +19,7 @@ function getPool(): Pool {
 const pool = {
   query: ((...args: Parameters<Pool['query']>) =>
     (getPool().query as (...a: unknown[]) => unknown)(...args)) as Pool['query'],
-  connect: (() => getPool().connect()) as () => ReturnType<Pool['connect']>,
+  connect: (): Promise<PoolClient> => getPool().connect(),
 };
 
 export type DbPool = typeof pool;

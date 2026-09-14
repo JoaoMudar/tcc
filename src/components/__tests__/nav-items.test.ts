@@ -14,8 +14,15 @@ describe('isActive', () => {
 });
 
 describe('NAV_ITEMS', () => {
-  it('traz as três áreas e Configurações, com rotas únicas', () => {
-    expect(NAV_ITEMS.map((i) => i.label)).toEqual(['Cadastros', 'Produção', 'Pedidos', 'Configurações']);
+  it('as três áreas vão no rodapé, o resto em Mais', () => {
+    expect(NAV_ITEMS.filter((i) => i.placement === 'primary').map((i) => i.label)).toEqual([
+      'Cadastros',
+      'Produção',
+      'Pedidos',
+    ]);
+  });
+
+  it('rotas únicas', () => {
     expect(new Set(NAV_ITEMS.map((i) => i.href)).size).toBe(NAV_ITEMS.length);
   });
 });

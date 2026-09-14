@@ -43,8 +43,8 @@ echo 'DATABASE_URL=postgresql://postgres:<senha>@localhost:5432/viveiro' > .env.
 # 3. Rodar as migrações
 npm run db:migrate
 
-# 4. Criar o primeiro usuário administrador
-npm run db:seed-admin
+# 4. Criar o primeiro administrador (a senha provisória aparece uma vez)
+npm run db:seed-admin -- --login admin --nome "Administrador"
 
 # 5. Subir o ambiente de desenvolvimento
 npm run dev
@@ -134,16 +134,13 @@ São três papéis, e correspondem às três pessoas que operam o sistema:
 
 ## Funcionalidades implementadas
 
-- **Acesso:** autenticação, troca de senha no primeiro acesso, sessões ativas, usuários e perfis.
-- **Cadastro único:** espécies (com nomes populares e foto), recipientes, insumos, e as pessoas
-  com os seus papéis de cliente, fornecedor e funcionário.
-- **Comercial:** cadastro de pedidos e listagem.
+- **Fundação (Fase 0):** banco com migrations, suíte contra Postgres real, CI e publicação.
+- **Acesso (Fase 1):** login com bloqueio de cinco falhas por 15 minutos, sessão de 30 dias
+  renovada no uso, troca de senha no primeiro acesso, matriz de permissões do D4 verificada no
+  servidor, menu por perfil, usuários pelo administrador, aparelhos conectados e registro de acessos.
 
-O pedido percorre três situações: `rascunho → confirmado`, com `cancelado` à parte. Confirmado, ele
-não aceita mais alteração de item.
-
-**Falta construir a Produção inteira**, e é a maior parte do que resta: agenda da semana, lotes e
-movimentos, protocolo por lote e mapa. O modelo de dados dela está no banco; o que falta é tela.
+As telas de Cadastro único, Produção e Comercial ainda não existem: o modelo de dados está no
+banco, e as fases seguintes do [`P1`](plans/P1-sistema-reduzido.md) constroem as telas.
 
 ---
 
