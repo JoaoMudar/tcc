@@ -74,8 +74,12 @@ aguarda execução manual no navegador.*
 
 ## Fase 2: Configurações
 
-- [ ] **T2.1** Período de trabalho: manter os turnos de `turnos_trabalho` (RF-08, UC-05)
-- [ ] **T2.2** Parâmetros: só alterar o valor, validado por `tipo_valor`, sem criar nem excluir (RF-09, UC-06)
+- [x] **T2.1** Período de trabalho: manter os turnos de `turnos_trabalho` (RF-08, UC-05). *Cria e altera horário; sem exclusão, o turno sai de uso desativado; jornada diária derivada dos turnos ativos*
+- [x] **T2.2** Parâmetros: só alterar o valor, validado por `tipo_valor`, sem criar nem excluir (RF-09, UC-06). *Limite por chave (dias de 0 a 365, percentual de 0 a 100) e crítico maior que atenção*
+
+**Aceite:** TA-07, TA-08, TA-12. *Em 14/09/2026: TA-08 por teste do guard e das actions; TA-07 (sem criar nem
+excluir, valor gravado) e TA-12 (jornada acompanha o horário) contra Postgres real. Faltam as partes que dependem
+de tela ainda inexistente: a agenda exibindo a jornada (Fase 5) e o mapa sem o destaque (Fase 7).*
 
 ## Fase 3: Cadastro único
 
