@@ -122,13 +122,18 @@ TA-23 é da Fase 9, TA-24 e TA-25 do mapa (Fase 7).*
 
 ## Fase 5: Agenda da semana
 
-- [ ] **T5.1** Grade por funcionário, dia e turno, com hora opcional e vários participantes; tela larga no computador, lista no celular (RF-26, RNF-14)
-- [ ] **T5.2** Formulário da atribuição comandado pelo tipo de tarefa: lote, espécie, recipiente, área ou canteiro só quando o tipo exige (RF-21, RF-30)
-- [ ] **T5.3** Situação da semana, rascunho, publicada e fechada, com trava no servidor (RF-28)
-- [ ] **T5.4** Copiar a semana anterior com as tarefas recorrentes (RF-27)
-- [ ] **T5.5** Confirmar tarefa: o lote uma vez, a quantidade por participante só se o tipo for quantitativo (RF-29). ✅ *Confirmado em 14/09/2026: confirmar a tarefa gera movimento no lote*
-- [ ] **T5.6** Fechar a semana, marcando o não confirmado (RF-31)
-- [ ] **T5.7** Entrada da Produção em duas abas, agenda e mapa (prancha do `F1`; o mapa entra na Fase 7)
+- [x] **T5.1** Grade por funcionário, dia e turno, com hora opcional e vários participantes; tela larga no computador, lista no celular (RF-26, RNF-14). *`/producao/agenda`: semana de segunda a sábado; a tarefa do grupo aparece na linha de cada participante; funcionário inativo só aparece na semana em que trabalhou; lançar para vários dias de uma vez*
+- [x] **T5.2** Formulário da atribuição comandado pelo tipo de tarefa: lote, espécie, recipiente, área ou canteiro só quando o tipo exige (RF-21, RF-30). *O campo que o tipo não declara é descartado no servidor. No planejamento lote, espécie e recipiente são opcionais (a semeadura se planeja antes de o lote existir); a confirmação exige o lote*
+- [x] **T5.3** Situação da semana, rascunho, publicada e fechada, com trava no servidor (RF-28). *Toda escrita trava a linha da semana antes da atribuição, na mesma ordem em todo lugar*
+- [x] **T5.4** Copiar a semana anterior com as tarefas recorrentes (RF-27). *Abrir a semana traz as recorrentes; "Copiar semana passada" traz o resto, só em semana sem outro lançamento. A cópia volta planejada, sem contagem, só com quem ainda é funcionário e com o lote só se aberto*
+- [x] **T5.5** Confirmar tarefa: o lote uma vez, a quantidade por participante só se o tipo for quantitativo (RF-29). ✅ *Confirmado em 14/09/2026: confirmar a tarefa gera movimento no lote. Decidido na mesma data: a tarefa com lote oferece "Morreu alguma?", gravado como perda com `atribuicao_id`; "Confirmar e registrar a repicagem" leva ao formulário do lote, e os movimentos da repicagem apontam para a tarefa. Sem coluna nova em `tipos_tarefa`*
+- [x] **T5.6** Fechar a semana, marcando o não confirmado (RF-31). *Só a semana publicada fecha; a planejada sem ninguém escalado segue pendente*
+- [x] **T5.7** Entrada da Produção em duas abas, agenda e mapa (prancha do `F1`; o mapa entra na Fase 7). *A aba do mapa avisa que ainda não está pronto e aponta para Lotes*
+
+**Aceite:** TA-10, TA-26 a TA-34. *Em 14/09/2026: todos contra Postgres real (TA-28 também na validação pura), com a
+soma dos movimentos conferida contra o saldo na confirmação com perda e na repicagem ligada à tarefa; as recusas por
+perfil por teste das actions. A jornada da agenda do dia sai de `jornadaDiaria` (TA-12). TA-58 (nove funcionários
+no computador e no celular) e o roteiro no navegador com gerência e chefia aguardam execução manual.*
 
 ## Fase 6: Protocolo de atividades e motor
 

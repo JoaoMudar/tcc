@@ -95,6 +95,7 @@ interface InsercaoLote extends NovoLote {
   loteOrigemId: string | null;
   fase: Fase;
   tipoEntrada: Extract<TipoMovimento, 'entrada' | 'repicagem_entrada'>;
+  atribuicaoId?: string | null;
 }
 
 async function inserirLote(client: Client, input: InsercaoLote): Promise<{ id: string; codigo: string }> {
@@ -139,6 +140,7 @@ async function inserirLote(client: Client, input: InsercaoLote): Promise<{ id: s
     tipo: input.tipoEntrada,
     quantidade: input.quantidade,
     data: input.dataPlantio,
+    atribuicaoId: input.atribuicaoId,
     registradoPor: input.registradoPor,
   });
   return { id, codigo };
@@ -159,6 +161,8 @@ export interface Repicagem {
   canteiroId: string;
   observacoes: string | null;
   registradoPor: string;
+  /** A tarefa confirmada que a repicagem fecha (UC-20 FA-1): os movimentos apontam para ela. */
+  atribuicaoId?: string | null;
 }
 
 /** T4.8, RF-34: a repicagem não move o lote; baixa o de origem e cria um novo apontando para ele. */
@@ -192,6 +196,7 @@ export async function repicarLote(
       causa: input.causa,
       data: hoje,
       observacoes: 'Morreram na repicagem',
+      atribuicaoId: input.atribuicaoId,
       registradoPor: input.registradoPor,
     });
   }
@@ -202,6 +207,7 @@ export async function repicarLote(
     quantidade: -input.quantidade,
     data: hoje,
     observacoes: input.observacoes,
+    atribuicaoId: input.atribuicaoId,
     registradoPor: input.registradoPor,
   });
 
@@ -216,6 +222,7 @@ export async function repicarLote(
     loteOrigemId: origem.id,
     fase: 'repicado',
     tipoEntrada: 'repicagem_entrada',
+    atribuicaoId: input.atribuicaoId,
   });
   return { ...novo, saldoOrigem: saida.saldo, origemEncerrado: saida.encerrado };
 }
