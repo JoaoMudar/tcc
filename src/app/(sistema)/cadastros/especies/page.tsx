@@ -1,8 +1,7 @@
 import Link from 'next/link';
 import { PageHeader } from '@/components/PageHeader';
-import { Button } from '@/components/ui/Button';
 import { Pill } from '@/components/ui/Pill';
-import { TextField } from '@/components/ui/TextField';
+import { SearchForm } from '@/components/ui/SearchForm';
 import pool from '@/lib/db';
 import { CARACTERISTICA_LABELS, nomeExibido, searchEspecies } from '@/lib/especies';
 import { can } from '@/lib/permissions';
@@ -22,12 +21,7 @@ export default async function EspeciesPage({ searchParams }: PageProps<'/cadastr
         <Link href="/cadastros" className="text-base font-semibold text-brand-dark">
           Voltar
         </Link>
-        <form className="flex items-end gap-2">
-          <TextField label="Buscar por qualquer nome" name="busca" type="search" defaultValue={busca} className="flex-1" />
-          <Button type="submit" variant="secondary" className="w-auto">
-            Buscar
-          </Button>
-        </form>
+        <SearchForm label="Buscar por qualquer nome" defaultValue={busca} />
 
         {especies.map((especie) => (
           <Link
