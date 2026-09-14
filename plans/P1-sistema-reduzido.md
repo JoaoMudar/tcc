@@ -52,9 +52,9 @@ não mede a hora de entrada e saída de ninguém e não tem tela de campo. A del
 - [x] **T0.6** Suíte de integração `test:db`: Postgres local limpo, todas as migrations aplicadas, tabelas declaradas comparadas com `information_schema` (dívida §2 e §3)
 - [x] **T0.7** Helper de transação e tradução de erro, para nunca exibir mensagem do Postgres na tela
 - [x] **T0.8** Hook de pre-commit (lint, testes e varredura de segredo). ✅ *Autorizado pelo usuário em 14/09/2026*
-- [ ] **T0.9** CI no GitHub Actions: lint, typecheck, `test` e `test:db` com serviço Postgres. *Workflow escrito; falta o primeiro push e a proteção da `master` exigindo o check*
+- [x] **T0.9** CI no GitHub Actions: lint, typecheck, `test` e `test:db` com serviço Postgres. *Passou no PR #2 em 14/09/2026; `master` é a branch padrão e exige o check `verificar`*
 - [x] **T0.10** Casca visual mobile-first: layout, navegação e componentes base (botão com alvo de toque grande, campo, seleção fechada, aviso de gravação), conforme `F1` e RNF-01 a RNF-04, RNF-07
-- [ ] **T0.11** Publicação do esqueleto na Vercel com Neon `sa-east-1`, migrations aplicadas na publicação, HTTPS (RNF-12)
+- [x] **T0.11** Publicação do esqueleto na Vercel com Neon `sa-east-1`, migrations aplicadas na publicação, HTTPS (RNF-12)
 
 **Pronto quando:** uma página em produção lê `SELECT 1` do Neon, e o CI bloqueia PR com teste quebrado.
 
