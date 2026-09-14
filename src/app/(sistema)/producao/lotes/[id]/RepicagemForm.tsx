@@ -18,10 +18,12 @@ interface RepicagemFormProps {
   /** Recipientes em uso, menos o do próprio lote. */
   recipientes: readonly SelectOption[];
   canteiros: readonly CanteiroResumo[];
+  /** A tarefa de repicagem confirmada na agenda, quando se chega por ela (UC-20 FA-1). */
+  atribuicaoId?: string | null;
 }
 
 /** F1 UC-23, T4.8: quantas repicar, para qual recipiente e canteiro; as que morreram viram perda do lote (RN-28). */
-export function RepicagemForm({ loteId, codigo, saldo, recipientes, canteiros }: RepicagemFormProps) {
+export function RepicagemForm({ loteId, codigo, saldo, recipientes, canteiros, atribuicaoId = null }: RepicagemFormProps) {
   const [state, formAction, pending] = useActionState(repicarLoteAction, EMPTY_FORM_STATE);
   const fields = state.error ? state.fields : undefined;
   const [repicar, setRepicar] = useState<number | null>(lerQuantidade(fields?.quantidade ?? ''));
@@ -31,6 +33,7 @@ export function RepicagemForm({ loteId, codigo, saldo, recipientes, canteiros }:
   return (
     <form action={formAction} className="flex flex-col gap-4">
       <input type="hidden" name="lote_id" value={loteId} />
+      {atribuicaoId && <input type="hidden" name="atribuicao_id" value={atribuicaoId} />}
       <TextField
         label="Quantas repicar"
         name="quantidade"

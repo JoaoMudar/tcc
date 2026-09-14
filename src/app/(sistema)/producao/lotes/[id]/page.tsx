@@ -22,14 +22,16 @@ import { TransferenciaForm } from './TransferenciaForm';
 
 interface LotePageProps {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ feito?: string }>;
+  searchParams: Promise<{ feito?: string; repicar?: string }>;
 }
 
 /** T4.4, RF-35: a ficha do lote, o histórico que explica o saldo e as ações da gerência. */
 export default async function LotePage({ params, searchParams }: LotePageProps) {
   const user = await requirePageAccess('lotes');
-  const [{ id }, { feito }] = await Promise.all([params, searchParams]);
+  const [{ id }, { feito, repicar }] = await Promise.all([params, searchParams]);
   if (!isUuid(id)) notFound();
+  // Chegou pela confirmação da tarefa de repicagem (UC-20 FA-1)
+  const atribuicaoRepicagem = isUuid(repicar) ? repicar : null;
   const lote = await findLote(pool, id);
   if (!lote) notFound();
 
@@ -144,8 +146,11 @@ export default async function LotePage({ params, searchParams }: LotePageProps) 
             <ContagemForm loteId={lote.id} saldo={lote.quantidadeAtual} />
           </AcaoRecolhivel>
         )}
+        {podeRepicar && atribuicaoRepicagem && (
+          <Notice tone="success">Tarefa confirmada. Agora registre a repicagem: ela fica ligada à tarefa.</Notice>
+        )}
         {podeRepicar && (
-          <AcaoRecolhivel titulo="Repicar">
+          <AcaoRecolhivel titulo="Repicar" aberta={atribuicaoRepicagem !== null}>
             {destinos.length === 0 ? (
               <Notice tone="info">Não há outro recipiente em uso para repicar.</Notice>
             ) : (
@@ -155,6 +160,7 @@ export default async function LotePage({ params, searchParams }: LotePageProps) 
                 saldo={lote.quantidadeAtual}
                 recipientes={destinos}
                 canteiros={canteiros}
+                atribuicaoId={atribuicaoRepicagem}
               />
             )}
           </AcaoRecolhivel>

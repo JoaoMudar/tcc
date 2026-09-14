@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { conferirAtribuicaoDaRepicagem } from '@/lib/agenda';
 import pool from '@/lib/db';
 import { toUserMessage } from '@/lib/errors';
 import { type FormState, formText } from '@/lib/form-state';
@@ -173,11 +174,15 @@ export async function repicarLoteAction(_previous: FormState, formData: FormData
   if (!isUuid(fields.canteiro_id)) return { error: 'Escolha a área e o canteiro de destino.', fields };
   const observacoes = lotes.parseObservacoes(fields.observacoes);
   if ('error' in observacoes) return { error: observacoes.error, fields };
+  // UC-20 FA-1: a repicagem que fecha a tarefa confirmada fica ligada a ela
+  const atribuicaoId = formText(formData, 'atribuicao_id') || null;
+  if (atribuicaoId !== null && !isUuid(atribuicaoId)) return { error: 'Tarefa inválida.', fields };
 
   let id: string;
   try {
-    ({ id } = await withTransaction(pool, (client) =>
-      lotes.repicarLote(client, {
+    ({ id } = await withTransaction(pool, async (client) => {
+      if (atribuicaoId) await conferirAtribuicaoDaRepicagem(client, atribuicaoId, loteId);
+      return lotes.repicarLote(client, {
         origemId: loteId,
         quantidade: quantidade.value,
         perdidas: perdidas.value,
@@ -186,8 +191,9 @@ export async function repicarLoteAction(_previous: FormState, formData: FormData
         canteiroId: fields.canteiro_id,
         observacoes: observacoes.value,
         registradoPor: user.usuarioId,
-      }),
-    ));
+        atribuicaoId,
+      });
+    }));
   } catch (error) {
     return { error: toUserMessage(error), fields };
   }
