@@ -2,9 +2,9 @@
 -- Descricao: A visao que pinta o lote no mapa.
 --
 -- Requisitos: RF-44, RF-45, RF-42 · Regras: RN-29, RN-30, RN-27
--- Entidades: C8 `batch_health` (visao)
+-- Entidades: C8 `situacao_lote` (visao)
 --
--- E VISAO, E NAO COLUNA (RN-30). Status gravado envelhece sozinho: o lote que
+-- E VISAO, E NAO COLUNA (RN-30). Situacao gravada envelhece sozinha: o lote que
 -- estava verde ontem continuaria verde no banco hoje, e a tela existe justamente
 -- para dizer o contrario. E a mesma razao de o saldo disponivel e a mortalidade
 -- tambem serem derivados.
@@ -22,22 +22,22 @@
 DO $$
 DECLARE n INTEGER;
 BEGIN
-  SELECT COUNT(*) INTO n FROM settings
-   WHERE key IN ('producao.atraso_atencao_dias', 'producao.atraso_critico_dias');
+  SELECT COUNT(*) INTO n FROM parametros
+   WHERE chave IN ('producao.atraso_atencao_dias', 'producao.atraso_critico_dias');
   IF n <> 2 THEN
-    RAISE EXCEPTION 'batch_health exige os dois parametros de atraso em settings (achei %)', n;
+    RAISE EXCEPTION 'situacao_lote exige os dois parametros de atraso na tabela parametros (achei %)', n;
   END IF;
 END $$;
 
-CREATE VIEW batch_health AS
+CREATE VIEW situacao_lote AS
 WITH limites AS (
   SELECT
-    (SELECT value::INTEGER FROM settings WHERE key = 'producao.atraso_atencao_dias') AS atencao,
-    (SELECT value::INTEGER FROM settings WHERE key = 'producao.atraso_critico_dias') AS critico
+    (SELECT valor::INTEGER FROM parametros WHERE chave = 'producao.atraso_atencao_dias') AS atencao,
+    (SELECT valor::INTEGER FROM parametros WHERE chave = 'producao.atraso_critico_dias') AS critico
 ),
 pendencia AS (
-  -- PENDENCIA E O QUE SEGUE `planejada`, e a condicao e positiva de proposito. Os
-  -- outros status saem, cada um pelo seu motivo: `confirmada` e a tarefa que a
+  -- PENDENCIA E O QUE SEGUE `planejada`, e a condicao e positiva de proposito. As
+  -- outras situacoes saem, cada uma pelo seu motivo: `confirmada` e a tarefa que a
   -- gerencia registrou como feita, e `nao_confirmada` e a que o fechamento da
   -- semana assumiu como feita (RN-14). Sem a segunda, toda semana fechada deixaria
   -- um vermelho permanente atras de si.
@@ -45,40 +45,40 @@ pendencia AS (
   -- A MAIS ANTIGA MANDA: havendo tres pendencias no mesmo lote, quem determina a
   -- cor e a que espera ha mais tempo, e e ela que aparece ao apontar o lote
   -- (RF-45).
-  SELECT DISTINCT ON (a.batch_id)
-    a.batch_id,
-    a.id           AS assignment_id,
-    a.task_type_id,
-    tt.name        AS task_name,
-    a.work_date,
-    (CURRENT_DATE - a.work_date) AS days_late
-  FROM assignments a
-  JOIN task_types tt ON tt.id = a.task_type_id
-  WHERE a.status = 'planejada'
-    AND a.batch_id IS NOT NULL
-    AND a.work_date < CURRENT_DATE
-  ORDER BY a.batch_id, a.work_date ASC
+  SELECT DISTINCT ON (a.lote_id)
+    a.lote_id,
+    a.id             AS atribuicao_id,
+    a.tipo_tarefa_id,
+    tt.nome          AS nome_tarefa,
+    a.data_trabalho,
+    (CURRENT_DATE - a.data_trabalho) AS dias_atraso
+  FROM atribuicoes a
+  JOIN tipos_tarefa tt ON tt.id = a.tipo_tarefa_id
+  WHERE a.situacao = 'planejada'
+    AND a.lote_id IS NOT NULL
+    AND a.data_trabalho < CURRENT_DATE
+  ORDER BY a.lote_id, a.data_trabalho ASC
 )
 SELECT
-  b.id        AS batch_id,
-  b.code      AS batch_code,
-  b.bed_id,
-  b.position,
-  p.assignment_id          AS pending_assignment_id,
-  p.task_type_id           AS pending_task_type_id,
-  p.task_name              AS pending_task_name,
-  p.work_date              AS pending_since,
-  COALESCE(p.days_late, 0) AS days_late,
+  b.id                       AS lote_id,
+  b.codigo                   AS codigo_lote,
+  b.canteiro_id,
+  b.posicao,
+  p.atribuicao_id            AS atribuicao_pendente_id,
+  p.tipo_tarefa_id           AS tipo_tarefa_pendente_id,
+  p.nome_tarefa              AS tarefa_pendente,
+  p.data_trabalho            AS pendente_desde,
+  COALESCE(p.dias_atraso, 0) AS dias_atraso,
   CASE
-    WHEN p.days_late IS NULL            THEN 'saudavel'
-    WHEN p.days_late >= l.critico       THEN 'critico'
-    WHEN p.days_late >= l.atencao       THEN 'atencao'
+    WHEN p.dias_atraso IS NULL            THEN 'saudavel'
+    WHEN p.dias_atraso >= l.critico       THEN 'critico'
+    WHEN p.dias_atraso >= l.atencao       THEN 'atencao'
     ELSE 'saudavel'
-  END AS health
-FROM batches b
+  END AS situacao
+FROM lotes b
 CROSS JOIN limites l
-LEFT JOIN pendencia p ON p.batch_id = b.id
-WHERE b.closed_at IS NULL;
+LEFT JOIN pendencia p ON p.lote_id = b.id
+WHERE b.encerrado_em IS NULL;
 
-COMMENT ON VIEW batch_health IS
+COMMENT ON VIEW situacao_lote IS
   'Situacao do lote: saudavel, atencao, critico. Derivada do atraso da tarefa, nunca digitada. RN-30.';
