@@ -1,0 +1,12 @@
+#!/bin/sh
+# Pre-commit do projeto (T0.8). Ativado por `npm install` (script prepare).
+set -e
+
+echo "pre-commit: varredura de segredos"
+node scripts/scan-secrets.mjs
+
+echo "pre-commit: lint"
+npm run --silent lint
+
+echo "pre-commit: testes"
+npm test --silent

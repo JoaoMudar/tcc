@@ -23,7 +23,7 @@ principal de uso no campo.
 | Autenticação      | Sessão própria por cookie (scrypt + tokens SHA-256)               |
 | Mobile            | PWA (manifest + service worker, fila de sync offline)             |
 | Linguagem         | TypeScript                                                        |
-| Testes            | Vitest (unitários)                                                |
+| Testes            | Vitest: unitários e suíte contra Postgres real (`test:db`)        |
 
 ---
 
@@ -60,14 +60,35 @@ A aplicação fica disponível em `http://localhost:3000`. O login é exigido em
 | Comando                     | Descrição                                            |
 | --------------------------- | ---------------------------------------------------- |
 | `npm run dev`               | Servidor de desenvolvimento                          |
-| `npm run build`             | Roda migrações e faz o build de produção             |
+| `npm run build`             | Aplica as migrações pendentes e faz o build          |
+| `npm run build:app`         | Só o build, sem tocar no banco                       |
 | `npm start`                 | Servidor de produção                                 |
-| `npm run lint`              | ESLint sobre `src/`                                  |
+| `npm run lint`              | ESLint                                               |
+| `npm run typecheck`         | Gera os tipos de rota do Next e roda o `tsc`         |
 | `npm test`                  | Testes unitários (Vitest)                            |
+| `npm run test:db`           | Recria o banco de `TEST_DATABASE_URL` e testa contra ele |
 | `npm run db:migrate`        | Aplica migrações pendentes                           |
-| `npm run db:migrate:status` | Mostra o estado das migrações                        |
-| `npm run db:migrate:mark`   | Marca migrações como aplicadas (sem executá-las)     |
-| `npm run db:seed-admin`     | Cria o usuário administrador inicial                 |
+| `npm run db:migrate:status` | Mostra aplicadas e pendentes, sem escrever           |
+
+O `npm install` ativa o hook de pre-commit (`.githooks/pre-commit`): varredura de segredos, lint e
+testes. O CI (`.github/workflows/ci.yml`) roda o mesmo, mais typecheck e `test:db` com Postgres 17.
+
+---
+
+## Publicação (Vercel + Neon)
+
+1. No Neon, criar o projeto na região **São Paulo (`sa-east-1`)** e copiar a URL de conexão
+   **com pooler** (`...-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require`).
+2. Na Vercel, importar o repositório (framework Next.js, comando de build padrão).
+3. Em *Settings > Environment Variables*, criar `DATABASE_URL` com a URL do Neon, marcada **só em
+   Production**.
+4. Publicar. O `npm run build` aplica as migrações pendentes antes do `next build`: se uma falhar,
+   a publicação para e a versão anterior continua no ar ([`D3` §4](docs/engenharia/D-arquitetura/D3-diagrama-implantacao.md)).
+   Publicação de preview pula as migrações, para nunca mexer no banco de produção.
+5. Conferir a página inicial: ela mostra **Banco de dados conectado**. A Vercel serve só por HTTPS
+   (RNF-12).
+6. No GitHub, em *Settings > Branches*, proteger `master` exigindo o check **verificar** do CI: é
+   isso que bloqueia PR com teste quebrado.
 
 ---
 

@@ -3,6 +3,11 @@
 > Registrado em **11/08/2026**, logo após o merge do PR #20 (`refactor/politica-e-parties`).
 > Complementa [`auditoria-divergencias.md`](auditoria-divergencias.md): aquele documento lista o
 > que estava **errado**; este lista o que ainda **falta**.
+>
+> **Aviso de 14/09/2026:** tudo o que abaixo aparece como feito (`permissions.ts`, `parties.ts`,
+> CI, Sentry, fila offline) pertence ao aplicativo antigo em inglês, noutro repositório. O código
+> recomeçou do zero neste repositório, e os itens que continuam valendo (backup, teste contra banco
+> real, divergência de esquema) viraram tarefas de [`P1`](../plans/P1-sistema-reduzido.md).
 
 ## Onde o sistema está
 

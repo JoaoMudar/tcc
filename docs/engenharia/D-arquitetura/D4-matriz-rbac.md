@@ -97,7 +97,7 @@ para ler a matriz, não para decidir acesso.
 | **Mapa de lotes** | L | L | L |
 | **Estoque disponível** | L | L | L |
 | **3 · Comercial** | | | |
-| **Pedidos** | C L A E | L | C L A E |
+| **Pedidos** | C L A E | - | C L A E |
 | **Confirmação de pedido** | **A** | - | A |
 
 ¹ **Ninguém cria e ninguém exclui parâmetro.** Ver §3.7.

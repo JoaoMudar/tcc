@@ -1308,3 +1308,146 @@ As tres mencoes a "carga" que sobreviveram sao a carga de terra que chega meio-d
 (`01-agenda-de-pessoal.md`) e a que este arquivo acabou de escrever. A quarta,
 em `04-lotes-e-canteiros.md`, dizia que "carga" continuava sendo um dos sentidos do termo no
 sistema, e virou carregamento de caminhao, que nao e modelado.
+
+## Décima quinta passada: as 35 pranchas do F1 contra a rotina que cada uma prescreve (11/09/2026)
+
+As passadas anteriores conferiram rotina contra rotina, e rotina contra migration. Esta foi a
+primeira a partir da prancha: as 35 telas de [`F1`](engenharia/F-ux/F1-prototipo-de-telas.html) (34
+casos de uso mais `PR-ENTRADA`, sem requisito de origem), uma a uma, contra tudo que descreve a
+mesma rotina em outro lugar, para responder duas perguntas: a mesma rotina é descrita do mesmo jeito
+em todos os documentos que a citam, e a prancha bate com o que esses documentos prescrevem.
+
+### Método
+
+Quatro lotes, por módulo do F1 (Acesso e Configurações, Cadastro único, Produção, Comercial), cada
+um conferido linha a linha contra `docs/rotinas/`, os 10 casos de uso detalhados em `C2`, o texto de
+requisito em `B2`, o de regra em `B3` e a matriz de perfil em `D4`. Onde dois documentos discordavam,
+o critério já usado nas passadas anteriores: texto de requisito e regra é o de `B2`/`B3`; quem opera
+a tela é o de `D4`; estrutura de dado é a de `C8`. 22 das 35 pranchas saíram consistentes. As outras
+13 tinham pelo menos um achado, listados abaixo por módulo.
+
+### Acesso e Configurações
+
+`UC-03` citava "D4 §3.7" para justificar que nenhum perfil de negócio administra usuário; a seção
+certa é a §3.5 (§3.7 é sobre parâmetros do sistema). Corrigida a citação.
+
+`UC-03` e `UC-14` mostravam **Rogério** com conta de acesso ("colaborador... ativo" numa, "fixo...
+acessa o sistema" na outra). `docs/rotinas/00-mapa-de-rotinas.md`, `docs/funcionarios-viveiro-mudar.md`
+e `B2` concordam que os seis colaboradores de campo, Rogério entre eles, nunca abrem uma tela, e
+"colaborador" nem é um perfil que `D4` reconhece com acesso ao sistema. O mockup do `UC-03` trocou os
+três cartões de "colaborador" por um terceiro usuário real, João, no perfil administrador, que é o
+trio nomeado no restante da documentação (Gilberto/chefia, Débora/gerência, João/administrador). O
+de `UC-14` passou a marcar Rogério como "sem acesso", coerente com o resto do cadastro de funcionário.
+
+`UC-05` (Manter período de trabalho) listava `actors:['gerencia','chefia']`; `D4`, `B2` e
+`00-mapa-de-rotinas.md` concordam que quem mantém é a chefia e o administrador, e a gerência só lê.
+Corrigido para `['chefia','admin']`. O cabeçalho do mockup também dizia "1 · Cadastros", resíduo de
+copiar o cabeçalho de `UC-07`: a prancha é `mod:'config'`, e passou a dizer "Configurações", como
+`UC-06`.
+
+### Cadastro único
+
+`UC-07`, `UC-08` e `UC-09` carregavam conteúdo de custeio que `A1` §7 e `C8` registram como cortado
+do escopo: germinação e tempo de produção na espécie, consumo de substrato por recipiente, e preço
+com histórico no insumo. Nenhum dos três campos é coluna em `C6`/`C8`. Os três mockups perderam esses
+campos, e o `why` de `UC-08` e `UC-09`, que justificava a tela pelo custeio, foi reescrito sem essa
+ligação.
+
+`UC-11` mostrava "Razão social" e "Inscrição estadual" como campos editáveis do cadastro fiscal.
+`C8` é explícito: essas colunas não existem, porque o conjunto fiscal que a nota exige é o do emissor
+externo. A mesma presunção estava em `E5-mapeamento-lgpd.md §2.1`, que listava "Razão social,
+inscrição estadual" como dado tratado e retido por 5 anos. Os dois foram corrigidos: o mockup perdeu
+os campos, e a linha saiu do inventário de `E5` (regenerado em `word/4.7`, ver abaixo).
+
+`UC-13` justificava o cadastro de fornecedor pela "cotação", que `A1` §7 e
+`docs/rotinas/1-cadastros/00-visao-geral.md` citam como fora de escopo. O `why` foi reescrito.
+
+`UC-15` citava `rf:'RF-21, RF-24'`; `B5` liga RF-24 a `UC-17`, não a esta tela, e o mockup mostrava
+"Categoria: Produção", valor fora da lista fechada de `RN-23`/`C8` (que classifica "Repicar" como
+`plantio`). Corrigidos os dois.
+
+`UC-16` citava `rf:'RF-13, RF-15'` (RF-15 é de `UC-10`, por `B5`) e tinha `actors:['gerencia']`
+sem a chefia, que `D4` lista com `C L` neste recurso, o mesmo padrão de `Tipos de tarefa`. Corrigidos
+os dois.
+
+`UC-17` citava "D4 §3.16", seção que não existe (`D4` vai até §3.9); a que trata da gerência mantendo
+protocolo é §3.8. Corrigida a citação. `UC-17` e `UC-18`, cujo `C2` descreve com "Ator principal:
+Gerência" só, mas cujo `D4` §3.8 dá exatamente a mesma permissão à chefia (nota do próprio `D4`: "a
+única linha da matriz em que chefia e gerência têm exatamente a mesma permissão"): `C2` foi ajustado
+para "Gerência ou Chefia, com a mesma permissão (D4 §3.8)" nas duas fichas, sem reescrever o fluxo
+principal, que já usa "a gerência" de forma ilustrativa.
+
+### Produção
+
+`PR-ENTRADA` tinha `actors:['gerencia']`, sem a chefia, que `D4` lista com `L` tanto em Agenda da
+semana quanto em Mapa de lotes, os dois recursos que compõem esta tela; a própria `UC-27`, mesmo
+conteúdo na aba "Mapa de produção", já listava os dois perfis. Corrigido para incluir a chefia.
+
+`UC-25` (Registrar perda) tinha `actors:['gerencia','chefia']`; `B2`, `D4` e `C2` concordam que só a
+gerência registra. Corrigido para `['gerencia']`. O mockup também faltava o quarto campo que `C2`
+descreve no formulário, observação; foi acrescentado.
+
+`UC-30` (Analisar perdas) calculava um "Impacto em reais" pelo "custo unitário do módulo financeiro",
+que `A1` §7 registra como cortado do escopo (não há apuração de custo nem módulo financeiro). RF-41 e
+RF-42, os requisitos que a própria prancha cita, não mencionam valor monetário algum. O card de
+impacto foi trocado por uma contagem sem dinheiro (espécies acima do limite de mortalidade), e o
+`why` reescrito.
+
+`UC-19` citava `rf:'..., RF-32'`; o próprio texto do `why` da prancha é uma paráfrase quase literal
+de RF-31 (tarefa não confirmada assumida como realizada ao fechar a semana), e RF-32 é sobre criar
+lote, sem relação com a agenda. Corrigido para RF-31.
+
+`UC-20` citava `rf:'RF-34, ...'`; `C2` atribui RF-34 exclusivamente a `UC-23` (repicar lote), e o
+próprio `C2` diz que, quando a tarefa é repicagem, o sistema encaminha para lá. Removida a citação de
+RF-34 em `UC-20`.
+
+Um achado que não virou correção de campo: `B3` §6.3 registrava RN-29 (o aviso de capacidade do
+canteiro) como regra sem requisito que a realize, com o texto "ninguém é avisado no momento em que a
+decisão é tomada". Isso contradizia `F1`, `C2` e `04-lotes-e-canteiros.md`, que convergem descrevendo
+o aviso como parte do fluxo de criar lote. A regra é real, só não está no texto de nenhum RF: quem a
+realiza é o desenho de `UC-22`, não uma frase de requisito. `B3` §6.3 foi corrigida para dizer isso,
+em vez de negar que o aviso existe.
+
+### Comercial
+
+O achado mais grave do lote: o mockup e o `why` de `UC-31` (Cadastrar pedido) ainda descreviam o
+"item genérico", em que o cliente pede "mil mudas nativas" sem dizer a espécie, resolvida depois "na
+verificação". A décima quarta passada já tinha registrado essa remoção em `pedidos.md`, porque `D4`
+§3.2 diz que a gerência não lê pedido e `pedidos_itens.especie_id` é `NOT NULL`; ninguém tinha voltado
+no `F1` para conferir se a prancha correspondente também tinha sido corrigida, e não tinha. O item
+genérico saiu, e os dois itens que faltavam para fechar a conta do pedido #418 (que `UC-32`, `UC-33` e
+`UC-34` já citam, R$ 11.280 e 2.100 mudas) entraram no lugar: Cedro-rosa 1.000 e Canela-preta 300, os
+mesmos números que as outras três pranchas do mesmo pedido já usavam. O `why` foi reescrito sem a
+ideia de item genérico.
+
+Achado transversal, não específico de uma prancha: `D4` tinha uma contradição interna. A prosa do
+§3.2 diz que a gerência não lê pedido, "e é deliberado"; a própria tabela da matriz, na linha
+"Pedidos", dava `L` (leitura) à gerência. `pedidos.md`, `00-visao-geral.md` e o `C2` de `UC-31`/`32`/
+`33` (ator único "Chefia") seguem a prosa, não a tabela; os `actors` das quatro pranchas do `F1`
+também. A célula foi corrigida para `-`.
+
+### Regeneração e verificação
+
+`D4`, `C2`, `B3` e `E5` alimentam capítulos gerados em `docs/engenharia/word/` (`4.3`, `4.4`, `4.7`).
+Depois de cada correção, `node scripts/build-word.mjs` foi rodado; os três capítulos afetados saíram
+com o texto atualizado. O mesmo comando reexporta cinco figuras PNG a cada execução, com diferença de
+poucos bytes por arquivo mesmo sem mudança de conteúdo (reencodificação, não o desenho); essa
+diferença foi descartada (`git checkout` nas imagens) por não ter relação com o que esta passada
+mudou.
+
+`node scripts/verifica-rastreabilidade.mjs` passou limpo, antes e depois: nenhuma referência órfã a
+RF/RNF/RN/UC/TA/IND/RE, e nenhum identificador sem citação fora do próprio arquivo de origem. Como as
+passadas anteriores já tinham notado, o script confere que todo identificador citado existe e que
+todo identificador definido é citado, não se o conteúdo descrito bate entre dois lugares, que é
+exatamente o que esta passada foi apurar à mão.
+
+### O que ficou de fora
+
+Duas observações mais fracas, registradas aqui e não corrigidas: `UC-22` usa "a semeadura ser
+concluída" para a âncora da data de plantio, enquanto `06-protocolo-de-atividades.md` usa "a etapa
+'Plantar no saco/tubete' ser concluída"; pode ser sinônimo aceitável quando a semeadura é direto no
+recipiente, mas os dois termos não são idênticos em `A2`. E o `why` de `UC-06` não cita RN-11 nem
+RN-27, que a tabela de rastreabilidade de `B3` já associa a RF-09, diferente de `UC-05`, que cita
+RN-27 para o RF irmão. Nenhuma das duas é uma contradição de conteúdo, só uma lacuna de citação; não
+repetir esse padrão de "termo quase igual, campo de RN esquecido" é o tipo de coisa que uma próxima
+passada, se cortar mais fino, ainda vai achar.
