@@ -30,7 +30,7 @@ viveiro-mudar/
 
 | | Fase | Estado |
 |---|---|---|
-| 🟡 | **Fase 0** Fundação técnica | branch `feat/fase-0-fundacao`: projeto, banco, migrations, `test:db`, hook, CI e casca prontos; falta publicar na Vercel com Neon |
+| 🟡 | **Fase 0** Fundação técnica | na `master`: projeto, banco, migrations, `test:db`, hook, CI (obrigatório no PR) e casca prontos; falta publicar na Vercel com Neon |
 | ⬜ | **Fases 1 a 3** Acesso, Configurações e Cadastro único | modelo no banco, nenhuma tela |
 | ⬜ | **Fases 4 a 7** Lotes, agenda, protocolo e mapa | lote e agenda no banco; protocolo só especificado |
 | ⬜ | **Fases 8 a 10** Comercial, PWA e operação | pedido no banco, nenhuma tela |
