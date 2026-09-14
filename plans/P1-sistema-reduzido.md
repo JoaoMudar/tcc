@@ -31,7 +31,8 @@ não mede a hora de entrada e saída de ninguém e não tem tela de campo. A del
 
 ## Definição de pronto (vale para toda tarefa)
 
-- Branch `feat/<fase>-<tarefa>`, nunca `main`; commit Conventional em português.
+- Uma branch por fase, `feat/fase-<N>-<nome>` (ex.: `feat/fase-0-fundacao`), nunca `master`; um
+  commit Conventional em português por tarefa ou grupo de tarefas.
 - Testes Vitest em `__tests__/` ao lado do código; `npm test` verde.
 - Permissão verificada no servidor pelo guard único (T1.4).
 - Critério do RF (coluna do [`B2`](../docs/engenharia/B-requisitos/B2-especificacao-requisitos.md))
@@ -43,16 +44,16 @@ não mede a hora de entrada e saída de ninguém e não tem tela de campo. A del
 
 ## Fase 0: Fundação técnica
 
-- [ ] **T0.1** Criar o projeto Next.js 16 (App Router), React 19, TypeScript `strict` e Tailwind em `src/`
-- [ ] **T0.2** ESLint e Vitest configurados; scripts `dev`, `build`, `lint`, `typecheck`, `test`
-- [ ] **T0.3** `.gitignore` completo (`.env*`, `.next/`, `coverage/`) e `.env.example` sem segredo (RNF-19)
-- [ ] **T0.4** `src/lib/db.ts`: pool singleton, driver escolhido pelo host da `DATABASE_URL` (`*.neon.tech` usa `@neondatabase/serverless`, o resto usa `pg`), só no servidor
-- [ ] **T0.5** `scripts/migrate.ts` com `db:migrate` e `db:migrate:status`, usando `_migrations` e o mesmo critério de host; falha ruidosa ([`D3` §4](../docs/engenharia/D-arquitetura/D3-diagrama-implantacao.md))
-- [ ] **T0.6** Suíte de integração `test:db`: Postgres local limpo, todas as migrations aplicadas, tabelas declaradas comparadas com `information_schema` (dívida §2 e §3)
-- [ ] **T0.7** Helper de transação e tradução de erro, para nunca exibir mensagem do Postgres na tela
-- [ ] **T0.8** Hook de pre-commit (lint, testes e varredura de segredo). ✅ *Autorizado pelo usuário em 14/09/2026*
-- [ ] **T0.9** CI no GitHub Actions: lint, typecheck, `test` e `test:db` com serviço Postgres
-- [ ] **T0.10** Casca visual mobile-first: layout, navegação e componentes base (botão com alvo de toque grande, campo, seleção fechada, aviso de gravação), conforme `F1` e RNF-01 a RNF-04, RNF-07
+- [x] **T0.1** Criar o projeto Next.js 16 (App Router), React 19, TypeScript `strict` e Tailwind em `src/`
+- [x] **T0.2** ESLint e Vitest configurados; scripts `dev`, `build`, `lint`, `typecheck`, `test`
+- [x] **T0.3** `.gitignore` completo (`.env*`, `.next/`, `coverage/`) e `.env.example` sem segredo (RNF-19)
+- [x] **T0.4** `src/lib/db.ts`: pool singleton, driver escolhido pelo host da `DATABASE_URL` (`*.neon.tech` usa `@neondatabase/serverless`, o resto usa `pg`), só no servidor
+- [x] **T0.5** `scripts/migrate.ts` com `db:migrate` e `db:migrate:status`, usando `_migrations` e o mesmo critério de host; falha ruidosa ([`D3` §4](../docs/engenharia/D-arquitetura/D3-diagrama-implantacao.md))
+- [x] **T0.6** Suíte de integração `test:db`: Postgres local limpo, todas as migrations aplicadas, tabelas declaradas comparadas com `information_schema` (dívida §2 e §3)
+- [x] **T0.7** Helper de transação e tradução de erro, para nunca exibir mensagem do Postgres na tela
+- [x] **T0.8** Hook de pre-commit (lint, testes e varredura de segredo). ✅ *Autorizado pelo usuário em 14/09/2026*
+- [ ] **T0.9** CI no GitHub Actions: lint, typecheck, `test` e `test:db` com serviço Postgres. *Workflow escrito; falta o primeiro push e a proteção da `master` exigindo o check*
+- [x] **T0.10** Casca visual mobile-first: layout, navegação e componentes base (botão com alvo de toque grande, campo, seleção fechada, aviso de gravação), conforme `F1` e RNF-01 a RNF-04, RNF-07
 - [ ] **T0.11** Publicação do esqueleto na Vercel com Neon `sa-east-1`, migrations aplicadas na publicação, HTTPS (RNF-12)
 
 **Pronto quando:** uma página em produção lê `SELECT 1` do Neon, e o CI bloqueia PR com teste quebrado.
