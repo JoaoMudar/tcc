@@ -1,8 +1,7 @@
 import Link from 'next/link';
 import { PageHeader } from '@/components/PageHeader';
-import { Button } from '@/components/ui/Button';
 import { Pill } from '@/components/ui/Pill';
-import { TextField } from '@/components/ui/TextField';
+import { SearchForm } from '@/components/ui/SearchForm';
 import pool from '@/lib/db';
 import { formatDocumento, formatTelefone } from '@/lib/documento';
 import { PAPEL_LABELS, type Papel, listPessoas } from '@/lib/pessoas';
@@ -45,19 +44,12 @@ export default async function PessoasPage({ searchParams }: PageProps<'/cadastro
         <Link href="/cadastros" className="text-base font-semibold text-brand-dark">
           Voltar
         </Link>
-        <form className="flex items-end gap-2">
+        <SearchForm
+          label={verFiscal ? 'Buscar por nome, telefone ou documento' : 'Buscar por nome ou telefone'}
+          defaultValue={busca}
+        >
           {papel && <input type="hidden" name="papel" value={papel} />}
-          <TextField
-            label={verFiscal ? 'Buscar por nome, telefone ou documento' : 'Buscar por nome ou telefone'}
-            name="busca"
-            type="search"
-            defaultValue={busca}
-            className="flex-1"
-          />
-          <Button type="submit" variant="secondary" className="w-auto">
-            Buscar
-          </Button>
-        </form>
+        </SearchForm>
 
         <nav aria-label="Filtrar por papel" className="grid grid-cols-4 gap-1 rounded-xl bg-gray-100 p-1">
           {FILTROS.map((filtro) => (
