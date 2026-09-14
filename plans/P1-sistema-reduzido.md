@@ -60,15 +60,17 @@ não mede a hora de entrada e saída de ninguém e não tem tela de campo. A del
 
 ## Fase 1: Acesso
 
-- [ ] **T1.1** Senha com hash forte e sessão por token aleatório guardado só como hash em `sessoes`; cookie `HttpOnly`, `Secure` e `SameSite` (RF-01, RNF-08 a RNF-10)
-- [ ] **T1.2** Login com registro em `eventos_login` e bloqueio por tentativas falhas (RF-01, RF-04)
-- [ ] **T1.3** Troca de senha obrigatória no primeiro acesso, e encerrar sessão (RF-02, RF-03)
-- [ ] **T1.4** `src/lib/permissions.ts`: a matriz do [`D4`](../docs/engenharia/D-arquitetura/D4-matriz-rbac.md) como dado, um guard por recurso e operação, e o acesso irrestrito do admin num ponto só; teste tabular contra a matriz e teste estático de que toda Server Action chama o guard (RF-06, RNF-11)
-- [ ] **T1.5** Proteção de rota e menu que oculta o que o perfil não pode (`D4` §4)
-- [ ] **T1.6** Gestão de usuários pelo admin: criar, atribuir perfil, ativar, desativar e vincular a pessoa (RF-05); script `db:seed-admin`
-- [ ] **T1.7** Sessões ativas, com encerramento à distância, e consulta da auditoria de acesso (RF-07, RF-04)
+- [x] **T1.1** Senha com hash forte e sessão por token aleatório guardado só como hash em `sessoes`; cookie `HttpOnly`, `Secure` e `SameSite` (RF-01, RNF-08 a RNF-10). *scrypt; sessão de 30 dias renovada no uso*
+- [x] **T1.2** Login com registro em `eventos_login` e bloqueio por tentativas falhas (RF-01, RF-04). *Cinco falhas bloqueiam 15 minutos*
+- [x] **T1.3** Troca de senha obrigatória no primeiro acesso, e encerrar sessão (RF-02, RF-03)
+- [x] **T1.4** `src/lib/permissions.ts`: a matriz do [`D4`](../docs/engenharia/D-arquitetura/D4-matriz-rbac.md) como dado, um guard por recurso e operação, e o acesso irrestrito do admin num ponto só; teste tabular contra a matriz e teste estático de que toda Server Action chama o guard (RF-06, RNF-11). *Guards em `src/lib/auth/guards.ts`*
+- [x] **T1.5** Proteção de rota e menu que oculta o que o perfil não pode (`D4` §4)
+- [x] **T1.6** Gestão de usuários pelo admin: criar, atribuir perfil, ativar, desativar e vincular a pessoa (RF-05); script `db:seed-admin`. *Senha provisória digitada pelo admin*
+- [x] **T1.7** Sessões ativas, com encerramento à distância, e consulta da auditoria de acesso (RF-07, RF-04)
 
-**Aceite:** TA-03, TA-08, TA-60, TA-62.
+**Aceite:** TA-03, TA-08, TA-60, TA-62. *Em 14/09/2026: TA-03 e TA-08 por teste do guard, TA-60 pela varredura do
+bundle do cliente após o build, TA-04 a TA-06 contra Postgres real. TA-62 (criar usuário gerência e entrar com ele)
+aguarda execução manual no navegador.*
 
 ## Fase 2: Configurações
 
