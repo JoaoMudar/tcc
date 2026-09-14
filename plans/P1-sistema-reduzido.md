@@ -83,17 +83,23 @@ de tela ainda inexistente: a agenda exibindo a jornada (Fase 5) e o mapa sem o d
 
 ## Fase 3: Cadastro único
 
-- [ ] **T3.1** Espécies: nome científico, nomes populares, características e busca por qualquer nome (RF-10, RNF-22)
-- [ ] **T3.2** Foto em `especies_fotos`, servida por `/api/fotos/[id]`, nunca gravada em disco
-- [ ] **T3.3** Recipientes e insumos (RF-11, RF-12)
-- [ ] **T3.4** Áreas por letra e canteiros numerados, recusando número repetido na mesma área (RF-13)
-- [ ] **T3.5** `src/lib/pessoas.ts`: ponto único de escrita da identidade, dos papéis e dos endereços, que procura a pessoa existente antes de criar outra (RF-14)
-- [ ] **T3.6** Validação de CPF e CNPJ como função pura, testada (RF-17)
-- [ ] **T3.7** Tela de pessoas: selo por papel, busca por nome, telefone ou documento, ficha completa PF e PJ, fornecedor, funcionário fixo ou diarista; dado fiscal oculto e recusado para a gerência (RF-16, RF-18 a RF-20)
-- [ ] **T3.8** Componente de cadastro rápido de cliente, com nome e telefone, reaproveitado no pedido (RF-15)
-- [ ] **T3.9** Tipos de tarefa com as declarações que comandam o formulário (RF-21)
+- [x] **T3.1** Espécies: nome científico, nomes populares, características e busca por qualquer nome (RF-10, RNF-22). *Busca sem acento nem maiúscula; espécie sai de uso desativada, sem exclusão*
+- [x] **T3.2** Foto em `especies_fotos`, servida por `/api/fotos/[id]`, nunca gravada em disco. *Reduzida no navegador a 1024 px (WEBP); tipo conferido pelos bytes; a foto trocada é apagada na mesma transação*
+- [x] **T3.3** Recipientes e insumos (RF-11, RF-12). *Unidade de medida em lista fechada; os dois saem de uso desativados*
+- [x] **T3.4** Áreas por letra e canteiros numerados, recusando número repetido na mesma área (RF-13). *Área só é excluída vazia, porque a chave apaga os canteiros em cascata*
+- [x] **T3.5** `src/lib/pessoas.ts`: ponto único de escrita da identidade, dos papéis e dos endereços, que procura a pessoa existente antes de criar outra (RF-14). *Documento igual recusa e aponta a dona; telefone igual pergunta antes de criar; papel retirado fica inativo*
+- [x] **T3.6** Validação de CPF e CNPJ como função pura, testada (RF-17). *`src/lib/documento.ts`, também na saída do campo*
+- [x] **T3.7** Tela de pessoas: selo por papel, busca por nome, telefone ou documento, ficha completa PF e PJ, fornecedor, funcionário fixo ou diarista; dado fiscal oculto e recusado para a gerência (RF-16, RF-18 a RF-20). *Dado fiscal é o documento e o endereço de cobrança: sem a permissão, o SQL nem os seleciona nem busca por eles*
+- [x] **T3.8** Componente de cadastro rápido de cliente, com nome e telefone, reaproveitado no pedido (RF-15). *`src/components/ClienteRapido.tsx`, hoje aberto na lista de pessoas*
+- [x] **T3.9** Tipos de tarefa com as declarações que comandam o formulário (RF-21). *Com lote exigido, a espécie não é pedida*
 
 **Pronto quando:** a chefia cadastra espécie, recipiente e pessoa; a gerência cadastra área, canteiro e tipo de tarefa, e não vê CPF.
+
+**Aceite:** TA-09, TA-13, TA-14, TA-15, TA-50, TA-67. *Em 14/09/2026: TA-09, TA-13, TA-14, TA-15 e TA-67 contra Postgres real;
+TA-50 e as recusas por perfil por teste das actions; o bundle do cliente varrido após o build, sem matriz nem SQL. Ficam para
+as fases que têm a tela: TA-10 (agenda), TA-11 (confirmação), TA-49 e o resto de TA-63 (lote e pedido). O roteiro no
+navegador com chefia e gerência aguarda execução manual. Fora do escopo: as espécies que o fornecedor fornece e a distância
+do UC-13, sem tabela e com RF-19 desejável.*
 
 ## Fase 4: Lotes e movimentos
 
