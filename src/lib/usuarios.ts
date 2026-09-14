@@ -1,10 +1,11 @@
 import type { Pool, PoolClient } from 'pg';
 import { type Perfil, SEM_PESSOA, parsePerfil } from './perfis';
+import { escapeLike } from './sql';
 import { isUuid } from './uuid';
 
 type Db = Pick<Pool, 'query'>;
 
-export { SEM_PESSOA };
+export { SEM_PESSOA, escapeLike };
 export const LOGIN_PATTERN = /^[a-z0-9._-]{3,32}$/;
 
 export interface UsuarioResumo {
@@ -70,10 +71,6 @@ export function wouldRemoveLastAdmin(
   const wasAdmin = current.perfil === 'admin' && current.ativo;
   const staysAdmin = next.perfil === 'admin' && next.ativo;
   return wasAdmin && !staysAdmin && otherActiveAdmins === 0;
-}
-
-export function escapeLike(text: string): string {
-  return text.replace(/[\\%_]/g, (char) => `\\${char}`);
 }
 
 const SELECT_USUARIO = `
