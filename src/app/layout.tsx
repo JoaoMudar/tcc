@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from 'next';
-import { AppNav } from '@/components/AppNav';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -13,16 +12,11 @@ export const viewport: Viewport = {
   themeColor: '#166534',
 };
 
+/** Casca mínima. O menu e a exigência de sessão ficam no layout de `(sistema)`. */
 export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
     <html lang="pt-BR">
-      <body className="min-h-dvh antialiased">
-        <div className="md:flex md:min-h-dvh">
-          <AppNav />
-          {/* pb-24: espaço para a navegação fixa no rodapé do celular */}
-          <div className="min-w-0 flex-1 pb-24 md:pb-0">{children}</div>
-        </div>
-      </body>
+      <body className="min-h-dvh antialiased">{children}</body>
     </html>
   );
 }

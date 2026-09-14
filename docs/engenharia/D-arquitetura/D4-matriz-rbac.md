@@ -259,7 +259,7 @@ decide onde parar. Três decisões deste projeto são exatamente isso:
 
 | Decisão | O que se ganha | O que se paga |
 |---|---|---|
-| Sessão de duração longa no dispositivo de quem registra em campo | O registro de perda não pede senha no meio do trabalho | Aparelho perdido dá acesso até a sessão expirar |
+| Sessão de 30 dias, renovada a cada uso, no dispositivo de quem registra em campo | O registro de perda não pede senha no meio do trabalho | Aparelho perdido dá acesso até a sessão expirar |
 | Administrador com acesso irrestrito na implementação | Incidente em produção se resolve sem trocar de perfil | A auditoria não distingue o que o administrador fez por manutenção do que fez por negócio |
 | Dado fiscal fechado para a gerência | Menos superfície de dado pessoal | A gerência não consegue conferir um cadastro incompleto sem chamar a chefia |
 
