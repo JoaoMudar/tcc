@@ -19,16 +19,16 @@ erDiagram
     uuid    lote_id FK
     uuid    area_id FK
     uuid    canteiro_id FK
-    int     quantidade_planejada
+    numeric quantidade_planejada
     boolean e_recorrente
     uuid    lote_etapa_id FK
     date    vencimento_protocolo
     text    situacao
   }
   atribuicoes_participantes {
-    uuid atribuicao_id PK
-    uuid pessoa_id PK
-    int  quantidade_feita
+    uuid    atribuicao_id PK
+    uuid    pessoa_id PK
+    numeric quantidade_feita
   }
   turnos_trabalho {}
   tipos_tarefa {}

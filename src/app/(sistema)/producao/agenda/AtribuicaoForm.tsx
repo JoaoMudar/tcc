@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { Notice } from '@/components/ui/Notice';
 import { type SelectOption, SelectField } from '@/components/ui/SelectField';
 import { TextField } from '@/components/ui/TextField';
-import { NENHUM } from '@/lib/agenda-rotulos';
+import { NENHUM, type UnidadeTarefa } from '@/lib/agenda-rotulos';
 import { EMPTY_FORM_STATE } from '@/lib/form-state';
 import type { Declaracoes } from '@/lib/tipos-tarefa';
 import { Interruptor } from '../../cadastros/tipos-tarefa/Interruptor';
@@ -15,6 +15,7 @@ import { atualizarAtribuicaoAction, criarAtribuicaoAction } from './actions';
 export interface TipoOpcao extends Declaracoes {
   id: string;
   nome: string;
+  unidadeMedida: UnidadeTarefa;
 }
 
 export interface OpcoesAtribuicao {
@@ -98,7 +99,7 @@ export function AtribuicaoForm({ semana, opcoes, inicial, atribuicaoId }: Atribu
         />
       )}
       {/* Na alteração, a área escolhida na confirmação não pode se perder */}
-      {editando && tipo && !tipo.exigeLote && (
+      {editando && tipo?.exigeArea && (
         <>
           <input type="hidden" name="area_id" value={valores.area_id ?? ''} />
           <input type="hidden" name="canteiro_id" value={valores.canteiro_id ?? ''} />
@@ -106,9 +107,9 @@ export function AtribuicaoForm({ semana, opcoes, inicial, atribuicaoId }: Atribu
       )}
       {tipo?.eQuantitativa && (
         <TextField
-          label="Quantidade prevista (opcional)"
+          label={`Quantidade prevista em ${tipo.unidadeMedida} (opcional)`}
           name="quantidade_planejada"
-          inputMode="numeric"
+          inputMode={tipo.unidadeMedida === 'un' ? 'numeric' : 'decimal'}
           autoComplete="off"
           defaultValue={valores.quantidade_planejada}
         />

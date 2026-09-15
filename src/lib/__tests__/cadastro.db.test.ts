@@ -150,7 +150,10 @@ describe('recipientes, insumos e tipos de tarefa contra Postgres real', () => {
       exigeLote: false,
       exigeEspecie: true,
       exigeRecipiente: true,
+      exigeArea: true,
+      unidadeMedida: 'kg',
     });
+    expect(await findTipoTarefa(pool, id)).toMatchObject({ exigeArea: true, unidadeMedida: 'kg' });
     expect(
       await updateTipoTarefa(pool, id, {
         nome: `${prefixo} Estaquear`,
@@ -159,6 +162,8 @@ describe('recipientes, insumos e tipos de tarefa contra Postgres real', () => {
         exigeLote: true,
         exigeEspecie: false,
         exigeRecipiente: false,
+        exigeArea: false,
+        unidadeMedida: 'un',
         ativo: false,
       }),
     ).toBe('ok');

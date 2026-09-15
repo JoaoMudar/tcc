@@ -116,7 +116,7 @@ por subseção está na tabela gerada da §9.
 | **TA-30** | RF-28 | Semana no estado *fechada* | 1. Tentar alterar uma atribuição dela | A alteração é recusada, com o motivo informado | Não executado |
 | **TA-31** | RF-29 | Atribuição planejada de tarefa quantitativa, com três participantes | 1. Confirmar a tarefa<br>2. Informar a quantidade de cada um | A atribuição passa a *confirmada* para os três, cada um com o próprio número | Não executado |
 | **TA-32** | RF-29 | Atribuição de tarefa que declara lote específico | 1. Confirmar sem informar o lote | A confirmação é recusada, e a atribuição permanece *planejada* | Não executado |
-| **TA-33** | RF-30 | Atribuição de tarefa que **não** exige lote | 1. Confirmar informando a área em que foi feita | A área fica registrada, e o canteiro não é pedido | Não executado |
+| **TA-33** | RF-30 | Atribuição de tarefa cujo tipo declara **área**, e outra cujo tipo não declara | 1. Confirmar a primeira informando a área em que foi feita. 2. Abrir a confirmação da segunda | A área da primeira fica registrada; a segunda não apresenta área nem canteiro | Não executado |
 | **TA-34** | RF-31 | Semana com atribuição planejada não confirmada | 1. Fechar a semana<br>2. Consultar a atribuição | Ela consta como realizada, com a marca de **não confirmada**, distinguível das confirmadas | Não executado |
 
 ### 5.5 Protocolo de atividades por lote

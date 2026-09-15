@@ -86,7 +86,7 @@ describe('permissões da agenda (D4 §3.3)', () => {
   it('TA-32: sem o lote exigido a confirmação não abre transação, e mantém o digitado', async () => {
     loggedAs('gerencia');
     vi.mocked(pool.query).mockResolvedValueOnce({
-      rows: [{ id: ID, exigeLote: true, eQuantitativa: true, participantes: [{ id: PESSOA, nome: 'Rogério', quantidade: null }] }],
+      rows: [{ id: ID, exigeLote: true, exigeArea: false, eQuantitativa: true, unidadeMedida: 'un', participantes: [{ id: PESSOA, nome: 'Rogério', quantidade: null }] }],
     } as never);
     const state = await actions.confirmarAtribuicaoAction({}, form({ id: ID, [`quantidade_${PESSOA}`]: '120' }));
     expect(state.error).toMatch(/exige o lote/);

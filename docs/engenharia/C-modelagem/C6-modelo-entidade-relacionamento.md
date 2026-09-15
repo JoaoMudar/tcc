@@ -320,6 +320,8 @@ erDiagram
     boolean exige_lote
     boolean exige_especie
     boolean exige_recipiente
+    boolean exige_area
+    text    unidade_medida
     boolean ativo
   }
   protocolos {
@@ -482,15 +484,15 @@ erDiagram
     uuid    canteiro_id FK
     uuid    lote_etapa_id FK
     date    vencimento_protocolo
-    int     quantidade_planejada
+    numeric quantidade_planejada
     boolean e_recorrente
     text    situacao
     text    observacoes
   }
   atribuicoes_participantes {
-    uuid atribuicao_id FK
-    uuid pessoa_id FK
-    int  quantidade_feita
+    uuid    atribuicao_id FK
+    uuid    pessoa_id FK
+    numeric quantidade_feita
   }
   lotes {
     uuid        id PK

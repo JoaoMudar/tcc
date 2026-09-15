@@ -308,8 +308,8 @@ exige uma implantação.
 ## `tipos_tarefa`: tipo de tarefa
 
 Vocabulário fechado da agenda e do encerramento (RF-21). **É o catálogo que comanda o
-formulário**: um nome e quatro booleanos, e cada booleano decide um campo que a tela pede ou
-deixa de pedir (RF-21).
+formulário**: um nome, cinco booleanos e a unidade da contagem, e cada booleano decide um campo
+que a tela pede ou deixa de pedir (RF-21).
 
 | Atributo | Tipo | Ob. | Chave | Descrição |
 |---|---|:--:|:--:|---|
@@ -320,6 +320,8 @@ deixa de pedir (RF-21).
 | `exige_lote` | boolean | ● | | "Lote específico": quando verdadeiro, o encerramento exige o lote, e com ele o canteiro, a espécie e o recipiente (RN-25) |
 | `exige_especie` | boolean | ● | | Quando verdadeiro, a atribuição e o encerramento exigem espécie. Tarefa com lote a herda dele |
 | `exige_recipiente` | boolean | ● | | Quando verdadeiro, exigem recipiente. Tarefa com lote o herda dele |
+| `exige_area` | boolean | ● | | Quando verdadeiro, a confirmação oferece área e canteiro (RF-30). Nunca junto com `exige_lote`, que já dá o canteiro (CHECK `tipos_tarefa_area_ou_lote`, RN-25) |
+| `unidade_medida` | text | ● | | Unidade da quantidade por pessoa, em **lista fechada**: `un` (padrão), `kg`, `g`, `L`, `mL`. Só `un` exige inteiro (RN-24) |
 | `ativo` | boolean | ● | | Tipo em uso. Inativar é o que retira a tarefa da lista da agenda; excluir deixaria sem sentido toda atribuição passada |
 
 > **Nenhuma tarefa mede tempo, e é decisão.** A agenda registra o turno, e não a hora (RN-12):
@@ -331,12 +333,16 @@ deixa de pedir (RF-21).
 > quatro números em `atribuicoes_participantes.quantidade_feita`, e não um total dividido por quatro. A
 > confirmação do grupo (RF-29) é o gesto que preenche as quatro de uma vez.
 
-> **`tipo_medicao`, `minutos_medios_por_unidade` e `unidade_medida` não chegaram ao banco.** O
-> primeiro tinha três valores (`tempo`, `saco`, `tubete`) para uma pergunta de dois estados: o
-> recipiente já vem do lote e do próprio nome da tarefa, e alguém acabaria escrevendo a condição
-> para `'saco'` esquecendo `'tubete'`. O segundo nunca teve fonte, porque ninguém cronometrou tempo
-> por unidade, e coluna sem fonte fica nula para sempre até que alguém a confunda com dado real. O
-> terceiro era texto livre ("muda", "bandeja", "metro") e não decidia comportamento algum.
+> **`tipo_medicao` e `minutos_medios_por_unidade` não chegaram ao banco.** O primeiro tinha três
+> valores (`tempo`, `saco`, `tubete`) para uma pergunta de dois estados: o recipiente já vem do
+> lote e do próprio nome da tarefa, e alguém acabaria escrevendo a condição para `'saco'`
+> esquecendo `'tubete'`. O segundo nunca teve fonte, porque ninguém cronometrou tempo por unidade,
+> e coluna sem fonte fica nula para sempre até que alguém a confunda com dado real.
+
+> **`unidade_medida` voltou em 15/09/2026, como lista fechada.** A primeira versão era texto livre
+> ("muda", "bandeja", "metro") e não decidia nada. A atual decide duas coisas: o rótulo do número
+> ("2,5 kg") e se o campo aceita decimal. Semente se conta em quilo, e "2,5" sem unidade não diz
+> nada a quem lê a agenda.
 
 **Carga inicial: as 15 tarefas do viveiro.** O catálogo nasce preenchido, e não vazio, porque tipo
 de tarefa digitado por quem monta a agenda produziria "limpar mato", "limpeza de mato" e "capina"
@@ -647,7 +653,7 @@ turno admite duas tarefas com grupos diferentes (RN-26).
 |---|---|:--:|:--:|---|
 | `atribuicao_id` | uuid | ● | PK, FK → `atribuicoes` | Atribuição |
 | `pessoa_id` | uuid | ● | PK, FK → `cadastro.pessoas` | Funcionário escalado |
-| `quantidade_feita` | integer | ○ | | Quantidade que **esta pessoa** realizou, pedida na confirmação quando o tipo de tarefa for quantitativo (RF-29, RN-24). Nula enquanto a tarefa não for confirmada |
+| `quantidade_feita` | numeric(10,2) | ○ | | Quantidade que **esta pessoa** realizou, na unidade do tipo de tarefa, pedida na confirmação quando o tipo for quantitativo (RF-29, RN-24). Nula enquanto a tarefa não for confirmada |
 | `criado_em` | timestamptz | ● | | Criação |
 
 > **A tabela não tem `id` nem `atualizado_em`.** A chave é o par `(atribuicao_id, pessoa_id)`, o que
@@ -698,9 +704,9 @@ marcada declara a sua em `hora_inicio` / `hora_fim`.
 | `especie_id` | uuid | ○ | FK → `especies` | Espécie, quando o tipo de tarefa a exigir |
 | `recipiente_id` | uuid | ○ | FK → `recipientes` | Recipiente, quando o tipo de tarefa o exigir |
 | `lote_id` | uuid | ○ | FK → `lotes` | Lote, quando o tipo de tarefa o exigir (RN-25) |
-| `area_id` | uuid | ○ | FK → `areas` | Área da tarefa que não exige lote (RF-30) |
-| `canteiro_id` | uuid | ○ | FK → `canteiros` | Canteiro da tarefa que não exige lote (RF-30) |
-| `quantidade_planejada` | integer | ○ | | Quantidade planejada, quando aplicável |
+| `area_id` | uuid | ○ | FK → `areas` | Área da tarefa cujo tipo declara área (RF-30) |
+| `canteiro_id` | uuid | ○ | FK → `canteiros` | Canteiro da tarefa cujo tipo declara área (RF-30) |
+| `quantidade_planejada` | numeric(10,2) | ○ | | Quantidade planejada, na unidade do tipo de tarefa, quando aplicável |
 | `e_recorrente` | boolean | ● | | Marca a atribuição como parte da rotina fixa: ao copiar a semana anterior, ela já vem preenchida (RF-27, RN-31) |
 | `lote_etapa_id` | uuid | ○ | | Etapa do protocolo daquele lote que gerou esta ordem. Nula = atribuição lançada à mão (RN-43). A coluna existe; **a chave estrangeira não**, porque `lotes_etapas` ainda não foi criada |
 | `vencimento_protocolo` | date | ○ | | Vencimento que esta ordem representa, congelado na geração. Distingue-se de `data_trabalho`, que a gerência pode remarcar |

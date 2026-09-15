@@ -15,14 +15,21 @@ export async function saveTipoTarefa(_previous: FormState, formData: FormData): 
   await requirePermission('tipos_tarefa', id ? 'A' : 'C');
   if (id && !isUuid(id)) return { error: 'Tipo de tarefa inválido.' };
 
-  const fields = { nome: formText(formData, 'nome'), categoria: formText(formData, 'categoria') };
+  const fields = {
+    nome: formText(formData, 'nome'),
+    categoria: formText(formData, 'categoria'),
+    unidade_medida: formText(formData, 'unidade_medida') || 'un',
+  };
   const marcado = (name: string) => formData.get(name) === 'on';
   const parsed = tipos.parseTipoTarefaFields({
-    ...fields,
+    nome: fields.nome,
+    categoria: fields.categoria,
+    unidadeMedida: fields.unidade_medida,
     eQuantitativa: marcado('e_quantitativa'),
     exigeLote: marcado('exige_lote'),
     exigeEspecie: marcado('exige_especie'),
     exigeRecipiente: marcado('exige_recipiente'),
+    exigeArea: marcado('exige_area'),
   });
   if ('error' in parsed) return { error: parsed.error, fields };
 

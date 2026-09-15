@@ -339,8 +339,8 @@ recusa e apresenta o saldo disponível (RN-21).
 
 1. A gerência aciona "confirmar" na célula da agenda.
 2. Se o tipo de tarefa declarar **lote específico**, o sistema pede o lote, uma vez para a tarefa, e não pede canteiro, que vem do lote (RF-29).
-3. Se o tipo de tarefa **não** exigir lote, o sistema oferece registrar a área ou o canteiro em que a tarefa foi feita (RF-30).
-4. Se o tipo de tarefa for **quantitativo por unidade**, o sistema pede **um número por participante**: quanto cada um fez (RF-29).
+3. Se o tipo de tarefa declarar **área**, o sistema oferece registrar a área ou o canteiro em que a tarefa foi feita (RF-30). Tipo com lote nunca declara área.
+4. Se o tipo de tarefa for **quantitativo por unidade**, o sistema pede **um número por participante**, na unidade que o tipo declara: quanto cada um fez (RF-29).
 5. Se o tipo de tarefa não for quantitativo, o passo 4 não ocorre e o sistema não pede número algum.
 6. A gerência confirma.
 7. O sistema marca a atribuição como *confirmada* para todos os participantes.

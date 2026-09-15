@@ -4,6 +4,8 @@ import {
   type AtribuicaoResumo,
   detalhesAtribuicao,
   formatHoraTarefa,
+  formatQuantidadeMedida,
+  lerQuantidadeMedida,
   montarGrade,
   parseAtribuicao,
   parseConfirmacao,
@@ -21,8 +23,18 @@ const CANTEIRO = '1c8e2d4f-9a6b-4d2c-8e1f-3a7b8c9d0e13';
 const ESPECIE = '1c8e2d4f-9a6b-4d2c-8e1f-3a7b8c9d0e14';
 const SEMANA = '2026-09-14';
 
-const SIMPLES = { id: 'tipo', eQuantitativa: false, exigeLote: false, exigeEspecie: false, exigeRecipiente: false };
-const COM_LOTE = { ...SIMPLES, eQuantitativa: true, exigeLote: true };
+const SIMPLES = {
+  id: 'tipo',
+  eQuantitativa: false,
+  exigeLote: false,
+  exigeEspecie: false,
+  exigeRecipiente: false,
+  exigeArea: true,
+  unidadeMedida: 'un' as const,
+};
+const COM_LOTE = { ...SIMPLES, eQuantitativa: true, exigeLote: true, exigeArea: false };
+/** Colher semente: sem lote e sem lugar, contada em quilo. */
+const SEMENTE = { ...SIMPLES, eQuantitativa: true, exigeEspecie: true, exigeArea: false, unidadeMedida: 'kg' as const };
 
 function bruta(over: Partial<AtribuicaoBruta> = {}): AtribuicaoBruta {
   return {
@@ -99,6 +111,15 @@ describe('parseAtribuicao (RF-21, RF-26, RF-30)', () => {
     expect(valor(parseAtribuicao(SIMPLES, bruta()))).toMatchObject({ areaId: null, canteiroId: null });
   });
 
+  it('o tipo que não declara área descarta área e canteiro', () => {
+    expect(valor(parseAtribuicao(SEMENTE, bruta({ areaId: AREA, canteiroId: CANTEIRO })))).toMatchObject({ areaId: null, canteiroId: null });
+  });
+
+  it('quantidade prevista em kg aceita decimal', () => {
+    expect(valor(parseAtribuicao(SEMENTE, bruta({ quantidadePlanejada: '2,5' }))).quantidadePlanejada).toBe(2.5);
+    expect(parseAtribuicao(COM_LOTE, bruta({ quantidadePlanejada: '2,5' }))).toEqual({ error: expect.stringContaining('inteiro') });
+  });
+
   it('canteiro sem área não fica', () => {
     expect(valor(parseAtribuicao(SIMPLES, bruta({ canteiroId: CANTEIRO })))).toMatchObject({ areaId: null, canteiroId: null });
   });
@@ -158,6 +179,24 @@ describe('parseConfirmacao (RF-29, UC-20)', () => {
     });
   });
 
+  it('sem a declaração de área, a confirmação não guarda área nem canteiro', () => {
+    expect(valor(parseConfirmacao(SEMENTE, [P1], { ...vazia, areaId: AREA, canteiroId: CANTEIRO }))).toMatchObject({
+      areaId: null,
+      canteiroId: null,
+    });
+  });
+
+  it('na unidade kg a quantidade de cada um aceita decimal; em un, não', () => {
+    const v = valor(parseConfirmacao(SEMENTE, [P1, P2], { ...vazia, quantidades: { [P1]: '2,5', [P2]: '1.200,75' } }));
+    expect(v.quantidades).toEqual([
+      { pessoaId: P1, quantidade: 2.5 },
+      { pessoaId: P2, quantidade: 1200.75 },
+    ]);
+    expect(parseConfirmacao(COM_LOTE, [P1], { ...vazia, loteId: LOTE, quantidades: { [P1]: '2,5' } })).toEqual({
+      error: expect.stringContaining('inteiro'),
+    });
+  });
+
   it('as mudas que morreram viram perda, e pedem a causa', () => {
     const comLote = { ...vazia, loteId: LOTE };
     expect(valor(parseConfirmacao(COM_LOTE, [P1], { ...comLote, perdidas: '30', causa: 'seca' })).perda).toEqual({ quantidade: 30, causa: 'seca' });
@@ -188,6 +227,8 @@ function resumo(id: string, data: string, participantes: { id: string; nome: str
     exigeLote: false,
     exigeEspecie: false,
     exigeRecipiente: true,
+    exigeArea: true,
+    unidadeMedida: 'un',
     especieId: null,
     especie: null,
     recipienteId: null,
@@ -237,10 +278,31 @@ describe('rótulos da agenda', () => {
 
   it('resume o que a tarefa leva, com o canteiro no lugar da área', () => {
     expect(
-      detalhesAtribuicao({ loteCodigo: '2026-0001', especie: 'Ipê', recipiente: null, area: 'A', canteiro: 'A-3', quantidadePlanejada: 1200 }),
-    ).toEqual(['Lote 2026-0001', 'Ipê', 'Canteiro A-3', '1.200 previstas']);
-    expect(detalhesAtribuicao({ loteCodigo: null, especie: null, recipiente: null, area: 'B', canteiro: null, quantidadePlanejada: null })).toEqual([
-      'Área B',
-    ]);
+      detalhesAtribuicao({
+        loteCodigo: '2026-0001',
+        especie: 'Ipê',
+        recipiente: null,
+        area: 'A',
+        canteiro: 'A-3',
+        quantidadePlanejada: 1200,
+        unidadeMedida: 'un',
+      }),
+    ).toEqual(['Lote 2026-0001', 'Ipê', 'Canteiro A-3', 'Previsto 1.200 un']);
+    expect(
+      detalhesAtribuicao({ loteCodigo: null, especie: null, recipiente: null, area: 'B', canteiro: null, quantidadePlanejada: null, unidadeMedida: 'un' }),
+    ).toEqual(['Área B']);
+  });
+
+  it('lê a quantidade conforme a unidade, e mostra a unidade junto', () => {
+    expect(lerQuantidadeMedida('1.500', 'un')).toBe(1500);
+    expect(lerQuantidadeMedida('2,5', 'un')).toBeNull();
+    expect(lerQuantidadeMedida('2,5', 'kg')).toBe(2.5);
+    expect(lerQuantidadeMedida('1.500,25', 'L')).toBe(1500.25);
+    expect(lerQuantidadeMedida('12', 'g')).toBe(12);
+    expect(lerQuantidadeMedida('2,555', 'kg')).toBeNull();
+    expect(lerQuantidadeMedida('2.5', 'kg')).toBeNull();
+    expect(lerQuantidadeMedida('100000000', 'mL')).toBeNull();
+    expect(formatQuantidadeMedida(2.5, 'kg')).toBe('2,5 kg');
+    expect(formatQuantidadeMedida(1200, 'un')).toBe('1.200 un');
   });
 });
