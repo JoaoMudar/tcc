@@ -9,7 +9,6 @@ import { NENHUM } from '@/lib/agenda-rotulos';
 import { EMPTY_FORM_STATE } from '@/lib/form-state';
 import type { Declaracoes } from '@/lib/tipos-tarefa';
 import { Interruptor } from '../../cadastros/tipos-tarefa/Interruptor';
-import { type AreaOpcao, AreaCanteiroOpcional } from './AreaCanteiroOpcional';
 import { EscolhaMultipla } from './EscolhaMultipla';
 import { atualizarAtribuicaoAction, criarAtribuicaoAction } from './actions';
 
@@ -26,7 +25,6 @@ export interface OpcoesAtribuicao {
   lotes: readonly SelectOption[];
   especies: readonly SelectOption[];
   recipientes: readonly SelectOption[];
-  areas: readonly AreaOpcao[];
 }
 
 interface AtribuicaoFormProps {
@@ -44,7 +42,8 @@ function comNenhum(opcoes: readonly SelectOption[], rotulo: string): SelectOptio
 
 /**
  * T5.2, RF-21, RF-26: pessoas, tipo, dia e turno. O resto aparece conforme o
- * tipo de tarefa declarar, e a hora só na tarefa que tem hora marcada (RN-12).
+ * tipo de tarefa declarar. Hora (RN-12), recorrência e observação ficam em
+ * "Mais detalhes", e a área só se registra na confirmação (RF-30, UC-20).
  */
 export function AtribuicaoForm({ semana, opcoes, inicial, atribuicaoId }: AtribuicaoFormProps) {
   const editando = atribuicaoId !== undefined;
@@ -79,19 +78,6 @@ export function AtribuicaoForm({ semana, opcoes, inicial, atribuicaoId }: Atribu
       />
       <EscolhaMultipla legenda="Turno" name="turno_id" tipo="radio" opcoes={opcoes.turnos} marcados={lista('turno_id')} />
 
-      <Interruptor
-        name="tem_hora"
-        label="Tem hora marcada"
-        checked={temHora}
-        onChange={(event) => setTemHora(event.target.checked)}
-      />
-      {temHora && (
-        <div className="grid grid-cols-2 gap-3">
-          <TextField label="Início" name="hora_inicio" type="time" defaultValue={valores.hora_inicio} required />
-          <TextField label="Fim (opcional)" name="hora_fim" type="time" defaultValue={valores.hora_fim} />
-        </div>
-      )}
-
       {tipo?.exigeLote && (
         <SelectField
           label="Lote"
@@ -111,8 +97,12 @@ export function AtribuicaoForm({ semana, opcoes, inicial, atribuicaoId }: Atribu
           defaultValue={valores.recipiente_id || NENHUM}
         />
       )}
-      {tipo && !tipo.exigeLote && (
-        <AreaCanteiroOpcional areas={opcoes.areas} defaultAreaId={valores.area_id} defaultCanteiroId={valores.canteiro_id} />
+      {/* Na alteração, a área escolhida na confirmação não pode se perder */}
+      {editando && tipo && !tipo.exigeLote && (
+        <>
+          <input type="hidden" name="area_id" value={valores.area_id ?? ''} />
+          <input type="hidden" name="canteiro_id" value={valores.canteiro_id ?? ''} />
+        </>
       )}
       {tipo?.eQuantitativa && (
         <TextField
@@ -124,8 +114,30 @@ export function AtribuicaoForm({ semana, opcoes, inicial, atribuicaoId }: Atribu
         />
       )}
 
-      <Interruptor name="recorrente" label="Repete toda semana" defaultChecked={valores.recorrente === 'on'} />
-      <TextField label="Observação (opcional)" name="observacoes" maxLength={500} defaultValue={valores.observacoes} />
+      <details
+        open={Boolean(valores.hora_inicio || valores.observacoes) || valores.recorrente === 'on'}
+        className="rounded-xl border border-line"
+      >
+        <summary className="flex min-h-touch cursor-pointer list-none items-center px-4 text-base font-semibold text-ink">
+          Mais detalhes
+        </summary>
+        <div className="flex flex-col gap-4 px-4 pb-4">
+          <Interruptor
+            name="tem_hora"
+            label="Tem hora marcada"
+            checked={temHora}
+            onChange={(event) => setTemHora(event.target.checked)}
+          />
+          {temHora && (
+            <div className="grid grid-cols-2 gap-3">
+              <TextField label="Início" name="hora_inicio" type="time" defaultValue={valores.hora_inicio} required />
+              <TextField label="Fim (opcional)" name="hora_fim" type="time" defaultValue={valores.hora_fim} />
+            </div>
+          )}
+          <Interruptor name="recorrente" label="Repete toda semana" defaultChecked={valores.recorrente === 'on'} />
+          <TextField label="Observação (opcional)" name="observacoes" maxLength={500} defaultValue={valores.observacoes} />
+        </div>
+      </details>
 
       {state.error && <Notice tone="error">{state.error}</Notice>}
       <Button type="submit" pending={pending}>

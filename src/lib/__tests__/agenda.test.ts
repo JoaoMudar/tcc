@@ -95,6 +95,10 @@ describe('parseAtribuicao (RF-21, RF-26, RF-30)', () => {
     expect(v).toMatchObject({ loteId: null, especieId: null, recipienteId: null, areaId: AREA, canteiroId: CANTEIRO, quantidadePlanejada: null });
   });
 
+  it('o lançamento não pede área: sem ela, a tarefa sem lote grava área e canteiro nulos', () => {
+    expect(valor(parseAtribuicao(SIMPLES, bruta()))).toMatchObject({ areaId: null, canteiroId: null });
+  });
+
   it('canteiro sem área não fica', () => {
     expect(valor(parseAtribuicao(SIMPLES, bruta({ canteiroId: CANTEIRO })))).toMatchObject({ areaId: null, canteiroId: null });
   });
