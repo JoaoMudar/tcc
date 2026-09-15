@@ -1,10 +1,10 @@
 -- Migration: 20260901000007_situacao_do_lote.sql
 -- Descricao: A visao que pinta o lote no mapa.
 --
--- Requisitos: RF-44, RF-45, RF-42 · Regras: RN-29, RN-30, RN-27
+-- Requisitos: RF-44, RF-45, RF-42 · Regras: RN-28, RN-26
 -- Entidades: C8 `situacao_lote` (visao)
 --
--- E VISAO, E NAO COLUNA (RN-30). Situacao gravada envelhece sozinha: o lote que
+-- E VISAO, E NAO COLUNA (RF-45). Situacao gravada envelhece sozinha: o lote que
 -- estava verde ontem continuaria verde no banco hoje, e a tela existe justamente
 -- para dizer o contrario. E a mesma razao de o saldo disponivel e a mortalidade
 -- tambem serem derivados.
@@ -81,4 +81,4 @@ LEFT JOIN pendencia p ON p.lote_id = b.id
 WHERE b.encerrado_em IS NULL;
 
 COMMENT ON VIEW situacao_lote IS
-  'Situacao do lote: saudavel, atencao, critico. Derivada do atraso da tarefa, nunca digitada. RN-30.';
+  'Situacao do lote: saudavel, atencao, critico. Derivada do atraso da tarefa, nunca digitada. RF-45.';

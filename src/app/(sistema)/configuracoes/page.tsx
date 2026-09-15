@@ -15,7 +15,7 @@ const SECOES = [
   },
 ];
 
-/** F1 módulo Configurações: as duas telas que a operação ajusta sem implantação (RN-27). */
+/** F1 módulo Configurações: as duas telas que a operação ajusta sem implantação (RN-26). */
 export default async function ConfiguracoesPage() {
   await requirePageAccess('parametros');
 

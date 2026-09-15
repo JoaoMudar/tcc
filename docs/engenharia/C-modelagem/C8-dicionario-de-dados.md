@@ -76,8 +76,8 @@ As 3 do Cadastro único são as do **protocolo de atividades**: `protocolos`, `p
 > a Produção guarda é o **movimento**: por onde cada lote já passou.
 
 **O protocolo foi especificado inteiro antes de qualquer migration, e por escolha.** Ele envolve um
-motor de geração automática de ordens: a regra de contagem a partir da execução real (RN-34) e a
-de uma ocorrência em aberto por vez (RN-35) atravessam tabela, visão e Server Action, e modelar
+motor de geração automática de ordens: a regra de contagem a partir da execução real (RN-32) e a
+de uma ocorrência em aberto por vez (RN-33) atravessam tabela, visão e Server Action, e modelar
 depois de construir custaria reescrevê-las em três lugares.
 
 **Um atributo de entidade já existente está na mesma condição**: `lotes.protocolo_id`, que só passa
@@ -155,7 +155,7 @@ exige uma implantação.
 
 > **Duas chaves novas com o protocolo de atividades, ainda não implementadas:**
 > `producao.protocolo_janela_aviso_pct` (padrão 20), o percentual final do intervalo em que a etapa
-> passa a avisar (RN-37), e `producao.protocolo_horizonte_dias` (padrão 14), até quantos dias à
+> passa a avisar (RN-35), e `producao.protocolo_horizonte_dias` (padrão 14), até quantos dias à
 > frente o motor materializa ordens na agenda. **O horizonte é parâmetro, e não constante**, pela
 > mesma razão dos demais: emitir um ano de limpezas trimestrais encheria a grade de tarefas que
 > ninguém olha por nove meses, e o número certo muda com a estação.
@@ -223,7 +223,7 @@ exige uma implantação.
 | `volume_litros` | numeric(6,3) | ○ | | Volume do recipiente |
 | `ativo` | boolean | ● | | Em uso |
 
-> **O protocolo pendura-se aqui.** É o recipiente que determina o manejo (RN-32), e é dele que
+> **O protocolo pendura-se aqui.** É o recipiente que determina o manejo (RN-30), e é dele que
 > `protocolos` sai. A entidade intermediária `tipos_recipiente`, que agrupava os quatro sacos num tipo
 > só, foi descartada: com seis recipientes no catálogo, ela custava uma tabela e uma tela para
 > poupar a repetição de três protocolos.
@@ -248,8 +248,8 @@ exige uma implantação.
 | Atributo | Tipo | Ob. | Chave | Descrição |
 |---|---|:--:|:--:|---|
 | `id` | uuid | ● | PK | Identificador |
-| `tipo` | `cadastro.tipo_pessoa` | ● | | **Natureza da pessoa**: `pf` ou `pj` (RN-45) |
-| `documento` | text | ○ | UK | CPF ou CNPJ, só dígitos (RF-17). Opcional porque o cadastro rápido do pedido pede só nome e telefone (RN-46); a unicidade não impede várias identidades sem documento, porque nulos não colidem entre si |
+| `tipo` | `cadastro.tipo_pessoa` | ● | | **Natureza da pessoa**: `pf` ou `pj` (RN-43) |
+| `documento` | text | ○ | UK | CPF ou CNPJ, só dígitos (RF-17). Opcional porque o cadastro rápido do pedido pede só nome e telefone (RN-44); a unicidade não impede várias identidades sem documento, porque nulos não colidem entre si |
 | `nome` | text | ● | | Nome usual: o que aparece nas listas |
 | `telefone` | text | ○ | | Telefone, e é por ele que a negociação começa |
 | `email` | text | ○ | | Correio eletrônico |
@@ -281,7 +281,7 @@ exige uma implantação.
 | `criado_em` | timestamptz | ● | | Criação |
 
 > **A tabela não tem `id` nem `atualizado_em`.** A chave é o par `(pessoa_id, papel)`, o que impõe pela
-> estrutura que uma pessoa exerça cada papel no máximo uma vez (RN-47).
+> estrutura que uma pessoa exerça cada papel no máximo uma vez (RN-45).
 
 > `funcionario` aqui é **vínculo empregatício**, e não nível de acesso. O nível de acesso é
 > `usuarios.perfil`, cujos valores são `admin`, `chefia` e `gerencia`. A ambiguidade que existia entre as
@@ -302,7 +302,7 @@ exige uma implantação.
 | `criado_em`, `atualizado_em` | timestamptz | ● | | Criação e alteração |
 
 > **A entidade existe porque uma pessoa tem mais de um endereço, e o de entrega pode não ser o de
-> cobrança** (RN-51). É `tipo` que os distingue, e a tabela não impõe endereço único por tipo: a
+> cobrança** (RN-49). É `tipo` que os distingue, e a tabela não impõe endereço único por tipo: a
 > mesma identidade pode ter dois endereços de entrega, o que o viveiro pratica.
 
 ## `tipos_tarefa`: tipo de tarefa
@@ -315,13 +315,13 @@ que a tela pede ou deixa de pedir (RF-21).
 |---|---|:--:|:--:|---|
 | `id` | uuid | ● | PK | Identificador |
 | `nome` | text | ● | UK | Nome da atividade: colher semente, encher saquinho, repicar, limpar mato, separar mudas |
-| `categoria` | text | ● | | Categoria em **lista fechada**: `semente`, `terra`, `plantio`, `manutencao`, `pos_morte`, `expedicao` (RN-23). **Classifica, não comanda formulário** |
-| `e_quantitativa` | boolean | ● | | "É quantitativa por unidade": quando verdadeiro, o encerramento pede quanto **cada participante** fez (RN-24) |
-| `exige_lote` | boolean | ● | | "Lote específico": quando verdadeiro, o encerramento exige o lote, e com ele o canteiro, a espécie e o recipiente (RN-25) |
+| `categoria` | text | ● | | Categoria em **lista fechada**: `semente`, `terra`, `plantio`, `manutencao`, `pos_morte`, `expedicao` (RF-21). **Classifica, não comanda formulário** |
+| `e_quantitativa` | boolean | ● | | "É quantitativa por unidade": quando verdadeiro, o encerramento pede quanto **cada participante** fez (RN-23) |
+| `exige_lote` | boolean | ● | | "Lote específico": quando verdadeiro, o encerramento exige o lote, e com ele o canteiro, a espécie e o recipiente (RN-24) |
 | `exige_especie` | boolean | ● | | Quando verdadeiro, a atribuição e o encerramento exigem espécie. Tarefa com lote a herda dele |
 | `exige_recipiente` | boolean | ● | | Quando verdadeiro, exigem recipiente. Tarefa com lote o herda dele |
-| `exige_area` | boolean | ● | | Quando verdadeiro, a confirmação oferece área e canteiro (RF-30). Nunca junto com `exige_lote`, que já dá o canteiro (CHECK `tipos_tarefa_area_ou_lote`, RN-25) |
-| `unidade_medida` | text | ● | | Unidade da quantidade por pessoa, em **lista fechada**: `un` (padrão), `kg`, `g`, `L`, `mL`. Só `un` exige inteiro (RN-24) |
+| `exige_area` | boolean | ● | | Quando verdadeiro, a confirmação oferece área e canteiro (RF-30). Nunca junto com `exige_lote`, que já dá o canteiro (CHECK `tipos_tarefa_area_ou_lote`, RN-24) |
+| `unidade_medida` | text | ● | | Unidade da quantidade por pessoa, em **lista fechada**: `un` (padrão), `kg`, `g`, `L`, `mL`. Só `un` exige inteiro (RN-23) |
 | `ativo` | boolean | ● | | Tipo em uso. Inativar é o que retira a tarefa da lista da agenda; excluir deixaria sem sentido toda atribuição passada |
 
 > **Nenhuma tarefa mede tempo, e é decisão.** A agenda registra o turno, e não a hora (RN-12):
@@ -329,7 +329,7 @@ que a tela pede ou deixa de pedir (RF-21).
 > apenas se se conta **quanto** foi feito, e a pergunta do viveiro passou a ser "quantos fez no
 > turno".
 
-> **A contagem é por pessoa, e não da tarefa** (RN-24). Quatro pessoas enchendo saquinho gravam
+> **A contagem é por pessoa, e não da tarefa** (RN-23). Quatro pessoas enchendo saquinho gravam
 > quatro números em `atribuicoes_participantes.quantidade_feita`, e não um total dividido por quatro. A
 > confirmação do grupo (RF-29) é o gesto que preenche as quatro de uma vez.
 
@@ -368,7 +368,7 @@ encher bandeja exigem recipiente pelo mesmo motivo invertido: contam recipiente,
 > onde sair. Por isso `Semear` é `plantio` e não `semente`: a categoria `semente` cobre o que se faz
 > **antes** de existir lote, colher e beneficiar.
 
-> **`Classificar` é `pos_morte` porque produz perda no mesmo gesto** (RN-28). Separar as vivas das
+> **`Classificar` é `pos_morte` porque produz perda no mesmo gesto** (RN-27). Separar as vivas das
 > mortas é o momento em que a parte morta vira movimento de `perda` do lote, e classificá-la como
 > manutenção esconderia justamente a etapa que mais mata.
 
@@ -409,7 +409,7 @@ pede para ser executada.
 
 O **período de trabalho** (RF-08). Existe para tirar de dentro do código o número que a RN-12
 trazia no próprio enunciado: um turno valia quatro horas por convenção, e convenção que muda com a
-estação e com a combinação da equipe é dado, não constante (RN-27).
+estação e com a combinação da equipe é dado, não constante (RN-26).
 
 | Atributo | Tipo | Ob. | Chave | Descrição |
 |---|---|:--:|:--:|---|
@@ -443,15 +443,15 @@ a seguir sozinho (RF-22).
 | Atributo | Tipo | Ob. | Chave | Descrição |
 |---|---|:--:|:--:|---|
 | `id` | uuid | ● | PK | Identificador |
-| `recipiente_id` | uuid | ● | FK → `recipientes` | Recipiente que o protocolo rege (RN-32) |
+| `recipiente_id` | uuid | ● | FK → `recipientes` | Recipiente que o protocolo rege (RN-30) |
 | `nome` | text | ● | | Designação: "Protocolo do tubete" |
 | `ativo` | boolean | ● | | Vigente. Restrição: **um vigente por recipiente**, por índice único parcial |
 | `observacoes` | text | ○ | | Observação |
 | `criado_por` | uuid | ● | FK → `usuarios` | Quem montou |
 
-> **O protocolo não é versionado, e a edição não retroage** (RN-39). Vale um vigente por tipo, e
-> a alteração é lida apenas na próxima geração de ordens: ordem já emitida e dia já trabalhado
-> permanecem como estão, pela mesma razão da RN-43. Versionar exigiria fotografar a árvore de
+> **O protocolo não é versionado, e a edição não retroage** (RN-37). Vale um vigente por tipo, e
+> a alteração é lida apenas nas próximas sugestões: tarefa já lançada e dia já trabalhado
+> permanecem como estão, pela mesma razão da RN-37. Versionar exigiria fotografar a árvore de
 > etapas dentro de cada lote, e o viveiro muda o protocolo raramente. **A suposição está declarada
 > aqui de propósito**, porque é a que mais custaria reverter depois.
 
@@ -474,20 +474,20 @@ RF-23). É a entidade que carrega a lógica do módulo inteiro.
 | `tipo_tarefa_id` | uuid | ● | FK → `tipos_tarefa` | Tarefa do catálogo que a etapa manda executar |
 | `rotulo` | text | ● | | Rótulo da etapa: "Classificar, pós-germinação" |
 | `posicao` | integer | ● | | Ordem de leitura. Restrição: única dentro do protocolo |
-| `tipo_agendamento` | text | ● | | **Lista fechada**: `sequencial` ou `recorrente` (RN-36) |
-| `tipo_ancora` | text | ● | | **Lista fechada**: `criacao_do_lote` ou `conclusao_de_etapa` (RN-33) |
+| `tipo_agendamento` | text | ● | | **Lista fechada**: `sequencial` ou `recorrente` (RN-34) |
+| `tipo_ancora` | text | ● | | **Lista fechada**: `criacao_do_lote` ou `conclusao_de_etapa` (RN-31) |
 | `etapa_ancora_id` | uuid | ○ | FK → `protocolos_etapas` | Etapa cuja conclusão inicia a contagem. Obrigatória quando `tipo_ancora` é `conclusao_de_etapa`, nula no outro caso. Restrição: diferente da própria etapa |
 | `dias` | integer | ● | | Dias entre a âncora e a primeira ocorrência, que é também a única quando sequencial. Restrição: não negativo |
-| `intervalo_dias` | integer | ○ | | Só recorrente: dias entre uma ocorrência e a seguinte, contados da **execução real** (RN-34). Restrição: maior que zero quando preenchido, nulo quando sequencial |
-| `turno_id` | uuid | ● | FK → `turnos_trabalho` | Turno que a ordem gerada herda |
-| `alerta_ligado` | boolean | ● | | Liga a regra de atraso. Falso nas rotinas diárias (RN-37) |
-| `janela_aviso_pct` | numeric(5,2) | ○ | | Janela de aviso própria, em percentual do intervalo. **Nula = usa `producao.protocolo_janela_aviso_pct`** (RN-37). Restrição: entre 0 e 100 |
-| `fase_resultante` | text | ○ | | Só sequencial: a fase que a conclusão grava em `lotes.fase`, na mesma lista fechada de lá. Nula = não altera a fase (RN-36) |
+| `intervalo_dias` | integer | ○ | | Só recorrente: dias entre uma ocorrência e a seguinte, contados da **execução real** (RN-32). Restrição: maior que zero quando preenchido, nulo quando sequencial |
+| `turno_id` | uuid | ● | FK → `turnos_trabalho` | Turno que a sugestão traz preenchido |
+| `alerta_ligado` | boolean | ● | | Liga a regra de atraso. Falso nas rotinas diárias (RN-35) |
+| `janela_aviso_pct` | numeric(5,2) | ○ | | Janela de aviso própria, em percentual do intervalo. **Nula = usa `producao.protocolo_janela_aviso_pct`** (RN-35). Restrição: entre 0 e 100 |
+| `fase_resultante` | text | ○ | | Só sequencial: a fase que a conclusão grava em `lotes.fase`, na mesma lista fechada de lá. Nula = não altera a fase (RN-34) |
 | `ativo` | boolean | ● | | Etapa em uso |
 
 > **A âncora é atributo, e não consequência de `posicao`.** Derivar "a etapa anterior" da ordem
 > da lista faria "Classificar pós-germinação" contar da criação do lote, e a semente pode ficar
-> dias esperando plantio antes de germinar: mandaria classificar muda que ainda não nasceu (RN-33).
+> dias esperando plantio antes de germinar: mandaria classificar muda que ainda não nasceu (RN-31).
 > A etapa âncora não precisa ser a imediatamente anterior, e é justamente esse o caso que a coluna
 > existe para representar.
 
@@ -496,8 +496,8 @@ RF-23). É a entidade que carrega a lógica do módulo inteiro.
 > aplicação, com teste dedicado. **Limite conhecido, declarado aqui em vez de descoberto em
 > produção.**
 
-> **`turno_id` é obrigatório porque `atribuicoes.turno_id` é `NOT NULL`**, e a ordem gerada
-> precisa de um. A pergunta que resolve
+> **`turno_id` é obrigatório porque `atribuicoes.turno_id` é `NOT NULL`**, e a sugestão chega ao
+> formulário com ele já respondido. A pergunta que resolve
 > ("esta etapa é de manhã ou de tarde?") a gerência responde sem pensar, e derivá-la de qualquer
 > outra coisa obrigaria a escolher entre errar e recusar.
 
@@ -516,7 +516,7 @@ RF-23). É a entidade que carrega a lógica do módulo inteiro.
 **Especificada, não implementada.**
 
 O que permite a uma espécie de germinação lenta usar setenta dias onde o protocolo diz quarenta,
-sem duplicar a receita inteira (RF-25, RN-38).
+sem duplicar a receita inteira (RF-25, RN-36).
 
 | Atributo | Tipo | Ob. | Chave | Descrição |
 |---|---|:--:|:--:|---|
@@ -550,14 +550,14 @@ respondia o que a muda era e não onde estava. A revisão de escopo está justif
 | `especie_id` | uuid | ● | FK → `especies` | Espécie da leva |
 | `recipiente_id` | uuid | ● | FK → `recipientes` | Recipiente, que define o porte da muda |
 | `canteiro_id` | uuid | ○ | FK → `canteiros` | Canteiro ocupado. Nulo quando o lote está encerrado |
-| `lote_origem_id` | uuid | ○ | FK → `lotes` | Lote de origem, quando este nasceu de uma repicagem (RN-20) ou de uma divisão (RN-41) |
+| `lote_origem_id` | uuid | ○ | FK → `lotes` | Lote de origem, quando este nasceu de uma repicagem (RN-20) ou de uma divisão (RN-39) |
 | `protocolo_id` | uuid | ○ | FK → `protocolos` | Protocolo que rege o lote, fotografado na criação a partir do recipiente (RF-46). Nulo quando o recipiente ainda não tem protocolo. **Especificado, não implementado.** |
 | `quantidade_inicial` | integer | ● | | Quantidade que entrou. Restrição: maior que zero |
 | `quantidade_atual` | integer | ● | | Saldo vivo. Restrição de banco: não negativo (RN-21). **Mantido pela aplicação** na mesma transação do movimento |
 | `fase` | text | ● | | Fase em **lista fechada**: `semeado`, `germinado`, `repicado`, `crescimento`, `rustificacao`, `pronto`, `encerrado` |
-| `data_plantio` | date | ● | | Data em que a leva foi plantada e passou a ocupar o canteiro. É a âncora das etapas do protocolo que contam da criação do lote (RN-33) |
+| `data_plantio` | date | ● | | Data em que a leva foi plantada e passou a ocupar o canteiro. É a âncora das etapas do protocolo que contam da criação do lote (RN-31) |
 | `encerrado_em` | timestamptz | ○ | | Momento do encerramento; a partir dele o lote sai da ocupação |
-| `motivo_encerramento` | text | ○ | | Motivo do encerramento em **lista fechada**: `saldo_zero`, `expedido`, `dividido`. Preenchido se e somente se `encerrado_em` o estiver (RN-40) |
+| `motivo_encerramento` | text | ○ | | Motivo do encerramento em **lista fechada**: `saldo_zero`, `expedido`, `dividido`. Preenchido se e somente se `encerrado_em` o estiver (RN-38) |
 | `posicao` | integer | ○ | | Ordem do lote dentro do canteiro, a partir de 1. Dá ao mapa um desenho estável (RF-44) |
 | `observacoes` | text | ○ | | Observação |
 
@@ -613,14 +613,14 @@ aqui, com motivo e origem.
 |---|---|:--:|:--:|---|
 | `id` | uuid | ● | PK | Identificador |
 | `lote_id` | uuid | ● | FK → `lotes` | Lote movimentado |
-| `tipo_movimento` | text | ● | | Motivo em **lista fechada**: `entrada`, `perda`, `repicagem_saida`, `repicagem_entrada`, `venda`, `ajuste_contagem`, `transferencia`, `divisao_saida`, `divisao_entrada`. Os dois últimos são **especificados, não implementados** (RN-41) |
+| `tipo_movimento` | text | ● | | Motivo em **lista fechada**: `entrada`, `perda`, `repicagem_saida`, `repicagem_entrada`, `venda`, `ajuste_contagem`, `transferencia`, `divisao_saida`, `divisao_entrada`. Os dois últimos são **especificados, não implementados** (RN-39) |
 | `quantidade` | integer | ● | | Quantidade movimentada, com sinal: positiva na entrada, negativa na saída |
 | `data_movimento` | date | ● | | Data do movimento |
 | `canteiro_origem_id` | uuid | ○ | FK → `canteiros` | Canteiro de origem, só em `transferencia` |
 | `canteiro_destino_id` | uuid | ○ | FK → `canteiros` | Canteiro de destino, só em `transferencia` |
 | `causa_perda` | text | ○ | | Causa em **lista fechada**: `seca`, `praga`, `geada`, `manuseio`, `outro` (RN-10). Existe se e somente se `tipo_movimento` for `perda` |
 | `atribuicao_id` | uuid | ○ | FK → `atribuicoes` | Atribuição que o originou, quando veio de uma tarefa confirmada |
-| `registrado_por` | uuid | ● | FK → `usuarios` | Quem registrou (RN-54) |
+| `registrado_por` | uuid | ● | FK → `usuarios` | Quem registrou (RN-52) |
 | `observacoes` | text | ○ | | Observação |
 
 > **A origem é uma só, e é opcional.** `atribuicao_id` liga o movimento à tarefa que o causou.
@@ -634,7 +634,7 @@ aqui, com motivo e origem.
 > não de uma entidade `eventos_perda`.
 
 > **A repicagem grava dois movimentos**, `repicagem_saida` no lote de origem e `repicagem_entrada`
-> no de destino, e a diferença entre eles, quando houver, é uma `perda` no lote de origem (RN-28).
+> no de destino, e a diferença entre eles, quando houver, é uma `perda` no lote de origem (RN-27).
 > A soma "repicadas mais perdidas" tem de igualar a quantidade que saiu: sem isso a diferença
 > viraria evaporação silenciosa, e a mortalidade ficaria subestimada exatamente na etapa que mais
 > mata.
@@ -647,13 +647,13 @@ aqui, com motivo e origem.
 ## `atribuicoes_participantes`: participante da tarefa
 
 Quem foi escalado numa atribuição. Existe porque uma tarefa admite vários executores, e o mesmo
-turno admite duas tarefas com grupos diferentes (RN-26).
+turno admite duas tarefas com grupos diferentes (RN-25).
 
 | Atributo | Tipo | Ob. | Chave | Descrição |
 |---|---|:--:|:--:|---|
 | `atribuicao_id` | uuid | ● | PK, FK → `atribuicoes` | Atribuição |
 | `pessoa_id` | uuid | ● | PK, FK → `cadastro.pessoas` | Funcionário escalado |
-| `quantidade_feita` | numeric(10,2) | ○ | | Quantidade que **esta pessoa** realizou, na unidade do tipo de tarefa, pedida na confirmação quando o tipo for quantitativo (RF-29, RN-24). Nula enquanto a tarefa não for confirmada |
+| `quantidade_feita` | numeric(10,2) | ○ | | Quantidade que **esta pessoa** realizou, na unidade do tipo de tarefa, pedida na confirmação quando o tipo for quantitativo (RF-29, RN-23). Nula enquanto a tarefa não for confirmada |
 | `criado_em` | timestamptz | ● | | Criação |
 
 > **A tabela não tem `id` nem `atualizado_em`.** A chave é o par `(atribuicao_id, pessoa_id)`, o que
@@ -664,7 +664,7 @@ turno admite duas tarefas com grupos diferentes (RN-26).
 > ser uma coisa só para virar quatro coisas parecidas: metade da equipe enchendo saquinho enquanto
 > a outra repica é a norma do viveiro, não a exceção.
 
-> **É aqui que a quantidade realizada mora, e não na atribuição** (RN-24). Quatro pessoas enchendo
+> **É aqui que a quantidade realizada mora, e não na atribuição** (RN-23). Quatro pessoas enchendo
 > saquinho produzem quatro números, e é assim que o viveiro fala: um total na atribuição obrigaria
 > a dividir por quatro na hora de ler, e a divisão seria invenção.
 
@@ -689,7 +689,7 @@ o custo do período mudaria depois de apurado (RN-13).
 
 A célula da grade: um dia, um turno, um tipo de tarefa e o grupo escalado. **É o planejado e o
 confirmado na mesma linha**: `situacao` é o que distingue os dois, e é o que dispensa uma entidade de
-execução separada. A duração do turno vem de `turnos_trabalho` (RN-12, RN-27), e a tarefa que tem hora
+execução separada. A duração do turno vem de `turnos_trabalho` (RN-12, RN-26), e a tarefa que tem hora
 marcada declara a sua em `hora_inicio` / `hora_fim`.
 
 | Atributo | Tipo | Ob. | Chave | Descrição |
@@ -703,45 +703,47 @@ marcada declara a sua em `hora_inicio` / `hora_fim`.
 | `tipo_tarefa_id` | uuid | ● | FK → `tipos_tarefa` | Tipo de tarefa |
 | `especie_id` | uuid | ○ | FK → `especies` | Espécie, quando o tipo de tarefa a exigir |
 | `recipiente_id` | uuid | ○ | FK → `recipientes` | Recipiente, quando o tipo de tarefa o exigir |
-| `lote_id` | uuid | ○ | FK → `lotes` | Lote, quando o tipo de tarefa o exigir (RN-25) |
+| `lote_id` | uuid | ○ | FK → `lotes` | Lote, quando o tipo de tarefa o exigir (RN-24) |
 | `area_id` | uuid | ○ | FK → `areas` | Área da tarefa cujo tipo declara área (RF-30) |
 | `canteiro_id` | uuid | ○ | FK → `canteiros` | Canteiro da tarefa cujo tipo declara área (RF-30) |
 | `quantidade_planejada` | numeric(10,2) | ○ | | Quantidade planejada, na unidade do tipo de tarefa, quando aplicável |
-| `e_recorrente` | boolean | ● | | Marca a atribuição como parte da rotina fixa: ao copiar a semana anterior, ela já vem preenchida (RF-27, RN-31) |
-| `lote_etapa_id` | uuid | ○ | | Etapa do protocolo daquele lote que gerou esta ordem. Nula = atribuição lançada à mão (RN-43). A coluna existe; **a chave estrangeira não**, porque `lotes_etapas` ainda não foi criada |
+| `e_recorrente` | boolean | ● | | Marca a atribuição como parte da rotina fixa: ao copiar a semana anterior, ela já vem preenchida (RF-27, RN-29) |
+| `lote_etapa_id` | uuid | ○ | | Etapa do protocolo cuja sugestão originou esta tarefa. Nula = tarefa lançada sem sugestão nenhuma por trás (RN-41). A coluna existe; **a chave estrangeira não**, porque `lotes_etapas` ainda não foi criada |
 | `vencimento_protocolo` | date | ○ | | Vencimento que esta ordem representa, congelado na geração. Distingue-se de `data_trabalho`, que a gerência pode remarcar |
-| `situacao` | text | ● | | `planejada`, `confirmada`, `nao_confirmada`, `cancelada`: a segunda é a que a gerência marca ao registrar que a tarefa foi feita, a terceira é a que o fechamento assume como realizada (RN-14), e a quarta é a ordem que o encerramento do lote invalidou (RN-40) |
+| `situacao` | text | ● | | `planejada`, `confirmada`, `nao_confirmada`, `cancelada`: a segunda é a que a gerência marca ao registrar que a tarefa foi feita, a terceira é a que o fechamento assume como realizada (RN-14), e a quarta é a ordem que o encerramento do lote invalidou (RN-38) |
 | `observacoes` | text | ○ | | Observação livre; único campo aberto da agenda |
 
 > **`pessoa_id` saiu para `atribuicoes_participantes`.** Quem executa deixou de ser coluna e virou lista:
-> uma tarefa admite vários executores (RN-26). Ver a entidade para o porquê.
+> uma tarefa admite vários executores (RN-25). Ver a entidade para o porquê.
 
-> **A ordem do protocolo nasce sem nenhuma linha em `atribuicoes_participantes`** (RN-43), e é
-> intencional. O protocolo responde o que fazer e quando; quem faz continua sendo de quem monta a
-> agenda. Enquanto não houver ninguém escalado, ela é pendência do lote, e o fechamento da semana
-> **não a assume como realizada** (RN-14): dar por feita uma tarefa que ninguém pegou apagaria
-> exatamente o esquecimento que o protocolo existe para denunciar.
+> **A tarefa vinda do protocolo já nasce com participante, como qualquer outra** (RN-41), e é
+> intencional. O protocolo responde o que fazer e quando, e para por aí: enquanto ninguém aceitar a
+> sugestão, **não existe linha nenhuma aqui nem em `atribuicoes`**. A etapa vencida continua
+> pendente do lado do lote, contando atraso, e o fechamento da semana não tem o que assumir como
+> realizado (RN-14). É o que impede o sistema de encher a agenda de tarefa que ninguém pegou e,
+> ainda assim, de deixar o esquecimento passar em branco.
 
 > **A recorrência é uma marca, e não uma entidade.** `e_recorrente` diz que a atribuição pertence à
 > rotina fixa e, por isso, vem preenchida na cópia da semana. Uma tabela de recorrência, com dias
 > da semana, hora e vigência, existiria para gerar dias sozinha: neste modelo, o que gera dia
 > sozinho é o protocolo, cujo sujeito é o lote e não a equipe.
 
-> **`semana_id` é `NOT NULL`, e a ordem gerada precisa de um** (RN-43). O motor usa a semana do
-> vencimento e a abre em `rascunho` se ela não existir; se a semana do vencimento estiver
-> `fechada`, a ordem entra na semana aberta corrente, porque semana fechada não se altera (RN-13).
+> **`semana_id` é `NOT NULL`, e a tarefa aceita precisa de um** (RN-41). Quem aceita a sugestão
+> escolhe o dia, e o dia determina a semana, exatamente como em qualquer lançamento: não há semana
+> aberta automaticamente nem ordem caindo em semana fechada, porque nada entra na agenda sem
+> alguém (RN-13).
 > **É por isso que `vencimento_protocolo` existe ao lado de `data_trabalho`**: sem separar o vencimento do
 > dia em que a ordem coube na agenda, empurrá-la para a semana seguinte apagaria o atraso que ela
 > existe para denunciar.
 
-> **A ordem do protocolo carrega `lote_id` sempre**, inclusive quando o tipo de tarefa não declara
-> lote específico: irrigar *aquele* lote é o que o protocolo mandou. Não conflita com RF-21, que
+> **A sugestão do protocolo carrega `lote_id` sempre**, inclusive quando o tipo de tarefa não
+> declara lote específico: irrigar *aquele* lote é o que o protocolo apontou. Não conflita com RF-21, que
 > rege o que a tela **pede** a quem preenche: campo já respondido pela origem da tarefa não é campo
 > a pedir.
 
 > **`turno` deixou de ser texto e virou chave estrangeira.** O par `manha`/`tarde` continua sendo o
 > vocabulário, mas a hora de início e de fim mora agora em `turnos_trabalho`, e é dela que sai a
-> duração. O valor de quatro horas saiu do enunciado da RN-12 e virou parâmetro (RN-27).
+> duração. O valor de quatro horas saiu do enunciado da RN-12 e virou parâmetro (RN-26).
 
 > **`data_trabalho` mais `turno_id` continuam sendo a unidade de planejamento**, e não `iniciado_em`.
 > A agenda planeja por turno porque é assim que o viveiro pensa a semana, e pedir horário exato no
@@ -752,11 +754,11 @@ marcada declara a sua em `hora_inicio` / `hora_fim`.
 > de cada pessoa seria controle de ponto, que está fora do escopo declarado em
 > [`A1` §7](../A-fundacao/A1-documento-de-visao.md), e nada no sistema depende desse número.
 
-> **A ordem do protocolo é atribuição comum, e é isso que a torna editável** (RN-43). Ela nasce da
-> etapa e guarda de qual, mas dali em diante vive por conta própria: excluir a ordem de uma quarta
-> não altera o protocolo nem as ordens dos demais lotes. Um índice único sobre
-> `(lote_etapa_id, vencimento_protocolo)` dá a idempotência da geração: sem ele, abrir a agenda
-> duas vezes geraria a ordem duas vezes.
+> **A tarefa vinda do protocolo é atribuição comum, e é isso que a torna editável** (RN-41). Ela
+> nasce da sugestão e guarda de qual etapa veio, mas dali em diante vive por conta própria: excluir
+> a tarefa de uma quarta não altera o protocolo nem os lotes vizinhos. O índice único sobre
+> `(lote_etapa_id, vencimento_protocolo)` impede que a mesma sugestão vire duas tarefas, caso duas
+> pessoas a aceitem na mesma hora.
 
 ## `situacao_lote`: situação do lote *(não é tabela)*
 
@@ -771,7 +773,7 @@ decorre: `saudavel`, `atencao` ou `critico`. É o que pinta o mapa de produção
 | `dias_atraso` | a data de hoje menos `pendente_desde`; zero quando não há pendência |
 | `situacao` | `dias_atraso` comparado aos parâmetros `producao.atraso_atencao_dias` e `producao.atraso_critico_dias` de `parametros` |
 
-> **É visão e não coluna** (RN-30): situação gravada envelhece sozinha, e o lote marcado como saudável ontem
+> **É visão e não coluna** (RF-45): situação gravada envelhece sozinha, e o lote marcado como saudável ontem
 > continuaria saudável hoje, que é o contrário do que a tela mostra.
 
 > **A mais antiga manda.** Havendo três pendências no mesmo lote, quem determina a cor é a que
@@ -788,7 +790,7 @@ decorre: `saudavel`, `atencao` ou `critico`. É o que pinta o mapa de produção
 > denunciando o erro. É a razão de a condição ser positiva agora: excluir por lista exige lembrar
 > de todos os casos, e um deles escapou.
 
-> **Os limites vêm de `parametros`, e não de literal na visão** (RN-27). É o que faz o parâmetro ser
+> **Os limites vêm de `parametros`, e não de literal na visão** (RN-26). É o que faz o parâmetro ser
 > parâmetro de verdade, e não constante com outro nome. A migration que cria a visão afirma que as
 > duas chaves existem: sem elas a subconsulta devolveria nulo e **todo** lote apareceria como
 > saudável, que é a falha silenciosa mais cara possível nesta tela.
@@ -808,11 +810,11 @@ Uma linha por par lote e etapa, criada quando o lote nasce. **Guarda fatos, e nu
 | `ultima_execucao_em` | date | ○ | | Data **real** da última execução. Nula = nunca executada |
 | `ocorrencias` | integer | ● | | Ocorrências concluídas. Começa em zero |
 | `concluido_em` | timestamptz | ○ | | Só sequencial: quando a etapa se encerrou de vez. Preenchida, a etapa sai da visão de vencimentos |
-| `herdado_do_lote_id` | uuid | ○ | FK → `lotes` | Lote de origem, quando o estado veio de uma divisão (RN-41) |
+| `herdado_do_lote_id` | uuid | ○ | FK → `lotes` | Lote de origem, quando o estado veio de uma divisão (RN-39) |
 
 > **`proximo_vencimento` não é coluna, e a ausência é a decisão.** O vencimento é função do que já está
 > aqui: âncora, última execução e tempo efetivo. Gravá-lo criaria um número que depende da data de
-> hoje e que envelhece sozinho, pela mesma razão de `situacao_lote` não ser tabela (RN-42).
+> hoje e que envelhece sozinho, pela mesma razão de `situacao_lote` não ser tabela (RN-40).
 
 > **`data_ancora` nula é informação, e não dado faltando.** É o estado de "Classificar
 > pós-germinação" enquanto o plantio não foi concluído: a etapa existe, está acompanhada, e não
@@ -820,7 +822,7 @@ Uma linha por par lote e etapa, criada quando o lote nasce. **Guarda fatos, e nu
 > "ninguém preencheu".
 
 > **`ultima_execucao_em` é a data da execução, e não a da ordem.** É o que faz a ocorrência seguinte
-> contar de quando o serviço foi de fato feito (RN-34). Usar a data planejada devolveria o
+> contar de quando o serviço foi de fato feito (RN-32). Usar a data planejada devolveria o
 > comportamento de calendário fixo que o módulo existe para não ter.
 
 > **Não há entidade de eventos do protocolo, e é decisão declarada.** O razão que explica este
@@ -840,9 +842,9 @@ e a situação que dele decorre (RF-51, RF-52).
 |---|---|
 | `lote_id`, `protocolo_etapa_id` | `lotes_etapas`, restrito aos lotes abertos e às etapas ativas |
 | `ocorrencia` | `ocorrencias` mais um: a ocorrência que está por vir |
-| `dias_efetivos` | o override da espécie quando existe, senão o valor da etapa; `dias` na primeira ocorrência e `intervalo_dias` nas seguintes (RN-38) |
-| `proximo_vencimento` | `ultima_execucao_em`, ou `data_ancora` quando nunca executada, mais `dias_efetivos` (RN-42) |
-| `dias_aviso` | `dias_efetivos` multiplicado pela janela da etapa, ou pelo parâmetro `producao.protocolo_janela_aviso_pct` quando a etapa não a declara (RN-37) |
+| `dias_efetivos` | o override da espécie quando existe, senão o valor da etapa; `dias` na primeira ocorrência e `intervalo_dias` nas seguintes (RN-36) |
+| `proximo_vencimento` | `ultima_execucao_em`, ou `data_ancora` quando nunca executada, mais `dias_efetivos` (RN-40) |
+| `dias_aviso` | `dias_efetivos` multiplicado pela janela da etapa, ou pelo parâmetro `producao.protocolo_janela_aviso_pct` quando a etapa não a declara (RN-35) |
 | `situacao` | `sem_alerta` quando a etapa tem o alerta desligado; `atraso` quando hoje passou de `proximo_vencimento`; `atencao` quando hoje já entrou na janela; `em_dia` nos demais casos |
 
 > **Linhas sem âncora resolvida e etapas sequenciais já concluídas não aparecem.** Não vencem nada,
@@ -851,7 +853,7 @@ e a situação que dele decorre (RF-51, RF-52).
 > **A visão devolve uma linha por etapa, e não uma por lote.** Quem reduz as etapas de um lote a
 > uma cor só é `situacao_lote`, e é lá que "a mais antiga manda" continua valendo.
 
-> **`situacao_lote` passa a derivar daqui, e é a correção que motivou o módulo** (RN-30 emendada).
+> **`situacao_lote` passa a derivar daqui, e é a correção que motivou o módulo** (RF-45 emendado).
 > O critério anterior lia o atraso das tarefas **lançadas** em `atribuicoes`, de modo que o lote
 > esquecido por completo aparecia como saudável: não havia tarefa atrasada nele porque não havia
 > tarefa nenhuma. `atraso` mapeia para `critico`, `atencao` para `atencao`, e o resto para
@@ -860,7 +862,7 @@ e a situação que dele decorre (RF-51, RF-52).
 > **Os parâmetros `producao.atraso_atencao_dias` e `atraso_critico_dias` continuam existindo**, e
 > passam a reger apenas as atribuições lançadas à mão. Ordem de protocolo usa a janela
 > proporcional, porque limite fixo em dias é cedo demais para o trimestral e tarde demais para o
-> semanal (RN-37). **Suposição declarada:** os dois critérios convivem, cada um sobre o seu
+> semanal (RN-35). **Suposição declarada:** os dois critérios convivem, cada um sobre o seu
 > conjunto de tarefas.
 
 
@@ -872,12 +874,12 @@ e a situação que dele decorre (RF-51, RF-52).
 |---|---|:--:|:--:|---|
 | `id` | uuid | ● | PK | Identificador |
 | `numero_pedido` | serial | ● | UK | Número sequencial legível, usado na comunicação com o cliente |
-| `cliente_id` | uuid | ● | FK → `cadastro.pessoas` | Cliente. Aponta para a **identidade única**, e não para uma tabela de clientes: quem compra e às vezes vende é um cadastro só (RN-47) |
-| `canal_venda` | varchar(50) | ● | | Canal de venda, em lista fechada de cinco: `atacado`, `compensacao`, `paisagismo`, `prefeitura`, `varejo` (RN-44) |
-| `situacao` | varchar(30) | ● | | `rascunho`, `confirmado`, `cancelado` (RN-50) |
+| `cliente_id` | uuid | ● | FK → `cadastro.pessoas` | Cliente. Aponta para a **identidade única**, e não para uma tabela de clientes: quem compra e às vezes vende é um cadastro só (RN-45) |
+| `canal_venda` | varchar(50) | ● | | Canal de venda, em lista fechada de cinco: `atacado`, `compensacao`, `paisagismo`, `prefeitura`, `varejo` (RN-42) |
+| `situacao` | varchar(30) | ● | | `rascunho`, `confirmado`, `cancelado` (RN-48) |
 | `data_entrega` | date | ○ | | Data prevista de entrega |
 | `observacoes` | text | ○ | | Observações |
-| `criado_por` | uuid | ● | FK → `usuarios` | Autor do registro (RN-54) |
+| `criado_por` | uuid | ● | FK → `usuarios` | Autor do registro (RN-52) |
 
 **Restrição:** pedido em `confirmado` ou `cancelado` não admite alteração de item (RF-57).
 
@@ -898,7 +900,7 @@ e a situação que dele decorre (RF-51, RF-52).
 | `especie_id` | uuid | ● | FK → `especies` | Espécie |
 | `recipiente_id` | uuid | ● | FK → `recipientes` | Recipiente solicitado |
 | `quantidade` | integer | ● | | Quantidade pedida. Restrição: maior que zero |
-| `preco_unitario` | numeric(10,2) | ● | | **Preço unitário informado por quem registra** (RF-55, RN-52). Restrição: maior que zero |
+| `preco_unitario` | numeric(10,2) | ● | | **Preço unitário informado por quem registra** (RF-55, RN-50). Restrição: maior que zero |
 
 > **O preço é digitado, e o sistema não o calcula.** Não há referência a tabela de preço, piso
 > mínimo nem margem: o valor é o que foi negociado na conversa com o cliente, e ao sistema cabe
@@ -908,7 +910,7 @@ e a situação que dele decorre (RF-51, RF-52).
 > **Não há coluna de disponibilidade.** O saldo que a tela exibe ao lado do item (RF-56) é somado
 > dos lotes prontos daquela espécie e recipiente a cada consulta. Guardá-lo aqui congelaria uma
 > leitura que muda a cada perda registrada, e o item passaria a mentir sobre o estoque de hoje. É a
-> mesma decisão que fez a situação do lote ser visão e não coluna (RN-30).
+> mesma decisão que fez a situação do lote ser visão e não coluna (RF-45).
 
 ## Resumo
 

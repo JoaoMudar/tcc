@@ -3,7 +3,7 @@ import { type Db, violatedConstraint } from './sql';
 
 export type CategoriaTarefa = 'semente' | 'terra' | 'plantio' | 'manutencao' | 'pos_morte' | 'expedicao';
 
-/** As seis categorias do CHECK `tipos_tarefa_categoria_valida`, na ordem do ciclo da muda (RN-23). */
+/** As seis categorias do CHECK `tipos_tarefa_categoria_valida`, na ordem do ciclo da muda (RF-21). */
 export const CATEGORIA_TAREFA_LABELS: Record<CategoriaTarefa, string> = {
   semente: 'Semente',
   terra: 'Terra',

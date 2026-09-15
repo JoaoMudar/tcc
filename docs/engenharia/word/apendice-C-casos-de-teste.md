@@ -75,7 +75,7 @@ por subseção está na tabela gerada da §9.
 | **TA-09** | RF-13 | Sessão de gerência | 1. Cadastrar a área A<br>2. Cadastrar os canteiros 1, 2 e 3 nela<br>3. Cadastrar a área B e o canteiro 1 nela<br>4. Tentar cadastrar um segundo canteiro 1 na área A | Existem o canteiro 1 da área A e o canteiro 1 da área B, como lugares distintos; o repetido na mesma área é recusado | Não executado |
 | **TA-10** | RF-20 | Sessão de chefia | 1. Cadastrar funcionário sem criar usuário para ele<br>2. Abrir a agenda da semana | O funcionário aparece na escalação mesmo sem nunca ter feito login | Não executado |
 | **TA-11** | RF-21 | Catálogo de tarefas carregado | 1. Abrir o encerramento de "Irrigação" (não quantitativa, sem lote específico)<br>2. Abrir o encerramento de "Repicar" (quantitativa, com lote específico) | A primeira tela não apresenta campo de lote nem de quantidade; a segunda apresenta os dois | Não executado |
-| **TA-12** | RF-08 | Período de trabalho cadastrado, com hora de início e de fim de cada turno | 1. Alterar o fim do turno da manhã para uma hora mais tarde<br>2. Abrir a agenda da semana | A jornada padrão exibida na agenda acompanha o novo horário, sem que nenhuma atribuição seja alterada: **o período de trabalho é cadastro, e não constante** (RN-27) | Não executado |
+| **TA-12** | RF-08 | Período de trabalho cadastrado, com hora de início e de fim de cada turno | 1. Alterar o fim do turno da manhã para uma hora mais tarde<br>2. Abrir a agenda da semana | A jornada padrão exibida na agenda acompanha o novo horário, sem que nenhuma atribuição seja alterada: **o período de trabalho é cadastro, e não constante** (RN-26) | Não executado |
 | **TA-13** | RF-10 | Sessão de chefia | 1. Cadastrar espécie com nome científico, dois nomes populares, características e foto<br>2. Buscar pelo segundo nome popular<br>3. Buscar pelo nome científico | As duas buscas retornam a mesma espécie, com a foto exibida | Não executado |
 | **TA-14** | RF-12 | Sessão de chefia | 1. Cadastrar insumo com unidade de medida e categoria<br>2. Consultar a lista de insumos | O insumo aparece na lista com a unidade e a categoria informadas | Não executado |
 | **TA-15** | RF-14, RF-16 | Pessoa já cadastrada com o papel de fornecedor | 1. Acrescentar a ela o papel de cliente<br>2. Completar os dados fiscais<br>3. Consultar a lista de pessoas | Não há segundo cadastro: a mesma pessoa exibe os dois papéis, e os dados fiscais ficam nela | Não executado |
@@ -111,7 +111,7 @@ por subseção está na tabela gerada da §9.
 | **TA-30** | RF-28 | Semana no estado *fechada* | 1. Tentar alterar uma atribuição dela | A alteração é recusada, com o motivo informado | Não executado |
 | **TA-31** | RF-29 | Atribuição planejada de tarefa quantitativa, com três participantes | 1. Confirmar a tarefa<br>2. Informar a quantidade de cada um | A atribuição passa a *confirmada* para os três, cada um com o próprio número | Não executado |
 | **TA-32** | RF-29 | Atribuição de tarefa que declara lote específico | 1. Confirmar sem informar o lote | A confirmação é recusada, e a atribuição permanece *planejada* | Não executado |
-| **TA-33** | RF-30 | Atribuição de tarefa que **não** exige lote | 1. Confirmar informando a área em que foi feita | A área fica registrada, e o canteiro não é pedido | Não executado |
+| **TA-33** | RF-30 | Atribuição de tarefa cujo tipo declara **área**, e outra cujo tipo não declara | 1. Confirmar a primeira informando a área em que foi feita. 2. Abrir a confirmação da segunda | A área da primeira fica registrada; a segunda não apresenta área nem canteiro | Não executado |
 | **TA-34** | RF-31 | Semana com atribuição planejada não confirmada | 1. Fechar a semana<br>2. Consultar a atribuição | Ela consta como realizada, com a marca de **não confirmada**, distinguível das confirmadas | Não executado |
 
 ### 5.5 Protocolo de atividades por lote
@@ -128,17 +128,17 @@ qualquer implementação do motor tem de reproduzir.
 | **TA-36** | RF-23 | Protocolo com as etapas "Plantar no tubete" e "Classificar pós-germinação" | 1. Ancorar a classificação na conclusão do plantio<br>2. Tentar ancorar o plantio na conclusão da classificação | A primeira âncora é aceita; a segunda é **recusada** por formar ciclo, com o ciclo indicado | Não executado |
 | **TA-37** | RF-24, RF-52 | Protocolo com uma etapa trimestral (90 dias) com alerta ligado e uma diária com alerta desligado | 1. Consultar um lote 75 dias depois da última execução da trimestral<br>2. Consultar a etapa diária no mesmo lote | A trimestral aparece em **atenção** (janela de 20% de 90 dias, ou seja, 18 dias); a diária aparece **sem indicação de situação**, feita ou não | Não executado |
 | **TA-38** | RF-46 | Protocolo montado para tubete | 1. Criar um lote de tubete em 10 de janeiro<br>2. Consultar a ficha do lote | O lote exibe as etapas do protocolo do tubete, a data de criação 10/01 e a **data de plantio vazia** | Não executado |
-| **TA-39** | RF-47 | Lote criado com protocolo, horizonte de 14 dias | 1. Abrir a agenda do dia<br>2. Consultar a semana<br>3. Abrir a agenda do dia de novo | As ordens do protocolo aparecem na agenda **sem terem sido digitadas**, e a segunda abertura **não** as duplica | Não executado |
+| **TA-39** | RF-47 | Lote criado com protocolo, horizonte de 14 dias | 1. Abrir a agenda da semana<br>2. Conferir a grade da semana<br>3. Aceitar uma das sugestões e gravar a tarefa | As etapas vencidas aparecem como **sugestão** ao lado da semana, e **nenhuma** delas está na grade; a sugestão aceita só vira tarefa depois de preenchidos dia, turno e os campos que o tipo exige, e deixa de ser sugerida | Não executado |
 | **TA-40** | RF-48 | Lote com a etapa sequencial de plantio pendente e uma etapa recorrente de irrigação | 1. Concluir a ordem de plantio<br>2. Consultar a fase do lote<br>3. Concluir uma ordem de irrigação<br>4. Consultar a fase do lote de novo | A fase avança no passo 2 e **permanece a mesma** no passo 4; a data de plantio do lote passa a ser a data real da execução | Não executado |
 | **TA-41** | RF-49 | Lote criado em 10 de janeiro, etapa "Limpar mato" recorrente de 90 dias, vencida em 10 de abril e não executada | 1. Concluir a limpeza em 15 de setembro<br>2. Consultar o próximo vencimento da etapa | O próximo vencimento é **14 de dezembro**, e não julho nem outubro: conta da data real da execução, e não do calendário previsto | Não executado |
 | **TA-42** | RF-50 | Lote com etapa recorrente vencida em 10 de abril e não executada | 1. Abrir a agenda do dia em 10 de julho<br>2. Contar as pendências daquela etapa no lote | Existe **uma** pendência, com 91 dias de atraso, e não três nem quatro: a contagem não reiniciou e nenhuma ocorrência nova nasceu | Não executado |
 | **TA-43** | RF-51 | Lote com uma etapa concluída, uma vencida e uma ainda sem âncora resolvida | 1. Abrir a ficha do lote | As três aparecem com o estado correspondente: a concluída com a data real, a vencida com o atraso, e a sem âncora **sem vencimento nenhum** | Não executado |
 | **TA-44** | RF-25 | Protocolo com classificação em 40 dias e uma espécie com 70 dias próprios | 1. Criar um lote da espécie customizada e outro de espécie sem customização, ambos plantados no mesmo dia<br>2. Consultar o vencimento da classificação nos dois | O primeiro vence 70 dias depois do plantio, o segundo 40: cada um usa o tempo que lhe cabe | Não executado |
-| **TA-45** | RF-53 | Lote com ordens do protocolo em aberto para os próximos dias | 1. Registrar perda que zera o saldo do lote<br>2. Consultar as ordens daquele lote | O lote encerra, as ordens em aberto aparecem **canceladas** e continuam consultáveis, e nenhuma ordem nova é gerada | Não executado |
+| **TA-45** | RF-53 | Lote com tarefas do protocolo lançadas para os próximos dias | 1. Registrar perda que zera o saldo do lote<br>2. Consultar as tarefas daquele lote e as sugestões da semana | O lote encerra, as tarefas ainda não confirmadas aparecem **canceladas** e continuam consultáveis, e o lote deixa de aparecer entre as sugestões | Não executado |
 | **TA-46** | RF-40 | Lote com a limpeza executada em 15 de setembro, próximo vencimento em 14 de dezembro | 1. Dividir o lote em dois, em 20 de dezembro<br>2. Consultar o vencimento da limpeza nos dois resultantes<br>3. Concluir a limpeza apenas no primeiro, em 22 de dezembro<br>4. Consultar os dois de novo | Os dois herdam o vencimento **14 de dezembro**, já em atraso, e não recomeçam em 20 de março; depois do passo 3, o primeiro vence em **22 de março** e o segundo continua em atraso desde 14 de dezembro | Não executado |
 
 > **TA-41 e TA-46 são os casos que decidem se o motor está certo.** Os dois separam a contagem a
-> partir da **execução real** (RN-34, RN-41) de uma contagem de calendário, e é a diferença que o
+> partir da **execução real** (RN-32, RN-39) de uma contagem de calendário, e é a diferença que o
 > módulo inteiro existe para produzir. Implementação que passe em todos os outros e falhe nestes
 > dois entregou uma agenda recorrente comum, e não um protocolo de lote.
 
@@ -148,7 +148,7 @@ qualquer implementação do motor tem de reproduzir.
 > ordens do dia, e as horas planejadas dobrariam com elas.
 
 > **TA-37 é o caso que protege o mapa de virar ruído.** Etapa diária com cor deixaria o viveiro
-> inteiro em atraso toda manhã (RN-37), e o teste falha se a irrigação receber qualquer indicação
+> inteiro em atraso toda manhã (RN-35), e o teste falha se a irrigação receber qualquer indicação
 > de situação, mesmo verde.
 
 ---

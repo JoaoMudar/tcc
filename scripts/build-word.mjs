@@ -43,6 +43,7 @@ const CAPITULO = [
 ];
 
 const FORA_DO_CAPITULO = [
+  ['00-pre-textuais', 'Elementos pré-textuais', ['tcc-pre-textuais.md']],
   ['cap2-acrescimos-referencial', 'Capítulo 2.5, Acréscimos ao referencial teórico', ['E-qualidade/E5-E6-referencial-cap2.md']],
   ['cap3-analise-de-riscos', 'Capítulo 3, Análise de riscos do projeto', ['E-qualidade/E3-analise-de-riscos.md']],
 ];
@@ -74,6 +75,44 @@ function corpo(caminho) {
   return linhas.slice(i).join('\n').trimEnd();
 }
 
+// Subordina a numeração interna do artefato à da seção do capítulo.
+//
+// O artefato numera as suas seções a partir de 1, e o gerador só troca o título de
+// nível 1. Colado no Word, o Capítulo 4 exibia "4.1, 4.2, 4.3" e logo em seguida
+// "3.5, 3.6", que são as seções do B3 e parecem do Capítulo 3. Prefixar com o número
+// da seção resolve: `### 3.5 Área E` vira `### 4.3.3.5 Área E`.
+//
+// A seção montada de vários artefatos (4.4, 4.6 e 4.7) tem um problema a mais: cada
+// fonte recomeça em 1, e quatro seções "4.7.1" seguidas leem-se como erro. Por isso o
+// deslocamento: a segunda fonte continua de onde a primeira parou.
+//
+// As remissões em prosa ("na §2.4") acompanham. As que apontam para outro artefato
+// ("`A2` §1", "[`A1`](...) §9") NAO: vêm precedidas de crase ou do parêntese que
+// fecha o link, e é esse o critério que as distingue.
+function subordina(texto, secao, deslocamento) {
+  if (!secao) return { texto, topo: 0 };
+  let topo = 0;
+  const numera = (num) => {
+    const partes = num.split('.');
+    const primeiro = Number(partes[0]) + deslocamento;
+    topo = Math.max(topo, primeiro);
+    return [secao, primeiro, ...partes.slice(1)].join('.');
+  };
+
+  const comCabecalhos = texto
+    .split('\n')
+    .map((linha) =>
+      linha.replace(/^(#{2,4}) (\d+(?:\.\d+)*)\.? (.+)$/, (todo, nivel, num, resto) => `${nivel} ${numera(num)} ${resto}`)
+    )
+    .join('\n');
+
+  const comRemissoes = comCabecalhos.replace(/(.{0,2})§(\d+(?:\.\d+)*)/g, (todo, antes, num) =>
+    /[`)]\s$/.test(antes) ? todo : `${antes}§${numera(num)}`
+  );
+
+  return { texto: comRemissoes, topo };
+}
+
 // Legenda da figura: o cabeçalho mais próximo acima do diagrama.
 function legendaDe(linhas, ate) {
   for (let i = ate; i >= 0; i--) {
@@ -93,7 +132,18 @@ const pendentes = [];
 const gerados = [];
 
 function gera([nome, titulo, fontes]) {
-  const partes = fontes.map(corpo).join('\n\n---\n\n');
+  // Só o Capítulo 4 é subordinado: o que vai para outro capítulo e os apêndices
+  // entram no trabalho como seção própria, e a numeração deles já é a de lá.
+  const primeira = titulo.split(' ')[0];
+  const secao = /^\d+\.\d+$/.test(primeira) ? primeira : null;
+  let deslocamento = 0;
+  const partes = fontes
+    .map((fonte) => {
+      const { texto, topo } = subordina(corpo(fonte), secao, deslocamento);
+      deslocamento = topo;
+      return texto;
+    })
+    .join('\n\n---\n\n');
   const linhas = partes.split('\n');
   const saida = [];
 
@@ -178,6 +228,44 @@ ${ordem.join('\n')}
 >
 > **Análise de riscos não pertence ao Capítulo 4.** É elemento de metodologia: cabe como seção
 > nova no Capítulo 3.
+>
+> **\`00-pre-textuais.md\` vem antes de tudo.** Dedicatória, agradecimentos e epígrafe são os
+> primeiros elementos do trabalho, e os nomes próprios ali estão entre colchetes, à espera de
+> preenchimento.
+
+## Montagem no Word: quebras de página e página em branco
+
+**Toda separação entre elementos é quebra de página, e nunca linha em branco.** Linha em branco
+empurra o texto enquanto a página couber, e volta a subir assim que qualquer parágrafo acima muda
+de tamanho. A quebra não se desfaz:
+
+1. Posicione o cursor no início do elemento que deve abrir página, e não no fim do anterior.
+2. Use **Ctrl+Enter** (Inserir → Quebra → Página).
+3. Cada um destes abre página própria: capa, folha de rosto, folha de aprovação, dedicatória,
+   agradecimentos, epígrafe, resumo, abstract, listas, sumário e cada capítulo.
+
+**Onde a numeração muda de romana para arábica, a quebra é de seção, e não de página.** Nos
+pré-textuais a contagem corre sem número impresso, e a numeração visível começa na introdução. Use
+Layout → Quebras → **Próxima Página** no ponto da virada, e no cabeçalho da nova seção desligue
+**Vincular ao Anterior** antes de reiniciar a numeração. Sem desligar o vínculo, mudar uma seção
+muda a outra.
+
+**A página em branco no meio do trabalho tem três causas, e todas se veem com Ctrl+asterisco**, que
+liga as marcas de formatação:
+
+| O que aparece na tela | O que é | Como resolver |
+|---|---|---|
+| Um ¶ sozinho na página | Parágrafo vazio sobrando ao fim do elemento anterior | Apague o parágrafo |
+| Uma linha "Quebra de seção (Página ímpar)" | Quebra herdada do modelo, que salta a página par para o elemento abrir sempre à direita | Se o trabalho não é impresso em frente e verso, troque por **Próxima Página** |
+| Duas quebras seguidas | Quebra de página inserida onde já havia quebra de seção | Apague uma das duas |
+
+A terceira é a mais comum ao colar conteúdo vindo daqui, porque o Markdown traz o próprio espaço
+entre seções e o Word soma o dele.
+
+**Uma tabela grande também produz página em branco**, quando não cabe no que resta da página e o
+Word a empurra inteira. Em Propriedades da Tabela → Linha, desligue "Permitir quebra de linha entre
+páginas" apenas se a tabela couber numa página; se não couber, deixe ligado e marque a primeira
+linha como **Repetir como linha de cabeçalho**.
 
 ## Apêndices
 
@@ -230,6 +318,9 @@ Alternativa mais rápida, se houver Pandoc instalado: converter o arquivo inteir
 - [ ] Figuras legíveis em escala de cinza, caso a impressão seja monocromática
 - [ ] Referência da Lei nº 13.709/2018 inserida na seção REFERÊNCIAS
 - [ ] Análise de riscos posicionada no Capítulo 3, não no 4
+- [ ] Nomes entre colchetes dos pré-textuais substituídos
+- [ ] Nenhuma página em branco: conferir com Ctrl+asterisco, de ponta a ponta
+- [ ] Toda separação de elemento é quebra de página, e nenhuma é linha em branco
 `
 );
 

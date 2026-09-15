@@ -87,31 +87,38 @@ que as duas sejam metades de um enunciado que foi partido na escrita.
 
 O critério foi aplicado em 31/08/2026 e fundiu cinco grupos, de sessenta regras para cinquenta e
 quatro. **Nenhuma regra do viveiro foi descartada**: os enunciados sobreviventes absorveram o texto
-inteiro dos absorvidos.
+inteiro dos absorvidos. Em 15/09/2026, na revisão de orientação, outras duas saíram do catálogo
+por não serem regra de negócio, e o total ficou em cinquenta e dois: a categoria do tipo de tarefa,
+que classifica sem impor nada ao viveiro, e a derivação da situação do lote, que é decisão de
+projeto e passou a viver em RF-45.
 
 | Regra | Absorveu | O que passou a ser um enunciado só |
 |---|---|---|
-| RN-24 | RN-29 | Contar por unidade e contar por pessoa: quatro pessoas produzem quatro números |
-| RN-27 | RN-32 | Turno e limite de atraso são o mesmo tipo de coisa, parâmetro mantido |
-| RN-37 | RN-40 | A janela de aviso e o alerta desligado governam o mesmo campo da etapa |
-| RN-43 | RN-47, RN-48 | A ordem gerada é atribuição comum, sem escalação e na semana do vencimento |
-| RN-45 | RN-53 | O conjunto fiscal existe **porque** a nota é emitida fora daqui |
+| RN-23 | RN-28 | Contar por unidade e contar por pessoa: quatro pessoas produzem quatro números |
+| RN-26 | RN-30 | Turno e limite de atraso são o mesmo tipo de coisa, parâmetro mantido |
+| RN-35 | RN-38 | A janela de aviso e o alerta desligado governam o mesmo campo da etapa |
+| RN-41 | RN-45, RN-46 | O que o protocolo produz na agenda é uma coisa só, e não três regras separadas |
+| RN-43 | RN-51 | O conjunto fiscal existe **porque** a nota é emitida fora daqui |
 
-**Três regras parecidas que continuam separadas, e é decisão.** RN-08 (a quantidade disponível),
-RN-30 (a situação do lote) e RN-42 (o vencimento da etapa) terminam todas em "é derivado, nunca
-digitado", e a tentação de fundi-las é grande. Elas não são fundidas por duas razões. A primeira é
-que o que cada uma carrega de substantivo é a **fórmula**, e as três fórmulas são diferentes: a
-quantidade sai da soma dos lotes abertos descontadas perdas e vendas, a situação sai das etapas
-vencidas, e o vencimento sai do evento de referência com a última execução. Fundi-las guardaria o
-princípio e jogaria fora o conteúdo, e a primeira delas é o que sustenta o saldo de muda pronta que
-este trabalho existe para demonstrar. A segunda é que "valor derivado não se digita" **falha no
-teste da §2.1**: apague o sistema e não há onde digitar. É princípio de projeto, e não regra do
-viveiro; a regra é cada fórmula, e o princípio já está registrado na ressalva de RN-30, na §2.4.
+**Duas regras parecidas que continuam separadas, e é decisão.** RN-08 (a quantidade disponível) e
+RN-40 (o vencimento da etapa) terminam ambas em "é derivado, nunca digitado", e a tentação de
+fundi-las é grande. Elas não são fundidas por duas razões. A primeira é que o que cada uma carrega
+de substantivo é a **fórmula**, e as duas fórmulas são diferentes: a quantidade sai da soma dos
+lotes abertos descontadas perdas e vendas, e o vencimento sai do evento de referência com a última
+execução. Fundi-las guardaria o princípio e jogaria fora o conteúdo, e a primeira delas é o que
+sustenta o saldo de muda pronta que este trabalho existe para demonstrar. A segunda é que "valor
+derivado não se digita" **falha no teste da §2.1**: apague o sistema e não há onde digitar. É
+princípio de projeto, e não regra do viveiro; a regra é cada fórmula.
 
-### 2.4 Cinco regras que são convenção, não fato observado
+A situação do lote era a terceira desse grupo, e foi ela que levou o critério até o fim: por ser só
+princípio de projeto, sem fórmula própria que o viveiro reconheça como sua, saiu do catálogo em
+15/09/2026. O que ela dizia está em RF-45, que exige a classificação do lote sem que a situação
+seja digitada.
+
+### 2.4 Quatro regras que são convenção, não fato observado
 
 O critério da seção 2.1 (apague o sistema e veja se o enunciado sobrevive) é limpo para quase
-todo o catálogo, e áspero para cinco regras nascidas ao desenhar a agenda de pessoal e o mapa de
+todo o catálogo, e áspero para quatro regras nascidas ao desenhar a agenda de pessoal e o mapa de
 lotes:
 
 | RN | Por que merece ressalva |
@@ -119,21 +126,20 @@ lotes:
 | **RN-12** | Que o viveiro planeje **por turno**, e que algumas tarefas tenham **hora marcada de verdade**, são as duas observação. Que o turno tenha uma **duração única declarada** é convenção: foi fixada para que a jornada da agenda tenha um padrão quando ninguém a alterar |
 | **RN-13** | "A semana fecha e, fechada, não se altera" descreve uma disciplina que o viveiro **passará a ter**, não uma que já tinha. É pré-requisito de histórico estável, e por isso vale como regra, mas é regra imposta pelo projeto ao negócio, não colhida dele |
 | **RN-14** | Assumir o planejado como realizado é **escolha metodológica** diante de dado faltante. A alternativa (agenda com buraco) não distingue o trabalho que não foi feito do que ninguém teve tempo de confirmar; a condição fica registrada justamente para que a suposição não se disfarce de medição |
-| **RN-30** | Que o lote atrasado seja o que preocupa é observação: é assim que a chefia olha o viveiro, pelo que ainda não foi feito. Que a situação seja **derivada e nunca digitada** é decisão de projeto, e da mesma família de RN-08 e RN-29: guardar o número cria duas verdades sobre ele, e esta em particular envelheceria sozinha da noite para o dia |
-| **RN-27** | Que o viveiro trate turno e atraso como coisas ajustáveis é observação; que a fronteira entre atenção e crítico caia em **três dias** é arbitragem do projeto. O número foi escolhido para a tela ter alguma cor, e é parâmetro justamente para poder estar errado sem exigir implantação |
+| **RN-26** | Que o viveiro trate turno e atraso como coisas ajustáveis é observação; que a fronteira entre atenção e crítico caia em **três dias** é arbitragem do projeto. O número foi escolhido para a tela ter alguma cor, e é parâmetro justamente para poder estar errado sem exigir implantação |
 
 Registrar a ressalva é mais defensável do que reclassificá-las como requisito: elas governam a
 operação, e não a interface. Mas ao escrever o capítulo, atribuí-las à observação do viveiro seria
-inexato: **a origem é política do projeto**, e é assim que `B2` marca os requisitos de quatro
-delas, RF-28 (RN-13), RF-31 (RN-14), RF-45 (RN-30) e RF-09 (RN-27).
+inexato: **a origem é política do projeto**, e é assim que `B2` marca os requisitos de três delas,
+RF-28 (RN-13), RF-31 (RN-14) e RF-09 (RN-26).
 
-**A quinta é exceção, e vale dizer.** Os requisitos de RN-12, RF-26 e RF-08, estão marcados como
+**A quarta é exceção, e vale dizer.** Os requisitos de RN-12, RF-26 e RF-08, estão marcados como
 **EN** e **OP**: tanto o planejamento por turno quanto a hora das tarefas que a têm foram colhidos
 em entrevista e observados no viveiro. O que é convenção do projeto ali não é nem o turno nem a
 hora, é a **duração única declarada** para o turno.
 
-**As demais regras novas não precisam de ressalva.** Área, canteiro, lote, categoria de tarefa e
-forma de medição (RN-17 a RN-26, RN-28, RN-29, RN-31) descrevem o viveiro como ele
+**As demais regras novas não precisam de ressalva.** Área, canteiro, lote e forma de medição
+(RN-17 a RN-25, RN-27, RN-28, RN-29) descrevem o viveiro como ele
 funciona hoje, sem sistema nenhum: as áreas têm letra, os canteiros têm número, planta-se por leva,
 e já se diz "fiz tantos saquinhos hoje". Apague o sistema e os enunciados sobrevivem.
 
@@ -149,7 +155,7 @@ e já se diz "fiz tantos saquinhos hoje". Apague o sistema e os enunciados sobre
 | **RN-02** | A espécie tem um nome científico e vários nomes populares | Fato | `A2` §1 | RF-10 | RNF-07, RNF-22 |
 | **RN-03** | A espécie pode ter várias características ao mesmo tempo, como nativa, frutífera e madeireira | Fato | `A2` §1 | RF-10 | RNF-02 |
 | **RN-04** | O recipiente define o porte da muda. Espécie e recipiente formam o produto | Fato | `A2` §2; `CLAUDE.md` | RF-11, RF-43, RF-54, RF-32 | - |
-| **RN-05** | As etapas de produção de cada espécie e recipiente ficam no protocolo de atividades | Fato | `A2` §1 | RF-22 | - |
+| **RN-05** | A produção da muda segue uma sequência declarada de etapas com prazo, do plantio à muda pronta | Fato | `A2` §1 | RF-22 | - |
 | **RN-06** | Só a muda pronta pode ser vendida | Restrição | `A2` §1 | RF-43, RF-56 | - |
 | **RN-07** | O insumo pertence a uma categoria, que pode ser substrato, adubo, defensivo, recipiente ou outros | Fato | `A2` §2 | RF-12 | RNF-02 |
 
@@ -157,10 +163,10 @@ e já se diz "fiz tantos saquinhos hoje". Apague o sistema e os enunciados sobre
 
 | RN | Enunciado | Tipo | Documentada em | RF originados | RNF vinculados |
 |---|---|---|---|---|---|
-| **RN-08** | A quantidade disponível de uma espécie é a soma dos lotes abertos, descontadas perdas e vendas | Derivação | `A2` §1 | RF-43, RF-56, RF-35 | - |
+| **RN-08** | A quantidade disponível do produto, espécie e recipiente, é a soma dos lotes abertos, descontadas perdas e vendas | Derivação | `A2` §1 | RF-43, RF-56, RF-35 | - |
 | **RN-09** | A contagem física vale mais que a quantidade calculada | Restrição | `rotinas/2-producao` | RF-39 | - |
 | **RN-10** | Toda perda tem uma causa, que pode ser seca, praga, geada, manuseio ou outra | Restrição | `A2` §1 | RF-38, RF-41 | RNF-02 |
-| **RN-11** | A mortalidade do lote é a razão entre as perdas e a quantidade inicial. Acima do limite, inicialmente 20%, o lote é destacado | Acionamento | `A2` §1; `CLAUDE.md` | RF-42, RF-09 | - |
+| **RN-11** | A mortalidade do lote é a razão entre as perdas e a quantidade inicial. Acima do limite definido em Configurações, o lote é destacado | Acionamento | `A2` §1; `CLAUDE.md` | RF-42, RF-09 | - |
 | **RN-12** | A agenda é planejada por dia e turno. A tarefa com hora marcada informa a hora, mas o turno é sempre obrigatório | Fato | `rotinas/2-producao` | RF-26, RF-08 | - |
 | **RN-13** | A semana fechada não pode ser alterada | Restrição | `rotinas/2-producao` | RF-28 | - |
 | **RN-14** | A tarefa não confirmada até o fechamento da semana é considerada realizada, e isso fica registrado | Derivação | `rotinas/2-producao` | RF-31 | - |
@@ -172,139 +178,137 @@ e já se diz "fiz tantos saquinhos hoje". Apague o sistema e os enunciados sobre
 | **RN-20** | A repicagem para recipiente maior cria um lote novo ligado ao de origem | Derivação | `A2` §1 | RF-34 | - |
 | **RN-21** | Nenhum lote pode ter saldo negativo | Restrição | `rotinas/2-producao` | RF-36 | - |
 | **RN-22** | O lote com saldo zero é encerrado e continua no histórico | Restrição | `rotinas/2-producao` | RF-33 | - |
-| **RN-23** | Toda tarefa pertence a uma de seis categorias, como plantio, manutenção e expedição | Fato | `A2` §5 | RF-21 | - |
-| **RN-24** | Algumas tarefas são contadas por unidade, e a quantidade é registrada por pessoa | Fato | `A2` §5 | RF-21, RF-29 | - |
-| **RN-25** | A tarefa feita em mudas plantadas informa só o lote, que já define canteiro, espécie e recipiente | Restrição | `rotinas/2-producao` | RF-21, RF-37, RF-29, RF-30 | RNF-01 |
-| **RN-26** | Uma tarefa pode ter várias pessoas, e um turno pode ter várias tarefas | Fato | `rotinas/2-producao` | RF-26 | - |
-| **RN-27** | O horário dos turnos e os limites de atraso são ajustáveis | Fato | `rotinas/2-producao` | RF-08, RF-09 | - |
-| **RN-28** | Na classificação, as mudas mortas viram perda do lote no mesmo registro | Derivação | `rotinas/2-producao` | RF-29 | - |
-| **RN-29** | A ocupação do canteiro é a soma dos saldos dos lotes abertos nele | Derivação | `rotinas/2-producao` | RF-33, RF-44 | - |
-| **RN-30** | A situação do lote é calculada, nunca digitada | Derivação | `rotinas/2-producao` | RF-44, RF-45 | - |
-| **RN-31** | A tarefa recorrente já aparece preenchida na cópia da semana | Fato | `rotinas/2-producao` | RF-27 | - |
+| **RN-23** | Algumas tarefas são contadas por unidade, e a quantidade é registrada por pessoa | Fato | `A2` §5 | RF-21, RF-29 | - |
+| **RN-24** | A tarefa feita em mudas plantadas informa só o lote, que já define canteiro, espécie e recipiente | Restrição | `rotinas/2-producao` | RF-21, RF-37, RF-29, RF-30 | RNF-01 |
+| **RN-25** | Uma tarefa pode ter várias pessoas, e um turno pode ter várias tarefas | Fato | `rotinas/2-producao` | RF-26 | - |
+| **RN-26** | O horário dos turnos e os limites de atraso são ajustáveis | Fato | `rotinas/2-producao` | RF-08, RF-09 | - |
+| **RN-27** | Na classificação, as mudas mortas viram perda do lote no mesmo registro | Derivação | `rotinas/2-producao` | RF-29 | - |
+| **RN-28** | A ocupação do canteiro é a soma dos saldos dos lotes abertos nele | Derivação | `rotinas/2-producao` | RF-33, RF-44 | - |
+| **RN-29** | A tarefa recorrente já aparece preenchida na cópia da semana | Fato | `rotinas/2-producao` | RF-27 | - |
 
 ### 3.3 Área C: Protocolo de atividades por lote
 
 | RN | Enunciado | Tipo | Documentada em | RF originados | RNF vinculados |
 |---|---|---|---|---|---|
-| **RN-32** | O protocolo de atividades pertence ao recipiente | Fato | `rotinas/2-producao` | RF-22, RF-46 | - |
-| **RN-33** | Cada etapa informa a partir de quando é contada, que pode ser a criação do lote ou a conclusão de outra etapa | Restrição | `rotinas/2-producao` | RF-23 | - |
-| **RN-34** | A etapa recorrente seguinte conta a partir da data real da execução anterior | Derivação | `rotinas/2-producao` | RF-49 | - |
-| **RN-35** | Uma etapa tem no máximo uma ocorrência em aberto | Restrição | `rotinas/2-producao` | RF-50 | - |
-| **RN-36** | A etapa sequencial acontece uma vez e avança a fase do lote. A recorrente se repete e não avança fase | Fato | `rotinas/2-producao` | RF-22, RF-48 | - |
-| **RN-37** | O aviso da etapa é proporcional ao seu intervalo. Etapa com alerta desligado não recebe situação | Derivação | `rotinas/2-producao` | RF-24, RF-52 | - |
-| **RN-38** | O tempo informado na espécie substitui o do protocolo para aquela etapa | Derivação | `rotinas/2-producao` | RF-25 | - |
-| **RN-39** | Alterar o protocolo não muda o que já foi feito | Restrição | `rotinas/2-producao` | RF-22 | - |
-| **RN-40** | O lote se encerra por saldo zero, expedição total ou divisão. Lote encerrado não gera ordem, e as ordens abertas são canceladas | Restrição | `rotinas/2-producao` | RF-53 | - |
-| **RN-41** | Na divisão, cada lote novo segue o protocolo sozinho e herda a fase e as datas do original | Derivação | `rotinas/2-producao` | RF-40 | - |
-| **RN-42** | O vencimento da etapa é calculado, nunca digitado | Derivação | `rotinas/2-producao` | RF-45, RF-51 | - |
-| **RN-43** | A ordem gerada pelo protocolo nasce sem responsável e fica na semana do vencimento, ou na semana aberta atual se aquela já fechou. Alterar a ordem de um dia não altera a etapa | Restrição | `rotinas/2-producao` | RF-47 | - |
+| **RN-30** | O protocolo de atividades pertence ao recipiente | Fato | `rotinas/2-producao` | RF-22, RF-46 | - |
+| **RN-31** | Cada etapa informa a partir de quando é contada, que pode ser a criação do lote ou a conclusão de outra etapa | Restrição | `rotinas/2-producao` | RF-23 | - |
+| **RN-32** | A etapa recorrente seguinte conta a partir da data real da execução anterior | Derivação | `rotinas/2-producao` | RF-49 | - |
+| **RN-33** | Uma etapa tem no máximo uma ocorrência em aberto | Restrição | `rotinas/2-producao` | RF-50 | - |
+| **RN-34** | A etapa sequencial acontece uma vez e avança a fase do lote. A recorrente se repete e não avança fase | Fato | `rotinas/2-producao` | RF-22, RF-48 | - |
+| **RN-35** | O aviso da etapa é proporcional ao seu intervalo. Etapa com alerta desligado não recebe situação | Derivação | `rotinas/2-producao` | RF-24, RF-52 | - |
+| **RN-36** | O tempo informado na espécie substitui o do protocolo para aquela etapa | Derivação | `rotinas/2-producao` | RF-25 | - |
+| **RN-37** | Alterar o protocolo não muda o que já foi feito | Restrição | `rotinas/2-producao` | RF-22 | - |
+| **RN-38** | O lote se encerra por saldo zero, expedição total ou divisão. Lote encerrado não recebe sugestão do protocolo, e as tarefas dele ainda não confirmadas são canceladas | Restrição | `rotinas/2-producao` | RF-53 | - |
+| **RN-39** | Na divisão, cada lote novo segue o protocolo sozinho e herda a fase e as datas do original | Derivação | `rotinas/2-producao` | RF-40 | - |
+| **RN-40** | O vencimento da etapa é calculado, nunca digitado | Derivação | `rotinas/2-producao` | RF-45, RF-51 | - |
+| **RN-41** | O protocolo não lança tarefa na agenda: apresenta a etapa vencida como sugestão. Aceita a sugestão, a tarefa é lançada como qualquer outra, com todos os dados que o tipo exigir | Fato | `rotinas/2-producao` | RF-47 | - |
 
 ### 3.4 Área D: Cliente e pedido
 
 | RN | Enunciado | Tipo | Documentada em | RF originados | RNF vinculados |
 |---|---|---|---|---|---|
-| **RN-44** | Todo pedido tem um canal de venda, que pode ser atacado, compensação ambiental, paisagismo, prefeitura ou varejo | Fato | `A2` §3 | RF-54, RF-58 | RNF-02 |
-| **RN-45** | O cliente é pessoa física ou jurídica. A venda com nota exige os dados fiscais completos, e a nota é emitida em outro sistema | Restrição | `rotinas/1-cadastros`; `A1` §7 | RF-16, RF-17 | RNF-21 |
-| **RN-46** | Nome e telefone bastam para registrar o pedido de um cliente novo | Restrição | `rotinas/1-cadastros` | RF-15 | RNF-01 |
-| **RN-47** | Cada pessoa tem um cadastro único, mesmo sendo cliente, fornecedor e funcionário | Fato | `rotinas/1-cadastros` | RF-18, RF-19, RF-20, RF-14 | - |
-| **RN-48** | A venda para compensação ambiental exige o nome científico da espécie | Restrição | `A2` §3 | RF-54 | RNF-22 |
-| **RN-49** | Os dados pessoais de clientes e funcionários seguem a Lei nº 13.709/2018 | Restrição | `E5` | - | RNF-20 |
-| **RN-50** | O pedido pode estar em rascunho, confirmado ou cancelado, e o item confirmado não muda | Fato | `rotinas/3-comercial` | RF-57 | - |
-| **RN-51** | Uma pessoa pode ter mais de um endereço | Fato | `rotinas/1-cadastros` | RF-16 | - |
-| **RN-52** | O preço é combinado com o cliente e registrado no pedido | Fato | `A1` §6 | RF-55 | - |
+| **RN-42** | Todo pedido tem um canal de venda, que pode ser atacado, compensação ambiental, paisagismo, prefeitura ou varejo | Fato | `A2` §3 | RF-54, RF-58 | RNF-02 |
+| **RN-43** | O cliente é pessoa física ou jurídica. A venda com nota exige os dados fiscais completos, e a nota é emitida em outro sistema | Restrição | `rotinas/1-cadastros`; `A1` §7 | RF-16, RF-17 | RNF-21 |
+| **RN-44** | Nome e telefone bastam para registrar o pedido de um cliente novo | Restrição | `rotinas/1-cadastros` | RF-15 | RNF-01 |
+| **RN-45** | Cada pessoa tem um cadastro único, mesmo sendo cliente, fornecedor e funcionário | Fato | `rotinas/1-cadastros` | RF-18, RF-19, RF-20, RF-14 | - |
+| **RN-46** | A venda para compensação ambiental exige o nome científico da espécie | Restrição | `A2` §3 | RF-54 | RNF-22 |
+| **RN-47** | Os dados pessoais de clientes e funcionários seguem a Lei nº 13.709/2018 | Restrição | `E5` | - | RNF-20 |
+| **RN-48** | O pedido pode estar em rascunho, confirmado ou cancelado, e o item confirmado não muda | Fato | `rotinas/3-comercial` | RF-57 | - |
+| **RN-49** | Uma pessoa pode ter mais de um endereço | Fato | `rotinas/1-cadastros` | RF-16 | - |
+| **RN-50** | O preço é combinado com o cliente e registrado no pedido | Fato | `A1` §6 | RF-55 | - |
 
 ### 3.5 Área E: Acesso e responsabilidade
 
 | RN | Enunciado | Tipo | Documentada em | RF originados | RNF vinculados |
 |---|---|---|---|---|---|
-| **RN-53** | O perfil do usuário (chefia, gerência ou administrador) define o que ele pode ver e fazer | Fato | `D4` §1 | RF-01, RF-05, RF-06 | RNF-11 |
-| **RN-54** | Todo registro guarda quem o fez | Fato | `D4` §5 | RF-01, RF-04 | - |
+| **RN-51** | O perfil do usuário (chefia, gerência ou administrador) define o que ele pode ver e fazer | Fato | `D4` §1 | RF-05, RF-06 | RNF-11 |
+| **RN-52** | Todo registro guarda quem o fez | Fato | `D4` §5 | RF-04 | - |
 
 ### 3.6 Síntese por área
 
 | Área | Regras | Quantidade |
 |---|---|---:|
 | A: Domínio e produto | RN-01 a RN-07 | 7 |
-| B: Produção, lote e trabalho | RN-08 a RN-31 | 24 |
-| C: Protocolo de atividades por lote | RN-32 a RN-43 | 12 |
-| D: Cliente e pedido | RN-44 a RN-52 | 9 |
-| E: Acesso e responsabilidade | RN-53 a RN-54 | 2 |
-| **Total** | | **54** |
+| B: Produção, lote e trabalho | RN-08 a RN-29 | 22 |
+| C: Protocolo de atividades por lote | RN-30 a RN-41 | 12 |
+| D: Cliente e pedido | RN-42 a RN-50 | 9 |
+| E: Acesso e responsabilidade | RN-51 a RN-52 | 2 |
+| **Total** | | **52** |
 
 | Tipo | Quantidade |
 |---|---:|
 | Fato | 25 |
-| Restrição | 17 |
-| Derivação | 11 |
+| Restrição | 16 |
+| Derivação | 10 |
 | Acionamento | 1 |
 
 ---
 
 ## 4. Rastreabilidade inversa: requisito funcional → regra que o origina
 
-Os 58 requisitos funcionais de `B2`. Três não decorrem de regra de
+Os 58 requisitos funcionais de `B2`. Quatro não decorrem de regra de
 negócio e estão justificados na seção 6.
 
 | RF | Regras que o originam |
 |---|---|
-| RF-01 | RN-53, RN-54 |
+| RF-01 | - |
 | RF-02 | - |
 | RF-03 | - |
-| RF-04 | RN-54 |
-| RF-05 | RN-53 |
-| RF-06 | RN-53 |
+| RF-04 | RN-52 |
+| RF-05 | RN-51 |
+| RF-06 | RN-51 |
 | RF-07 | - |
-| RF-08 | RN-12, RN-27 |
-| RF-09 | RN-11, RN-27 |
+| RF-08 | RN-12, RN-26 |
+| RF-09 | RN-11, RN-26 |
 | RF-10 | RN-01, RN-02, RN-03 |
 | RF-11 | RN-04 |
 | RF-12 | RN-07 |
 | RF-13 | RN-17 |
-| RF-14 | RN-47 |
-| RF-15 | RN-46 |
-| RF-16 | RN-45, RN-51 |
-| RF-17 | RN-45 |
-| RF-18 | RN-47 |
-| RF-19 | RN-47 |
-| RF-20 | RN-47 |
-| RF-21 | RN-15, RN-23, RN-24, RN-25 |
-| RF-22 | RN-05, RN-32, RN-36, RN-39 |
-| RF-23 | RN-33 |
-| RF-24 | RN-37 |
-| RF-25 | RN-38 |
-| RF-26 | RN-12, RN-26 |
-| RF-27 | RN-31 |
+| RF-14 | RN-45 |
+| RF-15 | RN-44 |
+| RF-16 | RN-43, RN-49 |
+| RF-17 | RN-43 |
+| RF-18 | RN-45 |
+| RF-19 | RN-45 |
+| RF-20 | RN-45 |
+| RF-21 | RN-15, RN-23, RN-24 |
+| RF-22 | RN-05, RN-30, RN-34, RN-37 |
+| RF-23 | RN-31 |
+| RF-24 | RN-35 |
+| RF-25 | RN-36 |
+| RF-26 | RN-12, RN-25 |
+| RF-27 | RN-29 |
 | RF-28 | RN-13 |
-| RF-29 | RN-24, RN-25, RN-28 |
-| RF-30 | RN-25 |
+| RF-29 | RN-23, RN-24, RN-27 |
+| RF-30 | RN-24 |
 | RF-31 | RN-14 |
 | RF-32 | RN-01, RN-04, RN-18, RN-19 |
-| RF-33 | RN-19, RN-22, RN-29 |
+| RF-33 | RN-19, RN-22, RN-28 |
 | RF-34 | RN-20 |
 | RF-35 | RN-08 |
 | RF-36 | RN-21 |
-| RF-37 | RN-25 |
+| RF-37 | RN-24 |
 | RF-38 | RN-10 |
 | RF-39 | RN-09 |
-| RF-40 | RN-41 |
+| RF-40 | RN-39 |
 | RF-41 | RN-10 |
 | RF-42 | RN-11 |
 | RF-43 | RN-04, RN-06, RN-08, RN-16 |
-| RF-44 | RN-29, RN-30 |
-| RF-45 | RN-30, RN-42 |
-| RF-46 | RN-32 |
-| RF-47 | RN-43 |
-| RF-48 | RN-36 |
-| RF-49 | RN-34 |
-| RF-50 | RN-35 |
-| RF-51 | RN-42 |
-| RF-52 | RN-37 |
-| RF-53 | RN-40 |
-| RF-54 | RN-01, RN-04, RN-44, RN-48 |
-| RF-55 | RN-52 |
+| RF-44 | RN-28 |
+| RF-45 | RN-40 |
+| RF-46 | RN-30 |
+| RF-47 | RN-41 |
+| RF-48 | RN-34 |
+| RF-49 | RN-32 |
+| RF-50 | RN-33 |
+| RF-51 | RN-40 |
+| RF-52 | RN-35 |
+| RF-53 | RN-38 |
+| RF-54 | RN-01, RN-04, RN-42, RN-46 |
+| RF-55 | RN-50 |
 | RF-56 | RN-06, RN-08 |
-| RF-57 | RN-50 |
-| RF-58 | RN-44 |
+| RF-57 | RN-48 |
+| RF-58 | RN-42 |
 ## 5. Rastreabilidade inversa: requisito não funcional → origem
 
 Os requisitos não funcionais deste projeto **não decorrem de regra de negócio**, e sim das
@@ -313,21 +317,21 @@ diz o que o sistema tem de fazer, e o ambiente diz sob que condições ele tem d
 
 | RNF | Origem primária | Regra relacionada |
 |---|---|---|
-| RNF-01 | RE-1: usuários sem formação técnica | RN-46, RN-25 |
-| RNF-02 | RE-1: usuários sem formação técnica | RN-03, RN-10, RN-44, RN-15, RN-07 |
+| RNF-01 | RE-1: usuários sem formação técnica | RN-44, RN-24 |
+| RNF-02 | RE-1: usuários sem formação técnica | RN-03, RN-10, RN-42, RN-15, RN-07 |
 | RNF-03 | RE-4: mãos sujas, sol e chuva | - |
 | RNF-04 | RE-4: mãos sujas, sol e chuva | - |
 | RNF-05 | RE-3: conexão instável | - |
 | RNF-06 | RE-2: celular como dispositivo principal | - |
 | RNF-07 | RE-1: usuários sem formação técnica | RN-02 |
-| RNF-08 a RNF-12 | ORG: política de segurança do projeto | RN-53 |
+| RNF-08 a RNF-12 | ORG: política de segurança do projeto | RN-51 |
 | RNF-13 | RE-5: orçamento de microempresa | - |
 | RNF-15 a RNF-19 | ORG: convenções de desenvolvimento | - |
-| RNF-20 | LEG: Lei nº 13.709/2018 | RN-49 |
-| RNF-21 | LEG: exigência do emissor fiscal externo | RN-45, RN-53 |
-| RNF-22 | LEG e DOM: compensação ambiental | RN-02, RN-48 |
+| RNF-20 | LEG: Lei nº 13.709/2018 | RN-47 |
+| RNF-21 | LEG: exigência do emissor fiscal externo | RN-43, RN-51 |
+| RNF-22 | LEG e DOM: compensação ambiental | RN-02, RN-46 |
 | RNF-23 | RE-2 e RE-5: dispositivo e orçamento | - |
-| RNF-14 | RE-2: celular como dispositivo principal | RN-29, RN-30 |
+| RNF-14 | RE-2: celular como dispositivo principal | RN-28 |
 
 ---
 
@@ -335,13 +339,16 @@ diz o que o sistema tem de fazer, e o ambiente diz sob que condições ele tem d
 
 ### 6.1 Requisitos funcionais sem regra de negócio
 
-Três dos cinquenta e oito requisitos funcionais não têm regra de negócio que os origine. Os três são
-de política do projeto, e nenhum é omissão do catálogo. Eram quatro até 31/08/2026: o outro, que
-prescrevia a organização de uma tela, foi cortado por não ser requisito, e a decisão de interface
-que ele carregava vive no protótipo [`F1`](../F-ux/F1-prototipo-de-telas.html).
+Quatro dos cinquenta e oito requisitos funcionais não têm regra de negócio que os origine. Os quatro
+são de política do projeto, e nenhum é omissão do catálogo. Eram quatro também até 31/08/2026, mas
+não os mesmos: um deles, que prescrevia a organização de uma tela, foi cortado por não ser
+requisito, e a decisão de interface que ele carregava vive no protótipo
+[`F1`](../F-ux/F1-prototipo-de-telas.html). RF-01 entrou em 15/09/2026, na revisão de orientação,
+quando a sua rastreabilidade foi corrigida.
 
 | RF | Por que não tem regra de negócio |
 |---|---|
+| RF-01 | Autenticar antes de conceder acesso é política de segurança do projeto (ORG); o viveiro não tinha acesso a controlar. RN-51 e RN-52 **pressupõem** a autenticação, e é por isso que a rastreabilidade as apontava aqui até 15/09/2026, mas quem realiza o que elas exigem é RF-05 e RF-06, de um lado, e RF-04, de outro |
 | RF-02 | Trocar senha no primeiro acesso é política de segurança do projeto (ORG), não prática do viveiro |
 | RF-03 | Encerrar a própria sessão é higiene de acesso (ORG); o viveiro não tinha sessão para encerrar |
 | RF-07 | Ver e encerrar sessões ativas é decorrência de RF-03, e da mesma origem |
@@ -367,8 +374,8 @@ condições do ambiente. Os outros treze vêm de política do projeto (ORG) ou d
 
 | RN | O que fica de fora |
 |---|---|
-| RN-49 | A regra de proteção de dados é realizada por RNF-20 e pelo mapeamento de [`E5`](../E-qualidade/E5-mapeamento-lgpd.md), e não por requisito funcional: não há tela de LGPD, há uma forma de tratar o dado em todas elas |
-| RN-29 | O **aviso**, no próprio ato de criar o lote, de que a leva não cabe no que resta do canteiro. RF-32 manda criar o lote informando o canteiro e não menciona conferência nenhuma: quem realiza o aviso é o fluxo de [`UC-22`](../C-modelagem/C2-especificacao-casos-de-uso.md), não um RF que o descreva por escrito |
+| RN-47 | A regra de proteção de dados é realizada por RNF-20 e pelo mapeamento de [`E5`](../E-qualidade/E5-mapeamento-lgpd.md), e não por requisito funcional: não há tela de LGPD, há uma forma de tratar o dado em todas elas |
+| RN-28 | O **aviso**, no próprio ato de criar o lote, de que a leva não cabe no que resta do canteiro. RF-32 manda criar o lote informando o canteiro e não menciona conferência nenhuma: quem realiza o aviso é o fluxo de [`UC-22`](../C-modelagem/C2-especificacao-casos-de-uso.md), não um RF que o descreva por escrito |
 
 ---
 
@@ -387,7 +394,7 @@ não dependa de abrir outro arquivo. **Não editar aqui**: a fonte é o `B2`.
 | RF-04 | O sistema deve registrar cada tentativa de autenticação com data, origem e dispositivo | DV | ORG |
 | RF-05 | O sistema deve permitir ao administrador criar usuários e atribuir perfil | D | ORG |
 | RF-06 | O sistema deve verificar a permissão do perfil a cada operação, e não apenas ocultar elementos da interface | D | ORG |
-| RF-07 | O sistema deveria permitir ao usuário visualizar e encerrar suas sessões ativas | DV | ORG |
+| RF-07 | O sistema deve permitir ao usuário visualizar e encerrar suas sessões ativas | DV | ORG |
 | RF-08 | O sistema deve permitir manter o período de trabalho, com hora de início e de fim de cada turno, e adotá-lo como jornada padrão da agenda | D | EN |
 | RF-09 | O sistema deve permitir alterar o valor dos parâmetros de operação, os limites de atenção e de atraso do lote e o limite de mortalidade, sem permitir criar nem excluir parâmetro | D | ORG |
 | RF-10 | O sistema deve permitir cadastrar espécie com nome científico, nomes populares, características e fotografia, e localizá-la por qualquer um desses nomes | D | EN, DOM, OP |
@@ -401,16 +408,16 @@ não dependa de abrir outro arquivo. **Não editar aqui**: a fonte é o `B2`.
 | RF-18 | O sistema deve permitir localizar pessoa por nome, telefone ou documento | D | OP |
 | RF-19 | O sistema deve permitir cadastrar fornecedor com contato e localização | DV | EN |
 | RF-20 | O sistema deve permitir cadastrar funcionário com contato e vínculo (fixo ou diarista), inclusive quando ele não tem acesso ao sistema | D | EN |
-| RF-21 | O sistema deve permitir manter o catálogo de tipos de tarefa, com nome, categoria e a declaração de se a tarefa é quantitativa por unidade e de se exige lote específico, espécie e recipiente, e deve pedir, no planejamento e na confirmação, exatamente os dados que o tipo declarar exigir, e nenhum outro | D | OP, ORG |
+| RF-21 | O sistema deve permitir manter o catálogo de tipos de tarefa, com nome, categoria, a declaração de se a tarefa é quantitativa por unidade e em que unidade se conta, e de se exige lote específico, espécie, recipiente e área, e deve pedir, no planejamento e na confirmação, exatamente os dados que o tipo declarar exigir, e nenhum outro | D | OP, ORG |
 | RF-22 | O sistema deve permitir manter, por recipiente, um protocolo de atividades como sequência ordenada de etapas, cada etapa referenciando um tipo de tarefa do catálogo e declarando se o agendamento é sequencial ou recorrente, com o tempo em dias | D | EN |
 | RF-23 | O sistema deve permitir que cada etapa do protocolo declare o seu evento de referência: a criação do lote ou a conclusão de uma etapa específica do mesmo protocolo | D | DOM |
 | RF-24 | O sistema deve permitir ligar e desligar o alerta de atraso por etapa do protocolo, e sobrescrever nela a janela de aviso padrão | D | OP |
-| RF-25 | O sistema deveria permitir, no cadastro da espécie, sobrescrever o tempo em dias de uma etapa específica do protocolo | DV | DOM |
+| RF-25 | O sistema deve permitir, no cadastro da espécie, sobrescrever o tempo em dias de uma etapa específica do protocolo | DV | DOM |
 | RF-26 | O sistema deve permitir montar a agenda da semana atribuindo, por funcionário e por dia, o tipo de tarefa e o turno, manhã ou tarde, admitindo a mesma tarefa para mais de um funcionário e mais de uma tarefa no mesmo turno com grupos diferentes, e deve permitir declarar a hora de início e de fim da tarefa que tiver hora marcada, sem exigi-la das demais | D | EN, OP |
 | RF-27 | O sistema deve permitir copiar a agenda da semana anterior e marcar tarefas como recorrentes, que passam a nascer preenchidas na cópia | D | OP |
 | RF-28 | O sistema deve controlar a situação da semana (rascunho, publicada e fechada) e impedir alteração depois do fechamento | D | ORG |
 | RF-29 | O sistema deve permitir confirmar a atribuição como realizada, apresentando os campos que o tipo de tarefa exigir, o lote uma vez para a tarefa e a quantidade uma vez por participante, exigindo o lote quando o tipo declarar lote específico e pedindo a quantidade apenas quando o tipo for quantitativo por unidade | D | OP |
-| RF-30 | O sistema deve permitir registrar a área ou o canteiro da tarefa que não exige lote, e dispensá-los quando o lote os determinar | D | OP |
+| RF-30 | O sistema deve permitir registrar a área ou o canteiro da tarefa cujo tipo declarar área, e dispensá-los quando o lote os determinar | D | OP |
 | RF-31 | O sistema deve assumir como realizada, ao fechar a semana, a tarefa planejada que não foi confirmada, registrando essa condição | DV | ORG |
 | RF-32 | O sistema deve permitir criar lote informando espécie, recipiente, quantidade, área e canteiro | D | OP |
 | RF-33 | O sistema deve apresentar a ocupação do viveiro por área e canteiro, indicando os lotes de cada canteiro ocupado e quais estão livres, e deve encerrar o lote quando o saldo chegar a zero, liberando o canteiro e preservando o histórico | D | EN, ORG |
@@ -427,13 +434,13 @@ não dependa de abrir outro arquivo. **Não editar aqui**: a fonte é o `B2`.
 | RF-44 | O sistema deve apresentar o mapa do viveiro com as áreas, os canteiros de cada área e os lotes abertos de cada canteiro, cada lote com a sua situação | D | EN |
 | RF-45 | O sistema deve classificar o lote em saudável, atenção e crítico a partir das etapas do protocolo vencidas ou a vencer nele, sem que a situação seja digitada, e apresentar, ao apontar o lote, a tarefa pendente que determina essa situação e o atraso em dias | D | ORG, OP |
 | RF-46 | O sistema deve atribuir ao lote, na criação, o protocolo vigente do recipiente dele, e acompanhar o lote etapa a etapa | D | ORG |
-| RF-47 | O sistema deve gerar as ordens de tarefa do protocolo na agenda sem digitação, abrindo em rascunho a semana do vencimento quando ela ainda não existir, e permitir alterar ou excluir a ordem de um dia sem alterar a etapa | D | ORG |
+| RF-47 | O sistema deve apresentar, ao lado da agenda da semana, as etapas de protocolo vencidas ou a vencer como **sugestão** de tarefa, sem lançar nada na agenda, e, quando a sugestão for aceita, abrir o lançamento de tarefa já com a etapa, o lote e o tipo preenchidos, exigindo os demais dados que o tipo declarar | D | ORG |
 | RF-48 | O sistema deve avançar a fase do lote ao concluir uma etapa sequencial que declare fase resultante, e não deve avançá-la ao concluir etapa recorrente | D | DOM |
 | RF-49 | O sistema deve contar a ocorrência seguinte de etapa recorrente a partir da data real da execução anterior, e nunca de uma data de calendário prevista | D | DOM |
 | RF-50 | O sistema deve manter no máximo uma ordem em aberto por etapa e por lote, sem gerar ocorrência nova enquanto a anterior estiver pendente | D | ORG |
 | RF-51 | O sistema deve apresentar, no lote, as etapas do protocolo com a data da última execução, o próximo vencimento e a situação de cada uma | D | EN |
 | RF-52 | O sistema deve apresentar a etapa em atenção dentro da janela de aviso e em atraso depois do vencimento, e sem indicação de situação quando o alerta da etapa estiver desligado | D | OP |
-| RF-53 | O sistema deve encerrar o protocolo do lote quando ele se encerra por saldo zero, por expedição total ou por divisão, cancelando as ordens ainda em aberto sem removê-las | D | ORG |
+| RF-53 | O sistema deve encerrar o protocolo do lote quando ele se encerra por saldo zero, por expedição total ou por divisão, deixando de sugerir etapas dele e cancelando as tarefas ainda não confirmadas sem removê-las | D | ORG |
 | RF-54 | O sistema deve permitir registrar pedido com cliente, canal de venda e itens compostos por espécie, recipiente e quantidade | D | OP |
 | RF-55 | O sistema deve registrar o preço unitário informado em cada item do pedido, e apresentar o total do item e o do pedido | D | EN |
 | RF-56 | O sistema deve apresentar, ao lado de cada item do pedido, a quantidade de muda pronta que a produção tem daquela espécie e recipiente | D | OP |

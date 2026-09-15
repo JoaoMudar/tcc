@@ -39,7 +39,7 @@ das sete às oito tem horário na vida real. A carga de terra chega meio-dia. Es
 
 **O turno não vale quatro horas por decreto.** A hora de início e de fim de cada turno é
 **cadastro**, na tela de configurações. Muda com a estação e com a combinação da equipe, e
-convenção que muda é dado, não constante escondida no código (RN-27).
+convenção que muda é dado, não constante escondida no código (RN-26).
 
 **A hora da tarefa não é a hora da pessoa.** Registrar que a irrigação é das sete às oito diz
 quando a tarefa acontece. Medir quando cada funcionário chegou e saiu é **controle de ponto**, que
@@ -80,14 +80,14 @@ E uma tarefa pode ser lançada **para um intervalo de dias** de uma vez, em vez 
 
 Metade da equipe enchendo saquinho enquanto a outra metade repica é a **norma**, não a exceção.
 Por isso uma atribuição tem **um grupo de funcionários**, e o mesmo turno comporta duas tarefas
-com grupos diferentes (RN-26).
+com grupos diferentes (RN-25).
 
 > **Por que não uma linha por pessoa.** Escalar quatro pessoas na mesma tarefa criaria quatro
 > atribuições idênticas, e a tarefa deixaria de ser uma coisa só para virar quatro coisas
 > parecidas.
 
 **A quantidade, porém, é de cada um.** Quatro pessoas enchendo saquinho produzem quatro números, e
-é assim que o viveiro fala (RN-24). Nunca um total dividido pelo tamanho do grupo, que inventaria
+é assim que o viveiro fala (RN-23). Nunca um total dividido pelo tamanho do grupo, que inventaria
 um rendimento que ninguém teve.
 
 ## As telas
@@ -193,7 +193,7 @@ existem na agenda mesmo sem nunca terem feito login.
 | Artefato | O que esta rotina acrescentou |
 |---|---|
 | [`A2`](../../engenharia/A-fundacao/A2-glossario-dominio.md) | §5: Turno, Período de trabalho, Tipo de tarefa, Atribuição, Situação da atribuição, Semana |
-| [`B3`](../../engenharia/B-requisitos/B3-regras-de-negocio.md) | RN-23 a RN-26, RN-27, RN-24, RN-31; RN-12 e RN-14 emendadas; ressalvas em §2.4 |
+| [`B3`](../../engenharia/B-requisitos/B3-regras-de-negocio.md) | RN-23 a RN-26, RN-29; RN-12 e RN-14 emendadas; ressalvas em §2.4 |
 | [`B2`](../../engenharia/B-requisitos/B2-especificacao-requisitos.md) | RF-21 e RF-08; RF-26 a RF-31, a agenda e a confirmação; RF-26 na entrada da área, com **RNF-14** e a emenda de RNF-06 |
 | [`C1`](../../engenharia/C-modelagem/C1-diagrama-casos-de-uso.md) / [`C2`](../../engenharia/C-modelagem/C2-especificacao-casos-de-uso.md) | UC-15, UC-19, UC-20, UC-21 e UC-05; UC-20 detalhado |
 | [`C6`](../../engenharia/C-modelagem/C6-modelo-entidade-relacionamento.md) / [`C8`](../../engenharia/C-modelagem/C8-dicionario-de-dados.md) | `semanas`, `atribuicoes`, `atribuicoes_participantes`, `turnos_trabalho` e `tipos_tarefa`; `atribuicoes` guarda o planejado e o confirmado na mesma linha, e por isso não há entidade de apontamento |

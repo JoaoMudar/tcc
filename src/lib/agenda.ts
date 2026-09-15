@@ -112,7 +112,7 @@ export function parseAtribuicao(
   if ('error' in horario) return horario;
 
   const escolhido = (declarado: boolean, valor: string) => (declarado && isUuid(valor) ? valor : null);
-  // Área e canteiro só no tipo que os declara; o banco já recusa junto com lote (RN-25)
+  // Área e canteiro só no tipo que os declara; o banco já recusa junto com lote (RN-24)
   const areaId = escolhido(tipo.exigeArea, bruta.areaId);
   const canteiroId = areaId ? escolhido(tipo.exigeArea, bruta.canteiroId) : null;
 
@@ -533,7 +533,7 @@ async function conferirReferencias(client: Client, input: AtribuicaoInput): Prom
 }
 
 /**
- * RF-27, RN-31: traz as atribuições da semana `origemInicio` para a semana
+ * RF-27, RN-29: traz as atribuições da semana `origemInicio` para a semana
  * `destinoId`, sete dias depois. Volta planejada e sem contagem; só com quem
  * ainda é funcionário, com o lote só se ele segue aberto, e sem as ordens do
  * protocolo, que o motor gera sozinho. A tarefa que ficou sem ninguém não é copiada.
@@ -569,7 +569,7 @@ async function copiarDaSemana(client: Client, origemInicio: string, destinoId: s
 }
 
 /**
- * Cria a semana em rascunho, já com as tarefas recorrentes da anterior (RN-31).
+ * Cria a semana em rascunho, já com as tarefas recorrentes da anterior (RN-29).
  * Semana que já existe volta como está, sem copiar de novo.
  */
 export async function abrirSemana(client: Client, inicio: string): Promise<{ id: string; criada: boolean; recorrentes: number }> {

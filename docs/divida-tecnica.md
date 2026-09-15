@@ -155,6 +155,15 @@ existem e estão preenchidas; `usuarios` ficou de fora. É pré-requisito para a
   exige autorização explícita (regra do `CLAUDE.md`).
 - **Nenhum teste E2E.** Não há Playwright nem Cypress. Consequência direta: os fluxos de campo
   (registrar consumo no celular, separar carga) só foram validados à mão.
+- **Comentários de coluna divergem do banco (15/09/2026).** A revisão de orientação trocou, nos
+  arquivos de migration, os identificadores de regra citados em `COMMENT ON`. O texto no arquivo
+  está certo, e o gravado no banco é o antigo, porque `COMMENT ON` já aplicado só muda com
+  migration nova. Atinge `situacao_lote`, `recipientes` e os três parâmetros de
+  `20260901000001`. Nada funcional depende disso: é documentação de coluna, e a correção cabe
+  junto da próxima migration que tocar essas tabelas.
+- **`tcc-implantacao-e-validacao.md` é artefato órfão.** Não está em nenhum dos arranjos de
+  `scripts/build-word.mjs`, então nenhuma seção do Capítulo 4 o consome e ele não chega à pasta
+  `word/`. Pelo conteúdo, o destino natural é a seção 4.8, hoje gerada só a partir do `F3`.
 
 ---
 

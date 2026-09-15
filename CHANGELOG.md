@@ -6,7 +6,7 @@ schema inicial em português e estão descritas no `C8`.
 ## 15/09/2026 · `20260915000001_tipos_tarefa_area_e_unidade.sql`
 
 - `tipos_tarefa.exige_area` (boolean): área e canteiro só aparecem na confirmação do tipo que o
-  declara. CHECK `tipos_tarefa_area_ou_lote` impede declarar junto com lote (RN-25).
+  declara. CHECK `tipos_tarefa_area_ou_lote` impede declarar junto com lote (RN-24).
 - `tipos_tarefa.unidade_medida` (text, lista fechada `un`, `kg`, `g`, `L`, `mL`, padrão `un`).
 - `atribuicoes.quantidade_planejada` e `atribuicoes_participantes.quantidade_feita` passam de
   `INTEGER` a `NUMERIC(10,2)`, para quilo e litro com fração.

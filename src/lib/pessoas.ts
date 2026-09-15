@@ -22,7 +22,7 @@ import { type Db, escapeLike, violatedConstraint } from './sql';
 export * from './pessoas-form';
 
 /**
- * Ponto único de escrita da pessoa (RF-14, RN-47): identidade, papéis e
+ * Ponto único de escrita da pessoa (RF-14, RN-45): identidade, papéis e
  * endereços passam por aqui. Cliente, fornecedor e funcionário são papéis da
  * mesma linha, e quem já existe ganha o papel em vez de um segundo cadastro.
  *

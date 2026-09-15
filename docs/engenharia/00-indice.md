@@ -29,13 +29,14 @@ São documentos de projeto, não relatórios de código.
 |---|---|---|---|
 | [A1](A-fundacao/A1-documento-de-visao.md) | Documento de Visão | 4.1 Visão geral da solução | ✅ escrito |
 | [A2](A-fundacao/A2-glossario-dominio.md) | Glossário do domínio | Apêndice | ✅ escrito |
+| [pré-textuais](tcc-pre-textuais.md) | Dedicatória, agradecimentos e epígrafe | Antes do sumário | ✅ escrito: nomes próprios entre colchetes, a preencher |
 
 ### B: Engenharia de requisitos
 
 | Código | Artefato | Destino no TCC | Situação |
 |---|---|---|---|
 | [B2](B-requisitos/B2-especificacao-requisitos.md) | Especificação de Requisitos (ERS) | 4.2 Requisitos do sistema | ✅ escrito: 58 RF, 24 RNF |
-| [B3](B-requisitos/B3-regras-de-negocio.md) | Regras de negócio e vínculo com os requisitos | 4.3 Regras de negócio | ✅ escrito: 54 regras, 55 dos 58 RF vinculados. **§4 e §7 geradas** por `scripts/build-b3-derivado.mjs` |
+| [B3](B-requisitos/B3-regras-de-negocio.md) | Regras de negócio e vínculo com os requisitos | 4.3 Regras de negócio | ✅ escrito: 52 regras, 54 dos 58 RF vinculados. **§4 e §7 geradas** por `scripts/build-b3-derivado.mjs` |
 | [B4](B-requisitos/B4-quadros-tcc.md) | Quadros de regras de negócio e requisitos | Apêndice D | ✅ **gerado** por `scripts/build-b4-quadros.mjs`: 10 quadros |
 | [B5](B-requisitos/B5-matriz-rastreabilidade.md) | Matriz de rastreabilidade | 4.10 + Apêndice | ✅ escrito: **§2 e §6 geradas** por `scripts/build-b5-matriz.mjs`; revelou 19 requisitos sem teste, todos fechados |
 

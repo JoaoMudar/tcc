@@ -134,7 +134,7 @@ describe('contagem (T4.6)', () => {
 });
 
 describe('repicagem e fase', () => {
-  it('perdidas sem causa é recusada antes do banco (RN-28)', async () => {
+  it('perdidas sem causa é recusada antes do banco (RN-27)', async () => {
     loggedAs('gerencia');
     const state = await actions.repicarLoteAction(
       {},

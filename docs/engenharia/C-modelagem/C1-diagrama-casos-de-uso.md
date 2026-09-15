@@ -307,7 +307,7 @@ ator, e inventar um seria registrar uma interação que não existe.
 | RF | O que o sistema faz sem ator | Caso de uso | Onde o resultado aparece |
 |---|---|---|---|
 | RF-45 | Classifica o lote em saudável, atenção e crítico | UC-27 | no próprio UC-27 |
-| RF-47 | Gera as ordens de tarefa do protocolo na agenda | *nenhum* | UC-19 |
+| RF-47 | Sugere, ao lado da agenda, as etapas de protocolo vencidas | *nenhum* | UC-19 |
 | RF-48 | Avança a fase do lote ao concluir etapa sequencial | *nenhum* | UC-28 |
 | RF-49 | Conta a ocorrência seguinte a partir da execução real | *nenhum* | UC-28 |
 | RF-50 | Mantém no máximo uma ordem em aberto por etapa | *nenhum* | UC-28 |

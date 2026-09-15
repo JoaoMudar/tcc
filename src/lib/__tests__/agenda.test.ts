@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   type AtribuicaoBruta,
   type AtribuicaoResumo,
+  type EstadoTarefaInput,
   detalhesAtribuicao,
+  estadoTarefa,
   formatHoraTarefa,
   formatQuantidadeMedida,
   lerQuantidadeMedida,
@@ -75,6 +77,42 @@ describe('hora da tarefa (RN-12)', () => {
   });
 });
 
+describe('estadoTarefa (RF-29, RF-31, RN-14)', () => {
+  function tarefa(over: Partial<EstadoTarefaInput> = {}): EstadoTarefaInput {
+    return { situacao: 'confirmada', eQuantitativa: true, quantidadePlanejada: 100, participantes: [], ...over };
+  }
+
+  it('devolve a situação crua quando não há o que medir', () => {
+    expect(estadoTarefa(tarefa({ situacao: 'planejada' }))).toBe('planejada');
+    expect(estadoTarefa(tarefa({ situacao: 'cancelada' }))).toBe('cancelada');
+  });
+
+  it('marca a não confirmada como presumida, e não como feita (RF-31, TA-34)', () => {
+    expect(estadoTarefa(tarefa({ situacao: 'nao_confirmada' }))).toBe('presumida');
+  });
+
+  it('confirma como feita a tarefa que não tem quantidade a comparar', () => {
+    expect(estadoTarefa(tarefa({ eQuantitativa: false }))).toBe('feita');
+    expect(estadoTarefa(tarefa({ quantidadePlanejada: null }))).toBe('feita');
+  });
+
+  it('trata quantidade em branco como "sem contagem", e não como zero (FA-4)', () => {
+    expect(estadoTarefa(tarefa({ participantes: [{ quantidade: null }, { quantidade: null }] }))).toBe('feita');
+  });
+
+  it('separa feita, parcial e não feita pela soma dos participantes', () => {
+    expect(estadoTarefa(tarefa({ participantes: [{ quantidade: 0 }] }))).toBe('nao_feita');
+    expect(estadoTarefa(tarefa({ participantes: [{ quantidade: 40 }, { quantidade: 30 }] }))).toBe('parcial');
+    expect(estadoTarefa(tarefa({ participantes: [{ quantidade: 60 }, { quantidade: 40 }] }))).toBe('feita');
+    expect(estadoTarefa(tarefa({ participantes: [{ quantidade: 120 }] }))).toBe('feita');
+  });
+
+  it('soma só quem foi contado, ignorando os participantes em branco', () => {
+    expect(estadoTarefa(tarefa({ participantes: [{ quantidade: 100 }, { quantidade: null }] }))).toBe('feita');
+    expect(estadoTarefa(tarefa({ participantes: [{ quantidade: 10 }, { quantidade: null }] }))).toBe('parcial');
+  });
+});
+
 describe('parseAtribuicao (RF-21, RF-26, RF-30)', () => {
   it('aceita pessoas, dias e turno, sem repetir', () => {
     const v = valor(parseAtribuicao(SIMPLES, bruta({ participantes: [P1, P2, P1], dias: ['2026-09-16', SEMANA, SEMANA] })));
@@ -124,7 +162,7 @@ describe('parseAtribuicao (RF-21, RF-26, RF-30)', () => {
     expect(valor(parseAtribuicao(SIMPLES, bruta({ canteiroId: CANTEIRO })))).toMatchObject({ areaId: null, canteiroId: null });
   });
 
-  it('RN-25: com lote exigido, área e canteiro não são pedidos; o lote pode ficar para a confirmação', () => {
+  it('RN-24: com lote exigido, área e canteiro não são pedidos; o lote pode ficar para a confirmação', () => {
     expect(valor(parseAtribuicao(COM_LOTE, bruta({ loteId: LOTE, areaId: AREA, canteiroId: CANTEIRO })))).toMatchObject({
       loteId: LOTE,
       areaId: null,

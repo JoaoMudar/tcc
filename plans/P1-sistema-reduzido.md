@@ -104,13 +104,13 @@ do UC-13, sem tabela e com RF-19 desejável.*
 ## Fase 4: Lotes e movimentos
 
 - [x] **T4.1** `src/lib/movimentos.ts`, a **porta única**: numa transação com trava de linha, grava em `movimentos_lote`, atualiza `quantidade_atual`, recusa saldo negativo e encerra o lote em zero liberando o canteiro (RF-33, RF-36). Teste de integração: a soma dos movimentos reproduz o saldo (TA-64). *A data do movimento sai do fuso do viveiro, não do `CURRENT_DATE` do Neon (UTC)*
-- [x] **T4.2** Criar lote: código gerado, posição no canteiro e movimento de entrada (RF-32). *Código `AAAA-NNNN` sob trava consultiva por ano; posição no fim do canteiro, com o canteiro travado; migration `20260914000001` cria o índice `lotes_posicao_unica_no_canteiro` que o C8 já descrevia. Qualquer canteiro é aceito e a capacidade só avisa (RN-19, RN-29)*
+- [x] **T4.2** Criar lote: código gerado, posição no canteiro e movimento de entrada (RF-32). *Código `AAAA-NNNN` sob trava consultiva por ano; posição no fim do canteiro, com o canteiro travado; migration `20260914000001` cria o índice `lotes_posicao_unica_no_canteiro` que o C8 já descrevia. Qualquer canteiro é aceito e a capacidade só avisa (RN-19, RN-28)*
 - [x] **T4.3** Ocupação do viveiro por área e canteiro, com os livres distinguíveis (RF-33). *`/producao/lotes`*
 - [x] **T4.4** Ficha do lote com o histórico de movimentos e o lote de origem (RF-35). *Mostra também os lotes que nasceram dele e a mortalidade*
 - [x] **T4.5** Perda com causa em lista fechada, em até cinco campos (RF-37, RF-38, RNF-01). *Três campos e a causa tocada*
 - [x] **T4.6** Contagem física, gerando o ajuste (RF-39). *Contagem igual ao saldo não grava movimento: a constraint só admite quantidade zero na transferência*
 - [x] **T4.7** Transferência de canteiro
-- [x] **T4.8** Repicagem: saída no lote de origem, lote novo apontando para ele, entrada no novo (RF-34). *As que morreram no processo viram perda do lote de origem na mesma transação (RN-28); repicar para o mesmo recipiente é recusado*
+- [x] **T4.8** Repicagem: saída no lote de origem, lote novo apontando para ele, entrada no novo (RF-34). *As que morreram no processo viram perda do lote de origem na mesma transação (RN-27); repicar para o mesmo recipiente é recusado*
 - [x] **T4.9** Alteração manual da fase do lote enquanto o protocolo não existe. ✅ *Confirmado em 14/09/2026: a gerência pode alterar a fase à mão. Sem `encerrado`, que só a porta põe*
 - [x] **T4.10** Saldo de muda pronta por espécie e recipiente (RF-43, UC-29). *`saldoPronto` em `src/lib/estoque.ts`, a função que T8.2 vai ler*
 - [x] **T4.11** Análise de perdas por período, espécie e causa, e o cálculo da mortalidade como função pura (RF-41, RF-42). *A taxa é do lote inteiro; o destaque no mapa fica para T7.3*

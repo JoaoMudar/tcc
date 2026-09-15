@@ -230,7 +230,7 @@ cobertura total.
 ### 5.2 Requisitos que descrevem o que o sistema faz sozinho
 
 **Cinco requisitos não têm ator**, e a ausência **não é lacuna**: RF-45 calcula, e RF-47 a
-RF-50 são o motor de geração de ordens do protocolo. Confrontá-los com o catálogo de casos de uso
+RF-50 são o motor do protocolo, que sugere e acompanha sem que ninguém o acione. Confrontá-los com o catálogo de casos de uso
 obrigou a decidir entre inventar um ator ou declarar a ausência, e a decisão está em
 [`C1` §4.1](../C-modelagem/C1-diagrama-casos-de-uso.md).
 

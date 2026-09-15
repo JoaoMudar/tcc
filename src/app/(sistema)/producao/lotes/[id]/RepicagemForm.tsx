@@ -22,7 +22,7 @@ interface RepicagemFormProps {
   atribuicaoId?: string | null;
 }
 
-/** F1 UC-23, T4.8: quantas repicar, para qual recipiente e canteiro; as que morreram viram perda do lote (RN-28). */
+/** F1 UC-23, T4.8: quantas repicar, para qual recipiente e canteiro; as que morreram viram perda do lote (RN-27). */
 export function RepicagemForm({ loteId, codigo, saldo, recipientes, canteiros, atribuicaoId = null }: RepicagemFormProps) {
   const [state, formAction, pending] = useActionState(repicarLoteAction, EMPTY_FORM_STATE);
   const fields = state.error ? state.fields : undefined;

@@ -1,7 +1,7 @@
 -- Migration: 20260901000005_producao_agenda.sql
 -- Descricao: A agenda da semana: o planejado e o confirmado, na mesma linha.
 --
--- Requisitos: RF-26 a RF-31 · Regras: RN-12 a RN-14, RN-24 a RN-26, RN-31
+-- Requisitos: RF-26 a RF-31 · Regras: RN-12 a RN-14, RN-23 a RN-25, RN-29
 -- Entidades: C8 `semanas`, `atribuicoes`, `atribuicoes_participantes`
 --
 -- NAO HA APONTAMENTO POR RELOGIO. `atribuicoes.situacao` percorre planejada,
@@ -50,7 +50,7 @@ CREATE TABLE atribuicoes (
 
   tipo_tarefa_id       UUID NOT NULL REFERENCES tipos_tarefa(id),
 
-  -- Preenchidos conforme o tipo de tarefa declarar exigir (RF-21, RN-25).
+  -- Preenchidos conforme o tipo de tarefa declarar exigir (RF-21, RN-24).
   especie_id           UUID REFERENCES especies(id),
   recipiente_id        UUID REFERENCES recipientes(id),
   lote_id              UUID REFERENCES lotes(id),
@@ -62,20 +62,20 @@ CREATE TABLE atribuicoes (
 
   quantidade_planejada INTEGER,
 
-  -- E UMA MARCA, E NAO UMA REGRA DE CALENDARIO (RN-31). Diz que a atribuicao faz
+  -- E UMA MARCA, E NAO UMA REGRA DE CALENDARIO (RN-29). Diz que a atribuicao faz
   -- parte da rotina fixa e, por isso, vem preenchida ao copiar a semana anterior
   -- (RF-27). Uma entidade de recorrencia existiria para gerar dias sozinha, e o que
   -- gera dia sozinho neste modelo e o protocolo, cujo sujeito e o lote.
   e_recorrente         BOOLEAN NOT NULL DEFAULT false,
 
-  -- Etapa do protocolo daquele lote que gerou esta ordem (RN-43). Nula = lancada a
-  -- mao. A FK entra com `lotes_etapas`, quando o protocolo existir.
+  -- Etapa do protocolo cuja sugestao originou esta tarefa (RN-41). Nula = lancada
+  -- sem sugestao por tras. A FK entra com `lotes_etapas`, quando o protocolo existir.
   lote_etapa_id        UUID,
 
-  -- Vencimento que a ordem representa, congelado na geracao. Distingue-se de
-  -- `data_trabalho`, que a gerencia pode remarcar: sem separar os dois, empurrar a
-  -- ordem para a semana seguinte apagaria o atraso que ela existe para denunciar
-  -- (RN-43).
+  -- Vencimento da etapa que gerou a sugestao, congelado no aceite. Distingue-se de
+  -- `data_trabalho`, que a gerencia escolhe: sem separar os dois, lancar a tarefa
+  -- para a semana seguinte apagaria o atraso que a etapa existe para denunciar
+  -- (RN-41).
   vencimento_protocolo DATE,
 
   situacao             TEXT NOT NULL DEFAULT 'planejada',
@@ -84,7 +84,7 @@ CREATE TABLE atribuicoes (
   atualizado_em        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
   -- `nao_confirmada` e a que o fechamento da semana assume como realizada (RN-14),
-  -- e `cancelada` e a ordem que o encerramento do lote invalidou (RN-40).
+  -- e `cancelada` e a ordem que o encerramento do lote invalidou (RN-38).
   CONSTRAINT atribuicoes_situacao_valida CHECK (situacao IN
     ('planejada', 'confirmada', 'nao_confirmada', 'cancelada')),
 
@@ -107,12 +107,13 @@ CREATE TRIGGER atribuicoes_define_atualizado_em
 -- ------------------------------------------------------------
 -- Quem executa, e quanto cada um fez
 -- ------------------------------------------------------------
--- A QUANTIDADE E DE CADA PESSOA, E NAO DA TAREFA (RN-24). Quatro pessoas enchendo
+-- A QUANTIDADE E DE CADA PESSOA, E NAO DA TAREFA (RN-23). Quatro pessoas enchendo
 -- saquinho produzem quatro numeros, e e assim que o viveiro fala. Guardar um total
 -- na atribuicao perderia justamente o dado que ela quer.
 --
--- A ordem do protocolo nasce SEM NENHUMA LINHA AQUI (RN-43): o protocolo diz o que
--- fazer e quando, e quem faz continua sendo de quem monta a agenda.
+-- O PROTOCOLO SOZINHO NAO CRIA LINHA NENHUMA AQUI NEM EM `atribuicoes` (RN-41): ele
+-- diz o que fazer e quando, como sugestao. A tarefa so existe quando a gerencia
+-- aceita a sugestao e a preenche por inteiro, participantes inclusive.
 CREATE TABLE atribuicoes_participantes (
   atribuicao_id    UUID NOT NULL REFERENCES atribuicoes(id) ON DELETE CASCADE,
   pessoa_id        UUID NOT NULL REFERENCES cadastro.pessoas(id),
@@ -142,6 +143,6 @@ COMMENT ON TABLE semanas IS
 COMMENT ON TABLE atribuicoes IS
   'A celula da agenda. O planejado e o confirmado na mesma linha: situacao distingue os dois. RN-14.';
 COMMENT ON COLUMN atribuicoes.e_recorrente IS
-  'Marca de rotina fixa: vem preenchida ao copiar a semana. Nao e regra de calendario. RN-31.';
+  'Marca de rotina fixa: vem preenchida ao copiar a semana. Nao e regra de calendario. RN-29.';
 COMMENT ON TABLE atribuicoes_participantes IS
-  'Quem executou e quanto fez. A quantidade e de cada pessoa. RN-26, RN-24.';
+  'Quem executou e quanto fez. A quantidade e de cada pessoa. RN-25, RN-23.';

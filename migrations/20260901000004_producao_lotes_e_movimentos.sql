@@ -1,7 +1,7 @@
 -- Migration: 20260901000004_producao_lotes_e_movimentos.sql
 -- Descricao: O lote e o razao que explica o seu saldo.
 --
--- Requisitos: RF-32 a RF-40, RF-46 · Regras: RN-08 a RN-11, RN-18 a RN-22, RN-28, RN-24
+-- Requisitos: RF-32 a RF-40, RF-46 · Regras: RN-08 a RN-11, RN-18 a RN-22, RN-27, RN-23
 -- Entidades: C8 `lotes`, `movimentos_lote`
 --
 -- O LOTE E O ENDERECO DA MUDA. Especie e recipiente dizem O QUE a muda e; `canteiro_id`
@@ -23,7 +23,7 @@ CREATE TABLE lotes (
   canteiro_id         UUID REFERENCES canteiros(id),
 
   -- Reflexivo: e o que a repicagem produz (RN-20) e o que a divisao produz
-  -- (RN-41). A muda que passa do tubete para o saco mudou de recipiente, e
+  -- (RN-39). A muda que passa do tubete para o saco mudou de recipiente, e
   -- recipiente define produto e preco: comercialmente, virou outra coisa.
   -- Percorrer esta cadeia responde, de cada mil sementes semeadas, quantas mudas
   -- chegaram a venda.
@@ -46,7 +46,7 @@ CREATE TABLE lotes (
   fase                TEXT NOT NULL DEFAULT 'semeado',
 
   -- Data em que a leva foi plantada e passou a ocupar o canteiro. E a ancora das
-  -- etapas do protocolo que contam da criacao do lote (RN-33).
+  -- etapas do protocolo que contam da criacao do lote (RN-31).
   data_plantio        DATE NOT NULL DEFAULT CURRENT_DATE,
 
   -- Ordem do lote dentro do canteiro, a partir de 1. Da ao mapa um desenho estavel
@@ -76,7 +76,7 @@ CREATE TABLE lotes (
     OR (encerrado_em IS NOT NULL AND canteiro_id IS NULL)
   ),
 
-  -- RN-40: o motivo do encerramento existe se e somente se o lote estiver
+  -- RN-38: o motivo do encerramento existe se e somente se o lote estiver
   -- encerrado.
   CONSTRAINT lotes_motivo_com_encerramento CHECK (
     (encerrado_em IS NULL AND motivo_encerramento IS NULL)
@@ -129,7 +129,7 @@ CREATE TABLE movimentos_lote (
   -- inventar uma perda que nao houve. A FK e acrescentada na migration da agenda.
   atribuicao_id       UUID,
 
-  -- RN-54: todo registro tem autor identificado.
+  -- RN-52: todo registro tem autor identificado.
   registrado_por      UUID NOT NULL REFERENCES usuarios(id),
 
   observacoes         TEXT,

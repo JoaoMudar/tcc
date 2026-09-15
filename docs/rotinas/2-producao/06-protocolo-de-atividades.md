@@ -2,7 +2,7 @@
 
 > **O que o lote tem de receber, lembre alguém ou não.** É a peça que faltava entre o lote
 > ([`04-lotes-e-canteiros.md`](04-lotes-e-canteiros.md)), o catálogo de tarefas e a agenda
-> ([`01-agenda-de-pessoal.md`](01-agenda-de-pessoal.md)), onde a ordem gerada vira atribuição
+> ([`01-agenda-de-pessoal.md`](01-agenda-de-pessoal.md)), onde a sugestão aceita vira atribuição
 > comum e é confirmada como qualquer outra.
 
 **Status: especificado em 26/08/2026. Nada implementado.** Não há migration, Server Action nem
@@ -22,7 +22,7 @@ tarefa verbalmente. A segunda continua inteira mesmo depois de a agenda ficar pr
 > muda morta.
 
 A agenda registra **o que a Débora lembrou de lançar**. Se ela não lançou, o sistema não sabe que
-faltou. Pior: a situação do lote (RN-30) deriva do atraso das tarefas **já lançadas**, então o lote
+faltou. Pior: a situação do lote (RF-45) deriva do atraso das tarefas **já lançadas**, então o lote
 esquecido por completo aparece **verde**, porque não há nenhuma tarefa atrasada nele. A tela que
 existe para mostrar o problema mostra o contrário do problema.
 
@@ -112,7 +112,7 @@ Mesma tarefa do catálogo, duas manifestações no protocolo, e o catálogo já 
 | **Classificar seleção** | recorrente, para sempre | conclusão de "Classificar pós-germinação" |
 
 A primeira separa o que germinou do que não germinou. A segunda separa as maiores das menores,
-toda vez que trocam de bandeja. As duas produzem perda no mesmo gesto (RN-28).
+toda vez que trocam de bandeja. As duas produzem perda no mesmo gesto (RN-27).
 
 ## As 6 decisões de desenho
 
@@ -158,13 +158,23 @@ o alerta **desligado**, e só registram feito ou não feito no dia.
 
 Amarelo é "está chegando a hora". Vermelho é "passou". Sem cor é "isto é rotina, não é cobrança".
 
-### 4. A ordem gerada é atribuição comum, e alterar o dia não altera a regra
+### 4. O protocolo sugere, a Débora lança
 
-A ordem cai na agenda como qualquer outra tarefa: aparece na grade da semana e na confirmação.
-**Nenhuma tela precisa aprender um conceito novo** (RN-43).
+O protocolo **não coloca tarefa na agenda sozinho**. A etapa vencida aparece ao lado da semana como
+**sugestão**: o lote, a etapa e o tipo de tarefa já vêm escritos ali, e nada mais acontece enquanto
+ninguém aceitar (RN-41).
 
-Débora pode mudar o dia, mudar o turno, excluir a ordem daquele dia. Nada disso mexe na etapa. E
-mexer na etapa não reescreve ordem já emitida nem dia já trabalhado: **o passado não se reescreve.**
+A razão é simples: tarefa que aparece sozinha na semana de alguém é tarefa sem dono. Quem monta a
+agenda é a Débora, na reunião, e o sistema não decide por ela quem faz nem em que dia. O que ele
+faz é lembrar, e continuar lembrando enquanto a etapa estiver vencida.
+
+Ao aceitar a sugestão, abre-se o **mesmo formulário de lançar tarefa**, já preenchido com o que a
+sugestão sabe, e a Débora completa o resto: dia, turno, quem faz e o que mais o tipo pedir. Nenhuma
+tela precisa aprender um conceito novo, e nenhuma tarefa entra na agenda pela metade.
+
+Depois de lançada, a tarefa vive por conta própria: mudar o dia, mudar o turno ou excluí-la não
+mexe na etapa. E mexer na etapa não reescreve tarefa já lançada nem dia já trabalhado: **o passado
+não se reescreve.**
 
 ### 5. O tempo da espécie manda no tempo do protocolo
 
@@ -256,7 +266,8 @@ problema desta rotina**, e não uma tela a mais.
 
 ### Agenda: sem tela nova
 
-A ordem do protocolo é atribuição comum e aparece onde as atribuições aparecem.
+A sugestão aparece ao lado da semana, e a tarefa que sai dela é atribuição comum: aparece onde as
+atribuições aparecem.
 
 ## Regras invioláveis
 
@@ -266,7 +277,7 @@ A ordem do protocolo é atribuição comum e aparece onde as atribuições apare
 4. **Sequencial avança a fase, recorrente nunca avança.**
 5. **Vencimento não se digita.** É derivado, como o saldo do lote e como a situação.
 6. **Alteração no protocolo não retroage.**
-7. **Lote encerrado não gera ordem.**
+7. **Lote encerrado não recebe sugestão**, e as tarefas dele ainda não confirmadas são canceladas.
 8. **A divisão herda**, e os dois filhos seguem independentes.
 
 ## Dependências com outras rotinas
@@ -277,7 +288,7 @@ A ordem do protocolo é atribuição comum e aparece onde as atribuições apare
 | **Lotes e canteiros** | o lote ganha protocolo, a segunda data e a divisão; a situação passa a vir daqui |
 | **Agenda de pessoal** | recebe as ordens emitidas, como atribuições comuns |
 | **Apontamento de tarefas** | concluir a ordem é o que move o protocolo; a data real da execução é o relógio |
-| **Perdas** | a classificação continua produzindo perda no mesmo gesto (RN-28); as perdas registradas contra a quantidade original zeram o lote, e o encerramento para o motor. As tarefas em que elas aparecem são as da categoria **pós-morte** do catálogo |
+| **Perdas** | a classificação continua produzindo perda no mesmo gesto (RN-27); as perdas registradas contra a quantidade original zeram o lote, e o encerramento para o motor. As tarefas em que elas aparecem são as da categoria **pós-morte** do catálogo |
 
 ## O que isso destrava
 
@@ -294,7 +305,7 @@ A ordem do protocolo é atribuição comum e aparece onde as atribuições apare
 | Artefato | O que esta rotina acrescentou |
 |---|---|
 | [`B2`](../../engenharia/B-requisitos/B2-especificacao-requisitos.md) | RF-22 a RF-24 e RF-25 no cadastro; RF-46 a RF-53 na operação |
-| [`B3`](../../engenharia/B-requisitos/B3-regras-de-negocio.md) | RN-32 a RN-43; RN-18 e RN-30 emendadas |
+| [`B3`](../../engenharia/B-requisitos/B3-regras-de-negocio.md) | RN-30 a RN-41; RN-18 emendada. RN-41 reescrita em 15/09/2026: o protocolo sugere, não lança |
 | [`C2`](../../engenharia/C-modelagem/C2-especificacao-casos-de-uso.md) | UC-17, UC-24 e UC-18 |
 | [`C6`](../../engenharia/C-modelagem/C6-modelo-entidade-relacionamento.md) / [`C8`](../../engenharia/C-modelagem/C8-dicionario-de-dados.md) | `protocolos`, `protocolos_etapas`, `especies_protocolos_tempos`, `lotes_etapas` e a visão `lotes_etapas_vencimento`; `lotes`, `atribuicoes` e `recipientes` emendadas. O protocolo pendura-se no **recipiente**, e a tabela de tipos de embalagem deixou de existir |
 | [`B5`](../../engenharia/B-requisitos/B5-matriz-rastreabilidade.md) | 16 linhas novas |

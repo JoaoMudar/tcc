@@ -124,7 +124,7 @@ por que nenhum requisito abaixo tem "Colaborador" como ator.
 | **RF-04** | O sistema deve registrar cada tentativa de autenticação com data, origem e dispositivo | - | DV | ORG | Consulta ao registro exibe as tentativas, bem e malsucedidas |
 | **RF-05** | O sistema deve permitir ao administrador criar usuários e atribuir perfil | Administrador | D | ORG | Usuário criado acessa apenas o que seu perfil permite |
 | **RF-06** | O sistema deve verificar a permissão do perfil a cada operação, e não apenas ocultar elementos da interface | - | D | ORG | Operação solicitada por perfil sem permissão é recusada mesmo quando acionada diretamente |
-| **RF-07** | O sistema deveria permitir ao usuário visualizar e encerrar suas sessões ativas | Todos | DV | ORG | Sessão encerrada à distância deixa de ter acesso |
+| **RF-07** | O sistema deve permitir ao usuário visualizar e encerrar suas sessões ativas | Todos | DV | ORG | Sessão encerrada à distância deixa de ter acesso |
 
 ### 2.2 Configurações do sistema: transversal às três áreas
 
@@ -187,7 +187,8 @@ sempre (e ninguém preenche), ou pede o mínimo sempre (e o dado não serve).
 unidade" faz a confirmação pedir quanto cada funcionário do grupo fez; "lote específico" faz
 aparecer o campo de lote; espécie e recipiente valem para as tarefas que os pedem sem haver lote,
 como colher semente e encher saquinho. A **categoria** não comanda formulário algum: agrupa a
-lista e os relatórios (RN-23).
+lista e os relatórios, e é por isso que ela não é regra de negócio, e sim recurso de organização
+deste requisito.
 
 | ID | Requisito | Ator | Prior. | Origem | Verificação |
 |---|---|---|---|---|---|
@@ -195,16 +196,16 @@ lista e os relatórios (RN-23).
 | **RF-22** | O sistema deve permitir manter, por recipiente, um protocolo de atividades como sequência ordenada de etapas, cada etapa referenciando um tipo de tarefa do catálogo e declarando se o agendamento é sequencial ou recorrente, com o tempo em dias | Gerência | D | EN | Protocolo montado para tubete rege os lotes criados em tubete, e não os em saco; etapa sequencial admite um único tempo, e a recorrente admite também o intervalo entre ocorrências |
 | **RF-23** | O sistema deve permitir que cada etapa do protocolo declare o seu evento de referência: a criação do lote ou a conclusão de uma etapa específica do mesmo protocolo | Gerência | D | DOM | Etapa ancorada em outra etapa exibe qual, e a lista oferecida não inclui a própria etapa |
 | **RF-24** | O sistema deve permitir ligar e desligar o alerta de atraso por etapa do protocolo, e sobrescrever nela a janela de aviso padrão | Gerência | D | OP | Etapa com alerta desligado não recebe cor em nenhuma tela; etapa com janela própria a usa no lugar do padrão |
-| **RF-25** | O sistema deveria permitir, no cadastro da espécie, sobrescrever o tempo em dias de uma etapa específica do protocolo | Gerência | DV | DOM | Espécie com tempo próprio para a classificação usa o dela; espécie sem valor usa o do protocolo do recipiente |
+| **RF-25** | O sistema deve permitir, no cadastro da espécie, sobrescrever o tempo em dias de uma etapa específica do protocolo | Gerência | DV | DOM | Espécie com tempo próprio para a classificação usa o dela; espécie sem valor usa o do protocolo do recipiente |
 
 **A configuração do protocolo entra aqui, e a operação dele fica na §2.4.4.** Montar o protocolo é
 cadastro, feito pela gerência sentada, uma vez por safra; segui-lo é produção, e acontece todo dia.
 
-**O protocolo é do recipiente** (RF-22, RN-32). É o recipiente que determina o manejo: o que se faz
+**O protocolo é do recipiente** (RF-22, RN-30). É o recipiente que determina o manejo: o que se faz
 num tubete não é o que se faz num saco 20x26, e é do recipiente do lote que o sistema descobre qual
 receita aplicar.
 
-**O evento de referência é declarado, e não inferido da ordem das etapas** (RF-23, RN-33). Inferir
+**O evento de referência é declarado, e não inferido da ordem das etapas** (RF-23, RN-31). Inferir
 "a etapa anterior" faria a classificação pós-germinação contar da criação do lote, e a semente pode
 ficar dias esperando plantio antes de germinar. É o erro que o requisito existe para impedir, e por
 isso a âncora é um campo, e não uma consequência da posição na lista.
@@ -277,9 +278,10 @@ divergência entre os dois é defeito detectável.
 chegaram à fase de muda pronta, e é o número que o item de pedido exibe (RF-56). Estoque como
 entidade própria criaria duas verdades sobre o mesmo dado.
 
-**O limite de mortalidade é parâmetro, não constante** (RF-42, RN-27). Os 20% de RN-11 são o valor
-inicial, não o enunciado da regra: o limite muda com a espécie e com a estação, e convenção que
-muda é dado.
+**O limite de mortalidade é parâmetro, não constante** (RF-42, RN-26). RN-11 diz que o lote é
+destacado acima do limite, e não qual é o limite: o valor mora em Configurações, começa em 20% na
+instalação e muda com a espécie e com a estação. Convenção que muda é dado, não constante de
+código.
 
 #### 2.4.3 Mapa de lotes
 
@@ -300,8 +302,10 @@ fazer, e a cor aqui tem de dizer: apontar o lote mostra a tarefa que falta.
 
 **RF-45 é o requisito que não tem ator.** Ninguém classifica lote: a classificação é consequência
 do que já foi registrado. Status digitado envelheceria sozinho, e o lote marcado como saudável
-ontem continuaria saudável hoje, que é justamente o contrário do que a tela existe para mostrar
-(RN-30).
+ontem continuaria saudável hoje, que é justamente o contrário do que a tela existe para mostrar.
+Que a situação seja derivada, e nunca digitada, é **decisão de projeto** e não regra do viveiro:
+apague o sistema e não há onde digitar. Por isso ela vive aqui, no requisito, e não no catálogo de
+regras de negócio.
 
 **A situação deriva do protocolo, e não das tarefas lançadas.** Se derivasse do atraso das
 atribuições **já lançadas** na agenda, o lote esquecido por completo apareceria como saudável,
@@ -320,37 +324,46 @@ a fase do lote quando a etapa é sequencial ("limpar 90 dias depois da última l
 Forçar uma na outra quebraria as duas.
 
 **Os requisitos sem ator são a maior parte da seção**, e é o traço que a define: RF-46 a RF-50 e
-RF-53 descrevem o que o sistema faz **sozinho**. Requisito de geração automática com ator seria
-requisito de digitação, e a seção existe justamente porque a digitação é o que falha.
+RF-53 descrevem o que o sistema faz **sozinho**. Requisito de acompanhamento automático com ator
+seria requisito de digitação, e a seção existe justamente porque a digitação é o que falha. Note
+que fazer sozinho não é o mesmo que decidir sozinho: RF-47 apura e sugere, e quem lança a tarefa
+continua sendo a gerência.
 
 | ID | Requisito | Ator | Prior. | Origem | Verificação |
 |---|---|---|---|---|---|
 | **RF-46** | O sistema deve atribuir ao lote, na criação, o protocolo vigente do recipiente dele, e acompanhar o lote etapa a etapa | - | D | ORG | Lote criado em tubete passa a exibir as etapas do protocolo do tubete |
-| **RF-47** | O sistema deve gerar as ordens de tarefa do protocolo na agenda sem digitação, abrindo em rascunho a semana do vencimento quando ela ainda não existir, e permitir alterar ou excluir a ordem de um dia sem alterar a etapa | - | D | ORG | Excluir a ordem de uma quarta não altera o protocolo nem as ordens dos demais lotes; ordem cujo vencimento cai em semana inexistente cria a semana em rascunho |
+| **RF-47** | O sistema deve apresentar, ao lado da agenda da semana, as etapas de protocolo vencidas ou a vencer como **sugestão** de tarefa, sem lançar nada na agenda, e, quando a sugestão for aceita, abrir o lançamento de tarefa já com a etapa, o lote e o tipo preenchidos, exigindo os demais dados que o tipo declarar | - | D | ORG | Etapa vencida aparece como sugestão e não como tarefa da semana; sugestão ignorada não deixa nada na agenda; sugestão aceita só vira tarefa depois de preenchidos os campos que o tipo exige |
 | **RF-48** | O sistema deve avançar a fase do lote ao concluir uma etapa sequencial que declare fase resultante, e não deve avançá-la ao concluir etapa recorrente | - | D | DOM | Concluir o plantio avança a fase; concluir uma irrigação não altera fase alguma |
 | **RF-49** | O sistema deve contar a ocorrência seguinte de etapa recorrente a partir da data real da execução anterior, e nunca de uma data de calendário prevista | - | D | DOM | Limpeza trimestral vencida em abril e executada em 15 de setembro produz a próxima em 14 de dezembro |
 | **RF-50** | O sistema deve manter no máximo uma ordem em aberto por etapa e por lote, sem gerar ocorrência nova enquanto a anterior estiver pendente | - | D | ORG | Etapa vencida há cinco meses apresenta uma pendência, e não cinco |
 | **RF-51** | O sistema deve apresentar, no lote, as etapas do protocolo com a data da última execução, o próximo vencimento e a situação de cada uma | Gerência | D | EN | A ficha do lote responde se a classificação já foi feita e quando é a próxima limpeza |
 | **RF-52** | O sistema deve apresentar a etapa em atenção dentro da janela de aviso e em atraso depois do vencimento, e sem indicação de situação quando o alerta da etapa estiver desligado | Gerência | D | OP | Etapa trimestral entra em atenção cerca de dezoito dias antes; a irrigação diária não recebe indicação nenhuma |
-| **RF-53** | O sistema deve encerrar o protocolo do lote quando ele se encerra por saldo zero, por expedição total ou por divisão, cancelando as ordens ainda em aberto sem removê-las | - | D | ORG | Lote zerado para de gerar ordens, e as ordens futuras dele aparecem canceladas, não ausentes |
+| **RF-53** | O sistema deve encerrar o protocolo do lote quando ele se encerra por saldo zero, por expedição total ou por divisão, deixando de sugerir etapas dele e cancelando as tarefas ainda não confirmadas sem removê-las | - | D | ORG | Lote zerado para de sugerir etapas, e as tarefas futuras dele aparecem canceladas, não ausentes |
 
-**O horizonte de geração é parâmetro, e não constante.** O sistema gera as ordens de um período à
-frente e apresenta o que vence depois disso na ficha do lote, sem materializá-lo na agenda: gerar
-um ano de limpezas trimestrais encheria a grade de tarefas que ninguém olha por nove meses. É a
-mesma justificativa de RN-27, e o parâmetro mora com os outros (RF-09).
+**O horizonte de sugestão é parâmetro, e não constante.** O sistema sugere as etapas de um período à
+frente e apresenta o que vence depois disso na ficha do lote: sugerir um ano de limpezas
+trimestrais encheria a lista de avisos que ninguém olha por nove meses. É a mesma justificativa de
+RN-26, e o parâmetro mora com os outros (RF-09).
 
-**A ordem entra na semana do vencimento, e a semana fechada é a exceção** (RN-43). Se a semana
-ainda não existe, o sistema a abre em rascunho; se já está fechada, a ordem entra na semana aberta
-corrente, porque semana fechada não se altera (RF-28). O que determina o atraso continua sendo o
-**vencimento**, e não o dia em que a ordem coube na agenda: sem essa separação, empurrar a ordem
-para a semana seguinte apagaria o atraso que ela existe para denunciar.
+**O protocolo sugere, e quem lança é a gerência** (RN-41). A etapa vencida aparece ao lado da
+semana como sugestão, e não como tarefa da grade. Enquanto ninguém a aceitar, nada existe na
+agenda: não há tarefa sem responsável, nem tarefa que apareceu sozinha na semana de alguém. É a
+diferença entre o sistema **lembrar** e o sistema **mandar**, e o viveiro planeja o trabalho em
+reunião, não por geração automática.
 
-**A ordem nasce sem ninguém escalado** (RN-43). O protocolo responde o que fazer e quando; quem faz
-segue sendo decisão de quem monta a agenda (RF-32, RN-26).
+**A sugestão aceita vira tarefa completa** (RN-41). Ao aceitar, abre-se o mesmo formulário de
+lançar tarefa, já com a etapa, o lote e o tipo preenchidos, e o restante é exigido normalmente: dia,
+turno e os campos que o tipo declarar (RF-21, RF-26). Nenhuma tarefa entra na agenda pela metade,
+e é isso que separa esta solução da geração automática que a versão anterior deste requisito
+previa.
 
-**O lote da ordem do protocolo vem da ordem, e não do formulário.** A ordem sempre carrega o lote,
+**O que determina o atraso é o vencimento da etapa, e não o dia em que a tarefa foi lançada.** A
+sugestão continua aparecendo, e continua contando atraso, enquanto ninguém a aceitar: adiar o
+lançamento não apaga o atraso que a etapa existe para denunciar (RF-45, RN-40).
+
+**O lote da sugestão vem da etapa, e não do formulário.** A sugestão sempre carrega o lote,
 inclusive quando o tipo de tarefa não declara lote específico: irrigar *aquele* lote é o que o
-protocolo mandou. Não há conflito com RF-24, que rege o que a tela **pede** a quem preenche: campo
+protocolo apontou. Não há conflito com RF-24, que rege o que a tela **pede** a quem preenche: campo
 já respondido pela origem da tarefa não é campo a pedir.
 
 ### 2.5 Área 3 · Comercial

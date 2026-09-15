@@ -103,7 +103,7 @@ para ler a matriz, não para decidir acesso.
 ¹ **Ninguém cria e ninguém exclui parâmetro.** Ver §3.7.
 
 ² **Pessoas é um recurso só, e os papéis não se separam.** Cliente, fornecedor e funcionário são
-papéis da mesma identidade (RN-47): dar acesso a um e negar a outro exigiria uma permissão por
+papéis da mesma identidade (RN-45): dar acesso a um e negar a outro exigiria uma permissão por
 papel sobre a mesma linha. Requisitos: **RF-15 a RF-18, RF-19, RF-20, RF-14**.
 
 ³ **Recursos do protocolo de atividades por lote**, ainda sem tabela e sem tela. Requisitos:
@@ -135,7 +135,7 @@ funcionário na agenda. O que ela não lê é a ficha fiscal.
 ### 3.2 Confirmar pedido é privativo da chefia
 
 Confirmar o pedido é o ato que trava itens, quantidades e preços (RF-57). É decisão comercial, e
-quem responde por preço é a chefia (RN-52). A gerência **não lê pedido**, e é deliberado: o que a
+quem responde por preço é a chefia (RN-50). A gerência **não lê pedido**, e é deliberado: o que a
 produção precisa saber do comercial é quanto foi vendido de cada espécie, e isso ela lê pelo saldo
 disponível, sem precisar da carteira de pedidos.
 
@@ -186,7 +186,7 @@ leitura sem resposta, e o mapa de lotes passaria a considerar todo lote saudáve
 silenciosa mais cara possível naquela tela.
 
 O que a operação faz é **alterar o valor**. É por isso que o limite de mortalidade e os limites de
-atraso são parâmetro e não constante (RN-27): mudam com a estação, e mudá-los não pode exigir uma
+atraso são parâmetro e não constante (RN-26): mudam com a estação, e mudá-los não pode exigir uma
 implantação.
 
 **O período de trabalho tem linha própria e permissão diferente**, ainda que a tela seja a mesma:
@@ -203,7 +203,7 @@ delas e não à outra produziria protocolo que não se cumpre ou protocolo que n
 
 **Ninguém exclui protocolo**, nem o administrador. Etapa apagada deixaria lotes apontando para uma
 receita que não existe mais, e as datas já cumpridas perderiam a referência. O protocolo se
-inativa, e a alteração não retroage (RN-39).
+inativa, e a alteração não retroage (RN-37).
 
 **Dividir lote é só da gerência, e é `C` sem `L`.** A operação cria dois lotes e encerra o
 original: ler o resultado é ler lote, que a linha de cima já concede. A chefia não divide porque
@@ -211,7 +211,7 @@ dividir é decisão de manejo, tomada com a leva na frente.
 
 ---
 
-## 3.9 Nota sobre o alcance da matriz
+### 3.9 Nota sobre o alcance da matriz
 
 **Os três perfis correspondem às três pessoas que operam o sistema.** Não há aqui, como houve em
 versões anteriores deste documento, um perfil especificado para uso futuro: a matriz descreve o
@@ -263,7 +263,7 @@ decide onde parar. Três decisões deste projeto são exatamente isso:
 | Administrador com acesso irrestrito na implementação | Incidente em produção se resolve sem trocar de perfil | A auditoria não distingue o que o administrador fez por manutenção do que fez por negócio |
 | Dado fiscal fechado para a gerência | Menos superfície de dado pessoal | A gerência não consegue conferir um cadastro incompleto sem chamar a chefia |
 
-**Todo registro tem autor identificado** (RN-54), e é o contrapeso comum às três: onde a permissão
+**Todo registro tem autor identificado** (RN-52), e é o contrapeso comum às três: onde a permissão
 foi concedida com folga, o registro de quem fez o quê é o que permite responder depois.
 
 ---
@@ -271,8 +271,8 @@ foi concedida com folga, o registro de quem fez o quê é o que permite responde
 ## 6. Rastreabilidade
 
 A matriz realiza **RF-06**, a verificação de permissão a cada operação, e **RF-05**, a atribuição
-de perfil. As regras de negócio que a sustentam são **RN-53**, cada pessoa tem um perfil que
-determina o que vê e faz, e **RN-54**, todo registro tem autor.
+de perfil. As regras de negócio que a sustentam são **RN-51**, cada pessoa tem um perfil que
+determina o que vê e faz, e **RN-52**, todo registro tem autor.
 
 A correspondência entre recurso e requisito está em
 [`B5`](../B-requisitos/B5-matriz-rastreabilidade.md).
