@@ -1,5 +1,4 @@
 import { listFuncionarios } from '@/lib/agenda';
-import { listAreas } from '@/lib/areas';
 import pool from '@/lib/db';
 import { nomeExibido, searchEspecies } from '@/lib/especies';
 import { listLotesAbertos } from '@/lib/lotes';
@@ -11,14 +10,13 @@ import type { OpcoesAtribuicao } from './AtribuicaoForm';
 
 /** As listas fechadas do formulário da atribuição (RNF-02): só o que está em uso. */
 export async function carregarOpcoes(semana: string): Promise<OpcoesAtribuicao & { faltam: string[] }> {
-  const [funcionarios, tipos, turnos, lotes, especies, recipientes, areas] = await Promise.all([
+  const [funcionarios, tipos, turnos, lotes, especies, recipientes] = await Promise.all([
     listFuncionarios(pool),
     listTiposTarefa(pool),
     listTurnos(pool),
     listLotesAbertos(pool),
     searchEspecies(pool),
     listRecipientes(pool),
-    listAreas(pool),
   ]);
   const opcoes: OpcoesAtribuicao = {
     funcionarios: funcionarios.map((f) => ({ value: f.id, label: f.nome })),
@@ -39,7 +37,6 @@ export async function carregarOpcoes(semana: string): Promise<OpcoesAtribuicao &
     recipientes: recipientes
       .filter((r) => r.ativo)
       .map((r) => ({ value: r.id, label: r.volumeLitros === null ? r.nome : `${r.nome} · ${formatVolume(r.volumeLitros)}` })),
-    areas: areas.map((a) => ({ id: a.id, letra: a.letra, canteiros: a.canteiros })),
   };
   const faltam = [
     opcoes.funcionarios.length === 0 && 'funcionário',
