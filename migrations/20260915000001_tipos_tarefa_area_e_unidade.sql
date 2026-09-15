@@ -20,13 +20,13 @@
 --
 -- SEM BEGIN/COMMIT PROPRIOS e SEM GUARDA CONDICIONAL.
 
+-- NENHUM TIPO JA CADASTRADO COMECA COM AREA LIGADA. O campo so aparece onde
+-- alguem marcar, que e o que o booleano existe para dizer. Ligar em massa "para
+-- manter como estava" traria de volta, calado, o campo que esta migration veio
+-- tirar de onde ele nao faz sentido.
 ALTER TABLE tipos_tarefa
   ADD COLUMN exige_area     BOOLEAN NOT NULL DEFAULT false,
   ADD COLUMN unidade_medida TEXT    NOT NULL DEFAULT 'un';
-
--- Retrocompatibilidade: quem ja oferecia area continua oferecendo, menos as
--- tarefas de semente, que sao o motivo desta migration.
-UPDATE tipos_tarefa SET exige_area = true WHERE NOT exige_lote AND categoria <> 'semente';
 
 ALTER TABLE tipos_tarefa
   -- RN-25: com lote, o canteiro vem dele, e pedi-lo de novo e redundancia.

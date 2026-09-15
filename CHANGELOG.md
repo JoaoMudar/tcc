@@ -10,8 +10,13 @@ schema inicial em português e estão descritas no `C8`.
 - `tipos_tarefa.unidade_medida` (text, lista fechada `un`, `kg`, `g`, `L`, `mL`, padrão `un`).
 - `atribuicoes.quantidade_planejada` e `atribuicoes_participantes.quantidade_feita` passam de
   `INTEGER` a `NUMERIC(10,2)`, para quilo e litro com fração.
-- Compatível: os tipos sem lote que já ofereciam área seguem com `exige_area = true`, menos os da
-  categoria `semente`; os inteiros gravados cabem sem perda no decimal.
+- Nenhum tipo já cadastrado começa com área ligada: o campo só aparece onde a gerência marcar.
+- Compatível: os inteiros gravados cabem sem perda no decimal.
+
+## 15/09/2026 · `20260915000002_tipos_tarefa_area_desligada.sql`
+
+- Desliga `exige_area` nos bancos onde a primeira versão da migration anterior o ligou em massa.
+  Em banco novo não muda nada.
 
 ## 14/09/2026 · `20260914000001_lotes_posicao_unica.sql`
 
