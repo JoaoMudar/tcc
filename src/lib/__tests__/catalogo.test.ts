@@ -83,32 +83,39 @@ describe('insumos (RF-12)', () => {
 });
 
 describe('tipos de tarefa (RF-21)', () => {
-  const declaracoes = { eQuantitativa: true, exigeLote: true, exigeEspecie: true, exigeRecipiente: true };
+  const declaracoes = { eQuantitativa: true, exigeLote: true, exigeEspecie: true, exigeRecipiente: true, exigeArea: true };
+  const nenhuma = { eQuantitativa: false, exigeLote: false, exigeEspecie: false, exigeRecipiente: false, exigeArea: false };
 
-  it('com lote exigido, a espécie não é pedida: o lote já a determina', () => {
-    const parsed = parseTipoTarefaFields({ nome: 'Repicar', categoria: 'plantio', ...declaracoes });
+  it('com lote exigido, espécie e área não são pedidas: o lote já as determina', () => {
+    const parsed = parseTipoTarefaFields({ nome: 'Repicar', categoria: 'plantio', unidadeMedida: 'un', ...declaracoes });
     expect(parsed).toEqual({
-      value: { nome: 'Repicar', categoria: 'plantio', ...declaracoes, exigeEspecie: false },
+      value: { nome: 'Repicar', categoria: 'plantio', unidadeMedida: 'un', ...declaracoes, exigeEspecie: false, exigeArea: false },
     });
   });
 
-  it('sem lote, a espécie pode ser exigida', () => {
-    const parsed = parseTipoTarefaFields({ nome: 'Colher semente', categoria: 'semente', ...declaracoes, exigeLote: false });
+  it('sem lote, a espécie e a área podem ser exigidas', () => {
+    const parsed = parseTipoTarefaFields({ nome: 'Colher semente', categoria: 'semente', unidadeMedida: 'kg', ...declaracoes, exigeLote: false });
     expect(parsed).toHaveProperty('value.exigeEspecie', true);
+    expect(parsed).toHaveProperty('value.exigeArea', true);
+    expect(parsed).toHaveProperty('value.unidadeMedida', 'kg');
   });
 
-  it('categoria fora do CHECK é recusada antes do banco', () => {
-    expect(parseTipoTarefaFields({ nome: 'Regar', categoria: 'irrigacao', ...declaracoes })).toEqual({
+  it('categoria e unidade fora do CHECK são recusadas antes do banco', () => {
+    expect(parseTipoTarefaFields({ nome: 'Regar', categoria: 'irrigacao', unidadeMedida: 'un', ...declaracoes })).toEqual({
       error: 'Escolha a categoria.',
+    });
+    expect(parseTipoTarefaFields({ nome: 'Regar', categoria: 'manutencao', unidadeMedida: 'quilo', ...declaracoes })).toEqual({
+      error: 'Escolha a unidade da quantidade.',
     });
   });
 
   it('resume o que o formulário vai pedir', () => {
-    expect(resumoDeclaracoes({ eQuantitativa: false, exigeLote: false, exigeEspecie: false, exigeRecipiente: false })).toBe(
-      'Não pede dado extra',
+    expect(resumoDeclaracoes({ ...nenhuma, unidadeMedida: 'un' })).toBe('Não pede dado extra');
+    expect(resumoDeclaracoes({ ...nenhuma, eQuantitativa: true, exigeLote: true, unidadeMedida: 'un' })).toBe(
+      'Pede lote, quantidade por pessoa em un',
     );
-    expect(resumoDeclaracoes({ eQuantitativa: true, exigeLote: true, exigeEspecie: false, exigeRecipiente: false })).toBe(
-      'Pede lote, quantidade por pessoa',
+    expect(resumoDeclaracoes({ ...nenhuma, eQuantitativa: true, exigeArea: true, unidadeMedida: 'kg' })).toBe(
+      'Pede área e canteiro, quantidade por pessoa em kg',
     );
   });
 });

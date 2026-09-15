@@ -118,16 +118,31 @@ describe('áreas e canteiros (RF-13)', () => {
 });
 
 describe('tipos de tarefa (RF-21)', () => {
-  it('gerência cria e vai para a ficha; com lote exigido, espécie não é gravada', async () => {
+  it('gerência cria e vai para a ficha; com lote exigido, espécie e área não são gravadas', async () => {
     loggedAs('gerencia');
     vi.mocked(pool.query).mockResolvedValue({ rows: [{ id: ID }] } as never);
     await expect(
       tipos.saveTipoTarefa(
         {},
-        form({ nome: 'Rustificar', categoria: 'manutencao', exige_lote: 'on', exige_especie: 'on', e_quantitativa: 'on' }),
+        form({
+          nome: 'Rustificar',
+          categoria: 'manutencao',
+          exige_lote: 'on',
+          exige_especie: 'on',
+          exige_area: 'on',
+          e_quantitativa: 'on',
+          unidade_medida: 'kg',
+        }),
       ),
     ).rejects.toThrow(`redirect:/cadastros/tipos-tarefa/${ID}?salvo=1`);
-    expect(vi.mocked(pool.query).mock.calls[0][1]).toEqual(['Rustificar', 'manutencao', true, true, false, false]);
+    expect(vi.mocked(pool.query).mock.calls[0][1]).toEqual(['Rustificar', 'manutencao', true, true, false, false, false, 'kg']);
+  });
+
+  it('unidade fora da lista é recusada sem tocar o banco', async () => {
+    loggedAs('gerencia');
+    const state = await tipos.saveTipoTarefa({}, form({ nome: 'Colher semente', categoria: 'semente', unidade_medida: 'quilo' }));
+    expect(state.error).toBe('Escolha a unidade da quantidade.');
+    expectNoDatabase();
   });
 });
 

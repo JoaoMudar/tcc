@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { Notice } from '@/components/ui/Notice';
 import { type SelectOption, SelectField } from '@/components/ui/SelectField';
 import { TextField } from '@/components/ui/TextField';
+import type { UnidadeTarefa } from '@/lib/agenda-rotulos';
 import { EMPTY_FORM_STATE } from '@/lib/form-state';
 import { lerQuantidade } from '@/lib/lotes-rotulos';
 import { CausaPicker } from '../lotes/CausaPicker';
@@ -14,7 +15,9 @@ import { confirmarAtribuicaoAction } from './actions';
 interface ConfirmarFormProps {
   atribuicaoId: string;
   exigeLote: boolean;
+  exigeArea: boolean;
   eQuantitativa: boolean;
+  unidadeMedida: UnidadeTarefa;
   participantes: readonly { id: string; nome: string }[];
   lotes: readonly SelectOption[];
   areas: readonly AreaOpcao[];
@@ -27,7 +30,19 @@ interface ConfirmarFormProps {
  * T5.5, UC-20: o lote uma vez, um número por participante só se a tarefa for
  * quantitativa, e as mudas que morreram no mesmo gesto, para a perda não ser esquecida.
  */
-export function ConfirmarForm({ atribuicaoId, exigeLote, eQuantitativa, participantes, lotes, areas, loteId, areaId, canteiroId }: ConfirmarFormProps) {
+export function ConfirmarForm({
+  atribuicaoId,
+  exigeLote,
+  exigeArea,
+  eQuantitativa,
+  unidadeMedida,
+  participantes,
+  lotes,
+  areas,
+  loteId,
+  areaId,
+  canteiroId,
+}: ConfirmarFormProps) {
   const [state, formAction, pending] = useActionState(confirmarAtribuicaoAction, EMPTY_FORM_STATE);
   const fields = state.error ? state.fields : undefined;
   const [perdidas, setPerdidas] = useState(lerQuantidade(fields?.perdidas ?? '') ?? 0);
@@ -35,9 +50,10 @@ export function ConfirmarForm({ atribuicaoId, exigeLote, eQuantitativa, particip
   return (
     <form action={formAction} className="flex flex-col gap-4">
       <input type="hidden" name="id" value={atribuicaoId} />
-      {exigeLote ? (
+      {exigeLote && (
         <SelectField label="Lote" name="lote_id" options={lotes} defaultValue={fields?.lote_id ?? loteId ?? ''} required />
-      ) : (
+      )}
+      {exigeArea && !exigeLote && (
         <AreaCanteiroOpcional
           areas={areas}
           defaultAreaId={fields ? fields.area_id : areaId}
@@ -47,13 +63,13 @@ export function ConfirmarForm({ atribuicaoId, exigeLote, eQuantitativa, particip
 
       {eQuantitativa && (
         <fieldset className="flex flex-col gap-3">
-          <legend className="mb-1 text-sm font-semibold text-gray-700">Quanto cada um fez</legend>
+          <legend className="mb-1 text-sm font-semibold text-gray-700">Quanto cada um fez ({unidadeMedida})</legend>
           {participantes.map((p) => (
             <TextField
               key={p.id}
               label={p.nome}
               name={`quantidade_${p.id}`}
-              inputMode="numeric"
+              inputMode={unidadeMedida === 'un' ? 'numeric' : 'decimal'}
               autoComplete="off"
               hint="Em branco se ninguém contou."
               defaultValue={fields?.[`quantidade_${p.id}`]}

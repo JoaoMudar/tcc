@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { Notice } from '@/components/ui/Notice';
 import { type SelectOption, SelectField } from '@/components/ui/SelectField';
 import { TextField } from '@/components/ui/TextField';
+import { UNIDADES_TAREFA } from '@/lib/agenda-rotulos';
 import { EMPTY_FORM_STATE } from '@/lib/form-state';
 import { Interruptor } from './Interruptor';
 import { saveTipoTarefa } from './actions';
@@ -18,14 +19,19 @@ interface TipoTarefaFormProps {
     exigeLote: boolean;
     exigeEspecie: boolean;
     exigeRecipiente: boolean;
+    exigeArea: boolean;
+    unidadeMedida: string;
     ativo: boolean;
   };
   categorias: readonly SelectOption[];
   podeEditar: boolean;
 }
 
+const UNIDADES = UNIDADES_TAREFA.map((unidade) => ({ value: unidade, label: unidade }));
+
 export function TipoTarefaForm({ tipo, categorias, podeEditar }: TipoTarefaFormProps) {
   const [state, formAction, pending] = useActionState(saveTipoTarefa, EMPTY_FORM_STATE);
+  const [quantitativa, setQuantitativa] = useState(tipo?.eQuantitativa ?? false);
   const [exigeLote, setExigeLote] = useState(tipo?.exigeLote ?? false);
   const fields = state.error ? state.fields : undefined;
 
@@ -43,7 +49,26 @@ export function TipoTarefaForm({ tipo, categorias, podeEditar }: TipoTarefaFormP
         />
 
         <h2 className="mt-3 text-sm font-bold tracking-widest text-muted uppercase">O que esta tarefa exige</h2>
-        <Interruptor name="e_quantitativa" label="Quantitativa por unidade" defaultChecked={tipo?.eQuantitativa} />
+        <div className="flex items-end gap-3">
+          <div className="flex-1">
+            <Interruptor
+              name="e_quantitativa"
+              label="Quantitativa por unidade"
+              checked={quantitativa}
+              onChange={(event) => setQuantitativa(event.currentTarget.checked)}
+            />
+          </div>
+          <SelectField
+            label="Unidade"
+            name="unidade_medida"
+            options={UNIDADES}
+            defaultValue={fields?.unidade_medida ?? tipo?.unidadeMedida ?? 'un'}
+            disabled={!quantitativa}
+            className="w-24"
+          />
+        </div>
+        {/* Select desabilitado não vai no formulário: a unidade gravada não pode se perder */}
+        {!quantitativa && <input type="hidden" name="unidade_medida" value={tipo?.unidadeMedida ?? 'un'} />}
         <Interruptor
           name="exige_lote"
           label="Exige lote específico"
@@ -51,15 +76,24 @@ export function TipoTarefaForm({ tipo, categorias, podeEditar }: TipoTarefaFormP
           onChange={(event) => setExigeLote(event.currentTarget.checked)}
         />
         <Interruptor
-          key={String(exigeLote)}
+          key={`especie-${exigeLote}`}
           name="exige_especie"
           label="Exige espécie"
           disabled={exigeLote}
           defaultChecked={!exigeLote && tipo?.exigeEspecie}
         />
         <Interruptor name="exige_recipiente" label="Exige recipiente" defaultChecked={tipo?.exigeRecipiente} />
+        <Interruptor
+          key={`area-${exigeLote}`}
+          name="exige_area"
+          label="Registra área e canteiro"
+          disabled={exigeLote}
+          defaultChecked={!exigeLote && tipo?.exigeArea}
+        />
         {exigeLote && (
-          <Notice tone="info">O lote já determina a espécie. Por isso a espécie não é pedida na agenda nem na confirmação.</Notice>
+          <Notice tone="info">
+            O lote já determina a espécie e o canteiro. Por isso nenhum dos dois é pedido na agenda nem na confirmação.
+          </Notice>
         )}
 
         {tipo && podeEditar && (

@@ -6,8 +6,8 @@ import {
   TOM_ATRIBUICAO,
   detalhesAtribuicao,
   formatHoraTarefa,
+  formatQuantidadeMedida,
 } from '@/lib/agenda';
-import { formatQuantidade } from '@/lib/lotes-rotulos';
 import { turnoLabel } from '@/lib/turnos';
 
 interface AtribuicaoCartaoProps {
@@ -40,7 +40,7 @@ export function AtribuicaoCartao({ atribuicao: a, mostrarTurno = false }: Atribu
         {a.participantes.length === 0
           ? 'Ninguém escalado'
           : a.participantes
-              .map((p) => (p.quantidade === null ? p.nome : `${p.nome} (${formatQuantidade(p.quantidade)})`))
+              .map((p) => (p.quantidade === null ? p.nome : `${p.nome} (${formatQuantidadeMedida(p.quantidade, a.unidadeMedida)})`))
               .join(', ')}
       </span>
     </Link>

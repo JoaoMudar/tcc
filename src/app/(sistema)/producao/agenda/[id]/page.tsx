@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { PageHeader } from '@/components/PageHeader';
 import { Notice } from '@/components/ui/Notice';
 import { Pill } from '@/components/ui/Pill';
-import { SITUACOES_ATRIBUICAO, TOM_ATRIBUICAO, findAtribuicao, formatHoraTarefa } from '@/lib/agenda';
+import { SITUACOES_ATRIBUICAO, TOM_ATRIBUICAO, findAtribuicao, formatHoraTarefa, formatQuantidadeMedida } from '@/lib/agenda';
 import { listAreas } from '@/lib/areas';
 import { formatData } from '@/lib/datas';
 import pool from '@/lib/db';
@@ -36,7 +36,7 @@ export default async function AtribuicaoPage({ params, searchParams }: Atribuica
   const podeExcluir = editavel && can(user.perfil, 'agenda', 'E');
   const [lotes, areas] = await Promise.all([
     podeConfirmar && a.exigeLote ? listLotesAbertos(pool) : [],
-    podeConfirmar && !a.exigeLote ? listAreas(pool) : [],
+    podeConfirmar && a.exigeArea && !a.exigeLote ? listAreas(pool) : [],
   ]);
   const perdaRegistrada = lerQuantidade(perda ?? '');
   const hora = formatHoraTarefa(a.horaInicio, a.horaFim);
@@ -113,7 +113,7 @@ export default async function AtribuicaoPage({ params, searchParams }: Atribuica
             {a.quantidadePlanejada !== null && (
               <div>
                 <dt className="text-sm text-muted">Prevista</dt>
-                <dd className="font-semibold text-ink">{formatQuantidade(a.quantidadePlanejada)}</dd>
+                <dd className="font-semibold text-ink">{formatQuantidadeMedida(a.quantidadePlanejada, a.unidadeMedida)}</dd>
               </div>
             )}
             <div>
@@ -140,7 +140,7 @@ export default async function AtribuicaoPage({ params, searchParams }: Atribuica
                   <span className="font-semibold text-ink">{p.nome}</span>
                   {feita && a.eQuantitativa && (
                     <span className={p.quantidade === null ? 'text-muted' : 'font-bold text-ink'}>
-                      {p.quantidade === null ? 'sem contagem' : formatQuantidade(p.quantidade)}
+                      {p.quantidade === null ? 'sem contagem' : formatQuantidadeMedida(p.quantidade, a.unidadeMedida)}
                     </span>
                   )}
                 </li>
@@ -159,7 +159,9 @@ export default async function AtribuicaoPage({ params, searchParams }: Atribuica
             <ConfirmarForm
               atribuicaoId={a.id}
               exigeLote={a.exigeLote}
+              exigeArea={a.exigeArea}
               eQuantitativa={a.eQuantitativa}
+              unidadeMedida={a.unidadeMedida}
               participantes={a.participantes}
               lotes={lotes.map((l) => ({ value: l.id, label: `${l.codigo} · ${l.especie} · ${l.recipiente}` }))}
               areas={areas.map((area) => ({ id: area.id, letra: area.letra, canteiros: area.canteiros }))}

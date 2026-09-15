@@ -7,12 +7,22 @@ vi.mock('../actions', () => ({
   atualizarAtribuicaoAction: vi.fn(),
 }));
 
-const SIMPLES = { id: 'simples', nome: 'Irrigação', eQuantitativa: false, exigeLote: false, exigeEspecie: false, exigeRecipiente: false };
-const COM_LOTE = { ...SIMPLES, id: 'repicagem', nome: 'Repicagem', eQuantitativa: true, exigeLote: true };
+const SIMPLES = {
+  id: 'simples',
+  nome: 'Irrigação',
+  eQuantitativa: false,
+  exigeLote: false,
+  exigeEspecie: false,
+  exigeRecipiente: false,
+  exigeArea: true,
+  unidadeMedida: 'un' as const,
+};
+const COM_LOTE = { ...SIMPLES, id: 'repicagem', nome: 'Repicagem', eQuantitativa: true, exigeLote: true, exigeArea: false };
+const SEMENTE = { ...SIMPLES, id: 'semente', nome: 'Colher semente', eQuantitativa: true, exigeArea: false, unidadeMedida: 'kg' as const };
 
 const OPCOES: OpcoesAtribuicao = {
   funcionarios: [{ value: 'p1', label: 'Gilberto' }],
-  tipos: [SIMPLES, COM_LOTE],
+  tipos: [SIMPLES, COM_LOTE, SEMENTE],
   turnos: [{ value: 't1', label: 'Manhã · 07:00' }],
   dias: [{ value: '2026-09-14', label: 'Seg 14/09' }],
   lotes: [{ value: 'l1', label: 'L-1' }],
@@ -53,5 +63,11 @@ describe('AtribuicaoForm', () => {
     expect((container.querySelector('input[name="area_id"]') as HTMLInputElement).value).toBe('a1');
     expect((container.querySelector('input[name="canteiro_id"]') as HTMLInputElement).value).toBe('c1');
     expect(screen.queryByLabelText(/Área/)).toBeNull();
+  });
+
+  it('o tipo sem a declaração de área não carrega área nem na alteração, e a quantidade diz a unidade', () => {
+    const container = formulario({ tipo_tarefa_id: SEMENTE.id, dias: '2026-09-14', area_id: 'a1' }, 'atr1');
+    expect(container.querySelector('input[name="area_id"]')).toBeNull();
+    expect(screen.getByLabelText(/Quantidade prevista em kg/)).toHaveAttribute('inputmode', 'decimal');
   });
 });

@@ -4,7 +4,41 @@
  */
 
 import type { PillTone } from '@/components/ui/Pill';
-import { formatQuantidade } from './lotes-rotulos';
+import { lerQuantidade } from './lotes-rotulos';
+
+/** Lista fechada do CHECK `tipos_tarefa_unidade_valida` (RNF-02). */
+export const UNIDADES_TAREFA = ['un', 'kg', 'g', 'L', 'mL'] as const;
+
+export type UnidadeTarefa = (typeof UNIDADES_TAREFA)[number];
+
+export function isUnidadeTarefa(value: string): value is UnidadeTarefa {
+  return (UNIDADES_TAREFA as readonly string[]).includes(value);
+}
+
+/** Teto de NUMERIC(10,2). */
+const MAXIMO = 1e8;
+
+const DECIMAL = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 });
+
+/** "2,5 kg", "1.200 un". */
+export function formatQuantidadeMedida(quantidade: number, unidade: UnidadeTarefa): string {
+  return `${DECIMAL.format(quantidade)} ${unidade}`;
+}
+
+/**
+ * `un` só aceita inteiro, como o lote. As outras aceitam vírgula com até duas
+ * casas, e o ponto segue separando o milhar: "2,5", "1.500,25".
+ */
+export function lerQuantidadeMedida(text: string, unidade: UnidadeTarefa): number | null {
+  if (unidade === 'un') {
+    const inteiro = lerQuantidade(text);
+    return inteiro !== null && inteiro < MAXIMO ? inteiro : null;
+  }
+  const partes = /^(\d+|\d{1,3}(?:\.\d{3})+)(?:,(\d{1,2}))?$/.exec(text.trim().replace(/\s/g, ''));
+  if (!partes) return null;
+  const numero = Number(`${partes[1].replace(/\./g, '')}.${partes[2] ?? '0'}`);
+  return numero < MAXIMO ? numero : null;
+}
 
 export const SITUACOES_SEMANA = {
   rascunho: 'Rascunho',
@@ -58,6 +92,7 @@ export interface DetalhesAtribuicao {
   area: string | null;
   canteiro: string | null;
   quantidadePlanejada: number | null;
+  unidadeMedida: UnidadeTarefa;
 }
 
 /** O que a tarefa leva além do tipo, em pedaços curtos. Canteiro, quando há, já diz a área. */
@@ -67,6 +102,6 @@ export function detalhesAtribuicao(a: DetalhesAtribuicao): string[] {
     a.especie,
     a.recipiente,
     a.canteiro ? `Canteiro ${a.canteiro}` : a.area && `Área ${a.area}`,
-    a.quantidadePlanejada !== null && `${formatQuantidade(a.quantidadePlanejada)} previstas`,
+    a.quantidadePlanejada !== null && `Previsto ${formatQuantidadeMedida(a.quantidadePlanejada, a.unidadeMedida)}`,
   ].filter((parte): parte is string => typeof parte === 'string' && parte !== '');
 }

@@ -22,13 +22,15 @@ export async function carregarOpcoes(semana: string): Promise<OpcoesAtribuicao &
     funcionarios: funcionarios.map((f) => ({ value: f.id, label: f.nome })),
     tipos: tipos
       .filter((t) => t.ativo)
-      .map(({ id, nome, eQuantitativa, exigeLote, exigeEspecie, exigeRecipiente }) => ({
+      .map(({ id, nome, eQuantitativa, exigeLote, exigeEspecie, exigeRecipiente, exigeArea, unidadeMedida }) => ({
         id,
         nome,
         eQuantitativa,
         exigeLote,
         exigeEspecie,
         exigeRecipiente,
+        exigeArea,
+        unidadeMedida,
       })),
     turnos: turnos.filter((t) => t.ativo).map((t) => ({ value: t.id, label: `${turnoLabel(t.nome)} · ${t.inicio}` })),
     dias: diasDaSemana(semana).map((dia) => ({ value: dia, label: `${siglaDia(dia)} ${diaMes(dia)}` })),

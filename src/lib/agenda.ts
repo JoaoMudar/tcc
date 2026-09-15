@@ -2,7 +2,9 @@ import type { PoolClient } from 'pg';
 import {
   type SituacaoAtribuicao,
   type SituacaoSemana,
+  type UnidadeTarefa,
   SITUACOES_ATRIBUICAO,
+  lerQuantidadeMedida,
 } from './agenda-rotulos';
 import { somaDias } from './datas';
 import { UserError } from './errors';
@@ -43,6 +45,11 @@ export function parseHorario(inicio: string, fim: string): Resultado<{ inicio: s
   if (minutosInicio === null || (textoFim !== '' && minutosFim === null)) return { error: 'Informe a hora no formato 07:00.' };
   if (minutosFim !== null && minutosFim <= minutosInicio) return { error: 'A hora de fim precisa ser depois da hora de início.' };
   return { value: { inicio: textoInicio.slice(0, 5), fim: minutosFim === null ? null : textoFim.slice(0, 5) } };
+}
+
+/** Como a mensagem de erro descreve o número que a unidade aceita. */
+function formatoQuantidade(unidade: UnidadeTarefa): string {
+  return unidade === 'un' ? 'um número inteiro' : 'um número com até duas casas (2,5)';
 }
 
 export interface AtribuicaoBruta {
@@ -86,7 +93,10 @@ export interface AtribuicaoInput {
  * recipiente são opcionais (a semeadura se planeja antes de o lote existir); a
  * confirmação é que exige o lote.
  */
-export function parseAtribuicao(tipo: Declaracoes & { id: string }, bruta: AtribuicaoBruta): Resultado<AtribuicaoInput> {
+export function parseAtribuicao(
+  tipo: Declaracoes & { id: string; unidadeMedida: UnidadeTarefa },
+  bruta: AtribuicaoBruta,
+): Resultado<AtribuicaoInput> {
   if (!isInicioDeSemana(bruta.semana)) return { error: 'Semana inválida.' };
   const participantes = [...new Set(bruta.participantes)];
   if (participantes.length === 0) return { error: 'Escolha ao menos uma pessoa.' };
@@ -102,15 +112,15 @@ export function parseAtribuicao(tipo: Declaracoes & { id: string }, bruta: Atrib
   if ('error' in horario) return horario;
 
   const escolhido = (declarado: boolean, valor: string) => (declarado && isUuid(valor) ? valor : null);
-  // RN-25: com lote, o canteiro vem dele, e pedi-lo de novo seria redundância
-  const areaId = escolhido(!tipo.exigeLote, bruta.areaId);
-  const canteiroId = areaId ? escolhido(!tipo.exigeLote, bruta.canteiroId) : null;
+  // Área e canteiro só no tipo que os declara; o banco já recusa junto com lote (RN-25)
+  const areaId = escolhido(tipo.exigeArea, bruta.areaId);
+  const canteiroId = areaId ? escolhido(tipo.exigeArea, bruta.canteiroId) : null;
 
   let quantidadePlanejada: number | null = null;
   if (tipo.eQuantitativa && bruta.quantidadePlanejada.trim() !== '') {
-    quantidadePlanejada = lerQuantidade(bruta.quantidadePlanejada);
-    if (quantidadePlanejada === null || quantidadePlanejada < 1) {
-      return { error: 'A quantidade prevista precisa ser um número inteiro maior que zero, ou ficar em branco.' };
+    quantidadePlanejada = lerQuantidadeMedida(bruta.quantidadePlanejada, tipo.unidadeMedida);
+    if (quantidadePlanejada === null || quantidadePlanejada <= 0) {
+      return { error: `A quantidade prevista precisa ser ${formatoQuantidade(tipo.unidadeMedida)} maior que zero, ou ficar em branco.` };
     }
   }
 
@@ -163,13 +173,13 @@ export interface ConfirmacaoInput {
  * (FE-1). As mudas que morreram viram perda do lote (decisão de 14/09/2026).
  */
 export function parseConfirmacao(
-  tipo: Pick<Declaracoes, 'eQuantitativa' | 'exigeLote'>,
+  tipo: Pick<Declaracoes, 'eQuantitativa' | 'exigeLote' | 'exigeArea'> & { unidadeMedida: UnidadeTarefa },
   participantes: readonly string[],
   bruta: ConfirmacaoBruta,
 ): Resultado<ConfirmacaoInput> {
   const loteId = tipo.exigeLote && isUuid(bruta.loteId) ? bruta.loteId : null;
   if (tipo.exigeLote && !loteId) return { error: 'Esta tarefa exige o lote: escolha em qual lote ela foi feita.' };
-  const areaId = !tipo.exigeLote && isUuid(bruta.areaId) ? bruta.areaId : null;
+  const areaId = tipo.exigeArea && !tipo.exigeLote && isUuid(bruta.areaId) ? bruta.areaId : null;
   const canteiroId = areaId && isUuid(bruta.canteiroId) ? bruta.canteiroId : null;
 
   const quantidades: ConfirmacaoInput['quantidades'] = [];
@@ -179,9 +189,9 @@ export function parseConfirmacao(
       quantidades.push({ pessoaId, quantidade: null });
       continue;
     }
-    const quantidade = lerQuantidade(texto);
+    const quantidade = lerQuantidadeMedida(texto, tipo.unidadeMedida);
     if (quantidade === null) {
-      return { error: 'Quantidade inválida: use número inteiro, ou deixe em branco quem não foi contado.' };
+      return { error: `Quantidade inválida: use ${formatoQuantidade(tipo.unidadeMedida)}, ou deixe em branco quem não foi contado.` };
     }
     quantidades.push({ pessoaId, quantidade });
   }
@@ -259,6 +269,8 @@ export interface AtribuicaoResumo {
   exigeLote: boolean;
   exigeEspecie: boolean;
   exigeRecipiente: boolean;
+  exigeArea: boolean;
+  unidadeMedida: UnidadeTarefa;
   especieId: string | null;
   especie: string | null;
   recipienteId: string | null;
@@ -282,12 +294,13 @@ const SELECT_ATRIBUICAO = `
          to_char(a.hora_inicio, 'HH24:MI') AS "horaInicio", to_char(a.hora_fim, 'HH24:MI') AS "horaFim",
          a.tipo_tarefa_id AS "tipoTarefaId", tt.nome AS tipo, tt.e_quantitativa AS "eQuantitativa",
          tt.exige_lote AS "exigeLote", tt.exige_especie AS "exigeEspecie", tt.exige_recipiente AS "exigeRecipiente",
+         tt.exige_area AS "exigeArea", tt.unidade_medida AS "unidadeMedida",
          a.especie_id AS "especieId", ${nomeEspecieSql('e')} AS especie,
          a.recipiente_id AS "recipienteId", r.nome AS recipiente,
          a.lote_id AS "loteId", l.codigo AS "loteCodigo",
          a.area_id AS "areaId", ar.letra AS area, a.canteiro_id AS "canteiroId", ac.letra || '-' || c.numero AS canteiro,
-         a.quantidade_planejada AS "quantidadePlanejada", a.e_recorrente AS "eRecorrente", a.situacao, a.observacoes,
-         COALESCE((SELECT json_agg(json_build_object('id', p.pessoa_id, 'nome', pe.nome, 'quantidade', p.quantidade_feita)
+         a.quantidade_planejada::float8 AS "quantidadePlanejada", a.e_recorrente AS "eRecorrente", a.situacao, a.observacoes,
+         COALESCE((SELECT json_agg(json_build_object('id', p.pessoa_id, 'nome', pe.nome, 'quantidade', p.quantidade_feita::float8)
                                    ORDER BY pe.nome)
                      FROM atribuicoes_participantes p
                      JOIN cadastro.pessoas pe ON pe.id = p.pessoa_id
@@ -531,7 +544,7 @@ async function copiarDaSemana(client: Client, origemInicio: string, destinoId: s
             to_char(a.hora_inicio, 'HH24:MI') AS "horaInicio", to_char(a.hora_fim, 'HH24:MI') AS "horaFim",
             CASE WHEN l.encerrado_em IS NULL THEN a.lote_id END AS "loteId", a.especie_id AS "especieId",
             a.recipiente_id AS "recipienteId", a.area_id AS "areaId", a.canteiro_id AS "canteiroId",
-            a.quantidade_planejada AS "quantidadePlanejada", a.e_recorrente AS recorrente, a.observacoes,
+            a.quantidade_planejada::float8 AS "quantidadePlanejada", a.e_recorrente AS recorrente, a.observacoes,
             ARRAY(SELECT p.pessoa_id::text
                     FROM atribuicoes_participantes p
                     JOIN cadastro.pessoas pe ON pe.id = p.pessoa_id AND pe.ativa
