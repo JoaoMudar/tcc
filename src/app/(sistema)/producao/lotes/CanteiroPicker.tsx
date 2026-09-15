@@ -16,7 +16,7 @@ interface CanteiroPickerProps {
   sufixo?: string;
 }
 
-/** Área e canteiro, com a lotação de cada um à vista e o aviso que não impede (RN-29). */
+/** Área e canteiro, com a lotação de cada um à vista e o aviso que não impede (RN-28). */
 export function CanteiroPicker({
   canteiros,
   quantidade,

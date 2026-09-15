@@ -74,7 +74,7 @@ export interface CanteiroResumo {
   mudas: number;
 }
 
-/** RN-29: a capacidade avisa e não recusa. `null` quando cabe ou quando o canteiro não tem capacidade. */
+/** RN-28: a capacidade avisa e não recusa. `null` quando cabe ou quando o canteiro não tem capacidade. */
 export function avisoCapacidade(canteiro: CanteiroResumo, quantidade: number): string | null {
   if (canteiro.capacidade === null || canteiro.mudas + quantidade <= canteiro.capacidade) return null;
   const label = canteiroLabel(canteiro.letra, canteiro.numero);

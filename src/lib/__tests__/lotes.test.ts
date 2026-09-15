@@ -65,7 +65,7 @@ describe('nextCodigo (C8: AAAA-NNNN)', () => {
   });
 });
 
-describe('avisoCapacidade (RN-29: avisa, não recusa)', () => {
+describe('avisoCapacidade (RN-28: avisa, não recusa)', () => {
   const canteiro: CanteiroResumo = { id: 'c', areaId: 'a', letra: 'B', numero: 3, capacidade: 8000, lotes: 2, mudas: 4100 };
 
   it('cabe: sem aviso', () => {

@@ -149,7 +149,7 @@ export async function transferirLoteAction(_previous: FormState, formData: FormD
   return { success: 'Lote transferido.' };
 }
 
-/** T4.8, RF-34: baixa o lote de origem e cria o novo apontando para ele, com a perda do processo (RN-28). */
+/** T4.8, RF-34: baixa o lote de origem e cria o novo apontando para ele, com a perda do processo (RN-27). */
 export async function repicarLoteAction(_previous: FormState, formData: FormData): Promise<FormState> {
   const user = await requirePermission('movimentos_lote', 'C');
   await requirePermission('lotes', 'C');

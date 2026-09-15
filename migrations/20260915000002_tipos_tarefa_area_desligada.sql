@@ -1,7 +1,7 @@
 -- Migration: 20260915000002_tipos_tarefa_area_desligada.sql
 -- Descricao: Nenhum tipo de tarefa comeca com area ligada.
 --
--- Requisitos: RF-21, RF-30 · Regras: RN-25
+-- Requisitos: RF-21, RF-30 · Regras: RN-24
 -- Entidades: C8 `tipos_tarefa`
 --
 -- POR QUE ESTA MIGRATION EXISTE. A primeira versao da 20260915000001 ligava

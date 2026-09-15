@@ -154,7 +154,7 @@ export async function criarLote(client: Client, input: NovoLote): Promise<{ id: 
 export interface Repicagem {
   origemId: string;
   quantidade: number;
-  /** Mudas que morreram no processo: viram perda do lote de origem (RN-28). */
+  /** Mudas que morreram no processo: viram perda do lote de origem (RN-27). */
   perdidas: number;
   causa: CausaPerda | null;
   recipienteId: string;

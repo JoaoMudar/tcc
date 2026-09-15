@@ -2,7 +2,7 @@
 -- Descricao: O tipo de tarefa declara se registra area e canteiro, e em que unidade
 -- se conta a quantidade. As quantidades da agenda passam a aceitar decimal.
 --
--- Requisitos: RF-21, RF-29, RF-30 · Regras: RN-24, RN-25
+-- Requisitos: RF-21, RF-29, RF-30 · Regras: RN-23, RN-24
 -- Entidades: C8 `tipos_tarefa`, `atribuicoes`, `atribuicoes_participantes`
 --
 -- POR QUE ESTA MIGRATION EXISTE. Ate aqui, toda tarefa sem lote pedia area e
@@ -29,7 +29,7 @@ ALTER TABLE tipos_tarefa
   ADD COLUMN unidade_medida TEXT    NOT NULL DEFAULT 'un';
 
 ALTER TABLE tipos_tarefa
-  -- RN-25: com lote, o canteiro vem dele, e pedi-lo de novo e redundancia.
+  -- RN-24: com lote, o canteiro vem dele, e pedi-lo de novo e redundancia.
   ADD CONSTRAINT tipos_tarefa_area_ou_lote CHECK (NOT (exige_lote AND exige_area)),
   ADD CONSTRAINT tipos_tarefa_unidade_valida CHECK (unidade_medida IN ('un', 'kg', 'g', 'L', 'mL'));
 
@@ -40,6 +40,6 @@ ALTER TABLE atribuicoes_participantes
   ALTER COLUMN quantidade_feita TYPE NUMERIC(10,2);
 
 COMMENT ON COLUMN tipos_tarefa.exige_area IS
-  'Faz a confirmacao oferecer area e canteiro. Nunca junto com exige_lote: o lote ja da o canteiro. RF-30, RN-25.';
+  'Faz a confirmacao oferecer area e canteiro. Nunca junto com exige_lote: o lote ja da o canteiro. RF-30, RN-24.';
 COMMENT ON COLUMN tipos_tarefa.unidade_medida IS
-  'Unidade da quantidade por pessoa: un, kg, g, L, mL. So un exige inteiro. RN-24.';
+  'Unidade da quantidade por pessoa: un, kg, g, L, mL. So un exige inteiro. RN-23.';

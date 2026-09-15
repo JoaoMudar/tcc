@@ -167,7 +167,7 @@ function lerSemanaDoForm(formData: FormData): string | null {
   return isInicioDeSemana(semana) ? semana : null;
 }
 
-/** RN-31: abrir traz as recorrentes da semana passada. */
+/** RN-29: abrir traz as recorrentes da semana passada. */
 export async function abrirSemanaAction(_previous: FormState, formData: FormData): Promise<FormState> {
   await requirePermission('agenda', 'C');
   const semana = lerSemanaDoForm(formData);

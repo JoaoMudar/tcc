@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { PageHeader } from '@/components/PageHeader';
 import { Notice } from '@/components/ui/Notice';
 import { Pill } from '@/components/ui/Pill';
-import { SITUACOES_ATRIBUICAO, TOM_ATRIBUICAO, findAtribuicao, formatHoraTarefa, formatQuantidadeMedida } from '@/lib/agenda';
+import { ESTADOS_TAREFA, TOM_ESTADO, estadoTarefa, findAtribuicao, formatHoraTarefa, formatQuantidadeMedida } from '@/lib/agenda';
 import { listAreas } from '@/lib/areas';
 import { formatData } from '@/lib/datas';
 import pool from '@/lib/db';
@@ -71,7 +71,7 @@ export default async function AtribuicaoPage({ params, searchParams }: Atribuica
             <h2 className="text-xl font-bold text-ink">
               {nomeDia(a.data)}, {formatData(a.data)}
             </h2>
-            <Pill tone={TOM_ATRIBUICAO[a.situacao]}>{SITUACOES_ATRIBUICAO[a.situacao]}</Pill>
+            <Pill tone={TOM_ESTADO[estadoTarefa(a)]}>{ESTADOS_TAREFA[estadoTarefa(a)]}</Pill>
           </div>
           <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-base">
             <div>
