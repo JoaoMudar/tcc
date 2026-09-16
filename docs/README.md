@@ -48,6 +48,10 @@ Distinta de `docs/rotinas/`, que é documentação de domínio em linguagem de n
 
 Comece por [`engenharia/README.md`](engenharia/README.md), explica a estrutura de pastas.
 Índice completo, com status de cada artefato, em [`engenharia/00-indice.md`](engenharia/00-indice.md).
+O que a orientação apontou em 15/09/2026, e o que foi feito de cada ponto, em
+[`engenharia/revisao-orientacao-15-09-2026.md`](engenharia/revisao-orientacao-15-09-2026.md).
+Como o `B3` e o `B2` estão hoje só se entende com ele ao lado: é ele que explica por que duas
+regras saíram e por que a numeração mudou.
 
 | Bloco | Artefatos |
 |-------|-----------|

@@ -30,6 +30,7 @@ São documentos de projeto, não relatórios de código.
 | [A1](A-fundacao/A1-documento-de-visao.md) | Documento de Visão | 4.1 Visão geral da solução | ✅ escrito |
 | [A2](A-fundacao/A2-glossario-dominio.md) | Glossário do domínio | Apêndice | ✅ escrito |
 | [pré-textuais](tcc-pre-textuais.md) | Dedicatória, agradecimentos e epígrafe | Antes do sumário | ✅ escrito: nomes próprios entre colchetes, a preencher |
+| [revisão 15/09](revisao-orientacao-15-09-2026.md) | Os quatorze apontamentos da orientação e o que foi feito de cada um | não vai ao TCC | ✅ registro histórico: cita identificadores antigos, de propósito |
 
 ### B: Engenharia de requisitos
 

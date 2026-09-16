@@ -55,7 +55,7 @@ const reCitacao = /\b(RNF|RF|RN|UC|TA|IND|RE)-(\d+)\b/g;
 // Registros históricos citam, de propósito, identificadores que já não existem: é o
 // que os torna registro. Reescrevê-los para satisfazer esta conferência os
 // transformaria em ficção retroativa.
-const REGISTROS_HISTORICOS = ['auditoria-divergencias.md'];
+const REGISTROS_HISTORICOS = ['auditoria-divergencias.md', 'revisao-orientacao-15-09-2026.md'];
 
 for (const arquivo of ARQUIVOS) {
   if (arquivo.includes('node_modules')) continue;
