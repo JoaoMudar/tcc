@@ -112,8 +112,23 @@ As tabelas vêm em Markdown. Ao colar no Word, o formato mais confiável é:
    separador.
 4. Remover a linha de traços (`|---|---|`), que é sintaxe do Markdown e não conteúdo.
 
-Alternativa mais rápida, se houver Pandoc instalado: converter o arquivo inteiro com
-`pandoc arquivo.md -o arquivo.docx` e copiar do resultado.
+## A pasta `docx/`
+
+Quem preferir não colar Markdown pode abrir os arquivos de `docx/`, que são os mesmos textos já
+convertidos. Ali as tabelas chegam prontas, as figuras vêm embutidas e os títulos usam os estilos
+de título do Word, o que faz o sumário automático funcionar. Abra o arquivo, selecione tudo e cole
+no documento do trabalho, que tem o modelo da instituição.
+
+A pasta é gerada junto com o resto, e depende do **Pandoc**. Sem ele a conversão é pulada, e o
+aviso aparece no fim da execução. Para instalar:
+
+```
+winget install --id JohnMacFarlane.Pandoc
+```
+
+> **Colar do `.docx` traz os estilos do Pandoc junto.** Ao colar, use **Colar Especial** e escolha
+> mesclar a formatação de destino, para que os títulos assumam os estilos do modelo da instituição
+> e não os padrões do Pandoc. Sem isso o sumário sai com a fonte errada.
 
 ## Conferência antes de entregar
 

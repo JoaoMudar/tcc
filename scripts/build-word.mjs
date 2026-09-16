@@ -11,8 +11,11 @@
 //      o PNG correspondente**, numerando as figuras em sequência contínua ao longo do
 //      capítulo.
 //
-//   node scripts/build-word.mjs            # tudo, inclusive as figuras
+//   node scripts/build-word.mjs            # tudo: texto, figuras e a conversão para .docx
 //   node scripts/build-word.mjs --sem-img  # só o texto, sem chamar o mermaid-cli
+//
+// A conversão para `.docx` depende do Pandoc, que não é dependência do projeto. Sem ele
+// a pasta `docx/` é pulada, com aviso, e o resto sai igual.
 //
 // As figuras do Capítulo 4.5 saem do Mermaid do C6. Para o trabalho impresso, elas são
 // **substituídas à mão** pelas de `modelo-dados-pt/`: mesmo modelo, mesmos nomes, porém
@@ -27,6 +30,7 @@ const ENG = 'docs/engenharia';
 const OUT = `${ENG}/word`;
 const IMG = `${OUT}/img`;
 const SEM_IMG = process.argv.includes('--sem-img');
+const DOCX = `${OUT}/docx`;
 
 // destino -> { titulo, fontes[] }
 const CAPITULO = [
@@ -201,6 +205,25 @@ if (!SEM_IMG) {
   }
 }
 
+// ---------------------------------------------------------------- docx
+//
+// A pasta `docx/` existe para quem prefere colar de um documento formatado a colar
+// Markdown: as tabelas chegam prontas, as figuras vêm embutidas e os títulos usam os
+// estilos do Word, o que deixa o sumário automático funcionar. Continua sendo entrega
+// intermediária, e não o trabalho: o trabalho é o documento com o modelo da
+// instituição, e é nele que estes arquivos são colados.
+//
+// Depende do Pandoc, que não é dependência do projeto. Sem ele a conversão é pulada
+// e o resto da geração segue igual.
+function temPandoc() {
+  try {
+    execFileSync('pandoc', ['--version'], { stdio: 'ignore', shell: process.platform === 'win32' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // ---------------------------------------------------------------- como montar
 const ordem = CAPITULO.map(([nome, titulo], i) => `${i + 1}. \`${nome}.md\` → **${titulo}**`);
 writeFileSync(
@@ -307,8 +330,23 @@ As tabelas vêm em Markdown. Ao colar no Word, o formato mais confiável é:
    separador.
 4. Remover a linha de traços (\`|---|---|\`), que é sintaxe do Markdown e não conteúdo.
 
-Alternativa mais rápida, se houver Pandoc instalado: converter o arquivo inteiro com
-\`pandoc arquivo.md -o arquivo.docx\` e copiar do resultado.
+## A pasta \`docx/\`
+
+Quem preferir não colar Markdown pode abrir os arquivos de \`docx/\`, que são os mesmos textos já
+convertidos. Ali as tabelas chegam prontas, as figuras vêm embutidas e os títulos usam os estilos
+de título do Word, o que faz o sumário automático funcionar. Abra o arquivo, selecione tudo e cole
+no documento do trabalho, que tem o modelo da instituição.
+
+A pasta é gerada junto com o resto, e depende do **Pandoc**. Sem ele a conversão é pulada, e o
+aviso aparece no fim da execução. Para instalar:
+
+\`\`\`
+winget install --id JohnMacFarlane.Pandoc
+\`\`\`
+
+> **Colar do \`.docx\` traz os estilos do Pandoc junto.** Ao colar, use **Colar Especial** e escolha
+> mesclar a formatação de destino, para que os títulos assumam os estilos do modelo da instituição
+> e não os padrões do Pandoc. Sem isso o sumário sai com a fonte errada.
 
 ## Conferência antes de entregar
 
@@ -325,7 +363,7 @@ Alternativa mais rápida, se houver Pandoc instalado: converter o arquivo inteir
 );
 
 // Remove o que sobrou de gerações anteriores.
-const esperados = new Set([...gerados.map((g) => `${g}.md`), '00-como-montar.md', 'img']);
+const esperados = new Set([...gerados.map((g) => `${g}.md`), '00-como-montar.md', 'img', 'docx']);
 for (const f of readdirSync(OUT)) {
   if (!esperados.has(f)) {
     rmSync(`${OUT}/${f}`, { recursive: true, force: true });
@@ -334,3 +372,18 @@ for (const f of readdirSync(OUT)) {
 }
 
 console.log(`word/: ${gerados.length + 1} arquivos, ${figura} figuras.`);
+
+if (!temPandoc()) {
+  console.log('docx/: pulado, Pandoc não encontrado. Instale com `winget install --id JohnMacFarlane.Pandoc`.');
+} else {
+  mkdirSync(DOCX, { recursive: true });
+  for (const arquivo of readdirSync(OUT).filter((f) => f.endsWith(".md"))) {
+    const nome = arquivo.slice(0, -3);
+    execFileSync(
+      'pandoc',
+      [arquivo, '-o', `docx/${nome}.docx`, '--resource-path=.'],
+      { cwd: OUT, stdio: 'ignore', shell: process.platform === 'win32' }
+    );
+  }
+  console.log(`docx/: ${readdirSync(DOCX).length} arquivos.`);
+}
