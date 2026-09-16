@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   type AtribuicaoInput,
   type ConfirmacaoInput,
+  type ReagendamentoInput,
   abrirSemana,
   atualizarAtribuicao,
   conferirAtribuicaoDaRepicagem,
@@ -18,6 +19,7 @@ import {
   listAgendaSemana,
   listFuncionarios,
   publicarSemana,
+  reagendarAtribuicao,
   resumoFechamento,
 } from '../agenda';
 import { insertArea, insertCanteiro } from '../areas';
@@ -32,6 +34,8 @@ const S1 = '2030-01-07';
 const S2 = '2030-01-14';
 // Segunda-feira cuja semana anterior ninguém usa
 const S3 = '2031-01-06';
+// Semana isolada do reagendamento: nenhuma outra contagem passa por ela
+const S4 = '2031-02-03';
 
 let usuario: string;
 let manha: string;
@@ -176,6 +180,31 @@ describe('agenda da semana contra Postgres', () => {
     ids.recorrente = recorrentes[0];
     expect(await findAtribuicao(pool, ids.recorrente)).toMatchObject({ turnoId: manha, horaInicio: '07:00', horaFim: '08:00', eRecorrente: true });
     expect(await findAtribuicao(pool, ids.encher)).toMatchObject({ turnoId: manha, horaInicio: null, horaFim: null });
+  });
+
+  it('TA-68: arrastar remarca dia, turno e hora, e recusa o que sai da semana ou já aconteceu', async () => {
+    // Semana só deste caso: acrescentar tarefa a S1 mudaria a contagem da cópia em TA-29
+    const [id] = await criar({ semana: S4, dias: [S4], participantes: [valdir] });
+    const reagendar = (over: Partial<ReagendamentoInput> = {}) =>
+      tx((client) =>
+        reagendarAtribuicao(client, id, { data: '2031-02-05', turnoId: tarde, horaInicio: '13:30', horaFim: '15:00', ...over }),
+      );
+
+    await reagendar();
+    expect(await findAtribuicao(pool, id)).toMatchObject({
+      data: '2031-02-05',
+      turnoId: tarde,
+      horaInicio: '13:30',
+      horaFim: '15:00',
+    });
+
+    // O arrasto não atravessa a semana, e o CHECK do banco é a segunda barreira do horário
+    await expect(reagendar({ data: '2031-02-10' })).rejects.toThrow('desta semana');
+    await expect(reagendar({ horaInicio: '15:00', horaFim: '14:00' })).rejects.toThrow();
+
+    // O que já aconteceu não se remaneja
+    await confirmar(id);
+    await expect(reagendar()).rejects.toThrow('não se altera');
   });
 
   it('TA-28: o banco é a segunda barreira contra fim sem início', async () => {

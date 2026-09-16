@@ -21,6 +21,7 @@ import { AcaoSemana } from './AcaoSemana';
 import { AtribuicaoCartao } from './AtribuicaoCartao';
 import { EscalaAgenda } from './EscalaAgenda';
 import { GanttSemana } from './GanttSemana';
+import { carregarOpcoes } from './opcoes';
 
 interface AgendaSemanaPageProps {
   searchParams: Promise<{ semana?: string; feito?: string }>;
@@ -53,6 +54,9 @@ export default async function AgendaSemanaPage({ searchParams }: AgendaSemanaPag
   const podePublicar = can(user.perfil, 'agenda', 'A') && semana?.situacao === 'rascunho';
   const podeFechar = can(user.perfil, 'fechamento_semana', 'A') && semana?.situacao === 'publicada';
   const diaReferencia = dias.includes(hoje) ? hoje : inicio;
+  // As listas do formulário só são buscadas para quem pode lançar clicando na grade
+  const podeArrastar = can(user.perfil, 'agenda', 'A') && semana?.situacao !== 'fechada';
+  const opcoes = podeMontar ? await carregarOpcoes(inicio) : undefined;
 
   return (
     <main>
@@ -116,7 +120,16 @@ export default async function AgendaSemanaPage({ searchParams }: AgendaSemanaPag
         {semana && grade.length === 0 && <Notice tone="info">Nenhuma tarefa lançada nesta semana.</Notice>}
 
         {grade.length > 0 && turnosEmUso.length > 0 && (
-          <GanttSemana className="hidden md:block" grade={grade} dias={dias} turnos={turnosEmUso} hoje={hoje} />
+          <GanttSemana
+            className="hidden md:block"
+            grade={grade}
+            dias={dias}
+            turnos={turnosEmUso}
+            hoje={hoje}
+            semana={inicio}
+            podeArrastar={podeArrastar}
+            opcoes={opcoes}
+          />
         )}
 
         {atribuicoes.length > 0 && (

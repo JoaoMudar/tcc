@@ -6,7 +6,7 @@ import {
   SITUACOES_ATRIBUICAO,
   lerQuantidadeMedida,
 } from './agenda-rotulos';
-import { somaDias } from './datas';
+import { isDataIso, somaDias } from './datas';
 import { UserError } from './errors';
 import { type CausaPerda, isCausaPerda, lerQuantidade } from './lotes-rotulos';
 import { nomeEspecieSql } from './lotes';
@@ -145,6 +145,36 @@ export function parseAtribuicao(
       recorrente: bruta.recorrente,
       observacoes: observacoes || null,
     },
+  };
+}
+
+export interface ReagendamentoBruto {
+  data: string;
+  turnoId: string;
+  horaInicio: string;
+  horaFim: string;
+}
+
+export interface ReagendamentoInput {
+  data: string;
+  turnoId: string;
+  horaInicio: string | null;
+  horaFim: string | null;
+}
+
+/**
+ * O arrasto na agenda da semana (tela larga, RNF-14). Mexe só em quando a tarefa
+ * acontece: dia, turno e hora. Tudo o mais continua no formulário, inclusive
+ * quem faz, porque a tarefa é de um grupo e soltar a barra numa pessoa não diz
+ * se ela substitui o grupo ou entra nele.
+ */
+export function parseReagendamento(bruto: ReagendamentoBruto): Resultado<ReagendamentoInput> {
+  if (!isDataIso(bruto.data)) return { error: 'Dia inválido.' };
+  if (!isUuid(bruto.turnoId)) return { error: 'Escolha o turno. Toda tarefa tem turno, mesmo a que tem hora marcada.' };
+  const horario = parseHorario(bruto.horaInicio, bruto.horaFim);
+  if ('error' in horario) return horario;
+  return {
+    value: { data: bruto.data, turnoId: bruto.turnoId, horaInicio: horario.value.inicio, horaFim: horario.value.fim },
   };
 }
 
@@ -680,6 +710,30 @@ export async function atualizarAtribuicao(client: Client, id: string, input: Atr
     id,
     input.participantes,
   ]);
+}
+
+/**
+ * Remarca a tarefa arrastada: dia, turno e hora, dentro da mesma semana. Só a
+ * planejada, pelo mesmo motivo da alteração: o que já aconteceu não se remaneja.
+ */
+export async function reagendarAtribuicao(client: Client, id: string, input: ReagendamentoInput): Promise<{ semanaInicio: string }> {
+  const atribuicao = await travarAtribuicao(client, id);
+  recusarSeFechada(atribuicao.semana);
+  recusarSeNaoPlanejada(atribuicao);
+  if (!diasDaSemana(atribuicao.semana.inicio).includes(input.data)) {
+    throw new UserError('Arraste para um dia desta semana, de segunda a sábado. Para outra semana, lance a tarefa de novo.');
+  }
+  const { rows } = await client.query<{ ativo: boolean }>('SELECT ativo FROM turnos_trabalho WHERE id = $1', [input.turnoId]);
+  if (rows[0]?.ativo !== true) throw new UserError('Escolha um turno em uso.');
+
+  await client.query('UPDATE atribuicoes SET data_trabalho = $2, turno_id = $3, hora_inicio = $4, hora_fim = $5 WHERE id = $1', [
+    id,
+    input.data,
+    input.turnoId,
+    input.horaInicio,
+    input.horaFim,
+  ]);
+  return { semanaInicio: atribuicao.semana.inicio };
 }
 
 export async function excluirAtribuicao(client: Client, id: string): Promise<{ semanaInicio: string }> {

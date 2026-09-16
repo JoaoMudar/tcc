@@ -105,6 +105,31 @@ export async function atualizarAtribuicaoAction(_previous: FormState, formData: 
   redirect(`/producao/agenda/${id}?feito=alterada`);
 }
 
+/**
+ * O arrasto na linha do tempo da semana (RNF-14). Não redireciona: a grade fica
+ * onde está, e quem conta o que mudou é a própria barra no lugar novo.
+ */
+export async function reagendarAtribuicaoAction(_previous: FormState, formData: FormData): Promise<FormState> {
+  await requirePermission('agenda', 'A');
+  const id = formText(formData, 'id');
+  if (!isUuid(id)) return { error: 'Tarefa inválida.' };
+  const resultado = agenda.parseReagendamento({
+    data: formText(formData, 'data'),
+    turnoId: formText(formData, 'turno_id'),
+    horaInicio: formText(formData, 'hora_inicio'),
+    horaFim: formText(formData, 'hora_fim'),
+  });
+  if ('error' in resultado) return { error: resultado.error };
+
+  try {
+    await withTransaction(pool, (client) => agenda.reagendarAtribuicao(client, id, resultado.value));
+  } catch (error) {
+    return { error: toUserMessage(error) };
+  }
+  revalidarProducao();
+  return { success: 'Tarefa remarcada.' };
+}
+
 export async function excluirAtribuicaoAction(_previous: FormState, formData: FormData): Promise<FormState> {
   await requirePermission('agenda', 'E');
   const id = formText(formData, 'id');

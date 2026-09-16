@@ -12,6 +12,7 @@ import {
   parseAtribuicao,
   parseConfirmacao,
   parseHorario,
+  parseReagendamento,
   siglaTurno,
 } from '../agenda';
 
@@ -74,6 +75,34 @@ describe('hora da tarefa (RN-12)', () => {
     expect(parseHorario('', '08:00')).toEqual({ error: expect.stringContaining('fim sem hora de início') });
     expect(parseHorario('08:00', '07:00')).toEqual({ error: expect.stringContaining('depois') });
     expect(parseHorario('7h', '')).toEqual({ error: expect.stringContaining('formato') });
+  });
+});
+
+describe('parseReagendamento (arrasto na agenda, RNF-14)', () => {
+  const TURNO = '0b9f3f3e-8a5b-4c1a-9d0e-2f6a7b8c9d0a';
+
+  it('aceita dia, turno e o intervalo que o arrasto declarou', () => {
+    expect(parseReagendamento({ data: '2026-09-15', turnoId: TURNO, horaInicio: '07:00', horaFim: '08:30' })).toEqual({
+      value: { data: '2026-09-15', turnoId: TURNO, horaInicio: '07:00', horaFim: '08:30' },
+    });
+  });
+
+  it('recusa dia que não existe', () => {
+    expect(parseReagendamento({ data: '2026-02-30', turnoId: TURNO, horaInicio: '07:00', horaFim: '08:00' })).toEqual({
+      error: 'Dia inválido.',
+    });
+  });
+
+  it('exige o turno, que o arrasto nunca deixa vazio (RN-12)', () => {
+    expect(parseReagendamento({ data: '2026-09-15', turnoId: '', horaInicio: '07:00', horaFim: '08:00' })).toEqual({
+      error: expect.stringContaining('Escolha o turno'),
+    });
+  });
+
+  it('recusa o fim antes do início, como o CHECK do banco', () => {
+    expect(parseReagendamento({ data: '2026-09-15', turnoId: TURNO, horaInicio: '08:00', horaFim: '07:00' })).toEqual({
+      error: expect.stringContaining('depois'),
+    });
   });
 });
 

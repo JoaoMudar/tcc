@@ -1,8 +1,9 @@
 'use client';
 
-import { useActionState, useEffect, useId, useRef } from 'react';
+import { useActionState, useEffect, useRef } from 'react';
 import { createClienteRapido } from '@/app/(sistema)/cadastros/pessoas/actions';
 import { Button } from '@/components/ui/Button';
+import { Modal } from '@/components/ui/Modal';
 import { Notice } from '@/components/ui/Notice';
 import { TextField } from '@/components/ui/TextField';
 import { EMPTY_CLIENTE_RAPIDO_STATE, type PessoaRef } from '@/lib/pessoas-form';
@@ -19,7 +20,6 @@ interface ClienteRapidoProps {
  */
 export function ClienteRapido({ onCriado, onFechar }: ClienteRapidoProps) {
   const [state, formAction, pending] = useActionState(createClienteRapido, EMPTY_CLIENTE_RAPIDO_STATE);
-  const tituloId = useId();
   const avisado = useRef<string | null>(null);
 
   useEffect(() => {
@@ -30,22 +30,8 @@ export function ClienteRapido({ onCriado, onFechar }: ClienteRapidoProps) {
   }, [state.cliente, onCriado]);
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/40" onClick={onFechar}>
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={tituloId}
-        className="mx-auto flex w-full max-w-md flex-col gap-3 rounded-t-2xl bg-white p-4 pb-6 shadow-xl"
-        onClick={(event) => event.stopPropagation()}
-        onKeyDown={(event) => {
-          if (event.key === 'Escape') onFechar();
-        }}
-      >
-        <div aria-hidden="true" className="mx-auto h-1 w-9 rounded bg-gray-300" />
-        <h2 id={tituloId} className="text-lg font-bold text-ink">
-          Cliente novo
-        </h2>
-        <form action={formAction} className="flex flex-col gap-3">
+    <Modal titulo="Cliente novo" onFechar={onFechar}>
+      <form action={formAction} className="flex flex-col gap-3">
           <TextField label="Nome" name="nome" defaultValue={state.fields?.nome} autoComplete="off" required autoFocus />
           <TextField
             label="Telefone"
@@ -80,8 +66,7 @@ export function ClienteRapido({ onCriado, onFechar }: ClienteRapidoProps) {
           <Button variant="secondary" onClick={onFechar}>
             Cancelar
           </Button>
-        </form>
-      </div>
-    </div>
+      </form>
+    </Modal>
   );
 }

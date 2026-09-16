@@ -202,6 +202,9 @@ requisitos de prioridade *deve ter* sem verificação correspondente.
 | **TA-65** | RF-39 | Lote com saldo calculado diferente do real | 1. Registrar contagem física do lote com a quantidade real<br>2. Consultar o histórico de movimentos | O saldo passa a ser o contado, e o movimento de ajuste aparece no histórico | Não executado |
 | **TA-66** | RF-41 | Perdas registradas em datas distintas | 1. Filtrar as perdas por um intervalo de datas | Retorna somente os registros do intervalo | Não executado |
 | **TA-67** | RF-18 | Cliente cadastrado com nome, telefone e documento | 1. Buscar por parte do nome<br>2. Buscar pelo telefone<br>3. Buscar pelo documento | As três buscas retornam o mesmo cliente | Não executado |
+| **TA-68** | RF-26, RNF-14 | Semana publicada, em tela de computador, com tarefa planejada na manhã de segunda | 1. Arrastar a barra da tarefa para a tarde de quarta<br>2. Puxar a borda direita dela para uma hora adiante<br>3. Recarregar a página | A tarefa passa a constar em quarta, no turno da tarde, com a hora de início e de fim que o arrasto declarou, e continua assim depois de recarregar | Não executado |
+| **TA-69** | RF-26, RNF-14 | Semana publicada, em tela de computador | 1. Clicar num ponto vazio da faixa de uma pessoa, à tarde de quinta<br>2. Preencher o tipo de tarefa e confirmar | O lançamento abre já apontando para quinta, o turno da tarde e a hora do ponto clicado, e a tarefa nasce ali | Não executado |
+| **TA-70** | RF-28, RF-26 | Semana fechada, em tela de computador | 1. Tentar arrastar a barra de uma tarefa da semana<br>2. Tentar clicar no vazio da grade | Nada se move e nada é lançado: a semana fechada não se altera | Não executado |
 
 > **TA-64 confronta o número do sistema com uma apuração manual independente.** É o que valida a
 > decisão de manter o saldo disponível como quantidade derivada, e não como entidade armazenada:
@@ -226,8 +229,8 @@ requisitos de prioridade *deve ter* sem verificação correspondente.
 | Mapa de lotes | 2 | RF-44, RF-45 |
 | Clientes e pedidos | 6 | RF-15, RF-17, RF-54, RF-55, RF-57, RF-58 |
 | Requisitos não funcionais | 7 | RNF-01, RNF-02, RNF-05, RNF-06, RNF-08, RNF-09, RNF-11, RNF-14 |
-| Casos acrescentados pela matriz de rastreabilidade | 6 | RF-05, RF-11, RF-18, RF-39, RF-41, RF-43, RF-56 |
-| **Total** | **67** | **53 dos 53 requisitos de prioridade *deve ter*** |
+| Casos acrescentados pela matriz de rastreabilidade | 9 | RF-05, RF-11, RF-18, RF-26, RF-28, RF-39, RF-41, RF-43, RF-56, RNF-14 |
+| **Total** | **70** | **53 dos 53 requisitos de prioridade *deve ter*** |
 
 **Todos os requisitos de prioridade *deve ter* têm caso de aceite.**
 
