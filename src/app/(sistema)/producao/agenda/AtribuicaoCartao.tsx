@@ -2,9 +2,10 @@ import Link from 'next/link';
 import { Pill } from '@/components/ui/Pill';
 import {
   type AtribuicaoResumo,
-  SITUACOES_ATRIBUICAO,
-  TOM_ATRIBUICAO,
+  ESTADOS_TAREFA,
+  TOM_ESTADO,
   detalhesAtribuicao,
+  estadoTarefa,
   formatHoraTarefa,
   formatQuantidadeMedida,
 } from '@/lib/agenda';
@@ -21,6 +22,7 @@ export function AtribuicaoCartao({ atribuicao: a, mostrarTurno = false }: Atribu
   const hora = formatHoraTarefa(a.horaInicio, a.horaFim);
   const quando = [mostrarTurno && turnoLabel(a.turno), hora].filter(Boolean).join(' · ');
   const detalhes = detalhesAtribuicao(a);
+  const estado = estadoTarefa(a);
 
   return (
     <Link
@@ -32,7 +34,7 @@ export function AtribuicaoCartao({ atribuicao: a, mostrarTurno = false }: Atribu
           {a.tipo}
           {a.eRecorrente && <span className="font-normal text-muted"> · recorrente</span>}
         </span>
-        <Pill tone={TOM_ATRIBUICAO[a.situacao]}>{SITUACOES_ATRIBUICAO[a.situacao]}</Pill>
+        <Pill tone={TOM_ESTADO[estado]}>{ESTADOS_TAREFA[estado]}</Pill>
       </div>
       {quando && <span className="text-sm font-semibold text-brand-dark">{quando}</span>}
       {detalhes.length > 0 && <span className="text-sm text-muted">{detalhes.join(' · ')}</span>}

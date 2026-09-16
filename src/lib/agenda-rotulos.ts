@@ -71,6 +71,72 @@ export const TOM_ATRIBUICAO: Record<SituacaoAtribuicao, PillTone> = {
   cancelada: 'red',
 };
 
+/**
+ * O estado que a agenda pinta, **derivado e não gravado**: o banco só guarda as
+ * quatro situações de `atribuicoes_situacao_valida`, e a quantidade é por
+ * participante. "Parcial" e "não feita" saem da conta, não de uma coluna.
+ */
+export const ESTADOS_TAREFA = {
+  planejada: 'Planejada',
+  feita: 'Feita',
+  parcial: 'Parcial',
+  presumida: 'Presumida',
+  nao_feita: 'Não feita',
+  cancelada: 'Cancelada',
+} as const;
+
+export type EstadoTarefa = keyof typeof ESTADOS_TAREFA;
+
+/** A cor nunca decide sozinha (RNF-04): o glifo acompanha todo estado. */
+export const GLIFO_ESTADO: Record<EstadoTarefa, string> = {
+  planejada: '·',
+  feita: '✓',
+  parcial: '◐',
+  presumida: '?',
+  nao_feita: '✕',
+  cancelada: '—',
+};
+
+export const TOM_ESTADO: Record<EstadoTarefa, PillTone> = {
+  planejada: 'neutral',
+  feita: 'green',
+  parcial: 'amber',
+  presumida: 'amber',
+  nao_feita: 'red',
+  cancelada: 'neutral',
+};
+
+/**
+ * A forma é declarada aqui, e não importada de `agenda.ts`, porque é `agenda.ts`
+ * que importa deste arquivo: o caminho contrário fecharia um ciclo.
+ */
+export interface EstadoTarefaInput {
+  situacao: SituacaoAtribuicao;
+  eQuantitativa: boolean;
+  quantidadePlanejada: number | null;
+  participantes: readonly { quantidade: number | null }[];
+}
+
+/**
+ * RF-31 e RN-14: a não confirmada entra como realizada, mas fica `presumida`, e
+ * é isso que a mantém distinguível da confirmada. Quantidade em branco é "sem
+ * contagem" (FA-4 de `parseConfirmacao`), e não zero: a tarefa contada por
+ * ninguém está feita, não vazia.
+ */
+export function estadoTarefa(a: EstadoTarefaInput): EstadoTarefa {
+  if (a.situacao === 'cancelada') return 'cancelada';
+  if (a.situacao === 'planejada') return 'planejada';
+  if (a.situacao === 'nao_confirmada') return 'presumida';
+  if (!a.eQuantitativa || a.quantidadePlanejada === null) return 'feita';
+
+  const contados = a.participantes.filter((p) => p.quantidade !== null);
+  if (contados.length === 0) return 'feita';
+
+  const total = contados.reduce((soma, p) => soma + (p.quantidade ?? 0), 0);
+  if (total === 0) return 'nao_feita';
+  return total < a.quantidadePlanejada ? 'parcial' : 'feita';
+}
+
 /** Valor da opção "nenhum" nas listas opcionais: o servidor lê qualquer coisa que não seja UUID como vazio. */
 export const NENHUM = 'nenhum';
 

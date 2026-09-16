@@ -15,6 +15,17 @@
   --color-muted: #6b7280;
   --color-line: #e5e7eb;
 
+  /*
+   * Conclusão da tarefa na agenda. Medidos, e não escolhidos a olho: o par
+   * âmbar/vermelho de antes (#b45309 e #b91c1c) ficava a ΔE 9.1 em visão
+   * normal, abaixo do piso 15. Estes passam, e o contraste do texto decide de
+   * quem é a letra: branco no verde (5.02) e no vermelho (8.31), tinta no âmbar,
+   * onde o branco daria só 3.19.
+   */
+  --color-feito: #15803d;
+  --color-atencao: #d97706;
+  --color-nao-feito: #991b1b;
+
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 
   /* Alvo mínimo de toque (RNF-03): 48px, para dedo sujo ou molhado */

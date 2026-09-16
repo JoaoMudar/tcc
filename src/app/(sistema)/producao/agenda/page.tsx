@@ -3,26 +3,24 @@ import { PageHeader } from '@/components/PageHeader';
 import { Notice } from '@/components/ui/Notice';
 import { Pill } from '@/components/ui/Pill';
 import {
-  type AtribuicaoResumo,
-  SITUACOES_ATRIBUICAO,
   SITUACOES_SEMANA,
   TOM_SEMANA,
   findSemana,
-  formatHoraTarefa,
   listAgendaSemana,
   listFuncionarios,
   montarGrade,
-  siglaTurno,
 } from '@/lib/agenda';
 import { hojeNoViveiro, somaDias } from '@/lib/datas';
 import pool from '@/lib/db';
 import { can } from '@/lib/permissions';
-import { diaMes, diasDaSemana, lerSemana, nomeDia, rotuloSemana, siglaDia } from '@/lib/semanas';
+import { diaMes, diasDaSemana, lerSemana, nomeDia, rotuloSemana } from '@/lib/semanas';
+import { listTurnos } from '@/lib/turnos';
 import { requirePageAccess } from '@/lib/auth/guards';
 import { ProducaoAbas } from '../ProducaoAbas';
 import { AcaoSemana } from './AcaoSemana';
 import { AtribuicaoCartao } from './AtribuicaoCartao';
 import { EscalaAgenda } from './EscalaAgenda';
+import { GanttSemana } from './GanttSemana';
 
 interface AgendaSemanaPageProps {
   searchParams: Promise<{ semana?: string; feito?: string }>;
@@ -34,15 +32,7 @@ const FEITO: Record<string, string> = {
   fechada: 'Semana fechada. O que ficou sem confirmação entrou como realizado, marcado de não confirmado.',
 };
 
-/** Cor da borda da célula pela situação: a não confirmada fica à vista (RN-14). */
-const BORDA: Record<AtribuicaoResumo['situacao'], string> = {
-  planejada: 'border-l-gray-300',
-  confirmada: 'border-l-green-600',
-  nao_confirmada: 'border-l-amber-500',
-  cancelada: 'border-l-red-400',
-};
-
-/** T5.1, F1 UC-19: pessoas nas linhas, dias nas colunas; no celular, lista por dia (RNF-14). */
+/** T5.1, F1 UC-19: linha do tempo por pessoa; no celular, lista por dia (RNF-14). */
 export default async function AgendaSemanaPage({ searchParams }: AgendaSemanaPageProps) {
   const user = await requirePageAccess('agenda');
   const { semana: semanaPedida, feito } = await searchParams;
@@ -50,9 +40,14 @@ export default async function AgendaSemanaPage({ searchParams }: AgendaSemanaPag
   const inicio = lerSemana(semanaPedida, hoje);
   const dias = diasDaSemana(inicio);
 
-  const [semana, funcionarios] = await Promise.all([findSemana(pool, inicio), listFuncionarios(pool)]);
+  const [semana, funcionarios, turnos] = await Promise.all([
+    findSemana(pool, inicio),
+    listFuncionarios(pool),
+    listTurnos(pool),
+  ]);
   const atribuicoes = semana ? await listAgendaSemana(pool, semana.id) : [];
   const grade = montarGrade(funcionarios, atribuicoes);
+  const turnosEmUso = turnos.filter((turno) => turno.ativo);
 
   const podeMontar = can(user.perfil, 'agenda', 'C') && semana?.situacao !== 'fechada';
   const podePublicar = can(user.perfil, 'agenda', 'A') && semana?.situacao === 'rascunho';
@@ -120,51 +115,8 @@ export default async function AgendaSemanaPage({ searchParams }: AgendaSemanaPag
 
         {semana && grade.length === 0 && <Notice tone="info">Nenhuma tarefa lançada nesta semana.</Notice>}
 
-        {grade.length > 0 && (
-          <table className="hidden w-full table-fixed border-collapse text-sm md:table">
-            <thead>
-              <tr>
-                <th className="w-36 p-2 text-left text-xs font-bold tracking-widest text-muted uppercase">Pessoa</th>
-                {dias.map((dia) => (
-                  <th key={dia} className={`p-2 text-left text-xs font-bold tracking-widest uppercase ${dia === hoje ? 'text-brand-dark' : 'text-muted'}`}>
-                    <Link href={`/producao?dia=${dia}`} className="underline-offset-2 hover:underline">
-                      {siglaDia(dia)} {diaMes(dia)}
-                    </Link>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {grade.map((linha) => (
-                <tr key={linha.pessoa?.id ?? 'sem-ninguem'} className="border-t border-line align-top">
-                  <th scope="row" className="p-2 text-left text-base font-semibold text-ink">
-                    {linha.pessoa?.nome ?? <span className="text-muted">Sem ninguém</span>}
-                  </th>
-                  {dias.map((dia) => (
-                    <td key={dia} className="p-1">
-                      <div className="flex flex-col gap-1">
-                        {(linha.porDia[dia] ?? []).map((a) => (
-                          <Link
-                            key={a.id}
-                            href={`/producao/agenda/${a.id}`}
-                            title={SITUACOES_ATRIBUICAO[a.situacao]}
-                            className={`flex flex-col rounded-md border border-l-4 border-line bg-white px-2 py-1 hover:bg-brand-light ${BORDA[a.situacao]}`}
-                          >
-                            <span className="truncate font-semibold text-ink">{a.tipo}</span>
-                            <span className="truncate text-xs text-muted">
-                              {[siglaTurno(a.turno), formatHoraTarefa(a.horaInicio, a.horaFim), a.loteCodigo ?? a.especie ?? a.area]
-                                .filter(Boolean)
-                                .join(' · ')}
-                            </span>
-                          </Link>
-                        ))}
-                      </div>
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        {grade.length > 0 && turnosEmUso.length > 0 && (
+          <GanttSemana className="hidden md:block" grade={grade} dias={dias} turnos={turnosEmUso} hoje={hoje} />
         )}
 
         {atribuicoes.length > 0 && (
