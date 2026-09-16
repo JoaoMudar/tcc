@@ -181,6 +181,32 @@ describe('arrastar para remarcar (RNF-14, RNF-03)', () => {
     expect(reagendarAtribuicaoAction).not.toHaveBeenCalled();
   });
 
+  it('arrastar a barra para outro dia remarca, sem quebrar o estado otimista', async () => {
+    // No jsdom toda caixa mede zero: a coluna vale 1px, e um clientX por dia
+    montar([linha({ [SEGUNDA]: [planejada()] })], { podeArrastar: true });
+    const barra = screen.getByRole('link', { name: /Semeadura/ });
+
+    fireEvent.pointerDown(barra, { button: 0, clientX: 0, pointerId: 1 });
+    fireEvent.pointerMove(window, { clientX: 1, pointerId: 1 });
+    fireEvent.pointerUp(window, { clientX: 1, pointerId: 1 });
+
+    expect(reagendarAtribuicaoAction).toHaveBeenCalledTimes(1);
+    const dados = vi.mocked(reagendarAtribuicaoAction).mock.calls[0][1] as FormData;
+    expect(dados.get('data')).toBe(TERCA);
+    expect(dados.get('hora_inicio')).toBe('07:00');
+    expect(dados.get('hora_fim')).toBe('08:00');
+  });
+
+  it('soltar sem ter saído do lugar não chama o servidor', () => {
+    montar([linha({ [SEGUNDA]: [planejada()] })], { podeArrastar: true });
+    const barra = screen.getByRole('link', { name: /Semeadura/ });
+
+    fireEvent.pointerDown(barra, { button: 0, clientX: 0, pointerId: 1 });
+    fireEvent.pointerUp(window, { clientX: 0, pointerId: 1 });
+
+    expect(reagendarAtribuicaoAction).not.toHaveBeenCalled();
+  });
+
   it('sem as listas do formulário, clicar no vazio não lança nada', () => {
     montar([linha({ [TERCA]: [planejada({ data: TERCA })] })], { podeArrastar: true });
     expect(screen.queryByLabelText(/Lançar tarefa em/)).not.toBeInTheDocument();
