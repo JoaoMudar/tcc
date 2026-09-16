@@ -39,7 +39,7 @@ ele importa, que é no saldo oferecido ao cliente.
 | | Texto |
 |---|---|
 | Antes | A quantidade disponível **de uma espécie** é a soma dos lotes abertos, descontadas perdas e vendas |
-| Depois | A quantidade disponível **do produto, espécie e recipiente**, é a soma dos lotes abertos, descontadas perdas e vendas |
+| Depois | A quantidade disponível **do produto** é a soma dos lotes abertos daquela espécie e recipiente |
 
 RN-04 ficou como estava. RF-43, que realiza a regra, já dizia "por espécie e recipiente", o que
 confirma que a divergência era só de redação da regra.
@@ -129,11 +129,19 @@ descreve.
 | | Texto |
 |---|---|
 | Antes | A ordem gerada pelo protocolo nasce sem responsável e fica na semana do vencimento, ou na semana aberta atual se aquela já fechou. Alterar a ordem de um dia não altera a etapa |
-| Depois | O protocolo não lança tarefa na agenda: apresenta a etapa vencida como sugestão. Aceita a sugestão, a tarefa é lançada como qualquer outra, com todos os dados que o tipo exigir |
+| Depois | O protocolo **sugere tarefas de acordo com a necessidade do lote** |
 
 O tipo da regra passou de Restrição para Fato. A justificativa que entrou no texto é que tarefa
 aparecendo sozinha na semana de alguém é tarefa sem dono, e quem monta a agenda decide em reunião.
 O sistema lembra, e continua lembrando enquanto a etapa estiver vencida, mas não decide.
+
+**O enunciado ficou curto de propósito.** Descrever o mecanismo inteiro (não lança, apresenta
+sugestão, a aceita exige todos os dados) é enunciado de requisito, não de regra de negócio. O
+mecanismo mora por extenso em **RF-47**, e as dez citações que dependiam dele passaram a apontar
+para lá: os dois parágrafos de `B2`, a nota de `C6`, as quatro notas de `C8`, o FA-3 de `C2`, o
+motor do protocolo em `D1`, os três comentários de `20260901000005_producao_agenda.sql` e a rotina
+do protocolo. A regra fala do lote, e não da espécie, porque o protocolo pertence ao recipiente
+(RN-30) e o lote é a leva de uma espécie num recipiente (RN-18).
 
 **O custo em código é zero**, e vale registrar por quê: o módulo de protocolo por lote ainda não
 foi construído. O `C8` registra que a tabela `lotes_etapas` não existe, e a coluna

@@ -232,7 +232,7 @@ Registrar a hora da **tarefa** não é medir a hora da **pessoa**.
 
 | ID | Requisito | Ator | Prior. | Origem | Verificação |
 |---|---|---|---|---|---|
-| **RF-26** | O sistema deve permitir montar a agenda da semana atribuindo, por funcionário e por dia, o tipo de tarefa e o turno, manhã ou tarde, admitindo a mesma tarefa para mais de um funcionário e mais de uma tarefa no mesmo turno com grupos diferentes, e deve permitir declarar a hora de início e de fim da tarefa que tiver hora marcada, sem exigi-la das demais | Gerência | D | EN, OP | Semana montada exibe, por pessoa e por dia, as tarefas e os turnos atribuídos, e duas tarefas com grupos distintos coexistem no mesmo turno; a tarefa lançada com hora a exibe, e a lançada sem hora é aceita do mesmo jeito |
+| **RF-26** | O sistema deve permitir montar a agenda da semana atribuindo, por funcionário e por dia, o tipo de tarefa e o turno, manhã ou tarde, admitindo a mesma tarefa para mais de um funcionário e mais de uma tarefa no mesmo turno com grupos diferentes, e deve permitir declarar a hora de início e de fim da tarefa que tiver hora marcada, sem exigi-la das demais; na apresentação em tela larga (RNF-14) a montagem deve ser direta, arrastando a tarefa planejada para remarcá-la e puxando a borda dela para declarar a duração, e lançando tarefa nova no ponto da grade em que se clicar | Gerência | D | EN, OP | Semana montada exibe, por pessoa e por dia, as tarefas e os turnos atribuídos, e duas tarefas com grupos distintos coexistem no mesmo turno; a tarefa lançada com hora a exibe, e a lançada sem hora é aceita do mesmo jeito; em tela larga, arrastar a tarefa planejada muda o dia, o turno e a hora dela, e clicar no vazio abre o lançamento já apontando para aquele dia e hora |
 | **RF-27** | O sistema deve permitir copiar a agenda da semana anterior e marcar tarefas como recorrentes, que passam a nascer preenchidas na cópia | Gerência | D | OP | Semana copiada reproduz a anterior; tarefa recorrente aparece sem ser lançada de novo |
 | **RF-28** | O sistema deve controlar a situação da semana (rascunho, publicada e fechada) e impedir alteração depois do fechamento | Gerência | D | ORG | Semana fechada recusa alteração de atribuição |
 | **RF-29** | O sistema deve permitir confirmar a atribuição como realizada, apresentando os campos que o tipo de tarefa exigir, o lote uma vez para a tarefa e a quantidade uma vez por participante, exigindo o lote quando o tipo declarar lote específico e pedindo a quantidade apenas quando o tipo for quantitativo por unidade | Gerência | D | OP | Confirmar fecha a atribuição de todos os participantes, cada um com a própria quantidade; tarefa não quantitativa confirma sem pedir número algum, a quantitativa com três participantes apresenta três campos, e a que declara lote específico é recusada sem ele |
@@ -345,13 +345,13 @@ frente e apresenta o que vence depois disso na ficha do lote: sugerir um ano de 
 trimestrais encheria a lista de avisos que ninguém olha por nove meses. É a mesma justificativa de
 RN-26, e o parâmetro mora com os outros (RF-09).
 
-**O protocolo sugere, e quem lança é a gerência** (RN-41). A etapa vencida aparece ao lado da
+**O protocolo sugere, e quem lança é a gerência** (RF-47). A etapa vencida aparece ao lado da
 semana como sugestão, e não como tarefa da grade. Enquanto ninguém a aceitar, nada existe na
 agenda: não há tarefa sem responsável, nem tarefa que apareceu sozinha na semana de alguém. É a
 diferença entre o sistema **lembrar** e o sistema **mandar**, e o viveiro planeja o trabalho em
 reunião, não por geração automática.
 
-**A sugestão aceita vira tarefa completa** (RN-41). Ao aceitar, abre-se o mesmo formulário de
+**A sugestão aceita vira tarefa completa** (RF-47). Ao aceitar, abre-se o mesmo formulário de
 lançar tarefa, já com a etapa, o lote e o tipo preenchidos, e o restante é exigido normalmente: dia,
 turno e os campos que o tipo declarar (RF-21, RF-26). Nenhuma tarefa entra na agenda pela metade,
 e é isso que separa esta solução da geração automática que a versão anterior deste requisito
@@ -416,7 +416,7 @@ a que se destina.
 | **RNF-11** | As regras de acesso aos dados devem ser executadas no servidor, nunca no navegador | ORG | Nenhuma credencial ou regra de acesso presente no código entregue ao cliente |
 | **RNF-12** | Toda comunicação entre cliente e servidor deve ser cifrada em trânsito | ORG | Acesso por canal não cifrado é recusado |
 | **RNF-13** | O sistema deve dispor de rotina de backup e procedimento de recuperação com objetivos declarados | RE-5 | Ver [`E6`](../E-qualidade/E6-plano-backup-recuperacao.md) |
-| **RNF-14** | As telas de coordenação da produção, agenda da semana e mapa de lotes, devem ser concebidas para tela larga, e apresentar no celular uma versão reduzida em lista, sem rolagem horizontal | RE-2 | As duas telas são operáveis em tela de computador com a semana inteira visível, e no celular apresentam a mesma informação em lista |
+| **RNF-14** | As telas de coordenação da produção, agenda da semana e mapa de lotes, devem ser concebidas para tela larga, e apresentar no celular uma versão reduzida em lista, sem rolagem horizontal; a manipulação direta da agenda (RF-26) pertence à versão de tela larga, e a versão em lista continua operando pelo formulário | RE-2 | As duas telas são operáveis em tela de computador com a semana inteira visível, e no celular apresentam a mesma informação em lista; no celular não há arrasto, e lançar tarefa continua pelo formulário |
 
 > **Por que abrir a exceção, e por que só para essas duas.** A agenda da semana (RF-26) e o mapa de
 > lotes (RF-44) não registram nada: elas **comparam**. Nove faixas ao longo de uma semana, ou trinta

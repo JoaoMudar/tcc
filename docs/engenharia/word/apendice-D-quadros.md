@@ -39,7 +39,7 @@ Fonte: Elaborado pelo autor (2026).
 
 | Código | Descrição |
 |---|---|
-| RN-08 | A quantidade disponível do produto, espécie e recipiente, é a soma dos lotes abertos, descontadas perdas e vendas. |
+| RN-08 | A quantidade disponível do produto é a soma dos lotes abertos daquela espécie e recipiente. |
 | RN-09 | A contagem física vale mais que a quantidade calculada. |
 | RN-10 | Toda perda tem uma causa, que pode ser seca, praga, geada, manuseio ou outra. |
 | RN-11 | A mortalidade do lote é a razão entre as perdas e a quantidade inicial. Acima do limite definido em Configurações, o lote é destacado. |
@@ -79,7 +79,7 @@ Fonte: Elaborado pelo autor (2026).
 | RN-38 | O lote se encerra por saldo zero, expedição total ou divisão. Lote encerrado não recebe sugestão do protocolo, e as tarefas dele ainda não confirmadas são canceladas. |
 | RN-39 | Na divisão, cada lote novo segue o protocolo sozinho e herda a fase e as datas do original. |
 | RN-40 | O vencimento da etapa é calculado, nunca digitado. |
-| RN-41 | O protocolo não lança tarefa na agenda: apresenta a etapa vencida como sugestão. Aceita a sugestão, a tarefa é lançada como qualquer outra, com todos os dados que o tipo exigir. |
+| RN-41 | O protocolo sugere tarefas de acordo com a necessidade do lote. |
 
 Fonte: Elaborado pelo autor (2026).
 

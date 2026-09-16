@@ -68,14 +68,14 @@ CREATE TABLE atribuicoes (
   -- gera dia sozinho neste modelo e o protocolo, cujo sujeito e o lote.
   e_recorrente         BOOLEAN NOT NULL DEFAULT false,
 
-  -- Etapa do protocolo cuja sugestao originou esta tarefa (RN-41). Nula = lancada
+  -- Etapa do protocolo cuja sugestao originou esta tarefa (RF-47). Nula = lancada
   -- sem sugestao por tras. A FK entra com `lotes_etapas`, quando o protocolo existir.
   lote_etapa_id        UUID,
 
   -- Vencimento da etapa que gerou a sugestao, congelado no aceite. Distingue-se de
   -- `data_trabalho`, que a gerencia escolhe: sem separar os dois, lancar a tarefa
   -- para a semana seguinte apagaria o atraso que a etapa existe para denunciar
-  -- (RN-41).
+  -- (RF-47).
   vencimento_protocolo DATE,
 
   situacao             TEXT NOT NULL DEFAULT 'planejada',
@@ -111,7 +111,7 @@ CREATE TRIGGER atribuicoes_define_atualizado_em
 -- saquinho produzem quatro numeros, e e assim que o viveiro fala. Guardar um total
 -- na atribuicao perderia justamente o dado que ela quer.
 --
--- O PROTOCOLO SOZINHO NAO CRIA LINHA NENHUMA AQUI NEM EM `atribuicoes` (RN-41): ele
+-- O PROTOCOLO SOZINHO NAO CRIA LINHA NENHUMA AQUI NEM EM `atribuicoes` (RF-47): ele
 -- diz o que fazer e quando, como sugestao. A tarefa so existe quando a gerencia
 -- aceita a sugestao e a preenche por inteiro, participantes inclusive.
 CREATE TABLE atribuicoes_participantes (

@@ -104,7 +104,7 @@ projeto e passou a viver em RF-45.
 RN-40 (o vencimento da etapa) terminam ambas em "é derivado, nunca digitado", e a tentação de
 fundi-las é grande. Elas não são fundidas por duas razões. A primeira é que o que cada uma carrega
 de substantivo é a **fórmula**, e as duas fórmulas são diferentes: a quantidade sai da soma dos
-lotes abertos descontadas perdas e vendas, e o vencimento sai do evento de referência com a última
+lotes abertos daquela espécie e recipiente, e o vencimento sai do evento de referência com a última
 execução. Fundi-las guardaria o princípio e jogaria fora o conteúdo, e a primeira delas é o que
 sustenta o saldo de muda pronta que este trabalho existe para demonstrar. A segunda é que "valor
 derivado não se digita" **falha no teste da §2.1**: apague o sistema e não há onde digitar. É
@@ -163,7 +163,7 @@ e já se diz "fiz tantos saquinhos hoje". Apague o sistema e os enunciados sobre
 
 | RN | Enunciado | Tipo | Documentada em | RF originados | RNF vinculados |
 |---|---|---|---|---|---|
-| **RN-08** | A quantidade disponível do produto, espécie e recipiente, é a soma dos lotes abertos, descontadas perdas e vendas | Derivação | `A2` §1 | RF-43, RF-56, RF-35 | - |
+| **RN-08** | A quantidade disponível do produto é a soma dos lotes abertos daquela espécie e recipiente | Derivação | `A2` §1 | RF-43, RF-56, RF-35 | - |
 | **RN-09** | A contagem física vale mais que a quantidade calculada | Restrição | `rotinas/2-producao` | RF-39 | - |
 | **RN-10** | Toda perda tem uma causa, que pode ser seca, praga, geada, manuseio ou outra | Restrição | `A2` §1 | RF-38, RF-41 | RNF-02 |
 | **RN-11** | A mortalidade do lote é a razão entre as perdas e a quantidade inicial. Acima do limite definido em Configurações, o lote é destacado | Acionamento | `A2` §1; `CLAUDE.md` | RF-42, RF-09 | - |
@@ -201,7 +201,7 @@ e já se diz "fiz tantos saquinhos hoje". Apague o sistema e os enunciados sobre
 | **RN-38** | O lote se encerra por saldo zero, expedição total ou divisão. Lote encerrado não recebe sugestão do protocolo, e as tarefas dele ainda não confirmadas são canceladas | Restrição | `rotinas/2-producao` | RF-53 | - |
 | **RN-39** | Na divisão, cada lote novo segue o protocolo sozinho e herda a fase e as datas do original | Derivação | `rotinas/2-producao` | RF-40 | - |
 | **RN-40** | O vencimento da etapa é calculado, nunca digitado | Derivação | `rotinas/2-producao` | RF-45, RF-51 | - |
-| **RN-41** | O protocolo não lança tarefa na agenda: apresenta a etapa vencida como sugestão. Aceita a sugestão, a tarefa é lançada como qualquer outra, com todos os dados que o tipo exigir | Fato | `rotinas/2-producao` | RF-47 | - |
+| **RN-41** | O protocolo sugere tarefas de acordo com a necessidade do lote | Fato | `rotinas/2-producao` | RF-47 | - |
 
 ### 3.4 Área D: Cliente e pedido
 
@@ -413,7 +413,7 @@ não dependa de abrir outro arquivo. **Não editar aqui**: a fonte é o `B2`.
 | RF-23 | O sistema deve permitir que cada etapa do protocolo declare o seu evento de referência: a criação do lote ou a conclusão de uma etapa específica do mesmo protocolo | D | DOM |
 | RF-24 | O sistema deve permitir ligar e desligar o alerta de atraso por etapa do protocolo, e sobrescrever nela a janela de aviso padrão | D | OP |
 | RF-25 | O sistema deve permitir, no cadastro da espécie, sobrescrever o tempo em dias de uma etapa específica do protocolo | DV | DOM |
-| RF-26 | O sistema deve permitir montar a agenda da semana atribuindo, por funcionário e por dia, o tipo de tarefa e o turno, manhã ou tarde, admitindo a mesma tarefa para mais de um funcionário e mais de uma tarefa no mesmo turno com grupos diferentes, e deve permitir declarar a hora de início e de fim da tarefa que tiver hora marcada, sem exigi-la das demais | D | EN, OP |
+| RF-26 | O sistema deve permitir montar a agenda da semana atribuindo, por funcionário e por dia, o tipo de tarefa e o turno, manhã ou tarde, admitindo a mesma tarefa para mais de um funcionário e mais de uma tarefa no mesmo turno com grupos diferentes, e deve permitir declarar a hora de início e de fim da tarefa que tiver hora marcada, sem exigi-la das demais; na apresentação em tela larga (RNF-14) a montagem deve ser direta, arrastando a tarefa planejada para remarcá-la e puxando a borda dela para declarar a duração, e lançando tarefa nova no ponto da grade em que se clicar | D | EN, OP |
 | RF-27 | O sistema deve permitir copiar a agenda da semana anterior e marcar tarefas como recorrentes, que passam a nascer preenchidas na cópia | D | OP |
 | RF-28 | O sistema deve controlar a situação da semana (rascunho, publicada e fechada) e impedir alteração depois do fechamento | D | ORG |
 | RF-29 | O sistema deve permitir confirmar a atribuição como realizada, apresentando os campos que o tipo de tarefa exigir, o lote uma vez para a tarefa e a quantidade uma vez por participante, exigindo o lote quando o tipo declarar lote específico e pedindo a quantidade apenas quando o tipo for quantitativo por unidade | D | OP |
@@ -464,7 +464,7 @@ não dependa de abrir outro arquivo. **Não editar aqui**: a fonte é o `B2`.
 | RNF-11 | As regras de acesso aos dados devem ser executadas no servidor, nunca no navegador | ORG |
 | RNF-12 | Toda comunicação entre cliente e servidor deve ser cifrada em trânsito | ORG |
 | RNF-13 | O sistema deve dispor de rotina de backup e procedimento de recuperação com objetivos declarados | RE-5 |
-| RNF-14 | As telas de coordenação da produção, agenda da semana e mapa de lotes, devem ser concebidas para tela larga, e apresentar no celular uma versão reduzida em lista, sem rolagem horizontal | RE-2 |
+| RNF-14 | As telas de coordenação da produção, agenda da semana e mapa de lotes, devem ser concebidas para tela larga, e apresentar no celular uma versão reduzida em lista, sem rolagem horizontal; a manipulação direta da agenda (RF-26) pertence à versão de tela larga, e a versão em lista continua operando pelo formulário | RE-2 |
 | RNF-15 | Cada funcionalidade deve ser desenvolvida em ramificação própria e integrada por solicitação de incorporação | ORG |
 | RNF-16 | Mensagens de alteração devem seguir padrão fixo | ORG |
 | RNF-17 | Alterações na estrutura do banco devem ser versionadas em arquivos aplicados de forma controlada, preservando compatibilidade retroativa | ORG |

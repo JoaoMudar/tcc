@@ -162,7 +162,7 @@ Amarelo é "está chegando a hora". Vermelho é "passou". Sem cor é "isto é ro
 
 O protocolo **não coloca tarefa na agenda sozinho**. A etapa vencida aparece ao lado da semana como
 **sugestão**: o lote, a etapa e o tipo de tarefa já vêm escritos ali, e nada mais acontece enquanto
-ninguém aceitar (RN-41).
+ninguém aceitar (RF-47).
 
 A razão é simples: tarefa que aparece sozinha na semana de alguém é tarefa sem dono. Quem monta a
 agenda é a Débora, na reunião, e o sistema não decide por ela quem faz nem em que dia. O que ele
@@ -305,7 +305,7 @@ atribuições aparecem.
 | Artefato | O que esta rotina acrescentou |
 |---|---|
 | [`B2`](../../engenharia/B-requisitos/B2-especificacao-requisitos.md) | RF-22 a RF-24 e RF-25 no cadastro; RF-46 a RF-53 na operação |
-| [`B3`](../../engenharia/B-requisitos/B3-regras-de-negocio.md) | RN-30 a RN-41; RN-18 emendada. RN-41 reescrita em 15/09/2026: o protocolo sugere, não lança |
+| [`B3`](../../engenharia/B-requisitos/B3-regras-de-negocio.md) | RN-30 a RN-41; RN-18 emendada. RN-41 reescrita em 15/09/2026: o protocolo sugere de acordo com a necessidade do lote, e o mecanismo mora em RF-47 |
 | [`C2`](../../engenharia/C-modelagem/C2-especificacao-casos-de-uso.md) | UC-17, UC-24 e UC-18 |
 | [`C6`](../../engenharia/C-modelagem/C6-modelo-entidade-relacionamento.md) / [`C8`](../../engenharia/C-modelagem/C8-dicionario-de-dados.md) | `protocolos`, `protocolos_etapas`, `especies_protocolos_tempos`, `lotes_etapas` e a visão `lotes_etapas_vencimento`; `lotes`, `atribuicoes` e `recipientes` emendadas. O protocolo pendura-se no **recipiente**, e a tabela de tipos de embalagem deixou de existir |
 | [`B5`](../../engenharia/B-requisitos/B5-matriz-rastreabilidade.md) | 16 linhas novas |

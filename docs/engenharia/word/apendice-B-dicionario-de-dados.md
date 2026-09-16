@@ -698,7 +698,7 @@ marcada declara a sua em `hora_inicio` / `hora_fim`.
 | `canteiro_id` | uuid | ○ | FK → `canteiros` | Canteiro da tarefa cujo tipo declara área (RF-30) |
 | `quantidade_planejada` | numeric(10,2) | ○ | | Quantidade planejada, na unidade do tipo de tarefa, quando aplicável |
 | `e_recorrente` | boolean | ● | | Marca a atribuição como parte da rotina fixa: ao copiar a semana anterior, ela já vem preenchida (RF-27, RN-29) |
-| `lote_etapa_id` | uuid | ○ | | Etapa do protocolo cuja sugestão originou esta tarefa. Nula = tarefa lançada sem sugestão nenhuma por trás (RN-41). A coluna existe; **a chave estrangeira não**, porque `lotes_etapas` ainda não foi criada |
+| `lote_etapa_id` | uuid | ○ | | Etapa do protocolo cuja sugestão originou esta tarefa. Nula = tarefa lançada sem sugestão nenhuma por trás (RF-47). A coluna existe; **a chave estrangeira não**, porque `lotes_etapas` ainda não foi criada |
 | `vencimento_protocolo` | date | ○ | | Vencimento que esta ordem representa, congelado na geração. Distingue-se de `data_trabalho`, que a gerência pode remarcar |
 | `situacao` | text | ● | | `planejada`, `confirmada`, `nao_confirmada`, `cancelada`: a segunda é a que a gerência marca ao registrar que a tarefa foi feita, a terceira é a que o fechamento assume como realizada (RN-14), e a quarta é a ordem que o encerramento do lote invalidou (RN-38) |
 | `observacoes` | text | ○ | | Observação livre; único campo aberto da agenda |
@@ -706,7 +706,7 @@ marcada declara a sua em `hora_inicio` / `hora_fim`.
 > **`pessoa_id` saiu para `atribuicoes_participantes`.** Quem executa deixou de ser coluna e virou lista:
 > uma tarefa admite vários executores (RN-25). Ver a entidade para o porquê.
 
-> **A tarefa vinda do protocolo já nasce com participante, como qualquer outra** (RN-41), e é
+> **A tarefa vinda do protocolo já nasce com participante, como qualquer outra** (RF-47), e é
 > intencional. O protocolo responde o que fazer e quando, e para por aí: enquanto ninguém aceitar a
 > sugestão, **não existe linha nenhuma aqui nem em `atribuicoes`**. A etapa vencida continua
 > pendente do lado do lote, contando atraso, e o fechamento da semana não tem o que assumir como
@@ -718,7 +718,7 @@ marcada declara a sua em `hora_inicio` / `hora_fim`.
 > da semana, hora e vigência, existiria para gerar dias sozinha: neste modelo, o que gera dia
 > sozinho é o protocolo, cujo sujeito é o lote e não a equipe.
 
-> **`semana_id` é `NOT NULL`, e a tarefa aceita precisa de um** (RN-41). Quem aceita a sugestão
+> **`semana_id` é `NOT NULL`, e a tarefa aceita precisa de um** (RF-47). Quem aceita a sugestão
 > escolhe o dia, e o dia determina a semana, exatamente como em qualquer lançamento: não há semana
 > aberta automaticamente nem ordem caindo em semana fechada, porque nada entra na agenda sem
 > alguém (RN-13).
@@ -744,7 +744,7 @@ marcada declara a sua em `hora_inicio` / `hora_fim`.
 > de cada pessoa seria controle de ponto, que está fora do escopo declarado em
 > [`A1` §7](../A-fundacao/A1-documento-de-visao.md), e nada no sistema depende desse número.
 
-> **A tarefa vinda do protocolo é atribuição comum, e é isso que a torna editável** (RN-41). Ela
+> **A tarefa vinda do protocolo é atribuição comum, e é isso que a torna editável** (RF-47). Ela
 > nasce da sugestão e guarda de qual etapa veio, mas dali em diante vive por conta própria: excluir
 > a tarefa de uma quarta não altera o protocolo nem os lotes vizinhos. O índice único sobre
 > `(lote_etapa_id, vencimento_protocolo)` impede que a mesma sugestão vire duas tarefas, caso duas

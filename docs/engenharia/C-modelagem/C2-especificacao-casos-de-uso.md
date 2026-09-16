@@ -443,7 +443,7 @@ em percentual do intervalo, e ela prevalece sobre o parâmetro geral (RN-35).
 
 No passo 10, existem lotes seguindo o protocolo. O sistema **não** reescreve as ordens já emitidas
 nem as datas já cumpridas: a alteração vale para as próximas sugestões de cada lote (RN-37). É a
-mesma garantia que a tarefa já lançada tem em RN-41, e a razão é a mesma: regra que reescrevesse o
+mesma garantia que a tarefa já lançada tem em RF-47, e a razão é a mesma: regra que reescrevesse o
 passado apagaria dia já trabalhado.
 
 ### FE-1: Âncora circular

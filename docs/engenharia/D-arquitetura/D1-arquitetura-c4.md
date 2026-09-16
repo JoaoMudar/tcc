@@ -183,7 +183,7 @@ nenhuma sai. É a tradução arquitetural do que o sistema afirma: o catálogo �
 acione.** Ele lê a etapa em Cadastro único, lê o lote em Produção e **sugere tarefa na agenda**,
 que também é Produção. A seta pontilhada marca que a sugestão é automática, e não a escrita: o
 motor não lança nada na agenda, apenas apresenta a etapa vencida ao lado dela, e a tarefa só existe
-quando a gerência aceita a sugestão e preenche o que o tipo exige (RF-47, RN-41). É justamente essa
+quando a gerência aceita a sugestão e preenche o que o tipo exige (RF-47). É justamente essa
 sugestão sem acionamento a razão de o componente existir.
 
 **O Comercial depende da Produção por uma única aresta, e ela é de leitura.** O cadastro de
