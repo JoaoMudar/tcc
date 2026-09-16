@@ -1,8 +1,12 @@
-import { render, screen, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { fireEvent, render, screen, within } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AtribuicaoResumo, LinhaGrade } from '@/lib/agenda';
 import type { Turno } from '@/lib/turnos';
-import { GanttSemana } from '../GanttSemana';
+
+vi.mock('../actions', () => ({ reagendarAtribuicaoAction: vi.fn(async () => ({})) }));
+
+const { reagendarAtribuicaoAction } = await import('../actions');
+const { GanttSemana } = await import('../GanttSemana');
 
 const SEGUNDA = '2026-09-14';
 const TERCA = '2026-09-15';
@@ -54,9 +58,13 @@ function linha(porDia: Record<string, AtribuicaoResumo[]>, nome = 'Rogério'): L
   return { pessoa: { id: `p-${nome}`, nome }, porDia };
 }
 
-function montar(grade: LinhaGrade[]) {
-  return render(<GanttSemana grade={grade} dias={DIAS} turnos={TURNOS} hoje={SEGUNDA} />);
+function montar(grade: LinhaGrade[], props: { podeArrastar?: boolean } = {}) {
+  return render(<GanttSemana grade={grade} dias={DIAS} turnos={TURNOS} hoje={SEGUNDA} semana={SEGUNDA} {...props} />);
 }
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
 
 describe('GanttSemana (T5.1, RF-26, RNF-14)', () => {
   it('desenha uma barra por tarefa, com o tipo legível', () => {
@@ -80,7 +88,7 @@ describe('GanttSemana (T5.1, RF-26, RNF-14)', () => {
     expect(screen.getByLabelText(/Parcial$/)).toBeInTheDocument();
   });
 
-  it('empilha duas tarefas do mesmo turno em sub-linhas, sem esconder nenhuma (RF-26, TA-26)', () => {
+  it('empilha duas tarefas sobrepostas em sub-linhas, sem esconder nenhuma (RF-26, TA-26)', () => {
     montar([
       linha({
         [SEGUNDA]: [tarefa({ id: 'a1', tipo: 'Semeadura' }), tarefa({ id: 'a2', tipo: 'Irrigação' })],
@@ -90,16 +98,18 @@ describe('GanttSemana (T5.1, RF-26, RNF-14)', () => {
     expect(screen.getByRole('link', { name: /Irrigação/ })).toBeInTheDocument();
   });
 
-  it('separa os turnos do mesmo dia em colunas diferentes', () => {
+  it('posiciona a barra pela hora dentro do eixo do dia', () => {
     const { container } = montar([
       linha({
         [SEGUNDA]: [tarefa({ id: 'a1', tipo: 'Semeadura' }), tarefa({ id: 'a2', tipo: 'Adubação', turnoId: TARDE.id, turno: 'tarde' })],
       }),
     ]);
-    const manha = container.querySelector('a[aria-label*="Manhã"]') as HTMLElement;
-    const tarde = container.querySelector('a[aria-label*="Tarde"]') as HTMLElement;
-    expect(manha.style.gridColumn).toBe('1');
-    expect(tarde.style.gridColumn).toBe('2');
+    const caixa = (rotulo: string) => container.querySelector(`a[aria-label*="${rotulo}"]`)!.parentElement as HTMLElement;
+    // O eixo vai das 07h às 17h: a manhã ocupa os primeiros 40%, a tarde os últimos 40%
+    expect(caixa('Manhã').style.left).toBe('0%');
+    expect(caixa('Manhã').style.width).toBe('40%');
+    expect(caixa('Tarde').style.left).toBe('60%');
+    expect(caixa('Tarde').style.width).toBe('40%');
   });
 
   it('mostra a hora só na tarefa que a tem (RN-12)', () => {
@@ -118,5 +128,61 @@ describe('GanttSemana (T5.1, RF-26, RNF-14)', () => {
     for (const rotulo of ['Feita', 'Parcial', 'Presumida', 'Não feita']) {
       expect(within(legenda).getByText(rotulo)).toBeInTheDocument();
     }
+  });
+});
+
+describe('arrastar para remarcar (RNF-14, RNF-03)', () => {
+  const planejada = (over: Partial<AtribuicaoResumo> = {}) =>
+    tarefa({ situacao: 'planejada', horaInicio: '07:00', horaFim: '08:00', ...over });
+
+  it('sem permissão de alterar, a barra não tem borda para puxar', () => {
+    montar([linha({ [SEGUNDA]: [planejada()] })], { podeArrastar: false });
+    expect(screen.queryByLabelText(/Mudar o início/)).not.toBeInTheDocument();
+  });
+
+  it('a tarefa que já aconteceu não se remaneja, mesmo com permissão', () => {
+    montar([linha({ [SEGUNDA]: [planejada({ situacao: 'confirmada' })] })], { podeArrastar: true });
+    expect(screen.queryByLabelText(/Mudar o início/)).not.toBeInTheDocument();
+  });
+
+  it('a planejada ganha as duas bordas quando se pode alterar', () => {
+    montar([linha({ [SEGUNDA]: [planejada()] })], { podeArrastar: true });
+    expect(screen.getByLabelText('Mudar o início de Semeadura')).toBeInTheDocument();
+    expect(screen.getByLabelText('Mudar o fim de Semeadura')).toBeInTheDocument();
+  });
+
+  it('shift com a seta remarca pelo teclado, e manda o turno junto (RNF-03)', async () => {
+    montar([linha({ [SEGUNDA]: [planejada()] })], { podeArrastar: true });
+    fireEvent.keyDown(screen.getByRole('link', { name: /Semeadura/ }), { key: 'ArrowRight', shiftKey: true });
+
+    expect(reagendarAtribuicaoAction).toHaveBeenCalledTimes(1);
+    const dados = vi.mocked(reagendarAtribuicaoAction).mock.calls[0][1] as FormData;
+    expect(Object.fromEntries(dados.entries())).toEqual({
+      id: 'a1',
+      data: SEGUNDA,
+      turno_id: MANHA.id,
+      hora_inicio: '07:15',
+      hora_fim: '08:15',
+    });
+  });
+
+  it('alt com a seta muda só a duração, e o início fica onde estava', async () => {
+    montar([linha({ [SEGUNDA]: [planejada()] })], { podeArrastar: true });
+    fireEvent.keyDown(screen.getByRole('link', { name: /Semeadura/ }), { key: 'ArrowRight', altKey: true });
+
+    const dados = vi.mocked(reagendarAtribuicaoAction).mock.calls[0][1] as FormData;
+    expect(dados.get('hora_inicio')).toBe('07:00');
+    expect(dados.get('hora_fim')).toBe('08:15');
+  });
+
+  it('seta sem modificador não remarca: é navegação', () => {
+    montar([linha({ [SEGUNDA]: [planejada()] })], { podeArrastar: true });
+    fireEvent.keyDown(screen.getByRole('link', { name: /Semeadura/ }), { key: 'ArrowRight' });
+    expect(reagendarAtribuicaoAction).not.toHaveBeenCalled();
+  });
+
+  it('sem as listas do formulário, clicar no vazio não lança nada', () => {
+    montar([linha({ [TERCA]: [planejada({ data: TERCA })] })], { podeArrastar: true });
+    expect(screen.queryByLabelText(/Lançar tarefa em/)).not.toBeInTheDocument();
   });
 });
