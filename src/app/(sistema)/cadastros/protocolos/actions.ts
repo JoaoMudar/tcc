@@ -120,3 +120,42 @@ export async function saveEtapa(_previous: FormState, formData: FormData): Promi
   revalidatePath(`/cadastros/protocolos/${protocoloId}`);
   return { success: etapaId ? 'Etapa salva.' : `Etapa ${parsed.value.rotulo} acrescentada.` };
 }
+
+/**
+ * RF-25, UC-18: o tempo que a espécie sobrescreve na etapa. O guard é
+ * `protocolos`, e não `especies`: o dado é do protocolo, e o D4 nota 3 lista o
+ * RF-25 entre os recursos dele. Guardá-lo como espécie tiraria da gerência o que
+ * o UC-18 lhe dá.
+ */
+export async function saveTempoEspecie(_previous: FormState, formData: FormData): Promise<FormState> {
+  await requirePermission('protocolos', 'A');
+
+  const especieId = formText(formData, 'especie_id');
+  const etapaId = formText(formData, 'protocolo_etapa_id');
+  if (!isUuid(especieId)) return { error: 'Espécie inválida.' };
+  if (!isUuid(etapaId)) return { error: 'Etapa inválida.' };
+
+  const fields = {
+    dias: formText(formData, 'dias'),
+    intervalo_dias: formText(formData, 'intervalo_dias'),
+    observacoes: formText(formData, 'observacoes'),
+  };
+  const parsed = protocolos.parseTempoFields({
+    dias: fields.dias,
+    intervaloDias: fields.intervalo_dias,
+    observacoes: fields.observacoes,
+  });
+  if ('error' in parsed) return { error: parsed.error, fields };
+
+  let resultado: 'gravado' | 'removido';
+  try {
+    resultado = await protocolos.saveTempoDaEspecie(pool, especieId, etapaId, parsed.value);
+  } catch (error) {
+    return { error: toUserMessage(error), fields };
+  }
+
+  revalidatePath(`/cadastros/especies/${especieId}`);
+  return {
+    success: resultado === 'removido' ? 'Tempo próprio removido: volta a valer o do protocolo.' : 'Tempo da espécie salvo.',
+  };
+}
