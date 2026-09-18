@@ -22,6 +22,7 @@ const insumos = await import('../insumos/actions');
 const areas = await import('../areas/actions');
 const tipos = await import('../tipos-tarefa/actions');
 const pessoas = await import('../pessoas/actions');
+const protocolos = await import('../protocolos/actions');
 
 const ID = '0b9f3f3e-8a5b-4c1a-9d0e-2f6a7b8c9d0e';
 
@@ -114,6 +115,119 @@ describe('áreas e canteiros (RF-13)', () => {
     const state = await areas.createArea({}, form({ letra: '7', nome: '' }));
     expect(state.error).toMatch(/uma letra/);
     expectNoDatabase();
+  });
+});
+
+describe('protocolo de atividades (RF-22 a RF-24, UC-17)', () => {
+  const ETAPA = '2d7c1b0a-4e5f-4a6b-8c9d-1e2f3a4b5c6d';
+  const OUTRA = '3e8d2c1b-5f6a-4b7c-9d0e-2f3a4b5c6d7e';
+
+  /** Campos de uma etapa válida, para cada caso mexer só no que testa. */
+  const etapa = (extra: Record<string, string> = {}) => ({
+    protocolo_id: ID,
+    tipo_tarefa_id: ETAPA,
+    rotulo: 'Classificar pós-germinação',
+    tipo_agendamento: 'sequencial',
+    tipo_ancora: 'criacao_do_lote',
+    dias: '40',
+    turno_id: OUTRA,
+    ...extra,
+  });
+
+  /**
+   * A coluna do admin no D4 é `L`, e ainda assim ele passa: `can` devolve `true`
+   * para o admin antes de consultar a matriz (D4 §1.1), e é o único ponto do
+   * código que decide isso. A coluna registra a intenção, e o acesso irrestrito
+   * é a exceção declarada, coberta por `permissions.test.ts`.
+   */
+  it('D4 §1.1: o admin atravessa a própria coluna e monta protocolo', async () => {
+    loggedAs('admin');
+    vi.mocked(pool.query).mockResolvedValue({ rows: [{ id: ID }] } as never);
+    await expect(
+      protocolos.saveProtocolo({}, form({ recipiente_id: ID, nome: 'Protocolo do tubete', observacoes: '' })),
+    ).rejects.toThrow(`redirect:/cadastros/protocolos/${ID}?salvo=1`);
+  });
+
+  it('a chefia e a gerência montam o protocolo (D4: as duas CLA)', async () => {
+    for (const perfil of ['chefia', 'gerencia'] as const) {
+      vi.clearAllMocks();
+      loggedAs(perfil);
+      vi.mocked(pool.query).mockResolvedValue({ rows: [{ id: ID }] } as never);
+      await expect(
+        protocolos.saveProtocolo({}, form({ recipiente_id: ID, nome: 'Protocolo do tubete', observacoes: '' })),
+      ).rejects.toThrow(`redirect:/cadastros/protocolos/${ID}?salvo=1`);
+      expect(vi.mocked(pool.query).mock.calls[0][1]).toEqual([ID, 'Protocolo do tubete', null, 'u1']);
+    }
+  });
+
+  it('FE-3: segundo protocolo vigente para o mesmo recipiente volta com a mensagem, e não com o erro do Postgres', async () => {
+    loggedAs('gerencia');
+    vi.mocked(pool.query).mockRejectedValueOnce({ code: '23505', constraint: 'protocolos_um_vigente_por_recipiente' });
+    const state = await protocolos.saveProtocolo({}, form({ recipiente_id: ID, nome: 'Outro do tubete', observacoes: '' }));
+    expect(state.error).toBe('Este recipiente já tem um protocolo vigente. Edite o que existe, em vez de criar outro.');
+  });
+
+  it('FE-1 e TA-36: a âncora circular é recusada, e nada é gravado', async () => {
+    loggedAs('gerencia');
+    // listEtapas: o plantio já conta da classificação, então classificar não pode contar do plantio
+    vi.mocked(pool.query).mockResolvedValueOnce({
+      rows: [
+        { id: ETAPA, rotulo: 'Plantar no tubete', etapaAncoraId: OUTRA },
+        { id: OUTRA, rotulo: 'Classificar pós-germinação', etapaAncoraId: null },
+      ],
+    } as never);
+
+    const state = await protocolos.saveEtapa(
+      {},
+      form(etapa({ etapa_id: OUTRA, tipo_ancora: 'conclusao_de_etapa', etapa_ancora_id: ETAPA })),
+    );
+
+    expect(state.error).toMatch(/forma um ciclo/);
+    expect(state.error).toMatch(/Plantar no tubete/);
+    // A consulta das etapas aconteceu; a escrita, não
+    expect(vi.mocked(pool.query)).toHaveBeenCalledTimes(1);
+  });
+
+  it('FE-2: recorrente sem intervalo não chega ao banco', async () => {
+    loggedAs('gerencia');
+    const state = await protocolos.saveEtapa({}, form(etapa({ tipo_agendamento: 'recorrente' })));
+    expect(state.error).toMatch(/intervalo/);
+    expectNoDatabase();
+  });
+
+  it('RN-34: etapa que repete não avança fase, e a recusa é anterior ao banco', async () => {
+    loggedAs('gerencia');
+    const state = await protocolos.saveEtapa(
+      {},
+      form(etapa({ tipo_agendamento: 'recorrente', intervalo_dias: '90', fase_resultante: 'germinado' })),
+    );
+    expect(state.error).toBe('Etapa que repete não avança a fase do lote. Deixe a fase em branco.');
+    expectNoDatabase();
+  });
+
+  it('a etapa válida é gravada com a âncora resolvida e o alerta declarado', async () => {
+    loggedAs('gerencia');
+    vi.mocked(pool.query)
+      .mockResolvedValueOnce({ rows: [] } as never) // listEtapas: protocolo ainda sem etapas
+      .mockResolvedValueOnce({ rows: [{ id: ETAPA }] } as never);
+
+    const state = await protocolos.saveEtapa({}, form(etapa({ alerta_ligado: 'on' })));
+
+    expect(state).toEqual({ success: 'Etapa Classificar pós-germinação acrescentada.' });
+    expect(vi.mocked(pool.query).mock.calls[1][1]).toEqual([
+      ID,
+      ETAPA,
+      'Classificar pós-germinação',
+      'sequencial',
+      'criacao_do_lote',
+      null,
+      40,
+      null,
+      OUTRA,
+      true,
+      null,
+      null,
+    ]);
   });
 });
 
