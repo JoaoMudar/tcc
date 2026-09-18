@@ -12,6 +12,9 @@ import {
   lerQuantidade,
 } from './lotes-rotulos';
 import { proximaPosicao, registrarMovimento, travarLote } from './movimentos';
+// `protocolos.ts` não importa daqui: importa de `lotes-rotulos`, que é sem `pg`.
+// É o que mantém a seta num sentido só e evita o ciclo.
+import { materializarProtocolo } from './protocolos';
 import type { Db } from './sql';
 
 export {
@@ -144,6 +147,12 @@ async function inserirLote(client: Client, input: InsercaoLote): Promise<{ id: s
     atribuicaoId: input.atribuicaoId,
     registradoPor: input.registradoPor,
   });
+
+  // RF-46: o lote nasce seguindo o protocolo vigente do recipiente dele. Na
+  // repicagem o recipiente e outro, e por isso o lote novo segue outro
+  // protocolo: e o vasilhame que determina o manejo (RN-30), e a muda que passou
+  // do tubete para o saco comeca o manejo do saco, contado da criacao dela.
+  await materializarProtocolo(client, id, input.recipienteId, input.dataCriacao);
   return { id, codigo };
 }
 
