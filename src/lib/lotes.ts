@@ -50,12 +50,12 @@ export function parseFase(text: string): { error: string } | { value: Exclude<Fa
   return fase ? { value: fase as Exclude<Fase, 'encerrado'> } : { error: 'Escolha a fase na lista.' };
 }
 
-/** Vazia vale hoje; depois de hoje não, porque o lote registra o que já foi plantado. */
-export function parseDataPlantio(text: string, hoje: string): { error: string } | { value: string } {
+/** Vazia vale hoje; depois de hoje não, porque o lote registra a leva que já ocupa canteiro. */
+export function parseDataCriacao(text: string, hoje: string): { error: string } | { value: string } {
   const texto = text.trim();
   if (texto === '') return { value: hoje };
-  if (!isDataIso(texto)) return { error: 'A data de plantio é inválida.' };
-  if (texto > hoje) return { error: 'A data de plantio não pode ser depois de hoje.' };
+  if (!isDataIso(texto)) return { error: 'A data de criação é inválida.' };
+  if (texto > hoje) return { error: 'A data de criação não pode ser depois de hoje.' };
   return { value: texto };
 }
 
@@ -86,7 +86,8 @@ export interface NovoLote {
   recipienteId: string;
   canteiroId: string;
   quantidade: number;
-  dataPlantio: string;
+  /** Quando a leva passou a ocupar canteiro. A data real do plantio é do protocolo (T6.7). */
+  dataCriacao: string;
   observacoes: string | null;
   registradoPor: string;
 }
@@ -113,12 +114,12 @@ async function inserirLote(client: Client, input: InsercaoLote): Promise<{ id: s
 
   const posicao = await proximaPosicao(client, input.canteiroId);
   if (posicao === null) throw new UserError('Canteiro não encontrado.');
-  const codigo = await gerarCodigo(client, Number(input.dataPlantio.slice(0, 4)));
+  const codigo = await gerarCodigo(client, Number(input.dataCriacao.slice(0, 4)));
 
   // Nasce com saldo zero: quem põe as mudas é o movimento de entrada, e a soma dos movimentos fecha com o saldo
   const { rows } = await client.query<{ id: string }>(
     `INSERT INTO lotes (codigo, especie_id, recipiente_id, canteiro_id, lote_origem_id, quantidade_inicial,
-                        quantidade_atual, fase, data_plantio, posicao, observacoes)
+                        quantidade_atual, fase, data_criacao, posicao, observacoes)
      VALUES ($1, $2, $3, $4, $5, $6, 0, $7, $8, $9, $10)
      RETURNING id`,
     [
@@ -129,7 +130,7 @@ async function inserirLote(client: Client, input: InsercaoLote): Promise<{ id: s
       input.loteOrigemId,
       input.quantidade,
       input.fase,
-      input.dataPlantio,
+      input.dataCriacao,
       posicao,
       input.observacoes,
     ],
@@ -139,7 +140,7 @@ async function inserirLote(client: Client, input: InsercaoLote): Promise<{ id: s
     loteId: id,
     tipo: input.tipoEntrada,
     quantidade: input.quantidade,
-    data: input.dataPlantio,
+    data: input.dataCriacao,
     atribuicaoId: input.atribuicaoId,
     registradoPor: input.registradoPor,
   });
@@ -216,7 +217,7 @@ export async function repicarLote(
     recipienteId: input.recipienteId,
     canteiroId: input.canteiroId,
     quantidade: input.quantidade,
-    dataPlantio: hoje,
+    dataCriacao: hoje,
     observacoes: input.observacoes,
     registradoPor: input.registradoPor,
     loteOrigemId: origem.id,
@@ -348,7 +349,9 @@ export interface FichaLote {
   fase: Fase;
   quantidadeInicial: number;
   quantidadeAtual: number;
-  dataPlantio: string;
+  dataCriacao: string;
+  /** Nula enquanto a etapa de plantio não for concluída: vazio significa que ainda não germinou. */
+  dataPlantio: string | null;
   encerradoEm: Date | null;
   motivoEncerramento: string | null;
   observacoes: string | null;
@@ -365,6 +368,7 @@ export async function findLote(db: Db, id: string): Promise<FichaLote | null> {
             e.nome_cientifico AS "nomeCientifico", l.recipiente_id AS "recipienteId", r.nome AS recipiente,
             l.canteiro_id AS "canteiroId", a.letra || '-' || c.numero AS canteiro, l.fase,
             l.quantidade_inicial AS "quantidadeInicial", l.quantidade_atual AS "quantidadeAtual",
+            to_char(l.data_criacao, 'YYYY-MM-DD') AS "dataCriacao",
             to_char(l.data_plantio, 'YYYY-MM-DD') AS "dataPlantio", l.encerrado_em AS "encerradoEm",
             l.motivo_encerramento AS "motivoEncerramento", l.observacoes,
             o.id AS "origemId", o.codigo AS "origemCodigo",
