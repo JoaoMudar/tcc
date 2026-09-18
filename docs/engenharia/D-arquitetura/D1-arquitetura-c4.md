@@ -70,7 +70,15 @@ diagrama de contexto que os desenhasse estaria descrevendo a empresa, e não o s
 As unidades executáveis e de armazenamento, e a correspondência com as três camadas.
 
 ```mermaid
-graph TB
+---
+config:
+  layout: elk
+  elk:
+    nodePlacementStrategy: NETWORK_SIMPLEX
+  flowchart:
+    curve: linear
+---
+graph LR
   subgraph disp["Dispositivo do usuário: camada de apresentação"]
     PWA["<b>Aplicação web progressiva</b><br/>Interface móvel<br/>Instalável, funciona sem conexão"]
     FILA["<b>Fila local de sincronização</b><br/>Armazenamento no navegador<br/>Guarda registros feitos sem rede"]
@@ -151,7 +159,7 @@ graph TB
   O2 --> N2
   O3 --> N5
   O3 --> O2
-  O3 -.->|"gera ordem na agenda"| O1
+  O3 -.->|"sugere tarefa na agenda"| O1
   O4 --> O2
   O4 --> O1
   O4 --> A4
@@ -171,10 +179,12 @@ graph TB
 nenhuma sai. É a tradução arquitetural do que o sistema afirma: o catálogo é o que as outras duas
 áreas consomem, e é por isso que ele é a primeira coisa a existir.
 
-**O motor do protocolo é o único componente que escreve numa área que não é a sua.** Ele lê a
-etapa em Cadastro único, lê o lote em Produção e **gera ordem na agenda**, que também é Produção.
-A seta pontilhada marca que a escrita é automática: nenhum usuário a aciona, e é justamente essa
-a razão de o componente existir (RF-47).
+**O motor do protocolo é o único componente que alcança uma área que não é a sua sem que ninguém o
+acione.** Ele lê a etapa em Cadastro único, lê o lote em Produção e **sugere tarefa na agenda**,
+que também é Produção. A seta pontilhada marca que a sugestão é automática, e não a escrita: o
+motor não lança nada na agenda, apenas apresenta a etapa vencida ao lado dela, e a tarefa só existe
+quando a gerência aceita a sugestão e preenche o que o tipo exige (RF-47). É justamente essa
+sugestão sem acionamento a razão de o componente existir.
 
 **O Comercial depende da Produção por uma única aresta, e ela é de leitura.** O cadastro de
 pedidos consulta o saldo de muda pronta e não escreve nada lá: o pedido não reserva, não baixa e
@@ -182,7 +192,7 @@ não move lote. É a interconexão que o trabalho existe para demonstrar, e o di
 custa uma seta.
 
 **O mapa depende de três coisas, e uma delas é parâmetro.** Ele lê lote, lê agenda e lê os limites
-de atraso e de mortalidade. É o que torna a cor da tela ajustável sem implantação (RN-27), e é a
+de atraso e de mortalidade. É o que torna a cor da tela ajustável sem implantação (RN-26), e é a
 razão de Configurações ser transversal e não um canto do Cadastro único.
 
 ---

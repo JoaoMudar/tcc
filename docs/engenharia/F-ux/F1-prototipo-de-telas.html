@@ -414,7 +414,7 @@ A <b>entrada da área Produção</b> não traz UC nem RF. Não é lacuna: ordem 
           <code>globals.css</code> e <code>ModuleShell</code>. Conferido tela a tela contra B3 e D4
           em <b>26/08/2026</b>: 18 pranchas tiveram o perfil corrigido e 10 tiveram a regra ajustada.
           Cinco requisitos não têm tela porque descrevem o que o sistema faz sozinho, sem ninguém
-          acionar (RF-45 e RF-47 a RF-50): são o motor do protocolo, e é por isso que caso de uso
+          acionar (RF-45 e RF-47 a RF-50): são o motor do protocolo, que sugere sem lançar, e é por isso que caso de uso
           e requisito não se contam um a um. A lista está em <b>C1</b> §4.1.
           Os dados que aparecem nos mockups são plausíveis e ilustrativos, não vieram do banco.
           Espécies, recipientes, áreas e canteiros seguem o vocabulário do <b>A2</b>.
@@ -695,7 +695,7 @@ S.push({
 S.push({
   id:'UC-05', mod:'config', actors:['chefia','admin'], built:false, route:'',
   name:'Manter período de trabalho', rf:'RF-08',
-  why:'A jornada padrão da agenda. É daqui que sai a duração de cada turno, que muda com a estação, e é por ser cadastro, e não constante de código, que ela pode mudar sem implantação (RN-27).',
+  why:'A jornada padrão da agenda. É daqui que sai a duração de cada turno, que muda com a estação, e é por ser cadastro, e não constante de código, que ela pode mudar sem implantação (RN-26).',
   ui:`<div class="mk-hd"><div class="b">Configurações</div><div class="t">Período de trabalho</div></div>
   <div class="mk-body">
     <div class="mk-card pad">
@@ -948,7 +948,7 @@ S.push({
 S.push({
   id:'UC-22', mod:'producao', actors:['gerencia'], built:false, route:'',
   name:'Criar lote', rf:'RF-32, RF-46',
-  why:'Ao nascer, o lote recebe o protocolo vigente do seu recipiente. O canteiro comporta vários lotes (RN-19) e a capacidade avisa sem nunca travar (RN-29). A data de plantio é a âncora das etapas do protocolo que contam da criação do lote (RN-33).',
+  why:'Ao nascer, o lote recebe o protocolo vigente do seu recipiente. O canteiro comporta vários lotes (RN-19) e a capacidade avisa sem nunca travar (RN-28). A data de plantio é a âncora das etapas do protocolo que contam da criação do lote (RN-31).',
   ui:`<div class="mk-hd"><div class="b">2 &middot; Produção</div><div class="t">Novo lote</div></div>
   <div class="mk-body tight">
     <div><div class="mk-lbl">Espécie</div><div class="mk-in v" style="margin-top:3px">Ipê-amarelo</div></div>
@@ -1111,7 +1111,7 @@ S.push({
 S.push({
   id:'UC-28', mod:'producao', actors:['gerencia'], built:false, route:'',
   name:'Acompanhar o protocolo do lote', rf:'RF-51, RF-52, RF-53',
-  why:'A ficha responde o que o lote já recebeu e o que está por vencer. Nenhuma data aqui é digitada: a última execução vem da tarefa confirmada, e o vencimento sai da âncora mais o tempo da etapa (RN-42).',
+  why:'A ficha responde o que o lote já recebeu e o que está por vencer. Nenhuma data aqui é digitada: a última execução vem da tarefa confirmada, e o vencimento sai da âncora mais o tempo da etapa (RN-40).',
   ui:`<div class="mk-hd"><div class="b">Produção</div><div class="t">Lote 2026-0184 · tubete · A-3</div></div>
   <div class="mk-body">
     <div class="mk-card">
@@ -1128,7 +1128,7 @@ S.push({
     </div>
     <div class="mk-card">
       <div class="mk-row"><span class="mk-nm">Irrigação</span><span class="mk-nm" style="font-weight:400">sem alerta</span></div>
-      <div class="s" style="font-size:9px">Alerta desligado nesta etapa (RN-37)</div>
+      <div class="s" style="font-size:9px">Alerta desligado nesta etapa (RN-35)</div>
     </div>
     <div class="mk-info">Encerrar o lote cancela as ordens em aberto, sem removê-las.</div>
   </div>`

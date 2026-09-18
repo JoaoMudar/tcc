@@ -1,7 +1,7 @@
 -- Migration: 20260901000006_comercial_pedidos.sql
 -- Descricao: Cadastro de pedidos.
 --
--- Requisitos: RF-54 a RF-58 · Regras: RN-44, RN-50, RN-52
+-- Requisitos: RF-54 a RF-58 · Regras: RN-42, RN-48, RN-50
 -- Entidades: C8 `pedidos`, `pedidos_itens`
 --
 -- DUAS TABELAS, E E O TAMANHO CERTO. Nao ha carga, separacao, entrega, cotacao nem
@@ -15,12 +15,12 @@ CREATE TABLE pedidos (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   numero_pedido SERIAL NOT NULL UNIQUE,
 
-  -- APONTA PARA A IDENTIDADE UNICA, e nao para uma tabela de clientes (RN-47): o
+  -- APONTA PARA A IDENTIDADE UNICA, e nao para uma tabela de clientes (RN-45): o
   -- cliente e uma pessoa que exerce o papel de cliente. Uma tabela propria
   -- duplicaria nome, telefone e documento de quem tambem e fornecedor.
   cliente_id    UUID NOT NULL REFERENCES cadastro.pessoas(id),
 
-  -- ENUMERACAO, E NAO CHAVE ESTRANGEIRA (RN-44). Canal de venda e lista fechada de
+  -- ENUMERACAO, E NAO CHAVE ESTRANGEIRA (RN-42). Canal de venda e lista fechada de
   -- cinco valores sem atributos proprios: virar entidade so se justificaria se ele
   -- carregasse margem ou preco, que e justamente o que saiu do escopo.
   canal_venda   VARCHAR(50) NOT NULL DEFAULT 'atacado',
@@ -29,7 +29,7 @@ CREATE TABLE pedidos (
   data_entrega  DATE,
   observacoes   TEXT,
 
-  -- RN-54: todo registro tem autor identificado.
+  -- RN-52: todo registro tem autor identificado.
   criado_por    UUID NOT NULL REFERENCES usuarios(id),
 
   criado_em     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -38,7 +38,7 @@ CREATE TABLE pedidos (
   CONSTRAINT pedidos_canal_valido CHECK (canal_venda IN
     ('atacado', 'compensacao', 'paisagismo', 'prefeitura', 'varejo')),
 
-  -- RN-50: tres situacoes, e o que o negocio precisa saber e em qual delas o pedido
+  -- RN-48: tres situacoes, e o que o negocio precisa saber e em qual delas o pedido
   -- esta. Uma tabela de historico existiria para responder quem mudou o que e
   -- quando, pergunta que um viveiro de nove pessoas resolve perguntando.
   CONSTRAINT pedidos_situacao_valida CHECK (situacao IN ('rascunho', 'confirmado', 'cancelado'))
@@ -59,7 +59,7 @@ CREATE TABLE pedidos_itens (
   recipiente_id  UUID NOT NULL REFERENCES recipientes(id),
   quantidade     INTEGER NOT NULL,
 
-  -- O PRECO E DIGITADO, e o sistema nao o calcula (RF-55, RN-52). Nao ha
+  -- O PRECO E DIGITADO, e o sistema nao o calcula (RF-55, RN-50). Nao ha
   -- referencia a tabela de preco, piso minimo nem margem: o valor e o que foi
   -- negociado na conversa com o cliente, e ao sistema cabe guarda-lo.
   preco_unitario NUMERIC(10,2) NOT NULL,
@@ -81,11 +81,11 @@ CREATE TRIGGER pedidos_itens_define_atualizado_em
 -- (RF-56) e somado dos lotes prontos daquela especie e recipiente a cada consulta.
 -- Guarda-lo aqui congelaria uma leitura que muda a cada perda registrada, e o item
 -- passaria a mentir sobre o estoque de hoje. E a mesma decisao que fez a situacao
--- do lote ser visao e nao coluna (RN-30).
+-- do lote ser visao e nao coluna (RF-45).
 
 COMMENT ON TABLE pedidos IS
-  'Pedido. Tres situacoes; confirmado nao aceita alteracao de item. RF-57, RN-50.';
+  'Pedido. Tres situacoes; confirmado nao aceita alteracao de item. RF-57, RN-48.';
 COMMENT ON COLUMN pedidos.cliente_id IS
-  'Pessoa do cadastro unico que exerce o papel de cliente. RN-47.';
+  'Pessoa do cadastro unico que exerce o papel de cliente. RN-45.';
 COMMENT ON COLUMN pedidos_itens.preco_unitario IS
-  'Preco unitario informado por quem registra. O sistema nao o calcula. RN-52.';
+  'Preco unitario informado por quem registra. O sistema nao o calcula. RN-50.';

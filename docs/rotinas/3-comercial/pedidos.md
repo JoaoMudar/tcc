@@ -14,7 +14,7 @@ rascunho  →  confirmado
 cancelado
 ```
 
-**Confirmar é o ato que trava o pedido** (RF-57, RN-50). Enquanto ele está em rascunho, item,
+**Confirmar é o ato que trava o pedido** (RF-57, RN-48). Enquanto ele está em rascunho, item,
 quantidade e preço se alteram; depois de confirmado, não. São três situações, e não há histórico de
 mudança de estado, porque quem mudou o que e quando é pergunta que um viveiro de nove pessoas
 resolve perguntando.
@@ -23,7 +23,7 @@ resolve perguntando.
 
 ### Preço digitado
 
-O preço vem no item do pedido, digitado por quem registra (RF-55, RN-52). O sistema guarda por
+O preço vem no item do pedido, digitado por quem registra (RF-55, RN-50). O sistema guarda por
 quanto se vendeu, e não calcula custo, margem nem piso.
 
 ### Saldo ao lado do item
@@ -36,7 +36,7 @@ baixa e não move lote.
 ### Canal de venda
 
 Atacado (o padrão), compensação ambiental, paisagismo, prefeitura e varejo. É lista fechada de
-cinco valores, e não entidade própria (RN-44), porque não carrega margem nem preço.
+cinco valores, e não entidade própria (RN-42), porque não carrega margem nem preço.
 
 ### Item sempre nomeia a espécie
 
@@ -46,7 +46,7 @@ resolvido, com as espécies que foram efetivamente vendidas.
 
 ## Modelo de dados
 
-`pedidos` e `pedidos_itens`, com o cliente em `cadastro.pessoas` pelo papel `cliente` (RN-47).
+`pedidos` e `pedidos_itens`, com o cliente em `cadastro.pessoas` pelo papel `cliente` (RN-45).
 Declaradas em `migrations/20260901000006_comercial_pedidos.sql`, descritas em
 [`C8`](../../engenharia/C-modelagem/C8-dicionario-de-dados.md). **Não há tabela de carga,
 separação, entrega nem cotação**: essas etapas acontecem na operação e continuam fora do sistema

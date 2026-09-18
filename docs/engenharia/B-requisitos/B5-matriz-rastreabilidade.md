@@ -90,9 +90,9 @@ As seções seguem as **três áreas de negócio** do sistema, na mesma ordem da
 
 | RF | Caso de uso | Entidade | Recurso em D4 | Teste |
 |---|---|---|---|---|
-| RF-26 | UC-19 | `semanas`, `atribuicoes`, `atribuicoes_participantes` | Agenda da semana | TA-26, TA-27, TA-28 |
+| RF-26 | UC-19 | `semanas`, `atribuicoes`, `atribuicoes_participantes` | Agenda da semana | TA-26, TA-27, TA-28, TA-68, TA-69, TA-70 |
 | RF-27 | UC-19 | `atribuicoes` | Agenda da semana | TA-29 |
-| RF-28 | UC-19 | `semanas` | Agenda da semana | TA-30 |
+| RF-28 | UC-19 | `semanas` | Agenda da semana | TA-30, TA-70 |
 | RF-29 | UC-20 | `atribuicoes`, `atribuicoes_participantes` | Confirmação de tarefa | TA-31, TA-32 |
 | RF-30 | UC-20 | `atribuicoes` | Confirmação de tarefa | TA-33 |
 | RF-31 | UC-21 | `atribuicoes`, `semanas` | Fechamento da semana | TA-34 |
@@ -230,7 +230,7 @@ cobertura total.
 ### 5.2 Requisitos que descrevem o que o sistema faz sozinho
 
 **Cinco requisitos não têm ator**, e a ausência **não é lacuna**: RF-45 calcula, e RF-47 a
-RF-50 são o motor de geração de ordens do protocolo. Confrontá-los com o catálogo de casos de uso
+RF-50 são o motor do protocolo, que sugere e acompanha sem que ninguém o acione. Confrontá-los com o catálogo de casos de uso
 obrigou a decidir entre inventar um ator ou declarar a ausência, e a decisão está em
 [`C1` §4.1](../C-modelagem/C1-diagrama-casos-de-uso.md).
 

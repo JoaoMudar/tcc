@@ -57,7 +57,14 @@ conexão (RNF-05).
 Apenas entidades e relacionamentos, sem atributos. É a visão que responde "de que o sistema trata".
 
 ```mermaid
+---
+config:
+  layout: elk
+  elk:
+    nodePlacementStrategy: NETWORK_SIMPLEX
+---
 erDiagram
+  direction LR
   ESPECIE      ||--o{ LOTE        : "é plantada em"
   RECIPIENTE   ||--o{ LOTE        : "define o porte de"
   CANTEIRO     ||--o{ LOTE        : "abriga"
@@ -70,7 +77,7 @@ erDiagram
   PROTOCOLO    ||--o{ LOTE            : "rege"
   ETAPA_PROTOCOLO ||--o{ ETAPA_DO_LOTE : "materializa-se em"
   LOTE         ||--o{ ETAPA_DO_LOTE   : "percorre"
-  ETAPA_DO_LOTE ||--o{ ATRIBUICAO     : "gera ordem de"
+  ETAPA_DO_LOTE ||--o{ ATRIBUICAO     : "sugere"
 
   LOTE         ||--o{ LOTE            : "dá origem a"
   LOTE         ||--o{ MOVIMENTO_LOTE  : "é explicado por"
@@ -107,16 +114,16 @@ Seis leituras que o modelo conceitual já entrega:
   único. É a confirmação estrutural da centralidade declarada em RN-01. Um deles é de outra
   natureza que os demais: em `ESPECIE customiza o tempo de ETAPA_PROTOCOLO`, a espécie deixa de
   apenas participar do ciclo produtivo e passa a **parametrizá-lo**, decidindo em quantos dias
-  cada etapa do manejo vence naquela espécie (RN-38).
+  cada etapa do manejo vence naquela espécie (RN-36).
 - **O modelo tem duas entidades reflexivas.** `LOTE dá origem a LOTE` é a repicagem: a leva que
   muda de recipiente vira outra leva, ligada à primeira. Percorrer essa cadeia responde de quantas
   sementes semeadas saiu cada muda vendida, que é a pergunta que o viveiro nunca pôde responder. É
   também a entidade que dá **lugar** à muda: até 24/08/2026 o modelo dizia o que a muda era e não
   onde ela estava. A outra reflexiva é `ETAPA_PROTOCOLO é âncora de ETAPA_PROTOCOLO`, e ela diz
   **quando**: uma etapa do protocolo conta o prazo a partir da conclusão de outra, que não precisa
-  ser a imediatamente anterior (RN-33).
+  ser a imediatamente anterior (RN-31).
 - **O protocolo é o que liga a receita ao relógio.** `RECIPIENTE define PROTOCOLO`: o manejo é
-  determinado pelo vasilhame em que a muda cresce (RN-32). É o que permite ao lote cobrar sozinho o
+  determinado pelo vasilhame em que a muda cresce (RN-30). É o que permite ao lote cobrar sozinho o
   que tem de receber, em vez de depender de alguém lembrar de lançar a tarefa.
 - **O lote é o único caminho entre a Produção e o Comercial.** `LOTE dá saldo a ITEM_PEDIDO` é uma
   aresta de leitura, e não de chave estrangeira: o item não guarda de qual lote a muda saiu, ele
@@ -127,7 +134,7 @@ Seis leituras que o modelo conceitual já entrega:
   o que se gastou continua fora dele.
 - **A pessoa é uma, e os papéis é que se multiplicam.** `PESSOA é papel de CLIENTE` e
   `PESSOA é papel de FUNCIONARIO` desenham a mesma identidade vista de dois lados. Quem vende muda
-  ao viveiro e às vezes compra dele é um cadastro só (RN-47).
+  ao viveiro e às vezes compra dele é um cadastro só (RN-45).
 
 ---
 
@@ -234,7 +241,7 @@ conceito**: ali é vínculo de trabalho, aqui é permissão de acesso.
 **`parametros` é transversal e não é cadastro.** Guarda parâmetro escalar do sistema em chave e valor
 tipado: o limite de mortalidade, os limites de atraso que pintam o lote no mapa. Todos morariam em
 constante de código, e **são regra de negócio, não infraestrutura**: quem os decide é a chefia, e
-mudar qualquer um deles exigiria uma implantação (RF-09, RN-27).
+mudar qualquer um deles exigiria uma implantação (RF-09, RN-26).
 
 > **Onde está a fronteira entre `parametros` e cadastro.** Parâmetro que é **um valor** vai para
 > `parametros`. Parâmetro que é **uma lista de coisas com atributos** vira entidade: é o caso do
@@ -313,6 +320,8 @@ erDiagram
     boolean exige_lote
     boolean exige_especie
     boolean exige_recipiente
+    boolean exige_area
+    text    unidade_medida
     boolean ativo
   }
   protocolos {
@@ -415,7 +424,7 @@ a que apontar no momento da gravação. Quem liga as duas é o texto de `especie
 formato `/api/fotos/<uuid>`.
 
 **O canteiro tem capacidade, e ela não é restrição.** `canteiros.capacidade` existe para o aviso de
-RN-29, que informa que a leva talvez não caiba, e não para recusar o lote: quem sabe se cabe é
+RN-28, que informa que a leva talvez não caiba, e não para recusar o lote: quem sabe se cabe é
 quem está com a muda na mão.
 
 **`pessoas_papeis` é chave composta, e o papel é que carrega o vínculo.** `tipo_vinculo` (fixo ou
@@ -428,16 +437,16 @@ coluna que é nula em toda pessoa que só compra.
 viveiro faz em voz alta.
 
 - **`tipo_agendamento`** separa a etapa **sequencial**, que ocorre uma vez e pode avançar a fase do
-  lote, da **recorrente**, que repete indefinidamente e não avança fase nenhuma (RN-36).
+  lote, da **recorrente**, que repete indefinidamente e não avança fase nenhuma (RN-34).
 - **`etapa_ancora_id`** é a âncora, e é reflexiva: a etapa conta o prazo a partir da conclusão de
-  **outra etapa declarada**, e não da anterior na lista (RN-33). Classificar pós-germinação conta
+  **outra etapa declarada**, e não da anterior na lista (RN-31). Classificar pós-germinação conta
   do plantio, e não da criação do lote, porque a semente pode ficar dias esperando plantio.
   Âncora nula significa contar da criação do lote.
 - **`dias` e `intervalo_dias`** são o prazo e, na recorrente, o intervalo entre ocorrências.
 - **`janela_aviso_pct`** é a janela de aviso **em percentual do intervalo**, e não em dias fixos
-  (RN-37): três dias de antecedência não servem à etapa trimestral e à diária ao mesmo tempo.
+  (RN-35): três dias de antecedência não servem à etapa trimestral e à diária ao mesmo tempo.
 - **`alerta_ligado`** desliga a cor de uma etapa que se repete tanto que sinalizá-la seria ruído
-  (RN-37).
+  (RN-35).
 - **`fase_resultante`** é opcional: nem toda etapa sequencial promove o lote de fase, e obrigar a
   escolher uma faria inventar transições que o ciclo produtivo não tem.
 
@@ -475,15 +484,15 @@ erDiagram
     uuid    canteiro_id FK
     uuid    lote_etapa_id FK
     date    vencimento_protocolo
-    int     quantidade_planejada
+    numeric quantidade_planejada
     boolean e_recorrente
     text    situacao
     text    observacoes
   }
   atribuicoes_participantes {
-    uuid atribuicao_id FK
-    uuid pessoa_id FK
-    int  quantidade_feita
+    uuid    atribuicao_id FK
+    uuid    pessoa_id FK
+    numeric quantidade_feita
   }
   lotes {
     uuid        id PK
@@ -540,7 +549,7 @@ erDiagram
   lotes    ||--o{ lotes            : "dá origem a"
   lotes    ||--o{ lotes_etapas : "percorre"
   lotes    ||--o{ atribuicoes        : "recebe trabalho de"
-  lotes_etapas ||--o{ atribuicoes : "gera ordem de"
+  lotes_etapas ||--o{ atribuicoes : "sugere"
 
   especies    ||--o{ lotes : "é plantada em"
   recipientes ||--o{ lotes : "define o porte de"
@@ -607,34 +616,35 @@ realizado é o planejado com a marca de que aconteceu. `nao_confirmada` é o que
 semana grava no que ninguém confirmou (RN-14), e é o que preserva a distinção entre o que se
 confirmou e o que se presumiu.
 
-**A quantidade é de cada pessoa, e por isso mora em `atribuicoes_participantes`** (RN-24). Quatro pessoas
+**A quantidade é de cada pessoa, e por isso mora em `atribuicoes_participantes`** (RN-23). Quatro pessoas
 enchendo saquinho produzem quatro números, e é assim que o viveiro fala. Guardar um total na
 atribuição perderia justamente o dado que ele quer.
 
 **`e_recorrente` é uma marca, e não uma regra de calendário.** Ela diz que a atribuição faz parte da
-rotina fixa e, por isso, vem preenchida quando se copia a semana anterior (RF-27, RN-31). Uma
+rotina fixa e, por isso, vem preenchida quando se copia a semana anterior (RF-27, RN-29). Uma
 entidade de recorrência, com dias da semana e vigência, existiria para gerar dias sozinha, e o que
 gera dia sozinho neste modelo é o protocolo, cujo sujeito é o lote e não a equipe.
 
-**`lote_etapa_id` é o que faz a ordem do protocolo ser atribuição comum** (RN-43). A
-ordem gerada não é uma entidade nova: é uma linha de `atribuicoes` que sabe de que etapa veio, e
-que nasce **sem ninguém em `atribuicoes_participantes`**, porque o protocolo diz o que e quando, e quem faz
-continua sendo de quem monta a agenda (RN-43).
+**`lote_etapa_id` é o que liga a tarefa à sugestão que a originou** (RF-47). A tarefa aceita não é
+uma entidade nova: é uma linha de `atribuicoes` que sabe de que etapa veio. O protocolo em si não
+escreve aqui nada: ele diz o que e quando, e a linha só nasce quando alguém aceita a sugestão e a
+preenche por inteiro, participantes inclusive. `lote_etapa_id` nulo é a tarefa lançada sem sugestão
+nenhuma por trás.
 
 #### O percurso do lote pelo protocolo
 
 `lotes_etapas` é a única entidade de movimento do protocolo, e guarda três datas por etapa
 e por lote: a última execução, o próximo vencimento e a situação.
 
-**`vence_em` é derivado, nunca digitado** (RN-42): sai da âncora, da última execução e do tempo
+**`vence_em` é derivado, nunca digitado** (RN-40): sai da âncora, da última execução e do tempo
 declarado, com a customização por espécie sobrescrevendo o tempo do protocolo quando existir
-(RN-38). É o que a visão `lotes_etapas_vencimento` calcula, e é dela que sai a cor do lote no mapa.
+(RN-36). É o que a visão `lotes_etapas_vencimento` calcula, e é dela que sai a cor do lote no mapa.
 
-**Uma etapa tem no máximo uma ocorrência em aberto** (RN-35). Etapa trimestral esquecida há cinco
+**Uma etapa tem no máximo uma ocorrência em aberto** (RN-33). Etapa trimestral esquecida há cinco
 meses apresenta **uma** pendência, e não cinco: gerar uma ordem por trimestre vencido encheria a
 agenda com um passado que ninguém vai executar.
 
-**A situação do lote é visão, e não coluna** (RN-30). `situacao_lote` é calculada a cada leitura
+**A situação do lote é visão, e não coluna** (RF-45). `situacao_lote` é calculada a cada leitura
 porque situacao gravado envelhece sozinho: o lote que estava verde ontem continuaria verde no banco
 hoje, e a tela existe justamente para dizer o contrário. É a mesma razão de a mortalidade e o saldo
 disponível também serem derivados.
@@ -676,13 +686,13 @@ erDiagram
 ```
 
 **`pedidos.cliente_id` aponta para `cadastro.pessoas`, e não para uma tabela de clientes.** É a
-materialização do cadastro único (RN-47): o cliente é uma pessoa que exerce o papel de cliente, e o
+materialização do cadastro único (RN-45): o cliente é uma pessoa que exerce o papel de cliente, e o
 pedido referencia a pessoa. Uma tabela `clientes` própria duplicaria nome, telefone e documento de
 quem também é fornecedor.
 
-**`preco_unitario` é digitado, e não referencia tabela de preço** (RN-52). Não há entidade de canal de
+**`preco_unitario` é digitado, e não referencia tabela de preço** (RN-50). Não há entidade de canal de
 venda nem de tabela de preços: `canal_venda` é enumeração em `pedidos`, porque canal de venda é uma
-lista fechada de cinco valores sem atributos próprios (RN-44), e o preço é o que foi acordado na
+lista fechada de cinco valores sem atributos próprios (RN-42), e o preço é o que foi acordado na
 conversa.
 
 **Não há entidade de disponibilidade.** O saldo que o item exibe (RF-56) é calculado dos lotes

@@ -69,12 +69,13 @@ indicadores para um painel que não existia.
 | **Responsável** | Gerência |
 | **Perfis** | Chefia, Gerência |
 
-**O limiar não é constante: é parâmetro** (RF-09, RN-27). Os 20% de RN-11 são o valor inicial, e a
-chefia o altera em Configurações sem que ninguém implante nada.
+**O limiar não é constante: é parâmetro** (RF-09, RN-26). RN-11 diz que o lote é destacado acima do
+limite, e não qual é o limite: o valor começa em 20% na instalação, e a chefia o altera em
+Configurações sem que ninguém implante nada.
 
 **É por lote, e não por espécie, e a diferença é o achado.** A taxa por espécie diz que o ipê morre
 muito; a taxa por lote diz **qual leva** morreu, em que canteiro, e o que se fez nela. Sem o lote a
-regra dos 20% aponta um problema que ninguém consegue localizar.
+regra do limite de mortalidade aponta um problema que ninguém consegue localizar.
 
 > Este é o indicador de maior valor imediato, porque mede algo que hoje é **inteiramente
 > desconhecido**. A empresa não sabe sua taxa de mortalidade, nem por lote, nem no agregado. O
@@ -90,7 +91,7 @@ regra dos 20% aponta um problema que ninguém consegue localizar.
 | **Fonte** | Visão `situacao_lote`, que lê `atribuicoes` e `lotes_etapas` |
 | **Unidade** | Contagem absoluta e percentual do total de lotes abertos |
 | **Janela** | Instantâneo do dia |
-| **Periodicidade** | A cada leitura: **nunca gravado** (RN-30) |
+| **Periodicidade** | A cada leitura: **nunca gravado** (RF-45) |
 | **Meta** | Nenhum lote crítico |
 | **Faixas** | Definidas por parâmetro: `producao.atraso_atencao_dias` e `producao.atraso_critico_dias` |
 | **Comparação** | O mesmo dia da semana anterior |

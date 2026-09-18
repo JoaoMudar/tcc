@@ -198,7 +198,8 @@ A chefia tenta alterar um item de pedido já confirmado. O sistema recusa a oper
 
 ### FA-1: Mortalidade acima do limite
 
-No passo 9, a taxa recalculada ultrapassa o limite mantido em Configurações, inicialmente 20%. O
+No passo 9, a taxa recalculada ultrapassa o limite mantido em Configurações, que vale 20% na
+instalação e é alterável a qualquer momento. O
 sistema destaca o lote no mapa (UC-27), identificando taxa e causa predominante. **O registro não é
 interrompido**: o alerta é uma leitura da tela seguinte, e não uma caixa a fechar.
 
@@ -254,7 +255,7 @@ propagaria o erro para o estoque. A correção é uma contagem física (UC-26), 
 ### FA-1: A leva não cabe em um canteiro
 
 No passo 3, a quantidade excede o que o canteiro ainda comporta, contando os lotes já abertos nele.
-O sistema **avisa e não recusa** (RN-29), e a gerência escolhe: apertar mais, ou criar **dois
+O sistema **avisa e não recusa** (RN-28), e a gerência escolhe: apertar mais, ou criar **dois
 lotes**, um por canteiro, em vez de um lote em dois lugares (RN-19).
 
 > **Por que não um lote em dois canteiros.** Seria uma entidade a mais e um campo a mais em toda
@@ -305,7 +306,7 @@ restante, e passa a ter um lote filho. É o caso normal: repica-se o que está n
 ### FA-2: Parte das mudas morreu na repicagem
 
 No passo 3, entram menos mudas do que saíram. O sistema apresenta a diferença e pede a causa, em
-lista fechada, gravando-a como **perda do lote de origem** no mesmo gesto (RN-28). A soma
+lista fechada, gravando-a como **perda do lote de origem** no mesmo gesto (RN-27). A soma
 "repicadas mais perdidas" tem de igualar a quantidade que saiu.
 
 > Sem esta alternativa, a diferença viraria evaporação silenciosa: o saldo do lote de origem
@@ -339,8 +340,8 @@ recusa e apresenta o saldo disponível (RN-21).
 
 1. A gerência aciona "confirmar" na célula da agenda.
 2. Se o tipo de tarefa declarar **lote específico**, o sistema pede o lote, uma vez para a tarefa, e não pede canteiro, que vem do lote (RF-29).
-3. Se o tipo de tarefa **não** exigir lote, o sistema oferece registrar a área ou o canteiro em que a tarefa foi feita (RF-30).
-4. Se o tipo de tarefa for **quantitativo por unidade**, o sistema pede **um número por participante**: quanto cada um fez (RF-29).
+3. Se o tipo de tarefa declarar **área**, o sistema oferece registrar a área ou o canteiro em que a tarefa foi feita (RF-30). Tipo com lote nunca declara área.
+4. Se o tipo de tarefa for **quantitativo por unidade**, o sistema pede **um número por participante**, na unidade que o tipo declara: quanto cada um fez (RF-29).
 5. Se o tipo de tarefa não for quantitativo, o passo 4 não ocorre e o sistema não pede número algum.
 6. A gerência confirma.
 7. O sistema marca a atribuição como *confirmada* para todos os participantes.
@@ -354,7 +355,7 @@ precisa ser informado antes que o movimento possa ser gravado.
 ### FA-2: Tarefa de classificação
 
 No passo 8, a tarefa é classificação. O sistema pede, no mesmo formulário, quantas mudas foram
-descartadas, e grava a perda como movimento do lote (RN-28). Separar os dois gestos faria a perda
+descartadas, e grava a perda como movimento do lote (RN-27). Separar os dois gestos faria a perda
 ser esquecida.
 
 ### FA-3: Sem conexão
@@ -371,10 +372,11 @@ registro.
 
 ### FA-5: Ordem do protocolo
 
-No passo 1, a célula é uma ordem gerada pelo protocolo (RF-47), e não um lançamento manual. O lote
-**já vem preenchido** pela ordem, e o passo 2 não pergunta nada: campo já respondido pela origem da
-tarefa não é campo a pedir. A conclusão realimenta o protocolo, que passa a contar a ocorrência
-seguinte a partir desta data (RF-49).
+No passo 1, a célula é uma tarefa que nasceu de uma sugestão do protocolo aceita na agenda (RF-47),
+e não de um lançamento digitado do zero. O lote, a etapa e o tipo **já vieram preenchidos** da
+sugestão, e o passo 2 não pergunta nada sobre eles: campo já respondido pela origem da tarefa não é
+campo a pedir. A conclusão realimenta o protocolo, que passa a contar a ocorrência seguinte a
+partir desta data (RF-49).
 
 ### FE-1: Quantidade inválida
 
@@ -406,7 +408,7 @@ confirmar já entrou no realizado com a marca de não confirmado (RF-31).
 
 | | |
 |---|---|
-| **Ator principal** | Gerência ou Chefia, com a mesma permissão (D4 §3.8) |
+| **Ator principal** | Gerência ou Chefia, com a mesma permissão (`D4` §3.8) |
 | **Objetivo** | Definir, por recipiente, a sequência de etapas que todo lote daquele recipiente passa a seguir sozinho |
 | **Requisitos** | RF-22, RF-23, RF-24 |
 | **Frequência** | Raríssima: uma vez por recipiente, revista por safra |
@@ -424,7 +426,7 @@ confirmar já entrou no realizado com a marca de não confirmado (RF-31).
 7. A gerência informa o turno e decide se a etapa tem **alerta de atraso** ligado (RF-24).
 8. Quando sequencial, a gerência escolhe, de forma opcional, a fase do lote que a conclusão da etapa passa a gravar.
 9. O sistema valida a etapa e a acrescenta ao protocolo, na ordem escolhida.
-10. A alteração passa a valer **apenas para o que ainda vai ser gerado** (RN-39).
+10. A alteração passa a valer **apenas para o que ainda vai ser gerado** (RN-37).
 
 ### FA-1: Etapa que não altera a fase
 
@@ -435,13 +437,13 @@ escolher uma fase faria inventar transições que o ciclo produtivo não tem.
 ### FA-2: Etapa com janela de aviso própria
 
 No passo 7, a etapa precisa avisar antes ou depois do padrão. A gerência informa a janela própria,
-em percentual do intervalo, e ela prevalece sobre o parâmetro geral (RN-37).
+em percentual do intervalo, e ela prevalece sobre o parâmetro geral (RN-35).
 
 ### FA-3: Alteração de protocolo com lotes em andamento
 
 No passo 10, existem lotes seguindo o protocolo. O sistema **não** reescreve as ordens já emitidas
-nem as datas já cumpridas: a alteração vale para a próxima geração de cada lote (RN-39). É a
-mesma garantia que a ordem já gerada tem em RN-43, e a razão é a mesma: regra que reescrevesse o
+nem as datas já cumpridas: a alteração vale para as próximas sugestões de cada lote (RN-37). É a
+mesma garantia que a tarefa já lançada tem em RF-47, e a razão é a mesma: regra que reescrevesse o
 passado apagaria dia já trabalhado.
 
 ### FE-1: Âncora circular
@@ -482,8 +484,8 @@ lote novo segue.
 2. O sistema apresenta o saldo atual e pede a quantidade que vai para o segundo lote.
 3. A gerência informa a quantidade e o canteiro de cada resultante, que podem ser o mesmo.
 4. O sistema cria os dois lotes, ambos apontando para o original como lote de origem.
-5. O sistema **copia para cada um o acompanhamento do protocolo do original**: a fase e a data da última execução de cada etapa (RN-41).
-6. O sistema encerra o original com motivo `dividido`, e **cancela** as ordens dele ainda em aberto (RN-40).
+5. O sistema **copia para cada um o acompanhamento do protocolo do original**: a fase e a data da última execução de cada etapa (RN-39).
+6. O sistema encerra o original com motivo `dividido`, e **cancela** as ordens dele ainda em aberto (RN-38).
 7. O sistema grava os movimentos que explicam o saldo dos três lotes.
 8. Daí em diante, os dois resultantes vencem e cumprem etapas de forma independente.
 
@@ -516,7 +518,7 @@ hora trabalhada perderia destino.
 
 | | |
 |---|---|
-| **Ator principal** | Gerência ou Chefia, com a mesma permissão (D4 §3.8, nota 3) |
+| **Ator principal** | Gerência ou Chefia, com a mesma permissão (`D4` §3.8, nota 3) |
 | **Objetivo** | Ajustar, para uma espécie, o tempo de uma etapa específica do protocolo |
 | **Requisitos** | RF-25 |
 | **Frequência** | Rara, e apenas para as espécies que fogem da média |
@@ -528,7 +530,7 @@ hora trabalhada perderia destino.
 1. A gerência abre o cadastro da espécie e a seção de tempos do protocolo.
 2. O sistema apresenta as etapas dos protocolos, com o tempo padrão de cada uma.
 3. A gerência informa o tempo próprio da espécie na etapa que difere.
-4. O sistema grava apenas o que foi preenchido, e o que ficou em branco continua vindo do protocolo (RN-38).
+4. O sistema grava apenas o que foi preenchido, e o que ficou em branco continua vindo do protocolo (RN-36).
 5. Lotes daquela espécie criados a partir daí passam a usar o tempo próprio.
 
 ### FA-1: Remover a customização
@@ -546,7 +548,7 @@ caminho a mais para chegar ao mesmo número.
 ### FE-2: Alteração com lotes em andamento
 
 No passo 5, existem lotes da espécie em curso. O novo tempo vale para os vencimentos **ainda não
-gerados**, e não reescreve ordem já emitida (RN-39). O sistema informa quantos lotes serão
+gerados**, e não reescreve ordem já emitida (RN-37). O sistema informa quantos lotes serão
 afetados na próxima geração, para que a gerência saiba o alcance antes de confirmar.
 
 ---

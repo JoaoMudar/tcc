@@ -1,7 +1,7 @@
 # Cadastro único de pessoas
 
 > Uma identidade, vários papéis. Cliente, fornecedor e funcionário não são três cadastros: são
-> três papéis da mesma pessoa (RN-47).
+> três papéis da mesma pessoa (RN-45).
 >
 > Modelo em [`C6`](../../engenharia/C-modelagem/C6-modelo-entidade-relacionamento.md) e
 > [`C8`](../../engenharia/C-modelagem/C8-dicionario-de-dados.md); origem no banco em
@@ -14,7 +14,7 @@ fornecedor, essa pessoa aparece duas vezes, e o mesmo telefone passa a ter duas 
 não há como perguntar quanto se comprou e quanto se vendeu para ela sem casar os dois cadastros
 por nome a cada consulta.
 
-**A identidade é uma só, e o papel é que se multiplica.** É o que RN-47 afirma e o que as três
+**A identidade é uma só, e o papel é que se multiplica.** É o que RN-45 afirma e o que as três
 tabelas do esquema `cadastro` implementam.
 
 ## As três tabelas
@@ -37,10 +37,10 @@ cadastro.pessoas_enderecos   entrega · cobranca · residencial
 
 **`documento` é nulo até que precise não ser.** A negociação nasce no WhatsApp e o cliente
 frequentemente é novo, então nome e telefone bastam para registrar o pedido, e a ficha se completa
-depois (RN-46, RF-15). A unicidade do documento é índice de banco, e vale só quando ele existe.
+depois (RN-44, RF-15). A unicidade do documento é índice de banco, e vale só quando ele existe.
 
 O conjunto fiscal completo é exigência de quem emite a nota, não deste sistema: a nota é emitida
-em sistema externo, e aqui fica apenas o cadastro capaz de alimentá-la (RN-45, RF-16).
+em sistema externo, e aqui fica apenas o cadastro capaz de alimentá-la (RN-43, RF-16).
 
 ### `cadastro.pessoas_papeis`
 
@@ -56,7 +56,7 @@ nove colaboradores nunca abrem o aplicativo, e mesmo assim aparecem na agenda (R
 ### `cadastro.pessoas_enderecos`
 
 `logradouro`, `cidade`, `uf` e `cep`, com o tipo pelo enum `cadastro.tipo_endereco`. Uma pessoa
-tem mais de um endereço, e o de entrega pode não ser o de cobrança (RN-51).
+tem mais de um endereço, e o de entrega pode não ser o de cobrança (RN-49).
 
 ## Como a tela usa isso
 
@@ -76,6 +76,6 @@ privacidade da matriz (`D4` §3.1).
 | Documento | O que |
 |---|---|
 | [`B2`](../../engenharia/B-requisitos/B2-especificacao-requisitos.md) | RF-14 a RF-20 |
-| [`B3`](../../engenharia/B-requisitos/B3-regras-de-negocio.md) | RN-45, RN-46, RN-47, RN-51 |
+| [`B3`](../../engenharia/B-requisitos/B3-regras-de-negocio.md) | RN-43, RN-44, RN-45, RN-49 |
 | [`C6`](../../engenharia/C-modelagem/C6-modelo-entidade-relacionamento.md) / [`C8`](../../engenharia/C-modelagem/C8-dicionario-de-dados.md) | `cadastro.pessoas`, `cadastro.pessoas_papeis`, `cadastro.pessoas_enderecos` |
 | [`D4`](../../engenharia/D-arquitetura/D4-matriz-rbac.md) | recursos **Pessoas** e **Dados fiscais de pessoa** |

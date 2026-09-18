@@ -29,6 +29,7 @@
 |---------|----------|
 | [`contexto-projeto.md`](contexto-projeto.md) | Histórico, as três áreas, o que a redução de escopo cortou e princípios de formulário de campo. **É a fonte única do roadmap.** |
 | [`funcionarios-viveiro-mudar.md`](funcionarios-viveiro-mudar.md) | A equipe e os perfis de acesso. |
+| [`processo-de-desenvolvimento.md`](processo-de-desenvolvimento.md) | Texto do TCC sobre o processo: roteiro por fases, Claude Code, GitHub, testes e migrations. Conferido em 14/09/2026. |
 
 ### Como trabalhar no projeto (workflow)
 | Arquivo | Conteúdo |
@@ -47,11 +48,15 @@ Distinta de `docs/rotinas/`, que é documentação de domínio em linguagem de n
 
 Comece por [`engenharia/README.md`](engenharia/README.md), explica a estrutura de pastas.
 Índice completo, com status de cada artefato, em [`engenharia/00-indice.md`](engenharia/00-indice.md).
+O que a orientação apontou em 15/09/2026, e o que foi feito de cada ponto, em
+[`engenharia/revisao-orientacao-15-09-2026.md`](engenharia/revisao-orientacao-15-09-2026.md).
+Como o `B3` e o `B2` estão hoje só se entende com ele ao lado: é ele que explica por que duas
+regras saíram e por que a numeração mudou.
 
 | Bloco | Artefatos |
 |-------|-----------|
-| A: Fundação | Documento de Visão, Glossário do domínio |
-| B: Requisitos | Especificação de Requisitos (58 RF, 24 RNF), Regras de negócio (54 RN), Quadros do TCC, Matriz de rastreabilidade |
+| A: Fundação | Documento de Visão, Glossário do domínio, elementos pré-textuais |
+| B: Requisitos | Especificação de Requisitos (58 RF, 24 RNF), Regras de negócio (52 RN), Quadros do TCC, Matriz de rastreabilidade |
 | C: Modelagem | Casos de uso (34 UC), Especificação de casos de uso, MER/DER (27 entidades), Dicionário de dados |
 | D: Arquitetura | Arquitetura C4, Diagrama de implantação, Matriz RBAC |
 | E: Qualidade | Casos de teste de aceite, Riscos, Modelagem de ameaças, LGPD, Backup |

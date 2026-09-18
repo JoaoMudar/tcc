@@ -1,7 +1,7 @@
 -- Migration: 20260901000001_acesso_e_configuracoes.sql
 -- Descricao: Acesso (usuarios, sessoes, eventos_login) e parametros do sistema (parametros).
 --
--- Requisitos: RF-01 a RF-07, RF-09 · Regras: RN-27, RN-53, RN-54
+-- Requisitos: RF-01 a RF-07, RF-09 · Regras: RN-26, RN-51, RN-52
 -- Entidades: C8 `usuarios`, `sessoes`, `eventos_login`, `parametros`
 --
 -- TRES PERFIS, E NAO QUATRO. O enum nao tem `colaborador`: os seis trabalhadores
@@ -100,19 +100,19 @@ CREATE TABLE parametros (
   CONSTRAINT parametros_tipo_valor_valido CHECK (tipo_valor IN ('texto', 'numero', 'booleano', 'data'))
 );
 
--- Os limites sao PARAMETRO, nao literal (RN-27): mudam com a estacao e com a
+-- Os limites sao PARAMETRO, nao literal (RN-26): mudam com a estacao e com a
 -- tarefa. Zero em "atencao" significa que a tarefa que vence hoje ja pinta de
 -- amarelo.
 INSERT INTO parametros (chave, valor, tipo_valor, descricao) VALUES
   ('producao.atraso_atencao_dias', '0', 'numero',
-   'Dias de atraso a partir dos quais o lote fica em atencao (RN-30, RN-27)'),
+   'Dias de atraso a partir dos quais o lote fica em atencao (RF-45, RN-26)'),
   ('producao.atraso_critico_dias', '3', 'numero',
-   'Dias de atraso a partir dos quais o lote fica critico (RN-30, RN-27)'),
+   'Dias de atraso a partir dos quais o lote fica critico (RF-45, RN-26)'),
   ('producao.mortalidade_limite_pct', '20', 'numero',
    'Percentual de mortalidade do lote a partir do qual ele e destacado (RN-11)');
 
 COMMENT ON TABLE usuarios IS
-  'Credencial de acesso. Tres perfis: admin, chefia, gerencia. RN-53.';
+  'Credencial de acesso. Tres perfis: admin, chefia, gerencia. RN-51.';
 COMMENT ON COLUMN usuarios.pessoa_id IS
   'Pessoa do cadastro unico. Opcional: ha login sem vinculo e vinculo sem login.';
 COMMENT ON TABLE parametros IS

@@ -4,7 +4,7 @@
 > `docs/engenharia/` e rode `node scripts/build-word.mjs`. Qualquer edição feita nesta pasta é
 > perdida na próxima geração.
 
-Gerado a partir dos artefatos vigentes · 16 arquivos · 15 figuras.
+Gerado a partir dos artefatos vigentes · 17 arquivos · 15 figuras.
 
 ## Ordem de colagem no Capítulo 4
 
@@ -30,6 +30,44 @@ Gerado a partir dos artefatos vigentes · 16 arquivos · 15 figuras.
 >
 > **Análise de riscos não pertence ao Capítulo 4.** É elemento de metodologia: cabe como seção
 > nova no Capítulo 3.
+>
+> **`00-pre-textuais.md` vem antes de tudo.** Dedicatória, agradecimentos e epígrafe são os
+> primeiros elementos do trabalho, e os nomes próprios ali estão entre colchetes, à espera de
+> preenchimento.
+
+## Montagem no Word: quebras de página e página em branco
+
+**Toda separação entre elementos é quebra de página, e nunca linha em branco.** Linha em branco
+empurra o texto enquanto a página couber, e volta a subir assim que qualquer parágrafo acima muda
+de tamanho. A quebra não se desfaz:
+
+1. Posicione o cursor no início do elemento que deve abrir página, e não no fim do anterior.
+2. Use **Ctrl+Enter** (Inserir → Quebra → Página).
+3. Cada um destes abre página própria: capa, folha de rosto, folha de aprovação, dedicatória,
+   agradecimentos, epígrafe, resumo, abstract, listas, sumário e cada capítulo.
+
+**Onde a numeração muda de romana para arábica, a quebra é de seção, e não de página.** Nos
+pré-textuais a contagem corre sem número impresso, e a numeração visível começa na introdução. Use
+Layout → Quebras → **Próxima Página** no ponto da virada, e no cabeçalho da nova seção desligue
+**Vincular ao Anterior** antes de reiniciar a numeração. Sem desligar o vínculo, mudar uma seção
+muda a outra.
+
+**A página em branco no meio do trabalho tem três causas, e todas se veem com Ctrl+asterisco**, que
+liga as marcas de formatação:
+
+| O que aparece na tela | O que é | Como resolver |
+|---|---|---|
+| Um ¶ sozinho na página | Parágrafo vazio sobrando ao fim do elemento anterior | Apague o parágrafo |
+| Uma linha "Quebra de seção (Página ímpar)" | Quebra herdada do modelo, que salta a página par para o elemento abrir sempre à direita | Se o trabalho não é impresso em frente e verso, troque por **Próxima Página** |
+| Duas quebras seguidas | Quebra de página inserida onde já havia quebra de seção | Apague uma das duas |
+
+A terceira é a mais comum ao colar conteúdo vindo daqui, porque o Markdown traz o próprio espaço
+entre seções e o Word soma o dele.
+
+**Uma tabela grande também produz página em branco**, quando não cabe no que resta da página e o
+Word a empurra inteira. Em Propriedades da Tabela → Linha, desligue "Permitir quebra de linha entre
+páginas" apenas se a tabela couber numa página; se não couber, deixe ligado e marque a primeira
+linha como **Repetir como linha de cabeçalho**.
 
 ## Apêndices
 
@@ -74,8 +112,23 @@ As tabelas vêm em Markdown. Ao colar no Word, o formato mais confiável é:
    separador.
 4. Remover a linha de traços (`|---|---|`), que é sintaxe do Markdown e não conteúdo.
 
-Alternativa mais rápida, se houver Pandoc instalado: converter o arquivo inteiro com
-`pandoc arquivo.md -o arquivo.docx` e copiar do resultado.
+## A pasta `docx/`
+
+Quem preferir não colar Markdown pode abrir os arquivos de `docx/`, que são os mesmos textos já
+convertidos. Ali as tabelas chegam prontas, as figuras vêm embutidas e os títulos usam os estilos
+de título do Word, o que faz o sumário automático funcionar. Abra o arquivo, selecione tudo e cole
+no documento do trabalho, que tem o modelo da instituição.
+
+A pasta é gerada junto com o resto, e depende do **Pandoc**. Sem ele a conversão é pulada, e o
+aviso aparece no fim da execução. Para instalar:
+
+```
+winget install --id JohnMacFarlane.Pandoc
+```
+
+> **Colar do `.docx` traz os estilos do Pandoc junto.** Ao colar, use **Colar Especial** e escolha
+> mesclar a formatação de destino, para que os títulos assumam os estilos do modelo da instituição
+> e não os padrões do Pandoc. Sem isso o sumário sai com a fonte errada.
 
 ## Conferência antes de entregar
 
@@ -85,3 +138,6 @@ Alternativa mais rápida, se houver Pandoc instalado: converter o arquivo inteir
 - [ ] Figuras legíveis em escala de cinza, caso a impressão seja monocromática
 - [ ] Referência da Lei nº 13.709/2018 inserida na seção REFERÊNCIAS
 - [ ] Análise de riscos posicionada no Capítulo 3, não no 4
+- [ ] Nomes entre colchetes dos pré-textuais substituídos
+- [ ] Nenhuma página em branco: conferir com Ctrl+asterisco, de ponta a ponta
+- [ ] Toda separação de elemento é quebra de página, e nenhuma é linha em branco

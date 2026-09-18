@@ -139,7 +139,7 @@ Campos mínimos, porque o formulário tem que caber numa tela de celular. São a
 | Telefone / WhatsApp | não | |
 | Vínculo | sim | `fixo` ou `diarista`, em `pessoas_papeis.tipo_vinculo`, aceito só no papel `funcionario` |
 | Ativa | sim | soft-delete; inativa some da agenda mas o histórico fica |
-| Documento, endereço | não | preenchidos quando a nota precisar (RN-46) |
+| Documento, endereço | não | preenchidos quando a nota precisar (RN-44) |
 
 **Não há valor por hora, nem individual nem médio.** O sistema não apura custo de mão de obra, e
 por isso o cadastro de funcionário não guarda remuneração alguma
@@ -152,9 +152,9 @@ O que faz a agenda ser rápida de preencher, porque não há digitação livre, 
 | Campo | Nota |
 |---|---|
 | Nome da atividade | "Colher semente", "Encher saquinho", "Repicar", "Irrigar", "Capinar" |
-| Categoria | `semente` · `terra` · `plantio` · `manutencao` · `pos_morte` · `expedicao`. **Classifica, não comanda formulário** (RN-23) |
-| `e_quantitativa` | quando verdadeiro, a confirmação pede **quanto cada participante fez**; quando falso, não pede número algum (RF-29, RN-24) |
-| `exige_lote` | quando verdadeiro, a confirmação exige o lote, que traz consigo canteiro, espécie e recipiente (RN-25) |
+| Categoria | `semente` · `terra` · `plantio` · `manutencao` · `pos_morte` · `expedicao`. **Classifica, não comanda formulário** (RF-21) |
+| `e_quantitativa` | quando verdadeiro, a confirmação pede **quanto cada participante fez**; quando falso, não pede número algum (RF-29, RN-23) |
+| `exige_lote` | quando verdadeiro, a confirmação exige o lote, que traz consigo canteiro, espécie e recipiente (RN-24) |
 | `exige_especie` | para a tarefa que pede espécie sem haver lote, como colher semente |
 | `exige_recipiente` | para a tarefa que pede recipiente sem haver lote, como encher saquinho |
 | `ativo` | soft-delete; inativar é o que retira a tarefa da lista da agenda |
@@ -195,6 +195,6 @@ Cadastros não consome nada, é a base das outras duas.
 | Documento | O que |
 |---|---|
 | [`B2`](../../engenharia/B-requisitos/B2-especificacao-requisitos.md) | RF-10 a RF-13 no catálogo; RF-14 a RF-20 nas pessoas; RF-21 nos tipos de tarefa; RF-22 a RF-25 no protocolo |
-| [`B3`](../../engenharia/B-requisitos/B3-regras-de-negocio.md) | RN-15, RN-23, RN-24, RN-25, RN-46, RN-47 |
+| [`B3`](../../engenharia/B-requisitos/B3-regras-de-negocio.md) | RN-15, RN-23, RN-24, RN-44, RN-45 |
 | [`C6`](../../engenharia/C-modelagem/C6-modelo-entidade-relacionamento.md) / [`C8`](../../engenharia/C-modelagem/C8-dicionario-de-dados.md) | `especies`, `recipientes`, `insumos`, `areas`, `canteiros`, `tipos_tarefa` e o esquema `cadastro` |
 | [`D4`](../../engenharia/D-arquitetura/D4-matriz-rbac.md) | recursos **Espécies**, **Recipientes**, **Insumos**, **Pessoas**, **Dados fiscais de pessoa**, **Tipos de tarefa**, **Áreas e canteiros** e **Protocolo de atividades** |

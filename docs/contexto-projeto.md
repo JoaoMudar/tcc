@@ -81,7 +81,7 @@ Fase 1 (acesso e cadastro) ─┬─> Fase 2 (lotes) ─┬─> Fase 4 (mapa e p
 
 **A Fase 1 bloqueia tudo**, e não por convenção: a agenda escala pessoas, o lote referencia espécie
 e canteiro, e o pedido referencia pessoa. **O mapa é o último a funcionar**, porque depende das duas
-fontes de pendência, a atribuição lançada à mão e a ordem gerada pelo protocolo.
+fontes de pendência, a tarefa lançada na agenda e a etapa que o protocolo ainda sugere.
 
 ## Formulários de campo (princípios de UX)
 - Máximo 5 campos por tela.

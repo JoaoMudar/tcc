@@ -223,7 +223,7 @@ nasce da repicagem, dentro do gesto de encerrar a tarefa.
 |---|---|
 | [`A1`](../../engenharia/A-fundacao/A1-documento-de-visao.md) | §7: lote saiu do fora-de-escopo, com a justificativa da revisão declarada; entrou "rastreamento individual da muda" |
 | [`A2`](../../engenharia/A-fundacao/A2-glossario-dominio.md) | verbetes Lote, Lote de origem, Área, Canteiro e Classificação; "Lote" saiu dos termos não adotados |
-| [`B3`](../../engenharia/B-requisitos/B3-regras-de-negocio.md) | RN-17 a RN-22 e RN-28; em 26/08/2026, RN-29 e RN-30, com RN-19 e RN-22 emendadas |
+| [`B3`](../../engenharia/B-requisitos/B3-regras-de-negocio.md) | RN-17 a RN-22, RN-27 e RN-28, com RN-19 e RN-22 emendadas em 26/08/2026 |
 | [`B2`](../../engenharia/B-requisitos/B2-especificacao-requisitos.md) | RF-32 a RF-37 e RF-40; RF-13 no catálogo; RF-44 a RF-49 no mapa de lotes; **RNF-14** e a emenda de RNF-06 |
 | [`C1`](../../engenharia/C-modelagem/C1-diagrama-casos-de-uso.md) / [`C2`](../../engenharia/C-modelagem/C2-especificacao-casos-de-uso.md) | UC-16, UC-22, UC-23, UC-24 e UC-27; os quatro primeiros detalhados; UC-25 emendado |
 | [`C6`](../../engenharia/C-modelagem/C6-modelo-entidade-relacionamento.md) / [`C8`](../../engenharia/C-modelagem/C8-dicionario-de-dados.md) | `areas`, `canteiros`, `lotes` e `movimentos_lote`; perda e contagem física viraram **tipos de movimento**, e não entidades próprias; a visão `situacao_lote` e `lotes.posicao`, com a cardinalidade canteiro-lote em 1:N |

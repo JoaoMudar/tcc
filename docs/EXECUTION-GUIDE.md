@@ -46,8 +46,8 @@ listava como não iniciado. O que restou está detalhado, tarefa a tarefa, em
 ## Ordem recomendada a partir daqui
 
 A ordem tem um motivo concreto: **o Cadastro único alimenta as outras duas áreas e não consome
-nada**, e o mapa de lotes depende das duas fontes de pendência, a atribuição lançada à mão e a
-ordem gerada pelo protocolo. Construir o mapa antes produz uma tela que mostra todo lote como
+nada**, e o mapa de lotes depende das duas fontes de pendência, a tarefa lançada na agenda e a
+etapa que o protocolo ainda sugere. Construir o mapa antes produz uma tela que mostra todo lote como
 saudável, que é o contrário do que ela existe para fazer.
 
 ```
