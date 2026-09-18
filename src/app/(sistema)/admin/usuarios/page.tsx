@@ -1,8 +1,7 @@
 import Link from 'next/link';
 import { PageHeader } from '@/components/PageHeader';
-import { Button } from '@/components/ui/Button';
 import { Pill, type PillTone } from '@/components/ui/Pill';
-import { TextField } from '@/components/ui/TextField';
+import { SearchForm } from '@/components/ui/SearchForm';
 import pool from '@/lib/db';
 import { PERFIL_LABELS, type Perfil } from '@/lib/perfis';
 import { listUsuarios } from '@/lib/usuarios';
@@ -23,12 +22,7 @@ export default async function UsuariosPage({ searchParams }: PageProps<'/admin/u
     <main>
       <PageHeader area="Administração" title="Usuários" />
       <div className="mx-auto flex max-w-3xl flex-col gap-3 p-4 md:p-8">
-        <form className="flex items-end gap-2">
-          <TextField label="Buscar usuário" name="busca" defaultValue={busca} className="flex-1" />
-          <Button type="submit" variant="secondary" className="w-auto">
-            Buscar
-          </Button>
-        </form>
+        <SearchForm label="Buscar usuário" defaultValue={busca} />
 
         {usuarios.map((usuario) => {
           const situacao = [

@@ -2,7 +2,7 @@
 -- Descricao: Catalogo de producao (especies, recipientes, insumos) e endereco do
 --            viveiro (areas, canteiros), mais o periodo de trabalho (turnos_trabalho).
 --
--- Requisitos: RF-08, RF-10 a RF-13 · Regras: RN-01 a RN-04, RN-07, RN-17, RN-27
+-- Requisitos: RF-08, RF-10 a RF-13 · Regras: RN-01 a RN-04, RN-07, RN-17, RN-26
 -- Entidades: C8 `especies`, `especies_nomes_populares`, `especies_fotos`, `recipientes`,
 --            `insumos`, `areas`, `canteiros`, `turnos_trabalho`
 --
@@ -71,7 +71,7 @@ CREATE TABLE especies_fotos (
 -- Recipiente e insumo
 -- ------------------------------------------------------------
 -- O RECIPIENTE DETERMINA O PORTE E O PRECO (RN-04), e e por ele que o protocolo de
--- atividades chega ao lote (RN-32).
+-- atividades chega ao lote (RN-30).
 CREATE TABLE recipientes (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   nome          TEXT NOT NULL UNIQUE,
@@ -124,7 +124,7 @@ CREATE TABLE canteiros (
   area_id       UUID NOT NULL REFERENCES areas(id) ON DELETE CASCADE,
   numero        INTEGER NOT NULL,
 
-  -- Existe para o AVISO de RN-29, e nao para recusar o lote: quem sabe se cabe e
+  -- Existe para o AVISO de RN-28, e nao para recusar o lote: quem sabe se cabe e
   -- quem esta com a muda na mao.
   capacidade    INTEGER,
 
@@ -145,7 +145,7 @@ CREATE TRIGGER canteiros_define_atualizado_em
 -- ------------------------------------------------------------
 -- E ENTIDADE, E NAO CHAVE EM `parametros`, porque e uma LISTA DE COISAS COM
 -- ATRIBUTOS (C6 §3.1). A tela dele, porem, mora em Configuracoes: o que muda de
--- lugar e a tela, nao a tabela. A duracao do turno sai daqui (RN-12, RN-27).
+-- lugar e a tela, nao a tabela. A duracao do turno sai daqui (RN-12, RN-26).
 CREATE TABLE turnos_trabalho (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   nome          TEXT NOT NULL UNIQUE,
@@ -168,7 +168,7 @@ INSERT INTO turnos_trabalho (nome, inicio, fim) VALUES
 
 COMMENT ON TABLE especies IS 'Especie botanica. Entidade central do modelo. RN-01.';
 COMMENT ON TABLE especies_fotos IS 'Fotografia da especie, em bytes. Entra no backup do banco.';
-COMMENT ON TABLE recipientes IS 'Recipiente. Determina o porte, o preco e o protocolo de manejo. RN-04, RN-32.';
+COMMENT ON TABLE recipientes IS 'Recipiente. Determina o porte, o preco e o protocolo de manejo. RN-04, RN-30.';
 COMMENT ON TABLE insumos IS 'Catalogo de insumos. Nada o consome no escopo atual. RN-07.';
 COMMENT ON TABLE canteiros IS 'Canteiro. Um lote ocupa um canteiro; um canteiro comporta varios lotes. RN-19.';
-COMMENT ON TABLE turnos_trabalho IS 'Turno de trabalho. A duracao sai daqui, e nao de constante. RN-27.';
+COMMENT ON TABLE turnos_trabalho IS 'Turno de trabalho. A duracao sai daqui, e nao de constante. RN-26.';

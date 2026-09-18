@@ -2,10 +2,10 @@
 -- Descricao: Identidade unica de pessoas (schema `cadastro`) e catalogo de tipos
 --            de tarefa.
 --
--- Requisitos: RF-14 a RF-21 · Regras: RN-15, RN-19, RN-20, RN-45 a RN-47, RN-51
+-- Requisitos: RF-14 a RF-21 · Regras: RN-15, RN-19, RN-20, RN-43 a RN-45, RN-49
 -- Entidades: C8 `cadastro.pessoas`, `cadastro.pessoas_papeis`, `cadastro.pessoas_enderecos`, `tipos_tarefa`
 --
--- UMA PESSOA, VARIOS PAPEIS (RN-47). Quem vende muda ao viveiro e as vezes compra
+-- UMA PESSOA, VARIOS PAPEIS (RN-45). Quem vende muda ao viveiro e as vezes compra
 -- dele e um cadastro so. Tres tabelas de pessoa produziriam tres verdades sobre o
 -- mesmo telefone.
 --
@@ -22,7 +22,7 @@ CREATE TABLE cadastro.pessoas (
   tipo          cadastro.tipo_pessoa NOT NULL,
   nome          TEXT NOT NULL,
 
-  -- CPF ou CNPJ, apenas digitos. Nulo no cadastro rapido (RF-15, RN-46): nome e
+  -- CPF ou CNPJ, apenas digitos. Nulo no cadastro rapido (RF-15, RN-44): nome e
   -- telefone bastam para registrar o pedido, e a ficha se completa depois.
   documento     TEXT UNIQUE,
 
@@ -62,7 +62,7 @@ CREATE TABLE cadastro.pessoas_papeis (
 CREATE INDEX pessoas_papeis_por_papel ON cadastro.pessoas_papeis (papel) WHERE ativo;
 
 -- UMA PESSOA TEM MAIS DE UM ENDERECO, e o de entrega pode nao ser o de cobranca
--- (RN-51).
+-- (RN-49).
 CREATE TABLE cadastro.pessoas_enderecos (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   pessoa_id     UUID NOT NULL REFERENCES cadastro.pessoas(id) ON DELETE CASCADE,
@@ -98,10 +98,10 @@ CREATE TABLE tipos_tarefa (
   nome             TEXT NOT NULL UNIQUE,
   categoria        TEXT NOT NULL,
 
-  -- Faz a confirmacao pedir um numero POR PARTICIPANTE (RF-29, RN-24).
+  -- Faz a confirmacao pedir um numero POR PARTICIPANTE (RF-29, RN-23).
   e_quantitativa   BOOLEAN NOT NULL DEFAULT false,
 
-  -- Faz aparecer o campo de lote, e dispensa o canteiro, que vem dele (RN-25).
+  -- Faz aparecer o campo de lote, e dispensa o canteiro, que vem dele (RN-24).
   exige_lote       BOOLEAN NOT NULL DEFAULT false,
 
   -- Para as tarefas que pedem especie ou recipiente sem haver lote, como colher
@@ -113,7 +113,7 @@ CREATE TABLE tipos_tarefa (
   criado_em        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   atualizado_em    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
-  -- RN-23: seis categorias, e a categoria nao comanda formulario algum. Ela agrupa
+  -- RF-21: seis categorias, e a categoria nao comanda formulario algum. Ela agrupa
   -- a lista e os relatorios.
   CONSTRAINT tipos_tarefa_categoria_valida CHECK (categoria IN
     ('semente', 'terra', 'plantio', 'manutencao', 'pos_morte', 'expedicao'))
@@ -141,8 +141,8 @@ INSERT INTO tipos_tarefa (nome, categoria, e_quantitativa, exige_lote, exige_esp
   ('Carregar caminhao',     'expedicao',  false, false, false, false);
 
 COMMENT ON SCHEMA cadastro IS
-  'Identidade unica de pessoas. Esquema proprio porque nao pertence a nenhuma das tres areas. RN-47.';
+  'Identidade unica de pessoas. Esquema proprio porque nao pertence a nenhuma das tres areas. RN-45.';
 COMMENT ON TABLE cadastro.pessoas_papeis IS
-  'Papeis de uma mesma pessoa: cliente, fornecedor, funcionario. Chave composta. RN-47.';
+  'Papeis de uma mesma pessoa: cliente, fornecedor, funcionario. Chave composta. RN-45.';
 COMMENT ON TABLE tipos_tarefa IS
   'Catalogo de tarefas. As tres declaracoes comandam o que a tela pede. RF-21, RN-15.';
