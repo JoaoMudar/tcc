@@ -29,6 +29,7 @@ export async function limiteMortalidade(db: Db): Promise<number> {
   return Number(rows[0].valor);
 }
 
+
 export interface FiltroPerdas {
   de: string;
   ate: string;

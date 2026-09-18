@@ -59,6 +59,8 @@ export function AtribuicaoForm({ semana, opcoes, inicial, atribuicaoId }: Atribu
     <form action={formAction} className="flex flex-col gap-5">
       <input type="hidden" name="semana" value={semana} />
       {editando && <input type="hidden" name="id" value={atribuicaoId} />}
+      {/* RF-47: a etapa que originou a sugestão viaja junto; o vencimento dela o servidor lê */}
+      {valores.lote_etapa_id && <input type="hidden" name="lote_etapa_id" value={valores.lote_etapa_id} />}
 
       <EscolhaMultipla legenda="Quem vai fazer" name="participantes" opcoes={opcoes.funcionarios} marcados={lista('participantes')} />
       <SelectField

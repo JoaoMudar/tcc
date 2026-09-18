@@ -1,10 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import { Pool, type PoolClient } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { criarAtribuicoes } from '../agenda';
 import { insertArea, insertCanteiro } from '../areas';
 import { criarLote, findLote } from '../lotes';
+import { horizonteProtocolo } from '../parametros';
 import { diasDeAtraso, situacaoDaEtapa, vencimentoDaEtapa } from '../protocolo-motor';
-import { insertEtapa, insertProtocolo, listEtapas, saveTempoDaEspecie } from '../protocolos';
+import { insertEtapa, insertProtocolo, listEtapas, listSugestoes, saveTempoDaEspecie } from '../protocolos';
 import { insertRecipiente } from '../recipientes';
 import { withTransaction } from '../transaction';
 
@@ -36,6 +38,9 @@ let classificar: string;
 let selecao: string;
 let limpeza: string;
 let irrigacao: string;
+let pessoa: string;
+let turnoManha: string;
+let tipoComLote: string;
 
 /** Uma linha de `lotes_etapas` como o motor a consome. */
 async function estado(loteId: string, etapaId: string) {
@@ -110,8 +115,26 @@ beforeAll(async () => {
 
   const turno = await pool.query<{ id: string }>("SELECT id FROM turnos_trabalho WHERE nome = 'manha'");
   const turnoId = turno.rows[0].id;
-  const tarefa = await pool.query<{ id: string }>('SELECT id FROM tipos_tarefa ORDER BY nome LIMIT 1');
-  const tipoTarefaId = tarefa.rows[0].id;
+  turnoManha = turnoId;
+
+  // O tipo da sugestão exige lote: é o que o protocolo sempre carrega (RF-47)
+  const { rows: tipoRows } = await pool.query<{ id: string }>(
+    `INSERT INTO tipos_tarefa (nome, categoria, exige_lote) VALUES ($1, 'manutencao', true) RETURNING id`,
+    [`${prefixo} Limpar`],
+  );
+  tipoComLote = tipoRows[0].id;
+  const tipoTarefaId = tipoComLote;
+
+  // Quem executa: a sugestão aceita só vira tarefa com participante (RN-41)
+  const { rows: pessoaRows } = await pool.query<{ id: string }>(
+    "INSERT INTO cadastro.pessoas (tipo, nome) VALUES ('pf', $1) RETURNING id",
+    [`${prefixo} Rogerio`],
+  );
+  pessoa = pessoaRows[0].id;
+  await pool.query(
+    "INSERT INTO cadastro.pessoas_papeis (pessoa_id, papel, tipo_vinculo, ativo) VALUES ($1, 'funcionario', 'fixo', true)",
+    [pessoa],
+  );
 
   // O protocolo do tubete da prova de mesa
   protocolo = await insertProtocolo(pool, { recipienteId: tubete, nome: `${prefixo} tubete`, observacoes: null }, usuario);
@@ -158,6 +181,9 @@ beforeAll(async () => {
 afterAll(async () => {
   // Ordem das chaves: o acompanhamento e os tempos antes das etapas, e os lotes antes de tudo
   const lotes = 'SELECT id FROM lotes WHERE especie_id IN ($1, $2)';
+  // A atribuição aponta para a etapa e para o lote: sai antes dos dois
+  await pool.query(`DELETE FROM atribuicoes WHERE lote_id IN (${lotes})`, [especie, especieLenta]);
+  await pool.query('DELETE FROM semanas WHERE inicio_semana IN ($1, $2, $3)', ['2030-02-04', '2030-02-11', '2030-02-18']);
   await pool.query(`DELETE FROM lotes_etapas WHERE lote_id IN (${lotes})`, [especie, especieLenta]);
   await pool.query(`DELETE FROM movimentos_lote WHERE lote_id IN (${lotes})`, [especie, especieLenta]);
   await pool.query('DELETE FROM lotes WHERE especie_id IN ($1, $2)', [especie, especieLenta]);
@@ -167,6 +193,8 @@ afterAll(async () => {
   await pool.query('DELETE FROM especies WHERE id IN ($1, $2)', [especie, especieLenta]);
   await pool.query('DELETE FROM recipientes WHERE id IN ($1, $2)', [tubete, semProtocolo]);
   await pool.query("DELETE FROM areas WHERE letra = 'T'");
+  await pool.query('DELETE FROM tipos_tarefa WHERE id = $1', [tipoComLote]);
+  await pool.query('DELETE FROM cadastro.pessoas WHERE id = $1', [pessoa]);
   await pool.query('DELETE FROM usuarios WHERE id = $1', [usuario]);
   await pool.end();
 });
@@ -312,6 +340,129 @@ describe('a visão e o motor puro dão o mesmo número', () => {
 
     expect(await saveTempoDaEspecie(pool, especieLenta, limpeza, null)).toBe('removido');
     expect((await daVisao(id, limpeza))!.diasEfetivos).toBe(90);
+  });
+});
+
+/**
+ * RF-47, TA-39. O protocolo **sugere**, e nada mais: enquanto ninguém aceitar,
+ * não existe linha nenhuma em `atribuicoes`.
+ */
+describe('as sugestões ao lado da semana', () => {
+  /** Aceita a sugestão como a tela faz: o mesmo lançamento de tarefa, com a etapa junto. */
+  const aceitar = (loteId: string, loteEtapaId: string, semana = '2030-02-04') =>
+    tx((client) =>
+      criarAtribuicoes(client, {
+        semana,
+        dias: [semana],
+        turnoId: turnoManha,
+        tipoTarefaId: tipoComLote,
+        horaInicio: null,
+        horaFim: null,
+        participantes: [pessoa],
+        loteId,
+        especieId: null,
+        recipienteId: null,
+        areaId: null,
+        canteiroId: null,
+        quantidadePlanejada: null,
+        recorrente: false,
+        observacoes: null,
+        loteEtapaId,
+      }),
+    );
+
+  it('as etapas vencidas ou a vencer aparecem, e o horizonte é parâmetro', async () => {
+    const { id } = await novoLote(tubete, canteiro1, '2026-01-10');
+
+    // Em 10/01 vencem a etapa 1 (mesmo dia) e a 5 (dia seguinte); a limpeza só em 10/04
+    const noDia = await listSugestoes(pool, '2026-01-10', await horizonteProtocolo(pool));
+    const doLote = noDia.filter((s) => s.loteId === id);
+    expect(doLote.map((s) => s.rotulo).sort()).toEqual(['Irrigacao', 'Plantar no tubete']);
+
+    // A limpeza entra quando o horizonte a alcança
+    const largo = await listSugestoes(pool, '2026-01-10', 120);
+    expect(largo.filter((s) => s.loteId === id).map((s) => s.rotulo)).toContain('Limpar mato');
+
+    // A etapa sem âncora resolvida não é sugerida, porque não vence nada
+    expect(doLote.map((s) => s.rotulo)).not.toContain('Classificar pos-germinacao');
+  });
+
+  it('a sugestão traz o lote, o tipo e o turno da etapa, e o atraso que ela carrega', async () => {
+    const { id } = await novoLote(tubete, canteiro1, '2026-01-10');
+    const sugestoes = await listSugestoes(pool, '2026-07-10', 14);
+    const limpar = sugestoes.find((s) => s.loteId === id && s.rotulo === 'Limpar mato');
+
+    expect(limpar).toBeDefined();
+    expect(limpar!.tipoTarefaId).toBe(tipoComLote);
+    expect(limpar!.turnoId).toBe(turnoManha);
+    expect(limpar!.vencimento).toBe('2026-04-10');
+    // TA-42: a mesma pendência, cada vez mais velha
+    expect(limpar!.diasAtraso).toBe(91);
+    expect(limpar!.situacao).toBe('atraso');
+  });
+
+  it('TA-39: a sugestão aceita deixa de ser sugerida, e nada existia na agenda antes disso', async () => {
+    const { id } = await novoLote(tubete, canteiro1, '2026-01-10');
+
+    // Antes de aceitar: sugerida, e sem nenhuma linha em atribuicoes
+    const antes = await listSugestoes(pool, '2026-07-10', 14);
+    expect(antes.some((s) => s.loteId === id && s.rotulo === 'Limpar mato')).toBe(true);
+    const { rows: vazio } = await pool.query<{ n: number }>(
+      'SELECT COUNT(*)::int AS n FROM atribuicoes WHERE lote_id = $1',
+      [id],
+    );
+    expect(vazio[0].n).toBe(0);
+
+    await aceitar(id, limpeza);
+
+    const depois = await listSugestoes(pool, '2026-07-10', 14);
+    expect(depois.some((s) => s.loteId === id && s.rotulo === 'Limpar mato')).toBe(false);
+  });
+
+  it('o vencimento é congelado pelo servidor, e não pelo dia escolhido', async () => {
+    const { id } = await novoLote(tubete, canteiro1, '2026-01-10');
+    await aceitar(id, limpeza);
+
+    const { rows } = await pool.query<{ vencimento: string; data: string }>(
+      `SELECT to_char(vencimento_protocolo, 'YYYY-MM-DD') AS vencimento,
+              to_char(data_trabalho, 'YYYY-MM-DD') AS data
+         FROM atribuicoes WHERE lote_id = $1 AND lote_etapa_id = $2`,
+      [id, limpeza],
+    );
+    // A tarefa foi lançada para fevereiro de 2030, e o vencimento continua sendo 10/04/2026
+    expect(rows[0].data).toBe('2030-02-04');
+    expect(rows[0].vencimento).toBe('2026-04-10');
+  });
+
+  it('RN-33: aceitar duas vezes o mesmo vencimento é recusado pelo banco', async () => {
+    const { id } = await novoLote(tubete, canteiro1, '2026-01-10');
+    await aceitar(id, limpeza);
+    await expect(aceitar(id, limpeza, '2030-02-11')).rejects.toMatchObject({ code: '23505' });
+  });
+
+  it('a tarefa cancelada volta a ser sugerida: cancelar é o que permite lançar de novo', async () => {
+    const { id } = await novoLote(tubete, canteiro1, '2026-01-10');
+    const daLimpeza = (lista: Awaited<ReturnType<typeof listSugestoes>>) =>
+      lista.some((s) => s.loteId === id && s.rotulo === 'Limpar mato');
+
+    await aceitar(id, limpeza);
+    // Só a limpeza sai da lista: as outras etapas vencidas do mesmo lote continuam sendo sugeridas
+    expect(daLimpeza(await listSugestoes(pool, '2026-07-10', 14))).toBe(false);
+
+    await pool.query("UPDATE atribuicoes SET situacao = 'cancelada' WHERE lote_id = $1 AND lote_etapa_id = $2", [id, limpeza]);
+    expect(daLimpeza(await listSugestoes(pool, '2026-07-10', 14))).toBe(true);
+  });
+
+  it('a etapa que não é daquele lote é recusada antes de a FK composta reclamar', async () => {
+    // O lote do recipiente sem protocolo não tem linha nenhuma em `lotes_etapas`
+    const outro = await novoLote(semProtocolo, canteiro2, '2026-01-10');
+    await expect(aceitar(outro.id, limpeza, '2030-02-18')).rejects.toThrow(/não pertence ao lote/);
+  });
+
+  it('a etapa cuja âncora ainda não ocorreu não vence nada, e não vira tarefa', async () => {
+    const { id } = await novoLote(tubete, canteiro1, '2026-01-10');
+    // `classificar` ancora na conclusão do plantio, que não aconteceu: `data_ancora` é nula
+    await expect(aceitar(id, classificar, '2030-02-18')).rejects.toThrow(/não vence nada/);
   });
 });
 

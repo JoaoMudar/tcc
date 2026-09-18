@@ -42,6 +42,8 @@ function lerAtribuicao(formData: FormData): { fields: Record<string, string>; br
     quantidade_planejada: formText(formData, 'quantidade_planejada'),
     recorrente: formText(formData, 'recorrente'),
     observacoes: formText(formData, 'observacoes'),
+    // A etapa que originou a sugestão (RF-47); o vencimento dela o servidor lê
+    lote_etapa_id: formText(formData, 'lote_etapa_id'),
   };
   return {
     fields,
@@ -61,6 +63,7 @@ function lerAtribuicao(formData: FormData): { fields: Record<string, string>; br
       quantidadePlanejada: fields.quantidade_planejada,
       recorrente: fields.recorrente === 'on',
       observacoes: fields.observacoes,
+      loteEtapaId: fields.lote_etapa_id,
     },
   };
 }

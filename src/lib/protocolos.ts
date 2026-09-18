@@ -1,5 +1,11 @@
 import { type Fase, FASES_EDITAVEIS } from './lotes-rotulos';
-import { type TipoAgendamento, type TipoAncora, isTipoAgendamento, isTipoAncora } from './protocolo-rotulos';
+import {
+  type SituacaoEtapa,
+  type TipoAgendamento,
+  type TipoAncora,
+  isTipoAgendamento,
+  isTipoAncora,
+} from './protocolo-rotulos';
 import { type Db, violatedConstraint } from './sql';
 
 export interface Protocolo {
@@ -456,6 +462,69 @@ export async function materializarProtocolo(
     [loteId, protocoloId, dataCriacao],
   );
   return protocoloId;
+}
+
+/** Uma etapa que o protocolo aponta, e que ninguém lançou ainda (RF-47). */
+export interface Sugestao {
+  loteEtapaId: string;
+  loteId: string;
+  loteCodigo: string;
+  especie: string;
+  canteiro: string | null;
+  rotulo: string;
+  tipoTarefaId: string;
+  tipoTarefa: string;
+  turnoId: string;
+  vencimento: string;
+  situacao: SituacaoEtapa;
+  diasAtraso: number;
+}
+
+/**
+ * RF-47: o que o protocolo **sugere**, e nada mais. Esta função não escreve: a
+ * tarefa só existe quando a gerência aceita a sugestão e a preenche por inteiro,
+ * participantes inclusive (RN-41).
+ *
+ * O horizonte é parâmetro, e não constante: sugerir um ano de limpezas
+ * trimestrais encheria a lista de avisos que ninguém olha por nove meses. O que
+ * vence depois dele aparece na ficha do lote, e não aqui.
+ *
+ * A etapa que já tem tarefa lançada e não cancelada **sai da lista**: aceita uma
+ * vez, deixa de ser sugerida (TA-39). A cancelada volta a sugerir, porque
+ * cancelar é o que permite lançar de novo.
+ */
+export async function listSugestoes(db: Db, hoje: string, horizonteDias: number): Promise<Sugestao[]> {
+  const { rows } = await db.query<Sugestao>(
+    `SELECT le.protocolo_etapa_id AS "loteEtapaId", v.lote_id AS "loteId", l.codigo AS "loteCodigo",
+            COALESCE(MAX(np.nome) FILTER (WHERE np.e_principal), e.nome_cientifico) AS especie,
+            CASE WHEN c.id IS NULL THEN NULL ELSE a.letra || '-' || c.numero END AS canteiro,
+            pe.rotulo, pe.tipo_tarefa_id AS "tipoTarefaId", tt.nome AS "tipoTarefa",
+            pe.turno_id AS "turnoId",
+            to_char(v.proximo_vencimento, 'YYYY-MM-DD') AS vencimento,
+            v.situacao,
+            GREATEST(0, $1::date - v.proximo_vencimento)::int AS "diasAtraso"
+       FROM lotes_etapas_vencimento v
+       JOIN lotes_etapas le ON le.lote_id = v.lote_id AND le.protocolo_etapa_id = v.protocolo_etapa_id
+       JOIN lotes l ON l.id = v.lote_id
+       JOIN especies e ON e.id = l.especie_id
+       LEFT JOIN especies_nomes_populares np ON np.especie_id = e.id
+       JOIN protocolos_etapas pe ON pe.id = v.protocolo_etapa_id
+       JOIN tipos_tarefa tt ON tt.id = pe.tipo_tarefa_id AND tt.ativo
+       LEFT JOIN canteiros c ON c.id = l.canteiro_id
+       LEFT JOIN areas a ON a.id = c.area_id
+      WHERE v.proximo_vencimento <= $1::date + $2::int
+        AND NOT EXISTS (
+          SELECT 1 FROM atribuicoes at
+           WHERE at.lote_etapa_id = v.protocolo_etapa_id
+             AND at.lote_id = v.lote_id
+             AND at.vencimento_protocolo = v.proximo_vencimento
+             AND at.situacao <> 'cancelada')
+      GROUP BY le.protocolo_etapa_id, v.lote_id, l.codigo, e.nome_cientifico, c.id, a.letra, c.numero,
+               pe.rotulo, pe.tipo_tarefa_id, tt.nome, pe.turno_id, v.proximo_vencimento, v.situacao
+      ORDER BY v.proximo_vencimento, l.codigo`,
+    [hoje, horizonteDias],
+  );
+  return rows;
 }
 
 export async function updateEtapa(

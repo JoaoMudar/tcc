@@ -98,6 +98,7 @@ function tarefa(over: Partial<AtribuicaoInput> = {}): AtribuicaoInput {
     quantidadePlanejada: null,
     recorrente: false,
     observacoes: null,
+    loteEtapaId: null,
     ...over,
   };
 }
