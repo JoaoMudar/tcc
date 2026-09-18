@@ -36,7 +36,7 @@ function novoLote(quantidade: number, numeroCanteiro: number, recipienteId = tub
       recipienteId,
       canteiroId: canteiro[numeroCanteiro],
       quantidade,
-      dataPlantio: '2026-01-10',
+      dataCriacao: '2026-01-10',
       observacoes: null,
       registradoPor: usuario,
     }),
@@ -87,7 +87,9 @@ describe('criar lote contra Postgres real', () => {
     expect(codigo).toMatch(/^2026-\d{4}$/);
 
     const lote = await fichaConferida(id);
-    expect(lote).toMatchObject({ canteiro: 'W-1', quantidadeInicial: 500, quantidadeAtual: 500, fase: 'semeado', dataPlantio: '2026-01-10' });
+    expect(lote).toMatchObject({ canteiro: 'W-1', quantidadeInicial: 500, quantidadeAtual: 500, fase: 'semeado', dataCriacao: '2026-01-10' });
+    // TA-38: a data real do plantio fica vazia ate a etapa do protocolo ser concluida
+    expect(lote!.dataPlantio).toBeNull();
     expect(await listMovimentos(pool, id)).toEqual([
       expect.objectContaining({ tipo: 'entrada', quantidade: 500, data: '2026-01-10', registradoPor: 'Gerência de teste' }),
     ]);

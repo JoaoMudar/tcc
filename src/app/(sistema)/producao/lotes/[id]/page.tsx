@@ -97,8 +97,8 @@ export default async function LotePage({ params, searchParams }: LotePageProps) 
               <dd className="font-semibold text-ink">{lote.canteiro ?? 'nenhum'}</dd>
             </div>
             <div>
-              <dt className="text-sm text-muted">Plantio</dt>
-              <dd className="font-semibold text-ink">{formatData(lote.dataPlantio)}</dd>
+              <dt className="text-sm text-muted">Criação</dt>
+              <dd className="font-semibold text-ink">{formatData(lote.dataCriacao)}</dd>
             </div>
             <div>
               <dt className="text-sm text-muted">Quantidade inicial</dt>

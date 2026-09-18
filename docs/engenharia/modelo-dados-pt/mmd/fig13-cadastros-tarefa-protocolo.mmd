@@ -16,6 +16,8 @@ erDiagram
     uuid    recipiente_id FK
     text    nome
     boolean ativo
+    text    observacoes
+    uuid    criado_por FK
   }
   protocolos_etapas {
     uuid    id PK
@@ -23,19 +25,23 @@ erDiagram
     uuid    tipo_tarefa_id FK
     text    rotulo
     int     posicao
-    enum    tipo_agendamento
+    text    tipo_agendamento
+    text    tipo_ancora
+    uuid    etapa_ancora_id FK
     int     dias
     int     intervalo_dias
-    uuid    etapa_ancora_id FK
+    uuid    turno_id FK
     boolean alerta_ligado
     numeric janela_aviso_pct
     text    fase_resultante
+    boolean ativo
   }
   especies_protocolos_tempos {
-    uuid id PK
-    uuid especie_id FK
-    uuid protocolo_etapa_id FK
+    uuid especie_id PK
+    uuid protocolo_etapa_id PK
     int  dias
+    int  intervalo_dias
+    text observacoes
   }
   recipientes {}
   especies {}

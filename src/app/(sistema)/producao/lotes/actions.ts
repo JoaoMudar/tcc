@@ -33,7 +33,7 @@ export async function criarLoteAction(_previous: FormState, formData: FormData):
     area_id: formText(formData, 'area_id'),
     canteiro_id: formText(formData, 'canteiro_id'),
     quantidade: formText(formData, 'quantidade'),
-    data_plantio: formText(formData, 'data_plantio'),
+    data_criacao: formText(formData, 'data_criacao'),
     observacoes: formText(formData, 'observacoes'),
   };
   if (!isUuid(fields.especie_id)) return { error: 'Escolha a espécie.', fields };
@@ -41,8 +41,8 @@ export async function criarLoteAction(_previous: FormState, formData: FormData):
   if (!isUuid(fields.canteiro_id)) return { error: 'Escolha a área e o canteiro.', fields };
   const quantidade = lotes.parseQuantidade(fields.quantidade);
   if ('error' in quantidade) return { error: quantidade.error, fields };
-  const dataPlantio = lotes.parseDataPlantio(fields.data_plantio, hojeNoViveiro());
-  if ('error' in dataPlantio) return { error: dataPlantio.error, fields };
+  const dataCriacao = lotes.parseDataCriacao(fields.data_criacao, hojeNoViveiro());
+  if ('error' in dataCriacao) return { error: dataCriacao.error, fields };
   const observacoes = lotes.parseObservacoes(fields.observacoes);
   if ('error' in observacoes) return { error: observacoes.error, fields };
 
@@ -54,7 +54,7 @@ export async function criarLoteAction(_previous: FormState, formData: FormData):
         recipienteId: fields.recipiente_id,
         canteiroId: fields.canteiro_id,
         quantidade: quantidade.value,
-        dataPlantio: dataPlantio.value,
+        dataCriacao: dataCriacao.value,
         observacoes: observacoes.value,
         registradoPor: user.usuarioId,
       }),

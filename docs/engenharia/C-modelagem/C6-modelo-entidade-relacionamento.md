@@ -140,25 +140,25 @@ Seis leituras que o modelo conceitual já entrega:
 
 ### 2.1 Recorte implementado
 
-O modelo descrito aqui é o **especificado**. Das 27 entidades, **23 existem no banco** (mais a
-visão `situacao_lote`) e **4 permanecem só especificadas**: as três do protocolo, mais o percurso do
-lote por ele e a visão que daí deriva.
+O modelo descrito aqui é o **especificado**, e desde 18/09/2026 ele é também o construído: as 27
+entidades existem no banco, mais as visões `situacao_lote` e `lotes_etapas_vencimento`.
 
-| Área | No banco | Só especificadas | Quais faltam |
-|---|---:|---:|---|
-| *(transversal)* Acesso e configurações | 4 | 0 | - |
-| 1 · Cadastro único | 12 | 3 | `protocolos`, `protocolos_etapas`, `especies_protocolos_tempos` |
-| 2 · Produção | 5 | 1 | `lotes_etapas`, mais a visão `lotes_etapas_vencimento` |
-| 3 · Comercial | 2 | 0 | - |
-| **Total** | **23** | **4** | |
+| Área | No banco | Só especificadas |
+|---|---:|---:|
+| *(transversal)* Acesso e configurações | 4 | 0 |
+| 1 · Cadastro único | 15 | 0 |
+| 2 · Produção | 6 | 0 |
+| 3 · Comercial | 2 | 0 |
+| **Total** | **27** | **0** |
 
 O [`C8`](C8-dicionario-de-dados.md) marca a condição entidade por entidade.
 
-**O que falta é o protocolo, e a razão é declarada.** Ele foi especificado inteiro **antes de
-qualquer migration**, porque envolve um motor de geração automática de ordens: modelar depois de
-construir, aqui, custaria reescrever a regra de contagem em três lugares. É também a parte do
-sistema em que o erro é mais caro, e é por isso que dois dos dez casos de uso detalhados em
-[`C2`](C2-especificacao-casos-de-uso.md) são dele.
+**O protocolo foi especificado inteiro antes de qualquer migration**, e a razão é declarada: ele
+envolve um motor que calcula vencimento, e modelar depois de construir custaria reescrever a regra
+de contagem em três lugares. É também a parte do sistema em que o erro é mais caro, e é por isso que
+dois dos dez casos de uso detalhados em [`C2`](C2-especificacao-casos-de-uso.md) são dele. A
+migration `20260918000001_protocolo_de_atividades.sql` o implementou seguindo esta especificação, e
+onde o desenho anterior discordava do [`C8`](C8-dicionario-de-dados.md), foi o `C8` que prevaleceu.
 
 ---
 
@@ -327,8 +327,10 @@ erDiagram
   protocolos {
     uuid    id PK
     uuid    recipiente_id FK
-    int     version
+    text    nome
     boolean ativo
+    text    observacoes
+    uuid    criado_por FK
   }
   protocolos_etapas {
     uuid    id PK
@@ -336,19 +338,23 @@ erDiagram
     uuid    tipo_tarefa_id FK
     text    rotulo
     int     posicao
-    enum    tipo_agendamento
+    text    tipo_agendamento
+    text    tipo_ancora
+    uuid    etapa_ancora_id FK
     int     dias
     int     intervalo_dias
-    uuid    etapa_ancora_id FK
+    uuid    turno_id FK
     boolean alerta_ligado
     numeric janela_aviso_pct
     text    fase_resultante
+    boolean ativo
   }
   especies_protocolos_tempos {
-    uuid id PK
-    uuid especie_id FK
-    uuid protocolo_etapa_id FK
+    uuid especie_id PK
+    uuid protocolo_etapa_id PK
     int  dias
+    int  intervalo_dias
+    text observacoes
   }
   pessoas {
     uuid    id PK
@@ -438,10 +444,12 @@ viveiro faz em voz alta.
 
 - **`tipo_agendamento`** separa a etapa **sequencial**, que ocorre uma vez e pode avançar a fase do
   lote, da **recorrente**, que repete indefinidamente e não avança fase nenhuma (RN-34).
-- **`etapa_ancora_id`** é a âncora, e é reflexiva: a etapa conta o prazo a partir da conclusão de
-  **outra etapa declarada**, e não da anterior na lista (RN-31). Classificar pós-germinação conta
-  do plantio, e não da criação do lote, porque a semente pode ficar dias esperando plantio.
-  Âncora nula significa contar da criação do lote.
+- **`tipo_ancora` e `etapa_ancora_id`** são a âncora, e a segunda é reflexiva: a etapa conta o prazo
+  da criação do lote, ou da conclusão de **outra etapa declarada**, e nunca da anterior na lista
+  (RN-31). Classificar pós-germinação conta do plantio, e não da criação do lote, porque a semente
+  pode ficar dias esperando plantio. O evento de referência é **campo**, e não ausência de campo: a
+  restrição `protocolos_etapas_ancora_coerente` exige a etapa âncora quando o tipo é
+  `conclusao_de_etapa`, e a proíbe quando é `criacao_do_lote`.
 - **`dias` e `intervalo_dias`** são o prazo e, na recorrente, o intervalo entre ocorrências.
 - **`janela_aviso_pct`** é a janela de aviso **em percentual do intervalo**, e não em dias fixos
   (RN-35): três dias de antecedência não servem à etapa trimestral e à diária ao mesmo tempo.
@@ -505,6 +513,7 @@ erDiagram
     int         quantidade_inicial
     int         quantidade_atual
     text        fase
+    date        data_criacao
     date        data_plantio
     int         posicao
     timestamptz encerrado_em
@@ -525,12 +534,13 @@ erDiagram
     text observacoes
   }
   lotes_etapas {
-    uuid id PK
-    uuid lote_id FK
-    uuid protocolo_etapa_id FK
-    date last_done_at
-    date vence_em
-    enum situacao
+    uuid        lote_id PK
+    uuid        protocolo_etapa_id PK
+    date        data_ancora
+    date        ultima_execucao_em
+    int         ocorrencias
+    timestamptz concluido_em
+    uuid        herdado_do_lote_id FK
   }
   especies {}
   recipientes {}
@@ -633,12 +643,18 @@ nenhuma por trás.
 
 #### O percurso do lote pelo protocolo
 
-`lotes_etapas` é a única entidade de movimento do protocolo, e guarda três datas por etapa
-e por lote: a última execução, o próximo vencimento e a situação.
+`lotes_etapas` é a única entidade de movimento do protocolo, e **guarda fatos, nunca o vencimento**:
+a data da âncora já resolvida, a data real da última execução e quantas ocorrências se concluíram.
 
-**`vence_em` é derivado, nunca digitado** (RN-40): sai da âncora, da última execução e do tempo
+**O vencimento é derivado, e nunca digitado** (RN-40): sai da âncora, da última execução e do tempo
 declarado, com a customização por espécie sobrescrevendo o tempo do protocolo quando existir
 (RN-36). É o que a visão `lotes_etapas_vencimento` calcula, e é dela que sai a cor do lote no mapa.
+Gravá-lo criaria um número que depende do dia de hoje e envelhece sozinho, pela mesma razão de
+`situacao_lote` não ser tabela.
+
+**`data_ancora` nula é informação, e não dado faltando.** É o estado da etapa cuja âncora ainda não
+ocorreu: ela existe, está acompanhada, e não vence nada. Representa "ainda não germinou", que é
+diferente de "germinou hoje" e diferente de "ninguém preencheu".
 
 **Uma etapa tem no máximo uma ocorrência em aberto** (RN-33). Etapa trimestral esquecida há cinco
 meses apresenta **uma** pendência, e não cinco: gerar uma ordem por trimestre vencido encheria a

@@ -137,12 +137,12 @@ no computador e no celular) e o roteiro no navegador com gerência e chefia agua
 
 ## Fase 6: Protocolo de atividades e motor
 
-- [ ] **T6.1** Migration do protocolo: `protocolos`, `protocolos_etapas`, `especies_protocolos_tempos`, `lotes_etapas`, a visão `lotes_etapas_vencimento` e as FKs de `lotes.protocolo_id` e `atribuicoes.lote_etapa_id`; atualizar `C6`, `C8`, `modelo-dados-pt` e CHANGELOG
+- [x] **T6.1** Migration do protocolo: `protocolos`, `protocolos_etapas`, `especies_protocolos_tempos`, `lotes_etapas`, a visão `lotes_etapas_vencimento` e as FKs de `lotes.protocolo_id` e `atribuicoes.lote_etapa_id`; atualizar `C6`, `C8`, `modelo-dados-pt` e CHANGELOG. *Onde o `C6` e as figuras discordavam do `C8`, prevaleceu o `C8`: `lotes_etapas` tem chave composta e não guarda vencimento. `lotes.data_plantio` virou `data_criacao`, e `data_plantio` renasceu anulável para a data real que o protocolo grava (TA-38)*
 - [ ] **T6.2** Cadastro do protocolo por recipiente: etapas ordenadas, sequencial ou recorrente, âncora, alerta e janela, com validação de âncora circular na aplicação (RF-22 a RF-24)
 - [ ] **T6.3** Tempo de etapa por espécie (RF-25)
 - [ ] **T6.4** Motor como função pura, **testes escritos antes**: vencimento contado da execução real (RF-49), sobrescrita por espécie e uma ordem aberta por etapa (RF-50)
 - [ ] **T6.5** Atribuir o protocolo vigente ao criar o lote, materializando `lotes_etapas` (RF-46)
-- [ ] **T6.6** Gerar as ordens na agenda, abrindo a semana em rascunho se ela não existir; função idempotente, chamada nos eventos e por um agendamento diário (RF-47)
+- [ ] **T6.6** Apresentar as etapas vencidas ou a vencer como **sugestão** ao lado da semana, sem lançar nada na agenda; a sugestão aceita abre o lançamento já com a etapa, o lote e o tipo preenchidos, exigindo o que o tipo declarar (RF-47). *Corrigido em 18/09/2026: o texto anterior mandava gerar ordem na agenda, que é o comportamento que a revisão de 15/09 retirou ao reescrever a RN-41 e o RF-47. Sem agendamento diário: a tela resolve*
 - [ ] **T6.7** Avanço de fase ao concluir etapa sequencial com fase resultante (RF-48); retirar o provisório de T4.9
 - [ ] **T6.8** Ficha do protocolo do lote, com última execução, vencimento e situação (RF-51, RF-52)
 - [ ] **T6.9** Encerramento do protocolo por saldo zero, expedição ou divisão, cancelando as ordens sem apagá-las (RF-53)

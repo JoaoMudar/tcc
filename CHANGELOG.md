@@ -3,6 +3,27 @@
 Uma entrada por migration nova, como pede o `CLAUDE.md`. As migrations até `20260901000008` são o
 schema inicial em português e estão descritas no `C8`.
 
+## 18/09/2026 · `20260918000001_protocolo_de_atividades.sql`
+
+- `protocolos`, `protocolos_etapas`, `especies_protocolos_tempos` e `lotes_etapas`: as quatro
+  entidades que o `C6` e o `C8` descreviam como especificadas e não implementadas (RF-22 a RF-25,
+  RF-46 a RF-53). Onde o `C6` e as figuras discordavam do `C8`, prevaleceu o `C8`: `lotes_etapas`
+  tem chave composta, guarda fatos e **não** tem coluna de vencimento.
+- Visão `lotes_etapas_vencimento`: próximo vencimento, janela de aviso e situação de cada etapa,
+  derivados a cada leitura (RN-40). O tempo efetivo sai da espécie quando ela o sobrescreve (RN-36).
+- As chaves estrangeiras que esperavam desde `20260901000004` e `20260901000005`:
+  `lotes.protocolo_id` e `atribuicoes.lote_etapa_id`.
+- Índice único `atribuicoes_uma_ordem_por_vencimento`: uma ordem em aberto por etapa e vencimento
+  (RN-33, RF-50). A garantia é do banco, e não da aplicação: duas telas abertas ao mesmo tempo
+  dobrariam a tarefa do dia.
+- Dois parâmetros novos: `producao.protocolo_janela_aviso_pct` (20) e
+  `producao.protocolo_horizonte_dias` (14).
+- **Incompatível, e é o ponto de atenção desta migration:** `lotes.data_plantio` passou a
+  `lotes.data_criacao`, e `data_plantio` renasceu anulável, para a data real do plantio que o
+  protocolo grava (TA-38). O `DEFAULT CURRENT_DATE` foi retirado de `data_criacao` de propósito: com
+  ele, código que escrevesse no nome antigo gravaria hoje em silêncio e deixaria as duas datas
+  trocadas, sem nenhuma consulta acusar.
+
 ## 15/09/2026 · `20260915000001_tipos_tarefa_area_e_unidade.sql`
 
 - `tipos_tarefa.exige_area` (boolean): área e canteiro só aparecem na confirmação do tipo que o

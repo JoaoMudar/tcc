@@ -1,11 +1,12 @@
 erDiagram
   lotes_etapas {
-    uuid id PK
-    uuid lote_id FK
-    uuid protocolo_etapa_id FK
-    date ultima_execucao_em
-    date vence_em
-    enum situacao
+    uuid        lote_id PK
+    uuid        protocolo_etapa_id PK
+    date        data_ancora
+    date        ultima_execucao_em
+    int         ocorrencias
+    timestamptz concluido_em
+    uuid        herdado_do_lote_id FK
   }
   lotes {}
   protocolos_etapas {}

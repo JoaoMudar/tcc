@@ -48,10 +48,10 @@ node scripts/mede-figuras.mjs
 | 10 | `fig10-cadastros-insumo-recipiente` | Cadastros: recipiente e insumo | 11,5 pt |
 | 11 | `fig11-cadastros-viveiro` | Cadastros: área, canteiro e turno de trabalho | 12,5 pt |
 | 12 | `fig12-cadastros-pessoas` | Cadastros: identidade única e papéis | 8,4 pt |
-| 13 | `fig13-cadastros-tarefa-protocolo` | Cadastros: tipo de tarefa e protocolo de atividades | 8,7 pt |
+| 13 | `fig13-cadastros-tarefa-protocolo` | Cadastros: tipo de tarefa e protocolo de atividades | 7,5 pt |
 | 14 | `fig14-producao-agenda` | Produção: semana, atribuição e participantes | 8,8 pt |
-| 15 | `fig15-producao-lote` | Produção: o lote e seus movimentos | 9,0 pt |
-| 16 | `fig16-producao-protocolo-do-lote` | Produção: o lote seguindo o protocolo | 22,6 pt |
+| 15 | `fig15-producao-lote` | Produção: o lote e seus movimentos | 8,7 pt |
+| 16 | `fig16-producao-protocolo-do-lote` | Produção: o lote seguindo o protocolo | 21,1 pt |
 | 17 | `fig17-comercial-pedido` | Comercial: pedido e item | 12,7 pt |
 
 **A menor é a 6, a 6,9 pt, e é a conceitual da produção.** Continua sendo a mais apertada da série

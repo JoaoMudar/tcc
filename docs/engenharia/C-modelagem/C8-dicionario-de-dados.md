@@ -43,18 +43,18 @@ quatro módulos do sistema, com o Acesso à frente por atravessar os quatro.
   `atribuicoes_participantes`, também não têm `id`: a chave é o par que as define, e é ela que impede a
   linha repetida. E `ativo` só existe onde há catálogo a arquivar.
 - Nome de entidade fora do esquema `public` vem qualificado (`cadastro.pessoas`), na coluna Chave inclusive.
-- A marca *Especificada, não implementada no protótipo* abaixo do título indica entidade que
-  pertence ao modelo mas ainda não existe no banco; em entidade já existente, a mesma condição
-  aparece como **Especificado, não implementado** na descrição do atributo.
+- A marca abaixo do título registra **quando** a entidade passou a existir no banco, e cita a
+  migration que a criou. Até 18/09/2026 as quatro entidades do protocolo traziam ali a marca
+  *Especificada, não implementada*; nenhuma entidade do modelo está nessa condição hoje.
 
 ---
 
 ## Recorte implementado
 
-Este dicionário descreve o **modelo especificado**, que é maior que o protótipo construído. Das 27
-entidades, **23 existem no banco** (mais a visão `situacao_lote`) e **4 estão especificadas e ainda
-não implementadas** (mais a visão `lotes_etapas_vencimento`). A distinção é registrada entidade por
-entidade, e não é defeito de modelagem: o modelo responde à especificação completa de requisitos, e
+Este dicionário descreve o **modelo especificado**, que desde 18/09/2026 é também o construído: as
+27 entidades existem no banco, mais as visões `situacao_lote` e `lotes_etapas_vencimento`. Até
+aquela data as quatro entidades do protocolo estavam especificadas e não implementadas, e a
+distinção era registrada entidade por entidade. Não era defeito de modelagem: o modelo responde à especificação completa de requisitos, e
 a construção segue a priorização declarada em
 [`B2`](../B-requisitos/B2-especificacao-requisitos.md).
 
@@ -435,7 +435,7 @@ estação e com a combinação da equipe é dado, não constante (RN-26).
 
 ## `protocolos`: protocolo de atividades
 
-**Especificada, não implementada.**
+**Implementada em 18/09/2026** (migration `20260918000001_protocolo_de_atividades.sql`).
 
 A receita de manejo de um recipiente: a sequência de etapas que todo lote daquele recipiente passa
 a seguir sozinho (RF-22).
@@ -462,7 +462,7 @@ a seguir sozinho (RF-22).
 
 ## `protocolos_etapas`: etapa do protocolo
 
-**Especificada, não implementada.**
+**Implementada em 18/09/2026** (migration `20260918000001_protocolo_de_atividades.sql`).
 
 Uma linha da receita. Aponta para uma tarefa do catálogo e declara **quando** ela ocorre (RF-22,
 RF-23). É a entidade que carrega a lógica do módulo inteiro.
@@ -513,7 +513,7 @@ RF-23). É a entidade que carrega a lógica do módulo inteiro.
 
 ## `especies_protocolos_tempos`: tempo da etapa por espécie
 
-**Especificada, não implementada.**
+**Implementada em 18/09/2026** (migration `20260918000001_protocolo_de_atividades.sql`).
 
 O que permite a uma espécie de germinação lenta usar setenta dias onde o protocolo diz quarenta,
 sem duplicar a receita inteira (RF-25, RN-36).
@@ -551,11 +551,12 @@ respondia o que a muda era e não onde estava. A revisão de escopo está justif
 | `recipiente_id` | uuid | ● | FK → `recipientes` | Recipiente, que define o porte da muda |
 | `canteiro_id` | uuid | ○ | FK → `canteiros` | Canteiro ocupado. Nulo quando o lote está encerrado |
 | `lote_origem_id` | uuid | ○ | FK → `lotes` | Lote de origem, quando este nasceu de uma repicagem (RN-20) ou de uma divisão (RN-39) |
-| `protocolo_id` | uuid | ○ | FK → `protocolos` | Protocolo que rege o lote, fotografado na criação a partir do recipiente (RF-46). Nulo quando o recipiente ainda não tem protocolo. **Especificado, não implementado.** |
+| `protocolo_id` | uuid | ○ | FK → `protocolos` | Protocolo que rege o lote, fotografado na criação a partir do recipiente (RF-46). Nulo quando o recipiente ainda não tem protocolo. |
 | `quantidade_inicial` | integer | ● | | Quantidade que entrou. Restrição: maior que zero |
 | `quantidade_atual` | integer | ● | | Saldo vivo. Restrição de banco: não negativo (RN-21). **Mantido pela aplicação** na mesma transação do movimento |
 | `fase` | text | ● | | Fase em **lista fechada**: `semeado`, `germinado`, `repicado`, `crescimento`, `rustificacao`, `pronto`, `encerrado` |
-| `data_plantio` | date | ● | | Data em que a leva foi plantada e passou a ocupar o canteiro. É a âncora das etapas do protocolo que contam da criação do lote (RN-31) |
+| `data_criacao` | date | ● | | Data em que a leva passou a ocupar o canteiro. É a âncora das etapas do protocolo que contam da criação do lote (RN-31), e dela sai o ano do código |
+| `data_plantio` | date | ○ | | Data **real** da conclusão do plantio, gravada pelo protocolo ao concluir a etapa. **Nula significa que ainda não germinou**, e as etapas ancoradas nela não vencem nada |
 | `encerrado_em` | timestamptz | ○ | | Momento do encerramento; a partir dele o lote sai da ocupação |
 | `motivo_encerramento` | text | ○ | | Motivo do encerramento em **lista fechada**: `saldo_zero`, `expedido`, `dividido`. Preenchido se e somente se `encerrado_em` o estiver (RN-38) |
 | `posicao` | integer | ○ | | Ordem do lote dentro do canteiro, a partir de 1. Dá ao mapa um desenho estável (RF-44) |
@@ -798,7 +799,7 @@ decorre: `saudavel`, `atencao` ou `critico`. É o que pinta o mapa de produção
 
 ## `lotes_etapas`: acompanhamento do lote na etapa
 
-**Especificada, não implementada.**
+**Implementada em 18/09/2026** (migration `20260918000001_protocolo_de_atividades.sql`).
 
 Uma linha por par lote e etapa, criada quando o lote nasce. **Guarda fatos, e nunca o vencimento.**
 
@@ -833,7 +834,7 @@ Uma linha por par lote e etapa, criada quando o lote nasce. **Guarda fatos, e nu
 
 ## `lotes_etapas_vencimento`: vencimento e situação da etapa *(não é tabela)*
 
-**Especificada, não implementada.**
+**Criada em 18/09/2026** (migration `20260918000001_protocolo_de_atividades.sql`).
 
 **Visão.** Devolve, para cada lote aberto e etapa ativa que ainda vence algo, o próximo vencimento
 e a situação que dele decorre (RF-51, RF-52).
