@@ -5,21 +5,37 @@ import { findSemana } from '@/lib/agenda';
 import { hojeNoViveiro } from '@/lib/datas';
 import pool from '@/lib/db';
 import { diasDaSemana, lerSemana, rotuloSemana } from '@/lib/semanas';
+import { isUuid } from '@/lib/uuid';
 import { requirePageAccess } from '@/lib/auth/guards';
 import { AtribuicaoForm } from '../AtribuicaoForm';
 import { carregarOpcoes } from '../opcoes';
 
 interface NovaAtribuicaoPageProps {
-  searchParams: Promise<{ semana?: string; dia?: string }>;
+  searchParams: Promise<{ semana?: string; dia?: string; etapa?: string; lote?: string; tipo?: string; turno?: string }>;
 }
 
 /** T5.2, F1 UC-19: lançar tarefa na semana, para um ou vários dias. */
 export default async function NovaAtribuicaoPage({ searchParams }: NovaAtribuicaoPageProps) {
   await requirePageAccess('agenda', 'C');
-  const { semana: semanaPedida, dia } = await searchParams;
+  const { semana: semanaPedida, dia, etapa, lote, tipo, turno } = await searchParams;
   const inicio = lerSemana(semanaPedida, hojeNoViveiro());
   const [semana, opcoes] = await Promise.all([findSemana(pool, inicio), carregarOpcoes(inicio)]);
   const diaInicial = dia && diasDaSemana(inicio).includes(dia) ? dia : '';
+
+  /**
+   * RF-47: a sugestão aceita abre este mesmo formulário, já com a etapa, o lote
+   * e o tipo preenchidos. O dia, o turno e quem faz continuam sendo exigidos, e
+   * o vencimento o servidor lê da etapa, nunca daqui.
+   */
+  const daSugestao =
+    etapa && isUuid(etapa) && lote && isUuid(lote) && tipo && isUuid(tipo)
+      ? {
+          lote_etapa_id: etapa,
+          lote_id: lote,
+          tipo_tarefa_id: tipo,
+          ...(turno && isUuid(turno) ? { turno_id: turno } : {}),
+        }
+      : {};
 
   return (
     <main>
@@ -38,7 +54,7 @@ export default async function NovaAtribuicaoPage({ searchParams }: NovaAtribuica
             </Link>
           </Notice>
         ) : (
-          <AtribuicaoForm semana={inicio} opcoes={opcoes} inicial={{ dias: diaInicial }} />
+          <AtribuicaoForm semana={inicio} opcoes={opcoes} inicial={{ dias: diaInicial, ...daSugestao }} />
         )}
       </div>
     </main>

@@ -54,6 +54,7 @@ function bruta(over: Partial<AtribuicaoBruta> = {}): AtribuicaoBruta {
     canteiroId: '',
     quantidadePlanejada: '',
     recorrente: false,
+    loteEtapaId: '',
     observacoes: '',
     ...over,
   };
