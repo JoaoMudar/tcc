@@ -231,6 +231,42 @@ describe('protocolo de atividades (RF-22 a RF-24, UC-17)', () => {
   });
 });
 
+describe('tempo de etapa por espécie (RF-25, UC-18)', () => {
+  const ETAPA = '2d7c1b0a-4e5f-4a6b-8c9d-1e2f3a4b5c6d';
+
+  it('o guard é do protocolo, e não da espécie: a gerência grava o tempo', async () => {
+    loggedAs('gerencia');
+    vi.mocked(pool.query).mockResolvedValue({ rows: [] } as never);
+    const state = await protocolos.saveTempoEspecie(
+      {},
+      form({ especie_id: ID, protocolo_etapa_id: ETAPA, dias: '70', intervalo_dias: '', observacoes: '' }),
+    );
+    expect(state).toEqual({ success: 'Tempo da espécie salvo.' });
+    expect(vi.mocked(pool.query).mock.calls[0][1]).toEqual([ID, ETAPA, 70, null, null]);
+  });
+
+  it('FA-1: os dois campos em branco apagam a linha, em vez de gravar zero', async () => {
+    loggedAs('chefia');
+    vi.mocked(pool.query).mockResolvedValue({ rows: [] } as never);
+    const state = await protocolos.saveTempoEspecie(
+      {},
+      form({ especie_id: ID, protocolo_etapa_id: ETAPA, dias: '', intervalo_dias: '', observacoes: '' }),
+    );
+    expect(state).toEqual({ success: 'Tempo próprio removido: volta a valer o do protocolo.' });
+    expect(String(vi.mocked(pool.query).mock.calls[0][0])).toMatch(/DELETE FROM especies_protocolos_tempos/);
+  });
+
+  it('zero não chega ao banco', async () => {
+    loggedAs('gerencia');
+    const state = await protocolos.saveTempoEspecie(
+      {},
+      form({ especie_id: ID, protocolo_etapa_id: ETAPA, dias: '0', intervalo_dias: '', observacoes: '' }),
+    );
+    expect(state.error).toMatch(/deixe em branco/i);
+    expectNoDatabase();
+  });
+});
+
 describe('tipos de tarefa (RF-21)', () => {
   it('gerência cria e vai para a ficha; com lote exigido, espécie e área não são gravadas', async () => {
     loggedAs('gerencia');

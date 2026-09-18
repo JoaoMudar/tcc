@@ -193,6 +193,61 @@ export function detectaCicloDeAncoras(
   return null;
 }
 
+/** Uma linha por etapa ativa dos protocolos vigentes, com o que a espécie sobrescreve (RF-25). */
+export interface TempoDaEspecie {
+  protocoloEtapaId: string;
+  protocolo: string;
+  recipiente: string;
+  rotulo: string;
+  tipoAgendamento: TipoAgendamento;
+  /** O valor do protocolo, que vale quando a espécie não declara o dela. */
+  diasPadrao: number;
+  intervaloPadrao: number | null;
+  /** O da espécie. Nulo usa o do protocolo (RN-36). */
+  dias: number | null;
+  intervaloDias: number | null;
+  observacoes: string | null;
+}
+
+export interface TempoFields {
+  dias: number | null;
+  intervaloDias: number | null;
+  observacoes: string | null;
+}
+
+/**
+ * RF-25, UC-18. Vazio nos dois campos **não** é zero: é a remoção da
+ * customização (FA-1). Zero seria etapa que vence no mesmo dia da âncora, que é
+ * o oposto do que apagar significa, e linha sem nenhum override é ruído (FE-1).
+ */
+export function parseTempoFields(input: {
+  dias: string;
+  intervaloDias: string;
+  observacoes: string;
+}): { error: string } | { value: TempoFields | null } {
+  const numero = (texto: string, campo: string): { error: string } | { value: number | null } => {
+    const limpo = texto.trim();
+    if (limpo === '') return { value: null };
+    if (!/^\d{1,4}$/.test(limpo)) return { error: `${campo} precisa ser um número inteiro de dias.` };
+    const valor = Number(limpo);
+    if (valor <= 0) return { error: `${campo} precisa ser maior que zero. Para voltar ao padrão, deixe em branco.` };
+    if (valor > 3650) return { error: `${campo} passa de dez anos. Confira o valor.` };
+    return { value: valor };
+  };
+
+  const dias = numero(input.dias, 'O tempo da espécie');
+  if ('error' in dias) return dias;
+  const intervaloDias = numero(input.intervaloDias, 'O intervalo da espécie');
+  if ('error' in intervaloDias) return intervaloDias;
+
+  // Nenhum dos dois preenchido: a customização sai, em vez de virar linha vazia
+  if (dias.value === null && intervaloDias.value === null) return { value: null };
+
+  const observacoes = input.observacoes.trim();
+  if (observacoes.length > 500) return { error: 'A observação pode ter até 500 caracteres.' };
+  return { value: { dias: dias.value, intervaloDias: intervaloDias.value, observacoes: observacoes || null } };
+}
+
 export function duplicateMessage(error: unknown): string | null {
   switch (violatedConstraint(error, '23505')) {
     case 'protocolos_um_vigente_por_recipiente':
@@ -307,6 +362,58 @@ export async function insertEtapa(db: Db, protocoloId: string, input: EtapaField
     ],
   );
   return rows[0].id;
+}
+
+/**
+ * UC-18 passo 2: as etapas dos protocolos vigentes, com o tempo padrão de cada
+ * uma e o que esta espécie sobrescreve. A espécie sem customização nenhuma
+ * devolve a lista inteira com `dias` e `intervaloDias` nulos.
+ */
+export async function listTemposDaEspecie(db: Db, especieId: string): Promise<TempoDaEspecie[]> {
+  const { rows } = await db.query<TempoDaEspecie>(
+    `SELECT e.id AS "protocoloEtapaId", p.nome AS protocolo, r.nome AS recipiente, e.rotulo,
+            e.tipo_agendamento AS "tipoAgendamento", e.dias AS "diasPadrao",
+            e.intervalo_dias AS "intervaloPadrao",
+            t.dias, t.intervalo_dias AS "intervaloDias", t.observacoes
+       FROM protocolos_etapas e
+       JOIN protocolos p ON p.id = e.protocolo_id AND p.ativo
+       JOIN recipientes r ON r.id = p.recipiente_id
+       LEFT JOIN especies_protocolos_tempos t
+         ON t.protocolo_etapa_id = e.id AND t.especie_id = $1
+      WHERE e.ativo
+      ORDER BY r.volume_litros NULLS LAST, r.nome, e.posicao`,
+    [especieId],
+  );
+  return rows;
+}
+
+/**
+ * RF-25. Grava só o que foi preenchido, e **apaga a linha** quando os dois
+ * valores saem (FA-1): o que ficou em branco volta a vir do protocolo (RN-36).
+ */
+export async function saveTempoDaEspecie(
+  db: Db,
+  especieId: string,
+  protocoloEtapaId: string,
+  changes: TempoFields | null,
+): Promise<'gravado' | 'removido'> {
+  if (changes === null) {
+    await db.query('DELETE FROM especies_protocolos_tempos WHERE especie_id = $1 AND protocolo_etapa_id = $2', [
+      especieId,
+      protocoloEtapaId,
+    ]);
+    return 'removido';
+  }
+
+  await db.query(
+    `INSERT INTO especies_protocolos_tempos (especie_id, protocolo_etapa_id, dias, intervalo_dias, observacoes)
+     VALUES ($1, $2, $3, $4, $5)
+     ON CONFLICT (especie_id, protocolo_etapa_id)
+     DO UPDATE SET dias = EXCLUDED.dias, intervalo_dias = EXCLUDED.intervalo_dias,
+                   observacoes = EXCLUDED.observacoes`,
+    [especieId, protocoloEtapaId, changes.dias, changes.intervaloDias, changes.observacoes],
+  );
+  return 'gravado';
 }
 
 export async function updateEtapa(

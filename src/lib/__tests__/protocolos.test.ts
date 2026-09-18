@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { detectaCicloDeAncoras, parseEtapaFields, parseProtocoloFields } from '../protocolos';
+import { detectaCicloDeAncoras, parseEtapaFields, parseProtocoloFields, parseTempoFields } from '../protocolos';
 import { resumoAgendamento } from '../protocolo-rotulos';
 
 const TAREFA = '0b9f3f3e-8a5b-4c1a-9d0e-2f6a7b8c9d0e';
@@ -119,6 +119,37 @@ describe('detectaCicloDeAncoras', () => {
   it('etapa nova, ainda sem id, também é conferida', () => {
     const nova = { id: null, rotulo: 'Nova', etapaAncoraId: 'c' };
     expect(detectaCicloDeAncoras([plantio, classificar], nova)).toBeNull();
+  });
+});
+
+/** RF-25, UC-18: o override da espécie, e o que significa apagá-lo. */
+describe('parseTempoFields', () => {
+  const vazio = { dias: '', intervaloDias: '', observacoes: '' };
+
+  it('FA-1 e FE-1: os dois em branco removem a customização, e não gravam zero', () => {
+    expect(parseTempoFields(vazio)).toEqual({ value: null });
+    expect(parseTempoFields({ ...vazio, observacoes: 'só a observação' })).toEqual({ value: null });
+  });
+
+  it('zero é recusado, porque não é o mesmo que apagar', () => {
+    const parsed = parseTempoFields({ ...vazio, dias: '0' });
+    expect(parsed).toHaveProperty('error');
+    if ('error' in parsed) expect(parsed.error).toMatch(/deixe em branco/i);
+  });
+
+  it('TA-44: setenta dias próprios onde o protocolo diz quarenta', () => {
+    const parsed = parseTempoFields({ ...vazio, dias: '70' });
+    expect(parsed).toEqual({ value: { dias: 70, intervaloDias: null, observacoes: null } });
+  });
+
+  it('só o intervalo também é customização válida', () => {
+    const parsed = parseTempoFields({ ...vazio, intervaloDias: '120', observacoes: 'cresce devagar' });
+    expect(parsed).toEqual({ value: { dias: null, intervaloDias: 120, observacoes: 'cresce devagar' } });
+  });
+
+  it('valor que não é número inteiro de dias é recusado', () => {
+    expect(parseTempoFields({ ...vazio, dias: 'quarenta' })).toHaveProperty('error');
+    expect(parseTempoFields({ ...vazio, dias: '99999' })).toHaveProperty('error');
   });
 });
 
