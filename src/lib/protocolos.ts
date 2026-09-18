@@ -416,6 +416,48 @@ export async function saveTempoDaEspecie(
   return 'gravado';
 }
 
+/**
+ * RF-46, UC-22 passo 8: o lote recebe, ao nascer, o protocolo vigente do
+ * recipiente dele, e uma linha de acompanhamento por etapa ativa.
+ *
+ * **A âncora que já ocorreu é resolvida aqui**, e a que não ocorreu fica nula:
+ * as etapas que contam da criação do lote vencem a partir de `dataCriacao`, e as
+ * que contam da conclusão de outra etapa não vencem nada até ela ser concluída
+ * (RN-31). Nulo é informação, e não dado faltando.
+ *
+ * Recipiente sem protocolo vigente não é erro: o lote é criado e não cobra etapa
+ * nenhuma (UC-22 FA-2). Devolve o id do protocolo aplicado, ou nulo.
+ *
+ * Roda na transação de quem cria o lote: sem ela, o lote existiria sem
+ * acompanhamento se a segunda escrita falhasse.
+ */
+export async function materializarProtocolo(
+  client: Db,
+  loteId: string,
+  recipienteId: string,
+  dataCriacao: string,
+): Promise<string | null> {
+  const { rows } = await client.query<{ id: string }>(
+    'SELECT id FROM protocolos WHERE recipiente_id = $1 AND ativo',
+    [recipienteId],
+  );
+  const protocoloId = rows[0]?.id ?? null;
+  if (!protocoloId) return null;
+
+  await client.query('UPDATE lotes SET protocolo_id = $2 WHERE id = $1', [loteId, protocoloId]);
+
+  // Uma linha por etapa ativa, com a âncora de criação já resolvida
+  await client.query(
+    `INSERT INTO lotes_etapas (lote_id, protocolo_etapa_id, data_ancora)
+     SELECT $1, e.id,
+            CASE WHEN e.tipo_ancora = 'criacao_do_lote' THEN $3::date ELSE NULL END
+       FROM protocolos_etapas e
+      WHERE e.protocolo_id = $2 AND e.ativo`,
+    [loteId, protocoloId, dataCriacao],
+  );
+  return protocoloId;
+}
+
 export async function updateEtapa(
   db: Db,
   id: string,
