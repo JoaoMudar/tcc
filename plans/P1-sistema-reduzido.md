@@ -138,7 +138,7 @@ no computador e no celular) e o roteiro no navegador com gerência e chefia agua
 ## Fase 6: Protocolo de atividades e motor
 
 - [x] **T6.1** Migration do protocolo: `protocolos`, `protocolos_etapas`, `especies_protocolos_tempos`, `lotes_etapas`, a visão `lotes_etapas_vencimento` e as FKs de `lotes.protocolo_id` e `atribuicoes.lote_etapa_id`; atualizar `C6`, `C8`, `modelo-dados-pt` e CHANGELOG. *Onde o `C6` e as figuras discordavam do `C8`, prevaleceu o `C8`: `lotes_etapas` tem chave composta e não guarda vencimento. `lotes.data_plantio` virou `data_criacao`, e `data_plantio` renasceu anulável para a data real que o protocolo grava (TA-38)*
-- [ ] **T6.2** Cadastro do protocolo por recipiente: etapas ordenadas, sequencial ou recorrente, âncora, alerta e janela, com validação de âncora circular na aplicação (RF-22 a RF-24)
+- [x] **T6.2** Cadastro do protocolo por recipiente: etapas ordenadas, sequencial ou recorrente, âncora, alerta e janela, com validação de âncora circular na aplicação (RF-22 a RF-24). *`/cadastros/protocolos`. A FE-1 (ciclo de âncoras) é da aplicação, com o ciclo indicado na mensagem, e a lista de âncoras não oferece a própria etapa. A FE-3 (segundo vigente) a tela evita e o índice único recusa. O admin atravessa a coluna `L` dele pelo acesso irrestrito do D4 §1.1, e o teste registra isso em vez de contrariá-lo*
 - [ ] **T6.3** Tempo de etapa por espécie (RF-25)
 - [ ] **T6.4** Motor como função pura, **testes escritos antes**: vencimento contado da execução real (RF-49), sobrescrita por espécie e uma ordem aberta por etapa (RF-50)
 - [ ] **T6.5** Atribuir o protocolo vigente ao criar o lote, materializando `lotes_etapas` (RF-46)

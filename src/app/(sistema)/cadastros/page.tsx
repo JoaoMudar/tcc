@@ -20,6 +20,12 @@ const SECOES: readonly { href: string; title: string; description: string; recur
     recurso: 'areas_canteiros',
   },
   { href: '/cadastros/tipos-tarefa', title: 'Tipos de tarefa', description: 'O que cada tarefa pede na agenda.', recurso: 'tipos_tarefa' },
+  {
+    href: '/cadastros/protocolos',
+    title: 'Protocolos de atividades',
+    description: 'A receita de manejo de cada recipiente: as etapas e os prazos.',
+    recurso: 'protocolos',
+  },
 ];
 
 /** 1 · Cadastro único: a chefia decide o que o viveiro faz, a gerência decide como faz (D4 §3.4). */
