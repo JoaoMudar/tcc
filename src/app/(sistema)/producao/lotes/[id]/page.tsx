@@ -3,13 +3,14 @@ import { notFound } from 'next/navigation';
 import { PageHeader } from '@/components/PageHeader';
 import { Notice } from '@/components/ui/Notice';
 import { Pill } from '@/components/ui/Pill';
-import { formatData } from '@/lib/datas';
+import { formatData, hojeNoViveiro } from '@/lib/datas';
 import pool from '@/lib/db';
 import { formatDateTime } from '@/lib/format';
 import { CAUSAS_PERDA, FASES, TIPOS_MOVIMENTO, formatQuantidade } from '@/lib/lotes-rotulos';
 import { findLote, listCanteirosParaLote, listMovimentos } from '@/lib/lotes';
 import { acimaDoLimite, formatPercentual, limiteMortalidade, mortalidade } from '@/lib/perdas';
 import { can } from '@/lib/permissions';
+import { listEtapasDoLote } from '@/lib/protocolos';
 import { formatVolume, listRecipientes } from '@/lib/recipientes';
 import { isUuid } from '@/lib/uuid';
 import { requirePageAccess } from '@/lib/auth/guards';
@@ -17,6 +18,7 @@ import { AcaoRecolhivel } from './AcaoRecolhivel';
 import { ContagemForm } from './ContagemForm';
 import { FaseForm } from './FaseForm';
 import { PerdaForm } from './PerdaForm';
+import { ProtocoloDoLote } from './ProtocoloDoLote';
 import { RepicagemForm } from './RepicagemForm';
 import { TransferenciaForm } from './TransferenciaForm';
 
@@ -41,11 +43,13 @@ export default async function LotePage({ params, searchParams }: LotePageProps) 
   const podeRepicar = podeMovimento && can(user.perfil, 'lotes', 'C');
   const podeFase = aberto && can(user.perfil, 'lotes', 'A');
 
-  const [movimentos, limite, canteiros, recipientes] = await Promise.all([
+  const [movimentos, limite, canteiros, recipientes, etapas] = await Promise.all([
     listMovimentos(pool, id),
     limiteMortalidade(pool),
     podeMovimento ? listCanteirosParaLote(pool) : [],
     podeRepicar ? listRecipientes(pool) : [],
+    // RF-51: o percurso do lote pelo protocolo, com o vencimento derivado
+    listEtapasDoLote(pool, id, hojeNoViveiro()),
   ]);
   const taxa = mortalidade(lote.perdas, lote.quantidadeInicial);
   const alerta = acimaDoLimite(taxa, limite);
@@ -135,6 +139,8 @@ export default async function LotePage({ params, searchParams }: LotePageProps) 
           )}
           {lote.observacoes && <p className="text-base text-muted">{lote.observacoes}</p>}
         </section>
+
+        <ProtocoloDoLote etapas={etapas} />
 
         {podePerda && (
           <AcaoRecolhivel titulo="Registrar perda">

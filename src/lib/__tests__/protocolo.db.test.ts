@@ -6,7 +6,14 @@ import { insertArea, insertCanteiro } from '../areas';
 import { criarLote, findLote } from '../lotes';
 import { horizonteProtocolo } from '../parametros';
 import { diasDeAtraso, situacaoDaEtapa, vencimentoDaEtapa } from '../protocolo-motor';
-import { insertEtapa, insertProtocolo, listEtapas, listSugestoes, saveTempoDaEspecie } from '../protocolos';
+import {
+  insertEtapa,
+  insertProtocolo,
+  listEtapas,
+  listEtapasDoLote,
+  listSugestoes,
+  saveTempoDaEspecie,
+} from '../protocolos';
 import { insertRecipiente } from '../recipientes';
 import { withTransaction } from '../transaction';
 
@@ -566,6 +573,60 @@ describe('concluir a etapa: a fase, a data de plantio e as âncoras', () => {
     // Recorrente: continua na visão, e a próxima conta de 11/03 mais 90 (RN-32)
     expect(await estado(id, limpeza)).toMatchObject({ ocorrencias: 1, ultimaExecucaoEm: '2030-03-11' });
     expect((await daVisao(id, limpeza))!.proximoVencimento).toBe('2030-06-09');
+  });
+});
+
+/** RF-51, RF-52, TA-43: a ficha responde o que já foi feito e o que vem. */
+describe('a ficha do protocolo do lote', () => {
+  it('TA-43: a concluída com a data real, a vencida com o atraso, e a sem âncora sem vencimento', async () => {
+    const { id } = await novoLote(tubete, canteiro1, '2026-01-10');
+
+    // O plantio é concluído; a limpeza vence e ninguém faz; a classificação espera o plantio
+    await pool.query(
+      `UPDATE lotes_etapas SET ultima_execucao_em = '2026-01-25', ocorrencias = 1, concluido_em = NOW()
+        WHERE lote_id = $1 AND protocolo_etapa_id = $2`,
+      [id, plantar],
+    );
+
+    const etapas = await listEtapasDoLote(pool, id, '2026-07-10');
+    const porRotulo = new Map(etapas.map((e) => [e.rotulo, e]));
+
+    // Todas as cinco aparecem, e na ordem de leitura
+    expect(etapas).toHaveLength(5);
+    expect(etapas.map((e) => e.posicao)).toEqual([1, 2, 3, 4, 5]);
+
+    // A concluída: com a data real, e sem próximo vencimento
+    const feita = porRotulo.get('Plantar no tubete')!;
+    expect(feita.concluida).toBe(true);
+    expect(feita.ultimaExecucaoEm).toBe('2026-01-25');
+    expect(feita.proximoVencimento).toBeNull();
+
+    // A vencida: com o atraso em dias
+    const vencida = porRotulo.get('Limpar mato')!;
+    expect(vencida.proximoVencimento).toBe('2026-04-10');
+    expect(vencida.situacao).toBe('atraso');
+    expect(vencida.diasAtraso).toBe(91);
+
+    // A sem âncora resolvida: sem vencimento nenhum, e sem situação
+    const esperando = porRotulo.get('Classificar selecao')!;
+    expect(esperando.proximoVencimento).toBeNull();
+    expect(esperando.situacao).toBeNull();
+    expect(esperando.diasAtraso).toBe(0);
+  });
+
+  it('TA-37: a etapa de alerta desligado aparece na ficha, e sem cor', async () => {
+    const { id } = await novoLote(tubete, canteiro1, '2026-01-10');
+    const etapas = await listEtapasDoLote(pool, id, '2026-07-10');
+    const diaria = etapas.find((e) => e.rotulo === 'Irrigacao')!;
+
+    // Está lá, com vencimento, e a situação diz que não é cobrança
+    expect(diaria.proximoVencimento).toBe('2026-01-11');
+    expect(diaria.situacao).toBe('sem_alerta');
+  });
+
+  it('o lote sem protocolo não tem percurso nenhum, e a ficha não inventa um', async () => {
+    const { id } = await novoLote(semProtocolo, canteiro2, '2026-01-10');
+    expect(await listEtapasDoLote(pool, id, '2026-07-10')).toEqual([]);
   });
 });
 
