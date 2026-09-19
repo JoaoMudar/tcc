@@ -3,6 +3,20 @@
 Uma entrada por migration nova, como pede o `CLAUDE.md`. As migrations até `20260901000008` são o
 schema inicial em português e estão descritas no `C8`.
 
+## 19/09/2026 · `20260919000002_situacao_lote_com_protocolo.sql`
+
+- `situacao_lote` recriada com **duas fontes de pendência**: a atribuição planejada atrasada, que já
+  existia, e a etapa do protocolo vencida ou em atenção que ninguém lançou (RF-45). A visão nasceu
+  antes do protocolo, e como o protocolo sugere sem lançar (RN-41), o mapa pintava de verde
+  justamente o lote que ninguém olhou.
+- Coluna nova `protocolo_etapa_pendente_id`; `atribuicao_pendente_id` passa a ser nula quando a
+  pendência vem do protocolo. Nenhuma coluna saiu, e nada em `src/` lia a visão ainda: o mapa é a
+  Fase 7.
+- A etapa que já virou tarefa não conta duas vezes: a tarefa carrega `lote_etapa_id`, e a etapa
+  correspondente sai da fonte do protocolo.
+- A etapa **em atenção** entra como `atencao` sem passar pelos parâmetros `producao.atraso_*`: a
+  janela dela é percentual do intervalo (RN-35), e um limite em dias devolveria o calendário fixo.
+
 ## 19/09/2026 · `20260919000001_divisao_de_lote.sql`
 
 - `movimentos_lote_tipo_valido` passa a aceitar `divisao_saida` e `divisao_entrada` (RF-40, RN-39).

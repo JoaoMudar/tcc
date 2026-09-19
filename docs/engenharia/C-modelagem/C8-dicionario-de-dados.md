@@ -769,17 +769,31 @@ decorre: `saudavel`, `atencao` ou `critico`. É o que pinta o mapa de produção
 | Atributo | Origem |
 |---|---|
 | `lote_id`, `codigo_lote`, `canteiro_id`, `posicao` | `lotes`, restrito aos lotes abertos |
-| `atribuicao_pendente_id`, `tipo_tarefa_pendente_id`, `tarefa_pendente` | a atribuição do lote que segue `planejada`, cuja data já passou e que não tem execução concluída |
-| `pendente_desde` | `atribuicoes.data_trabalho` da pendência |
-| `dias_atraso` | a data de hoje menos `pendente_desde`; zero quando não há pendência |
-| `situacao` | `dias_atraso` comparado aos parâmetros `producao.atraso_atencao_dias` e `producao.atraso_critico_dias` de `parametros` |
+| `atribuicao_pendente_id`, `tipo_tarefa_pendente_id`, `tarefa_pendente` | a atribuição do lote que segue `planejada`, cuja data já passou e que não tem execução concluída. Nula quando a pendência veio do protocolo |
+| `protocolo_etapa_pendente_id` | a etapa de `lotes_etapas_vencimento` vencida ou em atenção que **ninguém lançou** na agenda. Nula quando a pendência é uma tarefa lançada |
+| `pendente_desde` | `atribuicoes.data_trabalho` da tarefa, ou o `proximo_vencimento` da etapa |
+| `dias_atraso` | a data de hoje menos `pendente_desde`; zero quando não há pendência, e zero também na etapa que ainda não venceu |
+| `situacao` | `dias_atraso` comparado aos parâmetros `producao.atraso_atencao_dias` e `producao.atraso_critico_dias` de `parametros`. A etapa dentro da janela de aviso do protocolo é `atencao` sem passar por eles |
 
 > **É visão e não coluna** (RF-45): situação gravada envelhece sozinha, e o lote marcado como saudável ontem
 > continuaria saudável hoje, que é o contrário do que a tela mostra.
 
 > **A mais antiga manda.** Havendo três pendências no mesmo lote, quem determina a cor é a que
 > espera há mais tempo, e é ela que aparece ao apontar o lote (RF-45): resolvê-la é a providência
-> que o mapa está pedindo.
+> que o mapa está pedindo. Isso vale entre as duas fontes: a etapa vencida em abril manda sobre a
+> tarefa atrasada em julho.
+
+> **São duas fontes de pendência, e a segunda entrou em 19/09/2026** (`20260919000002`). A visão
+> nasceu antes do protocolo e só conhecia a tarefa lançada; como o protocolo **sugere sem lançar**
+> (RF-47, RN-41), a etapa vencida não produzia linha nenhuma em `atribuicoes`, e o mapa pintava de
+> verde justamente o lote que ninguém olhou. A etapa que já virou tarefa não conta duas vezes: a
+> tarefa carrega `lote_etapa_id`, e a etapa correspondente sai da fonte do protocolo.
+
+> **As duas escalas de atraso convivem, e cada uma rege o que lhe cabe.** Os parâmetros
+> `producao.atraso_*` regem a pendência em dias; a janela de aviso da etapa é **percentual do
+> intervalo** (RN-35), e por isso a etapa em atenção entra como `atencao` sem ser medida em dias:
+> passá-la por um limite fixo devolveria o calendário rígido que o protocolo existe para não ter. A
+> etapa de alerta desligado não pinta nada, como não colore na ficha do lote.
 
 > **Pendência é o que segue `planejada`, e a condição é positiva de propósito.** Os outros dois
 > situacao saem, cada um pelo seu motivo: `confirmada` é a tarefa que a gerência registrou como feita
