@@ -464,6 +464,53 @@ export async function materializarProtocolo(
   return protocoloId;
 }
 
+/** Uma etapa do protocolo no percurso deste lote (RF-51). */
+export interface EtapaDoLote {
+  protocoloEtapaId: string;
+  rotulo: string;
+  tipoTarefa: string;
+  posicao: number;
+  tipoAgendamento: TipoAgendamento;
+  ultimaExecucaoEm: string | null;
+  ocorrencias: number;
+  concluida: boolean;
+  /** Nulo quando a âncora ainda não ocorreu, ou a sequencial já se encerrou. */
+  proximoVencimento: string | null;
+  /** Nula junto com o vencimento; `sem_alerta` na etapa que não avisa (RN-35). */
+  situacao: SituacaoEtapa | null;
+  diasAtraso: number;
+}
+
+/**
+ * RF-51, RF-52, TA-43: as etapas do lote com a data da última execução, o
+ * próximo vencimento e a situação de cada uma.
+ *
+ * Lê de `lotes_etapas`, e não da visão: a visão devolve só o que ainda vence
+ * algo, e a ficha precisa mostrar também **a concluída** e **a que não vence
+ * nada** porque a âncora não ocorreu. As três aparecem, cada uma com o seu
+ * estado, e é isso que o TA-43 confere.
+ */
+export async function listEtapasDoLote(db: Db, loteId: string, hoje: string): Promise<EtapaDoLote[]> {
+  const { rows } = await db.query<EtapaDoLote>(
+    `SELECT le.protocolo_etapa_id AS "protocoloEtapaId", pe.rotulo, t.nome AS "tipoTarefa", pe.posicao,
+            pe.tipo_agendamento AS "tipoAgendamento",
+            to_char(le.ultima_execucao_em, 'YYYY-MM-DD') AS "ultimaExecucaoEm",
+            le.ocorrencias, le.concluido_em IS NOT NULL AS concluida,
+            to_char(v.proximo_vencimento, 'YYYY-MM-DD') AS "proximoVencimento",
+            v.situacao,
+            GREATEST(0, $2::date - v.proximo_vencimento)::int AS "diasAtraso"
+       FROM lotes_etapas le
+       JOIN protocolos_etapas pe ON pe.id = le.protocolo_etapa_id
+       JOIN tipos_tarefa t ON t.id = pe.tipo_tarefa_id
+       LEFT JOIN lotes_etapas_vencimento v
+         ON v.lote_id = le.lote_id AND v.protocolo_etapa_id = le.protocolo_etapa_id
+      WHERE le.lote_id = $1
+      ORDER BY pe.posicao`,
+    [loteId, hoje],
+  );
+  return rows.map((etapa) => ({ ...etapa, diasAtraso: etapa.diasAtraso ?? 0 }));
+}
+
 /** Uma etapa que o protocolo aponta, e que ninguém lançou ainda (RF-47). */
 export interface Sugestao {
   loteEtapaId: string;
