@@ -3,6 +3,7 @@ import { Pool, type PoolClient } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { confirmarAtribuicao, criarAtribuicoes } from '../agenda';
 import { insertArea, insertCanteiro } from '../areas';
+import { hojeNoViveiro, somaDias } from '../datas';
 import { criarLote, dividirLote, findLote } from '../lotes';
 import { registrarMovimento } from '../movimentos';
 import { horizonteProtocolo } from '../parametros';
@@ -765,6 +766,78 @@ describe('a etapa desativada sai da cobrança, e o lote encerrado também', () =
     expect((await daVisao(a.id, limpeza))!.proximoVencimento).toBe('2026-04-10');
     // E a etapa sem âncora continua sem âncora: herdar não inventa evento que não houve
     expect(await estado(a.id, classificar)).toMatchObject({ dataAncora: null });
+  });
+
+  /**
+   * TA-48, RF-45. A visão `situacao_lote` nasceu antes do protocolo e só
+   * enxergava tarefa lançada. Como o protocolo **sugere sem lançar** (RN-41), a
+   * etapa vencida não produzia linha nenhuma em `atribuicoes`, e o mapa pintava
+   * de verde justamente o lote que ninguém olhou.
+   *
+   * As datas aqui são relativas a hoje, e não fixas: a visão lê `CURRENT_DATE`,
+   * e data fixa faria o teste mudar de resultado com o passar dos dias.
+   */
+  it('TA-48: a etapa vencida há cinco dias deixa o lote crítico sem nada lançado, e concluí-la o cura', async () => {
+    const hoje = hojeNoViveiro();
+    // A limpeza conta 90 dias da criação: criado há 95, ela venceu há 5
+    const { id } = await novoLote(tubete, canteiro1, somaDias(hoje, -95));
+
+    // O plantio venceu no dia da criação, e é pendência mais antiga que a limpeza:
+    // concluí-lo deixa a limpeza ser a que manda (a mais antiga das que sobram)
+    await pool.query(
+      `UPDATE lotes_etapas SET ultima_execucao_em = $3, ocorrencias = 1, concluido_em = NOW()
+        WHERE lote_id = $1 AND protocolo_etapa_id = $2`,
+      [id, plantar, somaDias(hoje, -95)],
+    );
+
+    const daVisaoDoLote = async () => {
+      const { rows } = await pool.query<{
+        situacao: string;
+        tarefaPendente: string | null;
+        diasAtraso: number;
+        atribuicaoPendenteId: string | null;
+        protocoloEtapaPendenteId: string | null;
+      }>(
+        `SELECT situacao, tarefa_pendente AS "tarefaPendente", dias_atraso AS "diasAtraso",
+                atribuicao_pendente_id AS "atribuicaoPendenteId",
+                protocolo_etapa_pendente_id AS "protocoloEtapaPendenteId"
+           FROM situacao_lote WHERE lote_id = $1`,
+        [id],
+      );
+      return rows[0] ?? null;
+    };
+
+    // Crítico pela etapa, e não por tarefa: ninguém lançou nada na agenda
+    const { rows: agenda } = await pool.query<{ n: number }>(
+      'SELECT COUNT(*)::int AS n FROM atribuicoes WHERE lote_id = $1',
+      [id],
+    );
+    expect(agenda[0].n).toBe(0);
+    expect(await daVisaoDoLote()).toMatchObject({
+      situacao: 'critico',
+      tarefaPendente: 'Limpar mato',
+      diasAtraso: 5,
+      atribuicaoPendenteId: null,
+      protocoloEtapaPendenteId: limpeza,
+    });
+
+    // Concluída a etapa, o lote volta a saudável no mesmo dia, sem ninguém digitar situação
+    await tx((client) => concluirEtapa(client, id, limpeza, hoje));
+    expect(await daVisaoDoLote()).toMatchObject({ situacao: 'saudavel', tarefaPendente: null, diasAtraso: 0 });
+  });
+
+  it('a etapa de alerta desligado não pinta o lote, como não colore na ficha (RN-35)', async () => {
+    const hoje = hojeNoViveiro();
+    // Criado há 30 dias: a irrigação diária está vencida há 29, e a limpeza ainda nem venceu
+    const { id } = await novoLote(tubete, canteiro1, somaDias(hoje, -30));
+    await pool.query(
+      `UPDATE lotes_etapas SET ultima_execucao_em = $3, ocorrencias = 1, concluido_em = NOW()
+        WHERE lote_id = $1 AND protocolo_etapa_id = $2`,
+      [id, plantar, somaDias(hoje, -30)],
+    );
+
+    const { rows } = await pool.query<{ situacao: string }>('SELECT situacao FROM situacao_lote WHERE lote_id = $1', [id]);
+    expect(rows[0].situacao).toBe('saudavel');
   });
 
   it('as etapas do protocolo ficam na ordem de leitura', async () => {
