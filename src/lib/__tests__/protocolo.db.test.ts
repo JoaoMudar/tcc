@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { confirmarAtribuicao, criarAtribuicoes } from '../agenda';
 import { insertArea, insertCanteiro } from '../areas';
 import { criarLote, findLote } from '../lotes';
+import { registrarMovimento } from '../movimentos';
 import { horizonteProtocolo } from '../parametros';
 import { diasDeAtraso, situacaoDaEtapa, vencimentoDaEtapa } from '../protocolo-motor';
 import {
@@ -638,6 +639,68 @@ describe('a etapa desativada sai da cobrança, e o lote encerrado também', () =
     await pool.query('UPDATE protocolos_etapas SET ativo = false WHERE id = $1', [limpeza]);
     expect(await daVisao(id, limpeza)).toBeNull();
     await pool.query('UPDATE protocolos_etapas SET ativo = true WHERE id = $1', [limpeza]);
+  });
+
+  /**
+   * TA-45, RF-53, RN-38. O encerramento do lote chega pela porta única de
+   * `movimentos.ts`, e é lá que as ordens em aberto são canceladas: a perda que
+   * zera o saldo é só o caminho mais curto até ele.
+   */
+  it('TA-45: o lote zerado cancela as ordens ainda planejadas, mantém as confirmadas e sai das sugestões', async () => {
+    const { id } = await novoLote(tubete, canteiro1, '2026-01-10');
+
+    // Duas ordens do protocolo lançadas para os próximos dias, uma de cada etapa
+    const lancar = (loteEtapaId: string | null, semana: string) =>
+      tx((client) =>
+        criarAtribuicoes(client, {
+          semana,
+          dias: [semana],
+          turnoId: turnoManha,
+          tipoTarefaId: tipoComLote,
+          horaInicio: null,
+          horaFim: null,
+          participantes: [pessoa],
+          loteId: id,
+          especieId: null,
+          recipienteId: null,
+          areaId: null,
+          canteiroId: null,
+          quantidadePlanejada: null,
+          recorrente: false,
+          observacoes: null,
+          loteEtapaId,
+        }),
+      );
+    const [daLimpeza] = await lancar(limpeza, '2030-04-01');
+    const [daIrrigacao] = await lancar(irrigacao, '2030-04-08');
+
+    // A irrigação já foi feita: é passado, e o encerramento não pode reescrevê-la
+    await pool.query("UPDATE atribuicoes SET situacao = 'confirmada' WHERE id = $1", [daIrrigacao]);
+
+    // Uma tarefa lançada à mão, sem etapa por trás: não é ordem do protocolo
+    const [semEtapa] = await lancar(null, '2030-04-15');
+
+    await tx((client) =>
+      registrarMovimento(client, { loteId: id, tipo: 'perda', quantidade: -1000, causa: 'geada', registradoPor: usuario }),
+    );
+
+    const situacoes = async (...ids: string[]) => {
+      const { rows } = await pool.query<{ id: string; situacao: string }>(
+        'SELECT id, situacao FROM atribuicoes WHERE id = ANY($1::uuid[])',
+        [ids],
+      );
+      return new Map(rows.map((r) => [r.id, r.situacao]));
+    };
+
+    const depois = await situacoes(daLimpeza, daIrrigacao, semEtapa);
+    // Cancelada, e não apagada: continua consultável
+    expect(depois.get(daLimpeza)).toBe('cancelada');
+    expect(depois.get(daIrrigacao)).toBe('confirmada');
+    if (semEtapa) expect(depois.get(semEtapa)).toBe('planejada');
+
+    // E o lote encerrado deixa de aparecer entre as sugestões
+    const sugestoes = await listSugestoes(pool, '2030-04-01', 120);
+    expect(sugestoes.some((s) => s.loteId === id)).toBe(false);
   });
 
   it('as etapas do protocolo ficam na ordem de leitura', async () => {

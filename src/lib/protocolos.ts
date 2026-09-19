@@ -654,6 +654,37 @@ export async function concluirEtapa(
   return { faseAvancada };
 }
 
+/**
+ * RF-53, RN-38: o protocolo do lote encerrado. Lote encerrado deixa de vencer
+ * etapa (a visão `lotes_etapas_vencimento` já o exclui pelo `encerrado_em`, e é
+ * por isso que não há nada a apagar em `lotes_etapas`), mas as tarefas que a
+ * gerência já lançou continuam na grade da semana, cobrando trabalho num lote
+ * que não existe mais. São elas que esta função cancela.
+ *
+ * **Cancela, e não apaga** (RF-53): a tarefa cancelada continua consultável, e o
+ * índice `atribuicoes_uma_ordem_por_vencimento` a ignora, de modo que o lote
+ * dividido pode relançar a mesma etapa nos resultantes.
+ *
+ * **Só a `planejada`.** A `confirmada` é trabalho que aconteceu, e a
+ * `nao_confirmada` é o que o fechamento da semana já assumiu como realizado
+ * (RN-14): cancelar qualquer uma das duas reescreveria o passado de uma semana
+ * fechada. "Ainda não confirmada" do RF-53 é a que segue pendente.
+ *
+ * Roda na transação de quem encerra o lote, que é sempre a porta única de
+ * `movimentos.ts`. Devolve quantas ordens foram canceladas.
+ */
+export async function encerrarProtocoloDoLote(client: Db, loteId: string): Promise<number> {
+  const { rowCount } = await client.query(
+    `UPDATE atribuicoes
+        SET situacao = 'cancelada'
+      WHERE lote_id = $1
+        AND lote_etapa_id IS NOT NULL
+        AND situacao = 'planejada'`,
+    [loteId],
+  );
+  return rowCount ?? 0;
+}
+
 export async function updateEtapa(
   db: Db,
   id: string,
