@@ -56,7 +56,9 @@ export default async function AgendaSemanaPage({ searchParams }: AgendaSemanaPag
   // A busca precisa alcançar o fim da semana aberta, que pode estar além do
   // horizonte; quem recorta para a semana é sugestoesDaSemana.
   const horizonte = await horizonteProtocolo(pool);
-  const diasAteOFim = Math.ceil((Date.parse(`${dias[6]}T00:00:00Z`) - Date.parse(`${hoje}T00:00:00Z`)) / 86_400_000);
+  // O domingo fecha a semana (é o mesmo fim que sugestoesDaSemana usa), e não o sábado da grade
+  const fimDaSemana = somaDias(inicio, 6);
+  const diasAteOFim = Math.round((Date.parse(`${fimDaSemana}T00:00:00Z`) - Date.parse(`${hoje}T00:00:00Z`)) / 86_400_000);
   const sugestoes = sugestoesDaSemana(
     await listSugestoes(pool, hoje, Math.max(horizonte, diasAteOFim, 0)),
     inicio,
