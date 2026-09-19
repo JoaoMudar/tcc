@@ -2,6 +2,7 @@ import type { PoolClient } from 'pg';
 import { hojeNoViveiro } from './datas';
 import { UserError } from './errors';
 import { type CausaPerda, type TipoMovimento, formatQuantidade, isCausaPerda } from './lotes-rotulos';
+import { encerrarProtocoloDoLote } from './protocolos';
 
 export { CAUSAS_PERDA, TIPOS_MOVIMENTO, formatQuantidade, isCausaPerda, type CausaPerda, type TipoMovimento } from './lotes-rotulos';
 
@@ -155,6 +156,11 @@ export async function registrarMovimento(client: Client, input: MovimentoInput):
         WHERE id = $1`,
       [lote.id],
     );
+    // RF-53, RN-38: encerrado o lote, as ordens do protocolo que ninguém cumpriu
+    // são canceladas aqui, e não na tela que registrou a baixa: a expedição total
+    // e a divisão chegam ao encerramento por outros caminhos, e todos passam por
+    // esta porta.
+    await encerrarProtocoloDoLote(client, lote.id);
     return { saldo, encerrado: true };
   }
 

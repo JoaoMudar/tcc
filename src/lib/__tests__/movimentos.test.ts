@@ -85,6 +85,26 @@ describe('registrarMovimento, a porta única', () => {
     expect(update).toMatch(/motivo_encerramento = 'saldo_zero'/);
   });
 
+  it('RF-53: encerrado o lote, as ordens do protocolo ainda planejadas são canceladas, e não apagadas', async () => {
+    const c = cliente();
+    await registrarMovimento(c, { loteId: 'l1', tipo: 'venda', quantidade: -200, registradoPor: 'u1' });
+
+    const cancelamento = escritas(c).find(({ sql }) => sql.includes('atribuicoes'));
+    expect(cancelamento).toBeDefined();
+    expect(cancelamento!.sql).toMatch(/SET situacao = 'cancelada'/);
+    expect(cancelamento!.sql).toMatch(/lote_etapa_id IS NOT NULL/);
+    // A confirmada e a não confirmada são passado, e o encerramento não as reescreve
+    expect(cancelamento!.sql).toMatch(/situacao = 'planejada'/);
+    expect(cancelamento!.sql).not.toMatch(/DELETE/);
+    expect(cancelamento!.params).toEqual(['l1']);
+  });
+
+  it('o lote que continua aberto não cancela ordem nenhuma', async () => {
+    const c = cliente();
+    await registrarMovimento(c, { loteId: 'l1', tipo: 'perda', quantidade: -50, causa: 'seca', registradoPor: 'u1' });
+    expect(escritas(c).some(({ sql }) => sql.includes('atribuicoes'))).toBe(false);
+  });
+
   it('lote encerrado ou inexistente não recebe movimento', async () => {
     await expect(
       registrarMovimento(cliente({ ...LOTE, encerrado: true }), { loteId: 'l1', tipo: 'venda', quantidade: -1, registradoPor: 'u1' }),
