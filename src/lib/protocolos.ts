@@ -1,3 +1,4 @@
+import { somaDias } from './datas';
 import { type Fase, FASES_EDITAVEIS } from './lotes-rotulos';
 import {
   type SituacaoEtapa,
@@ -572,6 +573,21 @@ export async function listSugestoes(db: Db, hoje: string, horizonteDias: number)
     [hoje, horizonteDias],
   );
   return rows;
+}
+
+/**
+ * A agenda mostra uma semana por vez, e a sugestão que vence em outra semana não
+ * é assunto dela. O atrasado continua aparecendo enquanto a semana aberta é a de
+ * hoje: é nela que ainda dá para fazer.
+ */
+export function sugestoesDaSemana<T extends { vencimento: string }>(
+  sugestoes: readonly T[],
+  inicio: string,
+  hoje: string,
+): T[] {
+  const fim = somaDias(inicio, 6);
+  const semanaDeHoje = hoje >= inicio && hoje <= fim;
+  return sugestoes.filter((s) => s.vencimento <= fim && (s.vencimento >= inicio || semanaDeHoje));
 }
 
 /**

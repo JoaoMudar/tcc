@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { detectaCicloDeAncoras, parseEtapaFields, parseProtocoloFields, parseTempoFields } from '../protocolos';
+import {
+  detectaCicloDeAncoras,
+  parseEtapaFields,
+  parseProtocoloFields,
+  parseTempoFields,
+  sugestoesDaSemana,
+} from '../protocolos';
 import { resumoAgendamento } from '../protocolo-rotulos';
 
 const TAREFA = '0b9f3f3e-8a5b-4c1a-9d0e-2f6a7b8c9d0e';
@@ -150,6 +156,28 @@ describe('parseTempoFields', () => {
   it('valor que não é número inteiro de dias é recusado', () => {
     expect(parseTempoFields({ ...vazio, dias: 'quarenta' })).toHaveProperty('error');
     expect(parseTempoFields({ ...vazio, dias: '99999' })).toHaveProperty('error');
+  });
+});
+
+describe('sugestoesDaSemana', () => {
+  const lista = [
+    { rotulo: 'atrasada', vencimento: '2026-09-10' },
+    { rotulo: 'na semana', vencimento: '2026-09-16' },
+    { rotulo: 'no domingo', vencimento: '2026-09-20' },
+    { rotulo: 'semana seguinte', vencimento: '2026-09-22' },
+  ];
+
+  it('na semana de hoje, mostra o que vence nela e o que ficou atrasado', () => {
+    expect(sugestoesDaSemana(lista, '2026-09-14', '2026-09-16').map((s) => s.rotulo)).toEqual([
+      'atrasada',
+      'na semana',
+      'no domingo',
+    ]);
+  });
+
+  it('em outra semana, mostra só o que vence dentro dela', () => {
+    expect(sugestoesDaSemana(lista, '2026-09-21', '2026-09-16').map((s) => s.rotulo)).toEqual(['semana seguinte']);
+    expect(sugestoesDaSemana(lista, '2026-09-07', '2026-09-16').map((s) => s.rotulo)).toEqual(['atrasada']);
   });
 });
 

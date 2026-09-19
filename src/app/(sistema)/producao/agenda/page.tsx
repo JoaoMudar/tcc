@@ -14,7 +14,7 @@ import { hojeNoViveiro, somaDias } from '@/lib/datas';
 import pool from '@/lib/db';
 import { horizonteProtocolo } from '@/lib/parametros';
 import { can } from '@/lib/permissions';
-import { listSugestoes } from '@/lib/protocolos';
+import { listSugestoes, sugestoesDaSemana } from '@/lib/protocolos';
 import { diaMes, diasDaSemana, diasUteisDaSemana, lerSemana, nomeDia, rotuloSemana } from '@/lib/semanas';
 import { listTurnos } from '@/lib/turnos';
 import { requirePageAccess } from '@/lib/auth/guards';
@@ -52,9 +52,16 @@ export default async function AgendaSemanaPage({ searchParams }: AgendaSemanaPag
     listTurnos(pool),
   ]);
   const atribuicoes = semana ? await listAgendaSemana(pool, semana.id) : [];
-  // RF-47: o protocolo sugere ao lado da semana, e não lança nada na grade
+  // RF-47: o protocolo sugere abaixo da semana, e não lança nada na grade.
+  // A busca precisa alcançar o fim da semana aberta, que pode estar além do
+  // horizonte; quem recorta para a semana é sugestoesDaSemana.
   const horizonte = await horizonteProtocolo(pool);
-  const sugestoes = await listSugestoes(pool, hoje, horizonte);
+  const diasAteOFim = Math.ceil((Date.parse(`${dias[6]}T00:00:00Z`) - Date.parse(`${hoje}T00:00:00Z`)) / 86_400_000);
+  const sugestoes = sugestoesDaSemana(
+    await listSugestoes(pool, hoje, Math.max(horizonte, diasAteOFim, 0)),
+    inicio,
+    hoje,
+  );
   const grade = montarGrade(funcionarios, atribuicoes);
   const turnosEmUso = turnos.filter((turno) => turno.ativo);
 
@@ -101,9 +108,6 @@ export default async function AgendaSemanaPage({ searchParams }: AgendaSemanaPag
         {semana?.situacao === 'fechada' && (
           <Notice tone="info">Semana fechada: não se altera mais. Correção, só por lançamento na semana seguinte.</Notice>
         )}
-
-        {/* Ao lado da semana, e nunca dentro da grade (RF-47) */}
-        <SugestoesProtocolo sugestoes={sugestoes} semana={inicio} podeLancar={podeMontar} />
 
         {(podeMontar || podePublicar || podeFechar) && (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -181,6 +185,9 @@ export default async function AgendaSemanaPage({ searchParams }: AgendaSemanaPag
             })}
           </div>
         )}
+
+        {/* Abaixo da semana, e nunca dentro da grade (RF-47) */}
+        <SugestoesProtocolo sugestoes={sugestoes} semana={inicio} podeLancar={podeMontar} />
       </div>
     </main>
   );
