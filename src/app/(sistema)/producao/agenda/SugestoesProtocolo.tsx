@@ -25,11 +25,8 @@ export function SugestoesProtocolo({ sugestoes, semana, podeLancar }: SugestoesP
   return (
     <section aria-labelledby="sugestoes-titulo" className="flex flex-col gap-2 rounded-xl border border-line bg-white p-4">
       <h2 id="sugestoes-titulo" className="text-sm font-bold tracking-widest text-muted uppercase">
-        O protocolo sugere
+        Sugestão do protocolo
       </h2>
-      <p className="text-sm text-muted">
-        Nada aqui está na semana. A sugestão vira tarefa quando alguém a aceita e a preenche.
-      </p>
 
       <ul className="flex flex-col gap-2">
         {sugestoes.map((s) => {
@@ -46,8 +43,7 @@ export function SugestoesProtocolo({ sugestoes, semana, podeLancar }: SugestoesP
                 </p>
                 <p className="truncate text-sm text-muted">
                   {s.especie}
-                  {s.canteiro && ` · ${s.canteiro}`} · vence {formatData(s.vencimento)}
-                  {s.diasAtraso > 0 && ` · ${s.diasAtraso} ${s.diasAtraso === 1 ? 'dia' : 'dias'} de atraso`}
+                  {s.canteiro && ` · ${s.canteiro}`} · Data limite: {formatData(s.vencimento)}
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
