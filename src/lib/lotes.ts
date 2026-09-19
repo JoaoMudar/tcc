@@ -14,7 +14,7 @@ import {
 import { proximaPosicao, registrarMovimento, travarLote } from './movimentos';
 // `protocolos.ts` não importa daqui: importa de `lotes-rotulos`, que é sem `pg`.
 // É o que mantém a seta num sentido só e evita o ciclo.
-import { materializarProtocolo } from './protocolos';
+import { herdarProtocolo, materializarProtocolo } from './protocolos';
 import type { Db } from './sql';
 
 export {
@@ -98,8 +98,14 @@ export interface NovoLote {
 interface InsercaoLote extends NovoLote {
   loteOrigemId: string | null;
   fase: Fase;
-  tipoEntrada: Extract<TipoMovimento, 'entrada' | 'repicagem_entrada'>;
+  tipoEntrada: Extract<TipoMovimento, 'entrada' | 'repicagem_entrada' | 'divisao_entrada'>;
   atribuicaoId?: string | null;
+  /**
+   * Data do movimento de entrada. Só a divisão a informa: lá a data de criação é
+   * herdada do original, porque é a âncora das etapas, e a entrada aconteceu
+   * hoje. Nos outros caminhos as duas são a mesma.
+   */
+  dataMovimento?: string;
 }
 
 async function inserirLote(client: Client, input: InsercaoLote): Promise<{ id: string; codigo: string }> {
@@ -143,7 +149,7 @@ async function inserirLote(client: Client, input: InsercaoLote): Promise<{ id: s
     loteId: id,
     tipo: input.tipoEntrada,
     quantidade: input.quantidade,
-    data: input.dataCriacao,
+    data: input.dataMovimento ?? input.dataCriacao,
     atribuicaoId: input.atribuicaoId,
     registradoPor: input.registradoPor,
   });
@@ -235,6 +241,133 @@ export async function repicarLote(
     atribuicaoId: input.atribuicaoId,
   });
   return { ...novo, saldoOrigem: saida.saldo, origemEncerrado: saida.encerrado };
+}
+
+export interface Divisao {
+  origemId: string;
+  /** Quantas mudas vão para o segundo resultante. O primeiro fica com o resto. */
+  quantidade: number;
+  /** Canteiro de cada resultante, que podem ser o mesmo (UC-24 FA-1). */
+  canteiroA: string;
+  canteiroB: string;
+  observacoes: string | null;
+  registradoPor: string;
+}
+
+export interface ResultadoDivisao {
+  a: { id: string; codigo: string; quantidade: number };
+  b: { id: string; codigo: string; quantidade: number };
+  ordensCanceladas: number;
+}
+
+/**
+ * T6.10, RF-40, UC-24: a leva é a mesma, e passa a ocupar dois lugares. Os dois
+ * resultantes herdam a fase, a data de plantio e o acompanhamento do protocolo
+ * do original (RN-39), e o original encerra com motivo `dividido` (RN-38).
+ *
+ * **Os dois nascem, e o original morre.** Não se aproveita o original como um
+ * dos lados: metade da leva ficaria com o código antigo e a outra com um novo, e
+ * a pergunta "de que leva veio esta muda" passaria a ter duas respostas de
+ * natureza diferente. Com dois filhos, `lote_origem_id` responde igual para os
+ * dois lados.
+ *
+ * **Sobre a UC-24 FE-2, e a decisão é de 19/09/2026.** A FE-2 manda recusar a
+ * divisão do lote com "apontamento em curso", e a RN-38 manda cancelar as ordens
+ * em aberto de quem encerra: as duas não cabem juntas se "apontamento em curso"
+ * for a tarefa planejada. Aqui, o que recusa é a tarefa **confirmada** que ainda
+ * não virou movimento fechado no dia da divisão, que é o caso cuja hora
+ * trabalhada perderia destino; a planejada é cancelada pela porta única, como a
+ * rotina 06 descreve. Nenhuma das duas fontes é contrariada.
+ */
+export async function dividirLote(client: Client, input: Divisao): Promise<ResultadoDivisao> {
+  const origem = await travarLote(client, input.origemId);
+  if (!origem) throw new UserError('Lote não encontrado.');
+  if (origem.encerrado) throw new UserError(`O lote ${origem.codigo} está encerrado e não pode ser dividido.`);
+
+  // UC-24 FE-1: divisão que esvazia um dos lados é transferência de canteiro, e tem caminho próprio
+  if (origem.quantidadeAtual < 2) {
+    throw new UserError(`O lote ${origem.codigo} tem ${formatQuantidade(origem.quantidadeAtual)} e não dá para dividir em dois.`);
+  }
+  if (input.quantidade < 1 || input.quantidade >= origem.quantidadeAtual) {
+    throw new UserError(
+      `A divisão separa parte das ${formatQuantidade(origem.quantidadeAtual)} mudas do lote ${origem.codigo}. ` +
+        'Informe um número menor que o saldo: para mover a leva inteira, use a transferência de canteiro.',
+    );
+  }
+
+  const { rows: emCurso } = await client.query<{ codigo: string }>(
+    `SELECT t.nome AS codigo
+       FROM atribuicoes a
+       JOIN tipos_tarefa t ON t.id = a.tipo_tarefa_id
+      WHERE a.lote_id = $1 AND a.situacao = 'confirmada' AND a.data_trabalho = $2
+      LIMIT 1`,
+    [origem.id, hojeNoViveiro()],
+  );
+  if (emCurso[0]) {
+    throw new UserError(
+      `A tarefa "${emCurso[0].codigo}" foi confirmada hoje neste lote. ` +
+        'Divida amanhã, ou corrija a tarefa: dividir agora deixaria a execução apontando para um lote encerrado.',
+    );
+  }
+
+  // A leva inteira sai do original, e volta repartida nos dois resultantes
+  const { rows: ficha } = await client.query<{ fase: Fase; dataPlantio: string | null; dataCriacao: string }>(
+    `SELECT fase, to_char(data_plantio, 'YYYY-MM-DD') AS "dataPlantio",
+            to_char(data_criacao, 'YYYY-MM-DD') AS "dataCriacao"
+       FROM lotes WHERE id = $1`,
+    [origem.id],
+  );
+  const { fase, dataPlantio, dataCriacao } = ficha[0];
+  const hoje = hojeNoViveiro();
+  const paraA = origem.quantidadeAtual - input.quantidade;
+
+  const criar = async (quantidade: number, canteiroId: string) => {
+    const novo = await inserirLote(client, {
+      especieId: origem.especieId,
+      recipienteId: origem.recipienteId,
+      canteiroId,
+      quantidade,
+      // A data de criação é a do original: é ela a âncora das etapas que contam
+      // da criação, e trocá-la por hoje faria a limpeza vencida renascer em dia
+      dataCriacao,
+      observacoes: input.observacoes,
+      registradoPor: input.registradoPor,
+      loteOrigemId: origem.id,
+      fase,
+      tipoEntrada: 'divisao_entrada',
+      dataMovimento: hoje,
+    });
+    // RN-39: a fase e as datas das etapas continuam de onde o original estava
+    if (dataPlantio) await client.query('UPDATE lotes SET data_plantio = $2 WHERE id = $1', [novo.id, dataPlantio]);
+    await herdarProtocolo(client, origem.id, novo.id);
+    return { ...novo, quantidade };
+  };
+
+  const a = await criar(paraA, input.canteiroA);
+  const b = await criar(input.quantidade, input.canteiroB);
+
+  // A saída zera o original, e a porta única o encerra e cancela as ordens dele
+  // (RF-53). O motivo do encerramento é `dividido`, e não `saldo_zero`: o lote
+  // não acabou, virou dois.
+  await registrarMovimento(client, {
+    loteId: origem.id,
+    tipo: 'divisao_saida',
+    quantidade: -origem.quantidadeAtual,
+    data: hoje,
+    observacoes: input.observacoes ?? `Dividido nos lotes ${a.codigo} e ${b.codigo}`,
+    registradoPor: input.registradoPor,
+  });
+  const { rowCount } = await client.query(
+    "UPDATE lotes SET motivo_encerramento = 'dividido' WHERE id = $1 AND encerrado_em IS NOT NULL",
+    [origem.id],
+  );
+  if (!rowCount) throw new UserError('A divisão não encerrou o lote de origem. Nada foi gravado.');
+
+  const { rows: canceladas } = await client.query<{ n: number }>(
+    "SELECT COUNT(*)::int AS n FROM atribuicoes WHERE lote_id = $1 AND situacao = 'cancelada'",
+    [origem.id],
+  );
+  return { a, b, ordensCanceladas: canceladas[0].n };
 }
 
 /**

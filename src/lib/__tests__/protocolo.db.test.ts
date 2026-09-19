@@ -3,7 +3,7 @@ import { Pool, type PoolClient } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { confirmarAtribuicao, criarAtribuicoes } from '../agenda';
 import { insertArea, insertCanteiro } from '../areas';
-import { criarLote, findLote } from '../lotes';
+import { criarLote, dividirLote, findLote } from '../lotes';
 import { registrarMovimento } from '../movimentos';
 import { horizonteProtocolo } from '../parametros';
 import { diasDeAtraso, situacaoDaEtapa, vencimentoDaEtapa } from '../protocolo-motor';
@@ -12,6 +12,7 @@ import {
   insertProtocolo,
   listEtapas,
   listEtapasDoLote,
+  concluirEtapa,
   listSugestoes,
   saveTempoDaEspecie,
 } from '../protocolos';
@@ -701,6 +702,69 @@ describe('a etapa desativada sai da cobrança, e o lote encerrado também', () =
     // E o lote encerrado deixa de aparecer entre as sugestões
     const sugestoes = await listSugestoes(pool, '2030-04-01', 120);
     expect(sugestoes.some((s) => s.loteId === id)).toBe(false);
+  });
+
+  /**
+   * TA-46, RF-40, RN-39. É a linha 20/12 da prova de mesa, e **o caso que decide
+   * se a divisão herda ou recomeça**: os dois filhos nascem vencendo em 14/12,
+   * já vermelhos, e não em 20/03.
+   */
+  it('TA-46: os dois resultantes herdam o vencimento vencido, e divergem a partir da divisão', async () => {
+    const { id } = await novoLote(tubete, canteiro1, '2026-01-10');
+
+    // A limpeza foi feita em 15/09: a próxima vence em 14/12 (15/09 mais 90)
+    await pool.query(
+      `UPDATE lotes_etapas SET ultima_execucao_em = '2026-09-15', ocorrencias = 1
+        WHERE lote_id = $1 AND protocolo_etapa_id = $2`,
+      [id, limpeza],
+    );
+    expect((await daVisao(id, limpeza))!.proximoVencimento).toBe('2026-12-14');
+
+    const { a, b } = await tx((client) =>
+      dividirLote(client, {
+        origemId: id,
+        quantidade: 500,
+        canteiroA: canteiro1,
+        canteiroB: canteiro2,
+        observacoes: null,
+        registradoPor: usuario,
+      }),
+    );
+
+    // Os dois herdam o vencimento vencido, e não recomeçam em 20/03
+    for (const filho of [a.id, b.id]) {
+      expect(await estado(filho, limpeza)).toMatchObject({ ultimaExecucaoEm: '2026-09-15', ocorrencias: 1 });
+      expect((await daVisao(filho, limpeza))!.proximoVencimento).toBe('2026-12-14');
+    }
+
+    // O original encerrou como dividido, e cada filho aponta para ele
+    const original = await findLote(pool, id);
+    expect(original).toMatchObject({ motivoEncerramento: 'dividido', quantidadeAtual: 0, canteiroId: null });
+    expect(original!.filhos.map((f) => f.codigo).sort()).toEqual([a.codigo, b.codigo].sort());
+
+    // O filho A é limpo em 22/12, o B não: a partir daqui os dois divergem
+    await tx((client) => concluirEtapa(client, a.id, limpeza, '2026-12-22'));
+    expect((await daVisao(a.id, limpeza))!.proximoVencimento).toBe('2027-03-22');
+    expect((await daVisao(b.id, limpeza))!.proximoVencimento).toBe('2026-12-14');
+  });
+
+  it('a divisão não deixa o resultante contando da própria criação, que é o erro que ela existe para não cometer', async () => {
+    const { id } = await novoLote(tubete, canteiro1, '2026-01-10');
+    const { a } = await tx((client) =>
+      dividirLote(client, {
+        origemId: id,
+        quantidade: 400,
+        canteiroA: canteiro1,
+        canteiroB: canteiro1,
+        observacoes: null,
+        registradoPor: usuario,
+      }),
+    );
+
+    // A limpeza do original vencia em 10/04, contada da criação em 10/01: o filho herda a mesma data
+    expect((await daVisao(a.id, limpeza))!.proximoVencimento).toBe('2026-04-10');
+    // E a etapa sem âncora continua sem âncora: herdar não inventa evento que não houve
+    expect(await estado(a.id, classificar)).toMatchObject({ dataAncora: null });
   });
 
   it('as etapas do protocolo ficam na ordem de leitura', async () => {

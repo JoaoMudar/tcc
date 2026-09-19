@@ -42,6 +42,10 @@ export const TIPOS_MOVIMENTO = {
   venda: 'Venda',
   ajuste_contagem: 'Ajuste de contagem',
   transferencia: 'Transferência de canteiro',
+  // A divisão mantém o recipiente e separa a leva em dois lugares; a repicagem
+  // troca o vasilhame. São operações diferentes, e o razão as distingue (RN-39).
+  divisao_saida: 'Saída por divisão',
+  divisao_entrada: 'Entrada por divisão',
 } as const;
 
 export type TipoMovimento = keyof typeof TIPOS_MOVIMENTO;

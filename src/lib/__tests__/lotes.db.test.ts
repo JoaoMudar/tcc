@@ -7,6 +7,7 @@ import {
   alterarFase,
   contarLote,
   criarLote,
+  dividirLote,
   findLote,
   listLotesAbertos,
   listMovimentos,
@@ -186,6 +187,68 @@ describe('a porta única contra Postgres real', () => {
       origemCodigo: origem.codigo,
     });
     expect((await listMovimentos(pool, novo.id)).map((m) => m.tipo)).toEqual(['repicagem_entrada']);
+  });
+
+  it('a divisão põe a saída no original e a entrada em cada resultante, e a soma fecha nos três', async () => {
+    // Os três ficam no W-3, que é o canteiro que o TA-17 esvazia: os outros
+    // testes conferem posição e lotação nos seus, e lote novo ali os quebraria
+    const origem = await novoLote(500, 3);
+    const { a, b } = await tx((client) =>
+      dividirLote(client, {
+        origemId: origem.id,
+        quantidade: 200,
+        canteiroA: canteiro[3],
+        canteiroB: canteiro[3],
+        observacoes: null,
+        registradoPor: usuario,
+      }),
+    );
+    expect([a.quantidade, b.quantidade]).toEqual([300, 200]);
+
+    // O original zera pela saída da divisão, e encerra como dividido, e não como saldo zero
+    const ficha = await fichaConferida(origem.id);
+    expect(ficha).toMatchObject({ quantidadeAtual: 0, canteiroId: null, fase: 'encerrado', motivoEncerramento: 'dividido' });
+    expect((await listMovimentos(pool, origem.id)).map((m) => [m.tipo, m.quantidade])).toEqual([
+      ['entrada', 500],
+      ['divisao_saida', -500],
+    ]);
+
+    // Cada resultante nasce com a sua entrada, o mesmo recipiente e o original como origem
+    // UC-24 FA-1: os dois podem ficar no mesmo canteiro, porque a divisão é quase sempre contábil
+    for (const [filho, quantidade, canteiro_] of [
+      [a, 300, 'W-3'],
+      [b, 200, 'W-3'],
+    ] as const) {
+      const fichaFilho = await fichaConferida(filho.id);
+      expect(fichaFilho).toMatchObject({
+        quantidadeAtual: quantidade,
+        quantidadeInicial: quantidade,
+        canteiro: canteiro_,
+        recipienteId: ficha.recipienteId,
+        origemId: origem.id,
+      });
+      expect((await listMovimentos(pool, filho.id)).map((m) => m.tipo)).toEqual(['divisao_entrada']);
+    }
+  });
+
+  it('divisão que não deixa nada de um dos lados é recusada, e o lote continua inteiro', async () => {
+    const { id } = await novoLote(100, 3);
+    const dividir = (quantidade: number) =>
+      tx((client) =>
+        dividirLote(client, {
+          origemId: id,
+          quantidade,
+          canteiroA: canteiro[3],
+          canteiroB: canteiro[3],
+          observacoes: null,
+          registradoPor: usuario,
+        }),
+      );
+    await expect(dividir(100)).rejects.toThrow(/menor que o saldo/);
+    await expect(dividir(200)).rejects.toThrow(/menor que o saldo/);
+
+    expect(await fichaConferida(id)).toMatchObject({ quantidadeAtual: 100, motivoEncerramento: null });
+    expect(await listMovimentos(pool, id)).toHaveLength(1);
   });
 
   it('repicagem acima do saldo, ou para o mesmo recipiente, é recusada sem gravar nada', async () => {
