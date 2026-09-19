@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { Pool, type PoolClient } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { criarAtribuicoes } from '../agenda';
+import { confirmarAtribuicao, criarAtribuicoes } from '../agenda';
 import { insertArea, insertCanteiro } from '../areas';
 import { criarLote, findLote } from '../lotes';
 import { horizonteProtocolo } from '../parametros';
@@ -41,6 +41,7 @@ let irrigacao: string;
 let pessoa: string;
 let turnoManha: string;
 let tipoComLote: string;
+let tipoPlantio: string;
 
 /** Uma linha de `lotes_etapas` como o motor a consome. */
 async function estado(loteId: string, etapaId: string) {
@@ -125,6 +126,14 @@ beforeAll(async () => {
   tipoComLote = tipoRows[0].id;
   const tipoTarefaId = tipoComLote;
 
+  // A categoria `plantio` é o que diz ao motor que esta etapa grava a data de
+  // plantio do lote: nada marca uma etapa como "a do plantio" (RF-48, TA-40)
+  const { rows: plantioRows } = await pool.query<{ id: string }>(
+    `INSERT INTO tipos_tarefa (nome, categoria, exige_lote) VALUES ($1, 'plantio', true) RETURNING id`,
+    [`${prefixo} Plantar`],
+  );
+  tipoPlantio = plantioRows[0].id;
+
   // Quem executa: a sugestão aceita só vira tarefa com participante (RN-41)
   const { rows: pessoaRows } = await pool.query<{ id: string }>(
     "INSERT INTO cadastro.pessoas (tipo, nome) VALUES ('pf', $1) RETURNING id",
@@ -155,7 +164,7 @@ beforeAll(async () => {
       ...extra,
     } as Parameters<typeof insertEtapa>[2]);
 
-  plantar = await etapa('Plantar no tubete', { dias: 0, faseResultante: 'germinado' });
+  plantar = await etapa('Plantar no tubete', { dias: 0, faseResultante: 'germinado', tipoTarefaId: tipoPlantio });
   classificar = await etapa('Classificar pos-germinacao', {
     dias: 40,
     tipoAncora: 'conclusao_de_etapa',
@@ -183,7 +192,13 @@ afterAll(async () => {
   const lotes = 'SELECT id FROM lotes WHERE especie_id IN ($1, $2)';
   // A atribuição aponta para a etapa e para o lote: sai antes dos dois
   await pool.query(`DELETE FROM atribuicoes WHERE lote_id IN (${lotes})`, [especie, especieLenta]);
-  await pool.query('DELETE FROM semanas WHERE inicio_semana IN ($1, $2, $3)', ['2030-02-04', '2030-02-11', '2030-02-18']);
+  await pool.query('DELETE FROM semanas WHERE inicio_semana IN ($1, $2, $3, $4, $5)', [
+    '2030-02-04',
+    '2030-02-11',
+    '2030-02-18',
+    '2030-03-04',
+    '2030-03-11',
+  ]);
   await pool.query(`DELETE FROM lotes_etapas WHERE lote_id IN (${lotes})`, [especie, especieLenta]);
   await pool.query(`DELETE FROM movimentos_lote WHERE lote_id IN (${lotes})`, [especie, especieLenta]);
   await pool.query('DELETE FROM lotes WHERE especie_id IN ($1, $2)', [especie, especieLenta]);
@@ -193,7 +208,7 @@ afterAll(async () => {
   await pool.query('DELETE FROM especies WHERE id IN ($1, $2)', [especie, especieLenta]);
   await pool.query('DELETE FROM recipientes WHERE id IN ($1, $2)', [tubete, semProtocolo]);
   await pool.query("DELETE FROM areas WHERE letra = 'T'");
-  await pool.query('DELETE FROM tipos_tarefa WHERE id = $1', [tipoComLote]);
+  await pool.query('DELETE FROM tipos_tarefa WHERE id IN ($1, $2)', [tipoComLote, tipoPlantio]);
   await pool.query('DELETE FROM cadastro.pessoas WHERE id = $1', [pessoa]);
   await pool.query('DELETE FROM usuarios WHERE id = $1', [usuario]);
   await pool.end();
@@ -463,6 +478,94 @@ describe('as sugestões ao lado da semana', () => {
     const { id } = await novoLote(tubete, canteiro1, '2026-01-10');
     // `classificar` ancora na conclusão do plantio, que não aconteceu: `data_ancora` é nula
     await expect(aceitar(id, classificar, '2030-02-18')).rejects.toThrow(/não vence nada/);
+  });
+});
+
+/**
+ * RF-48, TA-40. A sequencial avança a fase e libera quem ancorava nela; a
+ * recorrente não avança fase nenhuma. É a linha 25/01 da prova de mesa.
+ */
+describe('concluir a etapa: a fase, a data de plantio e as âncoras', () => {
+  /** Aceita a sugestão e confirma a tarefa, que é o caminho real da conclusão. */
+  async function concluir(loteId: string, loteEtapaId: string, semana: string) {
+    const [atribuicaoId] = await tx((client) =>
+      criarAtribuicoes(client, {
+        semana,
+        dias: [semana],
+        turnoId: turnoManha,
+        tipoTarefaId: tipoComLote,
+        horaInicio: null,
+        horaFim: null,
+        participantes: [pessoa],
+        loteId,
+        especieId: null,
+        recipienteId: null,
+        areaId: null,
+        canteiroId: null,
+        quantidadePlanejada: null,
+        recorrente: false,
+        observacoes: null,
+        loteEtapaId,
+      }),
+    );
+    await tx((client) =>
+      confirmarAtribuicao(
+        client,
+        atribuicaoId,
+        { loteId, areaId: null, canteiroId: null, quantidades: [], perda: null },
+        usuario,
+      ),
+    );
+    return atribuicaoId;
+  }
+
+  async function doLote(id: string) {
+    const { rows } = await pool.query<{ fase: string; dataPlantio: string | null }>(
+      `SELECT fase, to_char(data_plantio, 'YYYY-MM-DD') AS "dataPlantio" FROM lotes WHERE id = $1`,
+      [id],
+    );
+    return rows[0];
+  }
+
+  it('TA-40: o plantio avança a fase e grava a data real; a irrigação não mexe em fase alguma', async () => {
+    const { id } = await novoLote(tubete, canteiro1, '2026-01-10');
+    expect(await doLote(id)).toMatchObject({ fase: 'semeado', dataPlantio: null });
+
+    await concluir(id, plantar, '2030-03-04');
+
+    // A fase avançou, e a data de plantio é a do trabalho, não a de hoje
+    expect(await doLote(id)).toMatchObject({ fase: 'germinado', dataPlantio: '2030-03-04' });
+
+    // A recorrente conclui e não promove o lote
+    await concluir(id, irrigacao, '2030-03-11');
+    expect((await doLote(id)).fase).toBe('germinado');
+  });
+
+  it('a etapa que ancorava na concluída ganha a âncora e passa a vencer (RN-31)', async () => {
+    const { id } = await novoLote(tubete, canteiro1, '2026-01-10');
+    // Antes: classificar não vence nada, porque o plantio não foi concluído
+    expect(await estado(id, classificar)).toMatchObject({ dataAncora: null });
+    expect(await daVisao(id, classificar)).toBeNull();
+
+    await concluir(id, plantar, '2030-03-04');
+
+    // Depois: a âncora é a data real da conclusão, e o vencimento sai dela mais 40
+    expect(await estado(id, classificar)).toMatchObject({ dataAncora: '2030-03-04' });
+    expect((await daVisao(id, classificar))!.proximoVencimento).toBe('2030-04-13');
+  });
+
+  it('a sequencial encerra de vez e sai da visão; a recorrente segue, contando da execução', async () => {
+    const { id } = await novoLote(tubete, canteiro1, '2026-01-10');
+
+    await concluir(id, plantar, '2030-03-04');
+    // Encerrada: `concluido_em` preenchida tira a etapa dos vencimentos
+    expect(await daVisao(id, plantar)).toBeNull();
+    expect(await estado(id, plantar)).toMatchObject({ ocorrencias: 1, ultimaExecucaoEm: '2030-03-04' });
+
+    await concluir(id, limpeza, '2030-03-11');
+    // Recorrente: continua na visão, e a próxima conta de 11/03 mais 90 (RN-32)
+    expect(await estado(id, limpeza)).toMatchObject({ ocorrencias: 1, ultimaExecucaoEm: '2030-03-11' });
+    expect((await daVisao(id, limpeza))!.proximoVencimento).toBe('2030-06-09');
   });
 });
 

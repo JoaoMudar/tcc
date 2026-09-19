@@ -10,7 +10,10 @@ import { alterarFaseAction } from '../actions';
 
 const OPCOES = FASES_EDITAVEIS.map((fase) => ({ value: fase, label: FASES[fase] }));
 
-/** T4.9: provisório. Quando o protocolo existir, a fase avança sozinha ao concluir a etapa (T6.7). */
+/**
+ * A fase à mão. Com protocolo, ela avança sozinha ao concluir etapa sequencial
+ * (RF-48); sem protocolo, este é o único caminho até `pronto`.
+ */
 export function FaseForm({ loteId, fase }: { loteId: string; fase: Fase }) {
   const [state, formAction, pending] = useActionState(alterarFaseAction, EMPTY_FORM_STATE);
 

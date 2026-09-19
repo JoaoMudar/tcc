@@ -11,6 +11,8 @@ import { UserError } from './errors';
 import { type CausaPerda, isCausaPerda, lerQuantidade } from './lotes-rotulos';
 import { nomeEspecieSql } from './lotes';
 import { type ResultadoMovimento, registrarMovimento, travarLote } from './movimentos';
+// Seta num sentido só: `protocolos.ts` não importa daqui.
+import { concluirEtapa } from './protocolos';
 import { diasDaSemana, isInicioDeSemana, rotuloSemana } from './semanas';
 import type { Db } from './sql';
 import type { Declaracoes } from './tipos-tarefa';
@@ -454,6 +456,10 @@ interface AtribuicaoTravada {
   situacao: SituacaoAtribuicao;
   loteId: string | null;
   exigeLote: boolean;
+  /** Etapa de origem, quando a tarefa nasceu de sugestão (RF-47). */
+  loteEtapaId: string | null;
+  /** O dia em que a tarefa aconteceu: é a data real da execução (RN-32). */
+  dataTrabalho: string;
   semana: Semana;
 }
 
@@ -463,7 +469,8 @@ async function travarAtribuicao(client: Client, id: string): Promise<AtribuicaoT
   if (!rows[0]) throw new UserError('Tarefa não encontrada.');
   const semana = await travarSemana(client, 'id', rows[0].semanaId);
   const { rows: travada } = await client.query<Omit<AtribuicaoTravada, 'semana'>>(
-    `SELECT a.id, a.situacao, a.lote_id AS "loteId", tt.exige_lote AS "exigeLote"
+    `SELECT a.id, a.situacao, a.lote_id AS "loteId", tt.exige_lote AS "exigeLote",
+            a.lote_etapa_id AS "loteEtapaId", to_char(a.data_trabalho, 'YYYY-MM-DD') AS "dataTrabalho"
        FROM atribuicoes a
        JOIN tipos_tarefa tt ON tt.id = a.tipo_tarefa_id
       WHERE a.id = $1
@@ -850,6 +857,13 @@ export async function confirmarAtribuicao(
           registradoPor,
         })
       : null;
+
+  // RF-48: a tarefa que nasceu de sugestão conclui a etapa que a originou. A
+  // data é a do trabalho, e não a de hoje: é quando a coisa foi feita (RN-32).
+  if (atribuicao.loteEtapaId && input.loteId) {
+    await concluirEtapa(client, input.loteId, atribuicao.loteEtapaId, atribuicao.dataTrabalho);
+  }
+
   return { loteId: input.loteId, perda };
 }
 
