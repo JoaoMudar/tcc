@@ -202,7 +202,11 @@ export async function repicarLoteAction(_previous: FormState, formData: FormData
   redirect(`/producao/lotes/${id}?feito=repicado`);
 }
 
-/** T4.9, provisório até o protocolo avançar a fase sozinho (T6.7). */
+/**
+ * A fase trocada à mão. O protocolo a avança sozinho ao concluir etapa
+ * sequencial (RF-48); isto aqui é o caminho do lote sem protocolo e a correção
+ * de engano.
+ */
 export async function alterarFaseAction(_previous: FormState, formData: FormData): Promise<FormState> {
   await requirePermission('lotes', 'A');
   const loteId = formText(formData, 'lote_id');

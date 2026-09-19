@@ -264,8 +264,14 @@ export async function contarLote(
 }
 
 /**
- * T4.9, provisório até o protocolo (T6.7): a gerência troca a fase à mão. Só lote
- * aberto; `encerrado` não é fase que se escolhe.
+ * A gerência troca a fase à mão. Só lote aberto; `encerrado` não é fase que se
+ * escolhe: essa só a porta de movimentos põe.
+ *
+ * **Continua existindo depois do protocolo (T6.7), e deixou de ser provisório.**
+ * O protocolo avança a fase sozinho ao concluir etapa sequencial que declare
+ * fase resultante (RF-48), mas o lote de recipiente sem protocolo não tem etapa
+ * nenhuma, e sem este caminho ele nunca chegaria a `pronto`, que é o que o saldo
+ * do pedido lê (RF-43). Serve também para corrigir engano.
  */
 export async function alterarFase(db: Db, loteId: string, fase: Exclude<Fase, 'encerrado'>): Promise<'ok' | 'nao_encontrado'> {
   const { rowCount } = await db.query('UPDATE lotes SET fase = $2 WHERE id = $1 AND encerrado_em IS NULL', [loteId, fase]);

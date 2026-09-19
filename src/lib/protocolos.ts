@@ -527,6 +527,86 @@ export async function listSugestoes(db: Db, hoje: string, horizonteDias: number)
   return rows;
 }
 
+/**
+ * RF-48, RF-49: a etapa concluída. Grava a **data real** da execução, e é dela
+ * que a ocorrência seguinte conta (RN-32); nunca da data planejada, que
+ * devolveria o comportamento de calendário fixo que o módulo existe para não
+ * ter.
+ *
+ * A sequencial se encerra de vez e **avança a fase do lote** quando declara fase
+ * resultante; a recorrente nunca avança fase nenhuma (RN-34). Concluída a etapa,
+ * as que ancoravam nela ganham a âncora e passam a vencer (RN-31).
+ *
+ * Roda na transação de quem confirma a tarefa.
+ */
+export async function concluirEtapa(
+  client: Db,
+  loteId: string,
+  protocoloEtapaId: string,
+  dataExecucao: string,
+): Promise<{ faseAvancada: string | null }> {
+  const { rows } = await client.query<{
+    tipoAgendamento: TipoAgendamento;
+    faseResultante: string | null;
+    categoria: string;
+  }>(
+    `SELECT e.tipo_agendamento AS "tipoAgendamento", e.fase_resultante AS "faseResultante", t.categoria
+       FROM protocolos_etapas e
+       JOIN tipos_tarefa t ON t.id = e.tipo_tarefa_id
+      WHERE e.id = $1`,
+    [protocoloEtapaId],
+  );
+  const etapa = rows[0];
+  if (!etapa) return { faseAvancada: null };
+  const sequencial = etapa.tipoAgendamento === 'sequencial';
+
+  // O fato: quando foi feita, e quantas vezes já foi. A sequencial sai da visão
+  // de vencimentos ao encerrar; a recorrente segue, contando dali.
+  const { rowCount } = await client.query(
+    `UPDATE lotes_etapas
+        SET ultima_execucao_em = $3, ocorrencias = ocorrencias + 1,
+            concluido_em = CASE WHEN $4 THEN NOW() ELSE concluido_em END
+      WHERE lote_id = $1 AND protocolo_etapa_id = $2`,
+    [loteId, protocoloEtapaId, dataExecucao, sequencial],
+  );
+  if (!rowCount) return { faseAvancada: null };
+
+  // RN-34: só a sequencial promove o lote, e só quando declara para onde
+  let faseAvancada: string | null = null;
+  if (sequencial && etapa.faseResultante) {
+    const { rowCount: mudou } = await client.query(
+      'UPDATE lotes SET fase = $2 WHERE id = $1 AND encerrado_em IS NULL',
+      [loteId, etapa.faseResultante],
+    );
+    if (mudou) faseAvancada = etapa.faseResultante;
+  }
+
+  /**
+   * A data real do plantio do lote. Nada marca uma etapa como "a do plantio", e
+   * a categoria do tipo de tarefa é o sinal que já existe e não precisa de
+   * coluna nova. Só preenche enquanto estiver vazia: vazio significa "ainda não
+   * germinou", e a primeira conclusão é que o encerra.
+   */
+  if (etapa.categoria === 'plantio') {
+    await client.query('UPDATE lotes SET data_plantio = $2 WHERE id = $1 AND data_plantio IS NULL', [
+      loteId,
+      dataExecucao,
+    ]);
+  }
+
+  // RN-31: as etapas que esperavam esta conclusão ganham a âncora e passam a vencer
+  await client.query(
+    `UPDATE lotes_etapas
+        SET data_ancora = $3
+      WHERE lote_id = $1
+        AND data_ancora IS NULL
+        AND protocolo_etapa_id IN (SELECT id FROM protocolos_etapas WHERE etapa_ancora_id = $2)`,
+    [loteId, protocoloEtapaId, dataExecucao],
+  );
+
+  return { faseAvancada };
+}
+
 export async function updateEtapa(
   db: Db,
   id: string,
