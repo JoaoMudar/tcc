@@ -3,6 +3,16 @@
 Uma entrada por migration nova, como pede o `CLAUDE.md`. As migrations até `20260901000008` são o
 schema inicial em português e estão descritas no `C8`.
 
+## 19/09/2026 · `20260919000001_divisao_de_lote.sql`
+
+- `movimentos_lote_tipo_valido` passa a aceitar `divisao_saida` e `divisao_entrada` (RF-40, RN-39).
+  O `C8` já os descrevia na lista fechada como especificados e não implementados, e a marca saiu de
+  lá na mesma alteração.
+- Reusar os tipos da repicagem teria sido mais barato e estaria errado: repicagem é troca de
+  recipiente, e a divisão mantém o recipiente. A ficha do lote afirmaria uma troca de vasilhame que
+  não houve, e a análise por tipo somaria as duas operações como se fossem a mesma.
+- Compatível: nenhuma linha existente muda, e a lista só cresce.
+
 ## 18/09/2026 · `20260918000001_protocolo_de_atividades.sql`
 
 - `protocolos`, `protocolos_etapas`, `especies_protocolos_tempos` e `lotes_etapas`: as quatro

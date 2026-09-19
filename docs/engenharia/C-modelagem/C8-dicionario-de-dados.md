@@ -614,7 +614,7 @@ aqui, com motivo e origem.
 |---|---|:--:|:--:|---|
 | `id` | uuid | ● | PK | Identificador |
 | `lote_id` | uuid | ● | FK → `lotes` | Lote movimentado |
-| `tipo_movimento` | text | ● | | Motivo em **lista fechada**: `entrada`, `perda`, `repicagem_saida`, `repicagem_entrada`, `venda`, `ajuste_contagem`, `transferencia`, `divisao_saida`, `divisao_entrada`. Os dois últimos são **especificados, não implementados** (RN-39) |
+| `tipo_movimento` | text | ● | | Motivo em **lista fechada**: `entrada`, `perda`, `repicagem_saida`, `repicagem_entrada`, `venda`, `ajuste_contagem`, `transferencia`, `divisao_saida`, `divisao_entrada`. Os dois últimos são os da divisão: o original recebe a saída e cada resultante a sua entrada (RN-39) |
 | `quantidade` | integer | ● | | Quantidade movimentada, com sinal: positiva na entrada, negativa na saída |
 | `data_movimento` | date | ● | | Data do movimento |
 | `canteiro_origem_id` | uuid | ○ | FK → `canteiros` | Canteiro de origem, só em `transferencia` |

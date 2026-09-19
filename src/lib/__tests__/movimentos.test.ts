@@ -35,6 +35,11 @@ describe('sinalValido', () => {
     expect(sinalValido('perda', 10)).toBe(false);
     expect(sinalValido('venda', -1)).toBe(true);
     expect(sinalValido('repicagem_saida', 5)).toBe(false);
+    // RN-39: a divisão tira do original e põe em cada resultante
+    expect(sinalValido('divisao_saida', -500)).toBe(true);
+    expect(sinalValido('divisao_saida', 500)).toBe(false);
+    expect(sinalValido('divisao_entrada', 500)).toBe(true);
+    expect(sinalValido('divisao_entrada', -500)).toBe(false);
     expect(sinalValido('ajuste_contagem', -3)).toBe(true);
     expect(sinalValido('ajuste_contagem', 3)).toBe(true);
     expect(sinalValido('ajuste_contagem', 0)).toBe(false);

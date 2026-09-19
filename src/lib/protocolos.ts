@@ -655,6 +655,39 @@ export async function concluirEtapa(
 }
 
 /**
+ * RF-40, RN-39, TA-46: o acompanhamento do original copiado para o resultante da
+ * divisão. Cada resultante **continua de onde o original estava**, e a partir
+ * daí os dois seguem independentes.
+ *
+ * Sobrescreve o que `materializarProtocolo` acabou de montar: o lote novo nasceu
+ * com as âncoras contadas da criação dele, e é exatamente isso que a divisão não
+ * pode deixar valer. Recomeçar mandaria classificar de novo muda já
+ * classificada, e a limpeza vencida em dezembro renasceria vencendo em março.
+ *
+ * Copia só as etapas que o resultante também tem: o recipiente é o mesmo, então
+ * é o protocolo inteiro, mas a interseção é explícita para que uma etapa
+ * desativada entre a criação do original e a divisão não ressuscite.
+ *
+ * Roda na transação da divisão.
+ */
+export async function herdarProtocolo(client: Db, origemId: string, destinoId: string): Promise<number> {
+  const { rowCount } = await client.query(
+    `UPDATE lotes_etapas destino
+        SET data_ancora = origem.data_ancora,
+            ultima_execucao_em = origem.ultima_execucao_em,
+            ocorrencias = origem.ocorrencias,
+            concluido_em = origem.concluido_em,
+            herdado_do_lote_id = $1
+       FROM lotes_etapas origem
+      WHERE origem.lote_id = $1
+        AND destino.lote_id = $2
+        AND destino.protocolo_etapa_id = origem.protocolo_etapa_id`,
+    [origemId, destinoId],
+  );
+  return rowCount ?? 0;
+}
+
+/**
  * RF-53, RN-38: o protocolo do lote encerrado. Lote encerrado deixa de vencer
  * etapa (a visão `lotes_etapas_vencimento` já o exclui pelo `encerrado_em`, e é
  * por isso que não há nada a apagar em `lotes_etapas`), mas as tarefas que a

@@ -21,9 +21,11 @@ export function sinalValido(tipo: Exclude<TipoMovimento, 'transferencia'>, quant
   switch (tipo) {
     case 'entrada':
     case 'repicagem_entrada':
+    case 'divisao_entrada':
       return quantidade > 0;
     case 'perda':
     case 'repicagem_saida':
+    case 'divisao_saida':
     case 'venda':
       return quantidade < 0;
     case 'ajuste_contagem':

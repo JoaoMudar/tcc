@@ -16,6 +16,7 @@ import { isUuid } from '@/lib/uuid';
 import { requirePageAccess } from '@/lib/auth/guards';
 import { AcaoRecolhivel } from './AcaoRecolhivel';
 import { ContagemForm } from './ContagemForm';
+import { DivisaoForm } from './DivisaoForm';
 import { FaseForm } from './FaseForm';
 import { PerdaForm } from './PerdaForm';
 import { ProtocoloDoLote } from './ProtocoloDoLote';
@@ -68,6 +69,11 @@ export default async function LotePage({ params, searchParams }: LotePageProps) 
         {feito === 'repicado' && (
           <Notice tone="success">
             Repicagem registrada. Este é o lote novo, ligado ao {lote.origemCodigo}.
+          </Notice>
+        )}
+        {feito === 'dividido' && (
+          <Notice tone="success">
+            Divisão registrada. Este é o primeiro lote; o {lote.origemCodigo} encerrou e o segundo está na lista de lotes.
           </Notice>
         )}
         {!aberto && (
@@ -169,6 +175,17 @@ export default async function LotePage({ params, searchParams }: LotePageProps) 
                 atribuicaoId={atribuicaoRepicagem}
               />
             )}
+          </AcaoRecolhivel>
+        )}
+        {podeRepicar && lote.quantidadeAtual > 1 && (
+          <AcaoRecolhivel titulo="Dividir em dois lotes">
+            <DivisaoForm
+              loteId={lote.id}
+              codigo={lote.codigo}
+              saldo={lote.quantidadeAtual}
+              canteiros={canteiros}
+              canteiroAtualId={lote.canteiroId}
+            />
           </AcaoRecolhivel>
         )}
         {podeMovimento && lote.canteiroId && (

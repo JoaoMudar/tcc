@@ -508,9 +508,14 @@ ela.
 
 ### FE-2: Lote com apontamento em curso
 
-No passo 1, há tarefa aberta sobre o lote. O sistema recusa e indica a tarefa: dividir com
-apontamento em curso deixaria a execução apontando para um lote que passou a estar encerrado, e a
-hora trabalhada perderia destino.
+No passo 1, há tarefa **confirmada hoje** sobre o lote. O sistema recusa e indica a tarefa: dividir
+com apontamento em curso deixaria a execução apontando para um lote que passou a estar encerrado, e
+a hora trabalhada perderia destino.
+
+*Precisado em 19/09/2026, na implementação.* A redação anterior dizia "tarefa aberta", e tarefa
+aberta é a **planejada**, que a RN-38 manda **cancelar** no encerramento, e não recusar: as duas
+leituras não cabiam juntas. Quem perde destino é a execução já apontada, isto é, a confirmada do
+dia; a planejada é cancelada como a de qualquer lote que encerra.
 
 ---
 
