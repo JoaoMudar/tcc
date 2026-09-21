@@ -178,3 +178,40 @@ describe('preço gravado', () => {
     expect(valores).toContain('2.50');
   });
 });
+
+/** A observação do histórico é o 5º valor do INSERT: pedido, de, para, autor, observações. */
+function motivoGravado(): unknown {
+  const [, valores] = client.query.mock.calls.find(([sql]) => String(sql).includes('INSERT INTO pedidos_historico'))!;
+  return (valores as unknown[])[4];
+}
+
+describe('cancelamento (T8.5)', () => {
+  it('o motivo digitado fica no histórico', async () => {
+    emSituacao('aprovado');
+    const state = await actions.cancelarPedidoAction({}, form({ pedido_id: PEDIDO, motivo: 'cliente desistiu' }));
+    expect(state.error).toBeUndefined();
+    expect(motivoGravado()).toBe('cliente desistiu');
+  });
+
+  it('sem motivo o pedido cancela do mesmo jeito, e o histórico fica sem observação', async () => {
+    emSituacao('aprovado');
+    const state = await actions.cancelarPedidoAction({}, form({ pedido_id: PEDIDO }));
+    expect(state.error).toBeUndefined();
+    expect(motivoGravado()).toBeNull();
+  });
+
+  it('motivo comprido demais é recusado antes do banco', async () => {
+    const state = await actions.cancelarPedidoAction({}, form({ pedido_id: PEDIDO, motivo: 'x'.repeat(501) }));
+    expect(state.error).toMatch(/500 caracteres/i);
+    expectNoDatabase();
+  });
+
+  it('a gerência não cancela pedido (D4 §3.2)', async () => {
+    loggedAs('gerencia');
+    emSituacao('aprovado');
+    const state = await actions.cancelarPedidoAction({}, form({ pedido_id: PEDIDO, motivo: 'não' }));
+    expect(state.error).toMatch(/não pode passar/i);
+    const gravou = client.query.mock.calls.filter(([sql]) => String(sql).includes('UPDATE pedidos SET situacao'));
+    expect(gravou).toEqual([]);
+  });
+});

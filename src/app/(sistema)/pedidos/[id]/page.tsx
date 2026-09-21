@@ -52,6 +52,11 @@ export default async function PedidoPage({ params, searchParams }: PedidoPagePro
   const emCadastro = pedido.situacao === 'cadastrado';
   const podeEditarItem = emCadastro && can(user.perfil, 'pedidos', 'A');
   const podeSituacao = can(user.perfil, 'confirmacao_pedido', 'A') && pedido.situacao !== 'cancelado';
+  const podeConferir =
+    can(user.perfil, 'verificacao_pedido', 'A') && (emCadastro || pedido.situacao === 'verificando');
+  const podeSeparar =
+    can(user.perfil, 'cargas_pedido', 'A') &&
+    (pedido.situacao === 'aprovado' || pedido.situacao === 'separando');
 
   const [prontos, producao, especies, recipientes] = await Promise.all([
     saldoPronto(pool),
@@ -70,6 +75,30 @@ export default async function PedidoPage({ params, searchParams }: PedidoPagePro
           Voltar
         </Link>
         {feito === 'criado' && <Notice tone="success">Pedido {pedido.numero} registrado.</Notice>}
+        {feito === 'verificado' && (
+          <Notice tone="success">Conferência enviada para a chefia. O pedido está aguardando aprovação.</Notice>
+        )}
+
+        {/* T8.12: a porta da conferência. Só aparece enquanto ela cabe, e para
+            quem a executa: depois de aprovado a apuração já foi consumida. */}
+        {podeConferir && (
+          <Link
+            href={`/pedidos/${pedido.id}/verificar`}
+            className="min-h-touch flex items-center justify-center rounded-xl bg-brand px-5 text-base font-bold text-white"
+          >
+            {emCadastro ? 'Começar a conferência no viveiro' : 'Continuar a conferência'}
+          </Link>
+        )}
+
+        {/* T8.14: a porta do galpão, aberta do aprovado até a última carga */}
+        {podeSeparar && (
+          <Link
+            href={`/pedidos/${pedido.id}/separar`}
+            className="min-h-touch flex items-center justify-center rounded-xl bg-brand px-5 text-base font-bold text-white"
+          >
+            {pedido.situacao === 'aprovado' ? 'Organizar as cargas' : 'Continuar a separação'}
+          </Link>
+        )}
 
         <section className="flex flex-col gap-3 rounded-xl border border-line bg-white p-4">
           <div className="flex items-start justify-between gap-3">
@@ -98,36 +127,49 @@ export default async function PedidoPage({ params, searchParams }: PedidoPagePro
           {pedido.observacoes && <p className="text-base text-muted">{pedido.observacoes}</p>}
         </section>
 
-        {!emCadastro && (
-          <Notice tone={pedido.situacao === 'cancelado' ? 'warning' : 'info'}>
-            {pedido.situacao === 'cancelado'
-              ? 'Pedido cancelado. Os itens ficam como estavam, para consulta.'
-              : `Pedido em ${SITUACOES_PEDIDO[pedido.situacao].toLowerCase()}: o item não muda por aqui.`}
-          </Notice>
+        {/* Só o cancelamento é avisado: ele diz algo que a tela não mostra, que os
+            itens continuam ali para consulta. Que o item não muda fora de
+            `cadastrado` já é dito pela ausência do formulário de edição, e a
+            trava de verdade é do servidor (`exigirCadastrado`). */}
+        {pedido.situacao === 'cancelado' && (
+          <Notice tone="warning">Pedido cancelado. Os itens ficam como estavam, para consulta.</Notice>
         )}
 
         <h2 className="mt-2 text-sm font-bold tracking-widest text-muted uppercase">Itens</h2>
         {pedido.itens.length === 0 && <p className="text-base text-muted">Nenhum item neste pedido.</p>}
         <ul className="flex flex-col gap-3">
           {pedido.itens.map((item) => {
-            const pronto = porChave.get(chaveSaldo(item.especieId, item.recipienteId)) ?? 0;
-            const produzindo = emProducao.get(chaveSaldo(item.especieId, item.recipienteId)) ?? 0;
-            const falta = item.quantidade > pronto;
+            // O genérico ainda não tem espécie, e por isso não tem saldo para ler
+            const chave = item.especieId ? chaveSaldo(item.especieId, item.recipienteId) : null;
+            const pronto = chave ? (porChave.get(chave) ?? 0) : 0;
+            const produzindo = chave ? (emProducao.get(chave) ?? 0) : 0;
+            const falta = chave !== null && item.quantidade > pronto;
+            const filho = item.itemPaiId !== null;
             return (
-              <li key={item.id} className="flex flex-col gap-2 rounded-xl border border-line bg-white p-4">
+              <li
+                key={item.id}
+                className={`flex flex-col gap-2 rounded-xl border border-line bg-white p-4 ${filho ? 'ml-4 border-dashed' : ''}`}
+              >
                 <div className="flex items-baseline justify-between gap-3">
-                  <span className="text-base font-semibold text-ink">{item.especie}</span>
-                  <span className="text-base font-bold text-ink">{formatMoeda(totalItem(item))}</span>
+                  <span className="text-base font-semibold text-ink">
+                    {item.especie ?? 'Espécie a definir na conferência'}
+                  </span>
+                  {/* O filho herda o preço do pai, e não é cobrado de novo (totalPedido) */}
+                  {!filho && <span className="text-base font-bold text-ink">{formatMoeda(totalItem(item))}</span>}
                 </div>
                 <span className="text-sm text-muted">
-                  {item.recipiente} · {formatQuantidade(item.quantidade)} × {formatMoeda(item.precoCentavos)}
+                  {item.recipiente} · {formatQuantidade(item.quantidade)}
+                  {!filho && ` × ${formatMoeda(item.precoCentavos)}`}
                 </span>
+                {item.especificacao && <p className="text-sm text-muted">Pedido do cliente: {item.especificacao}</p>}
                 {/* RF-56: somado dos lotes prontos agora, e não gravado no item */}
-                <p className={`text-sm ${falta ? 'text-amber-800' : 'text-muted'}`}>
-                  Pronto para venda: <strong>{formatQuantidade(pronto)}</strong>
-                  {produzindo > 0 && ` · ${formatQuantidade(produzindo)} em produção, ainda não pronta`}
-                  {falta && ` · faltam ${formatQuantidade(item.quantidade - pronto)}`}
-                </p>
+                {chave && (
+                  <p className={`text-sm ${falta ? 'text-amber-800' : 'text-muted'}`}>
+                    Pronto para venda: <strong>{formatQuantidade(pronto)}</strong>
+                    {produzindo > 0 && ` · ${formatQuantidade(produzindo)} em produção, ainda não pronta`}
+                    {falta && ` · faltam ${formatQuantidade(item.quantidade - pronto)}`}
+                  </p>
+                )}
               </li>
             );
           })}

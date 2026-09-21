@@ -179,14 +179,17 @@ export async function confirmarPedidoAction(_previous: FormState, formData: Form
   }
 }
 
+/** T8.5: o motivo é opcional, e fica na observação do histórico. */
 export async function cancelarPedidoAction(_previous: FormState, formData: FormData): Promise<FormState> {
   const user = await requirePermission('confirmacao_pedido', 'A');
   const pedidoId = formText(formData, 'pedido_id');
   if (!isUuid(pedidoId)) return { error: 'Pedido inválido.' };
+  const motivo = pedidos.parseObservacoesPedido(formText(formData, 'motivo'));
+  if ('error' in motivo) return { error: 'O motivo pode ter até 500 caracteres.' };
 
   try {
     const { numero } = await withTransaction(pool, (client) =>
-      pedidos.cancelarPedido(client, pedidoId, { perfil: user.perfil, usuarioId: user.usuarioId }),
+      pedidos.cancelarPedido(client, pedidoId, { perfil: user.perfil, usuarioId: user.usuarioId }, motivo.value),
     );
     revalidarPedidos(pedidoId);
     return { success: `Pedido ${numero} cancelado. O registro continua aqui.` };

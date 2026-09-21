@@ -50,6 +50,8 @@ export const ACCESS_MATRIX = {
   // 3 · Comercial
   pedidos: { label: 'Pedidos', chefia: 'CLAE', gerencia: 'L', admin: 'CLAE' },
   confirmacao_pedido: { label: 'Confirmação de pedido', chefia: 'A', gerencia: 'A', admin: 'A' },
+  verificacao_pedido: { label: 'Verificação de pedido', chefia: 'CLA', gerencia: 'CLA', admin: 'CLA' },
+  cargas_pedido: { label: 'Cargas do pedido', chefia: 'CLA', gerencia: 'CLA', admin: 'CLA' },
 } as const satisfies Record<string, Regra>;
 
 export type Recurso = keyof typeof ACCESS_MATRIX;

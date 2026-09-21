@@ -3,6 +3,48 @@
 Uma entrada por migration nova, como pede o `CLAUDE.md`. As migrations até `20260901000008` são o
 schema inicial em português e estão descritas no `C8`.
 
+## 21/09/2026 · `20260921000002_pedidos_verificacao_e_cargas.sql`
+
+- **As duas etapas de campo do pedido ganham onde ser registradas.** A migration anterior deu ao
+  pedido oito situações, mas `verificando`, `separando` e `pronto_envio` eram só nomes: o trabalho
+  que acontece dentro de cada uma não tinha coluna nenhuma.
+- `pedidos_itens` ganha `disponivel`, `quantidade_disponivel`, `recipiente_disponivel_id` e
+  `observacoes_disponibilidade`: o que a gerência responde item a item, andando no pátio.
+  **Parcial e indisponível compartilham `disponivel = false`**, e quem os distingue é a quantidade,
+  zero ou maior que zero, com o CHECK `pedidos_itens_disponibilidade_coerente` garantindo a forma.
+- **Isto não contradiz a `20260901000006`**, que declarou não haver coluna de disponibilidade: o
+  saldo continua somado dos lotes a cada consulta (RF-56). Estas colunas não são o saldo, são a
+  resposta de uma pessoa, com autor e hora no histórico.
+- Item genérico: `generico`, `item_pai_id`, `especificacao` e a tabela
+  `pedidos_itens_especies_permitidas`, mais `especie_id` anulável. O cliente pede "500 mudas
+  nativas" e é a gerência quem escolhe as espécies na conferência. **Sem nenhuma linha de escopo,
+  qualquer espécie serve**, e é por isso que o escopo é representado pela ausência.
+- `pedidos_cargas` e `pedidos_cargas_itens`: uma carga é uma viagem do caminhão, e o pedido só fica
+  pronto quando todas estão. A situação da carga tem **dois valores, `pendente` e `pronto`**, e não
+  três: um estado intermediário seria gravado no primeiro item marcado e não diria nada que o
+  progresso de itens separados já não diga.
+- `separado` é confirmação, e não contagem: quantas contar já está em `quantidade`, e um segundo
+  número abriria a pergunta do que fazer quando os dois divergem.
+- Compatível: nenhuma coluna saiu, e todo item existente nasce com `disponivel` nulo, que é
+  "ninguém conferiu ainda".
+
+## 21/09/2026 · `20260921000001_pedidos_fluxo_situacao.sql`
+
+*Entrada escrita em 21/09/2026, junto com a migration seguinte: a original ficou faltando.*
+
+- O pedido passa de três situações a **oito**: `cadastrado`, `verificando`, `verificado`,
+  `pendente_alteracao`, `aprovado`, `separando`, `pronto_envio` e `cancelado`. `rascunho` virou
+  `cadastrado` e `confirmado` virou `aprovado`, com as linhas existentes migradas antes de a
+  constraint nova ser presa.
+- `pedidos.precisa_nota` (boolean, **nula** enquanto ninguém respondeu): a pergunta acontece na
+  aprovação.
+- `pedidos_historico`: toda mudança de situação com autor, data e observação (RN-52). A
+  `20260901000006` dispensara o histórico, e o argumento valia para duas transições feitas pela
+  mesma pessoa; com oito situações e dois perfis se revezando, "a gerência já conferiu?" deixa de
+  ter resposta óbvia.
+- Backfill sintético: uma linha por pedido existente, com a situação em que ele está e o autor do
+  cadastro, para a ficha não precisar de um caso especial para "pedido antigo sem histórico".
+
 ## 19/09/2026 · `20260919000002_situacao_lote_com_protocolo.sql`
 
 - `situacao_lote` recriada com **duas fontes de pendência**: a atribuição planejada atrasada, que já
