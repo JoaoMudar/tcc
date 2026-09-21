@@ -179,10 +179,11 @@ describe('máquina de estados do pedido (T8.5, RN-53)', () => {
     expect(DONO_SITUACAO.cancelado).toBeNull();
   });
 
-  it('a conferência é da gerência, e a chefia não a executa', () => {
+  it('a conferência é da gerência, e a chefia também a executa', () => {
     expect(podeTransicionar('cadastrado', 'verificando', 'gerencia')).toBe(true);
-    expect(podeTransicionar('cadastrado', 'verificando', 'chefia')).toBe(false);
+    expect(podeTransicionar('cadastrado', 'verificando', 'chefia')).toBe(true);
     expect(podeTransicionar('verificando', 'verificado', 'gerencia')).toBe(true);
+    expect(podeTransicionar('verificando', 'verificado', 'chefia')).toBe(true);
   });
 
   it('aprovar e devolver são da chefia, porque é quem responde por preço (RN-50)', () => {
@@ -191,10 +192,25 @@ describe('máquina de estados do pedido (T8.5, RN-53)', () => {
     expect(podeTransicionar('verificado', 'aprovado', 'gerencia')).toBe(false);
   });
 
-  it('a separação é da gerência', () => {
+  it('a separação é da gerência, e a chefia também separa', () => {
     expect(podeTransicionar('aprovado', 'separando', 'gerencia')).toBe(true);
     expect(podeTransicionar('separando', 'pronto_envio', 'gerencia')).toBe(true);
-    expect(podeTransicionar('aprovado', 'separando', 'chefia')).toBe(false);
+    expect(podeTransicionar('aprovado', 'separando', 'chefia')).toBe(true);
+  });
+
+  it('a gerência executa exatamente duas fases: conferir e separar', () => {
+    const daGerencia = TRANSICOES.filter((t) => t.por.includes('gerencia')).map((t) => `${t.de} > ${t.para}`);
+    expect(daGerencia).toEqual([
+      'cadastrado > verificando',
+      'verificando > verificado',
+      'aprovado > separando',
+      'separando > pronto_envio',
+    ]);
+  });
+
+  it('a chefia executa todas as fases, e o admin passa por cima de todas', () => {
+    expect(TRANSICOES.every((t) => t.por.includes('chefia'))).toBe(true);
+    expect(TRANSICOES.every((t) => podeTransicionar(t.de, t.para, 'admin'))).toBe(true);
   });
 
   it('o admin passa por cima, como em can()', () => {

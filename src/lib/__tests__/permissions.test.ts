@@ -37,9 +37,12 @@ describe('ACCESS_MATRIX x D4 §2', () => {
 });
 
 describe('can', () => {
-  it('TA-03: gerência não cria nem lê pedido; chefia cria', () => {
+  it('TA-03: a gerência lê pedido para executar as fases dela, e não cadastra nem altera item', () => {
+    expect(can('gerencia', 'pedidos', 'L')).toBe(true);
     expect(can('gerencia', 'pedidos', 'C')).toBe(false);
-    expect(can('gerencia', 'pedidos', 'L')).toBe(false);
+    expect(can('gerencia', 'pedidos', 'A')).toBe(false);
+    expect(can('gerencia', 'pedidos', 'E')).toBe(false);
+    expect(can('gerencia', 'confirmacao_pedido', 'A')).toBe(true);
     expect(can('chefia', 'pedidos', 'C')).toBe(true);
   });
 

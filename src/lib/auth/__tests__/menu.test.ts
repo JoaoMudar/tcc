@@ -4,8 +4,14 @@ import { visibleNavItems } from '../menu';
 const labels = (perfil: Parameters<typeof visibleNavItems>[0]) => visibleNavItems(perfil).map((i) => i.label);
 
 describe('visibleNavItems', () => {
-  it('gerência não vê Pedidos nem administração', () => {
-    expect(labels('gerencia')).toEqual(['Cadastros', 'Produção', 'Configurações', 'Aparelhos conectados']);
+  it('gerência vê Pedidos, que ela lê para as fases dela, e não vê administração', () => {
+    expect(labels('gerencia')).toEqual([
+      'Cadastros',
+      'Produção',
+      'Pedidos',
+      'Configurações',
+      'Aparelhos conectados',
+    ]);
   });
 
   it('chefia vê Pedidos e não vê administração', () => {

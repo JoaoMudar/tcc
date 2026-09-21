@@ -62,6 +62,11 @@ function pedidoValido(extra: Record<string, string | string[]> = {}) {
   });
 }
 
+/** O pedido que o mock devolve. `n` é a contagem de itens que `confirmarPedido` lê antes de aprovar. */
+function emSituacao(situacao: string) {
+  client.query.mockResolvedValue({ rows: [{ id: PEDIDO, numero: 1, situacao, n: 1 }], rowCount: 1 });
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   client.query.mockResolvedValue({ rows: [{ id: PEDIDO, numero: 1 }], rowCount: 1 });
@@ -75,9 +80,33 @@ describe('permissão (RF-06, D4 §3.2)', () => {
     expectNoDatabase();
   });
 
-  it('a gerência não confirma pedido', async () => {
+  it('a gerência inicia a verificação, que é fase dela (RN-53)', async () => {
     loggedAs('gerencia');
-    await expect(actions.confirmarPedidoAction({}, form({ pedido_id: PEDIDO }))).rejects.toThrow(FORBIDDEN_MESSAGE);
+    emSituacao('cadastrado');
+    const state = await actions.transicionarPedidoAction({}, form({ pedido_id: PEDIDO, para: 'verificando' }));
+    expect(state.error).toBeUndefined();
+    const gravou = client.query.mock.calls.filter(([sql]) => String(sql).includes('UPDATE pedidos SET situacao'));
+    expect(gravou).toHaveLength(1);
+  });
+
+  it('aprovar não é da gerência, e a recusa vem antes de gravar', async () => {
+    loggedAs('gerencia');
+    emSituacao('verificado');
+    const state = await actions.transicionarPedidoAction({}, form({ pedido_id: PEDIDO, para: 'aprovado' }));
+    expect(state.error).toMatch(/não pode passar/i);
+    const gravou = client.query.mock.calls.filter(([sql]) => String(sql).includes('UPDATE pedidos SET situacao'));
+    expect(gravou).toEqual([]);
+  });
+
+  it('a chefia executa também as fases da gerência', async () => {
+    emSituacao('aprovado');
+    const state = await actions.transicionarPedidoAction({}, form({ pedido_id: PEDIDO, para: 'separando' }));
+    expect(state.error).toBeUndefined();
+  });
+
+  it('fase que não existe é recusada antes do banco', async () => {
+    const state = await actions.transicionarPedidoAction({}, form({ pedido_id: PEDIDO, para: 'entregue' }));
+    expect(state.error).toMatch(/fase inválida/i);
     expectNoDatabase();
   });
 
