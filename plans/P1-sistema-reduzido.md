@@ -163,12 +163,18 @@ celular) aguarda execução manual no navegador.*
 
 ## Fase 8: Comercial
 
-- [ ] **T8.1** Cadastro de pedido: cliente (com o cadastro rápido de T3.8), canal, itens com preço digitado e totais (RF-54, RF-55)
-- [ ] **T8.2** Saldo de muda pronta ao lado de cada item, lido de T4.10 a cada consulta (RF-56)
-- [ ] **T8.3** Confirmar e cancelar o pedido, travando os itens no servidor (RF-57)
-- [ ] **T8.4** Lista de pedidos com filtro por cliente, canal e período (RF-58)
+- [x] **T8.1** Cadastro de pedido: cliente (com o cadastro rápido de T3.8), canal, itens com preço digitado e totais (RF-54, RF-55). *`/pedidos/novo`, com as linhas de item numa lista que cresce. **O preço trafega em centavos, inteiro, do formulário ao banco**: somar preço quebrado faria o total de venda não fechar na conferência, e `parsePreco` aceita "12,50", "12.50" e "R$ 1.234,56". O `ClienteRapido` do T3.8 entra aqui sem sair da tela (UC-31 FA-1), e o cliente novo já fica escolhido*
+- [x] **T8.2** Saldo de muda pronta ao lado de cada item, lido de T4.10 a cada consulta (RF-56). *`saldoPronto` é chamado na abertura da tela, e nada é gravado no item. Ao lado dele vai o **em produção** (`saldoEmProducao`, nova em `estoque.ts`), que não compõe o saldo: distinguir "não tenho" de "tenho, mas ainda não está pronto" é o que deixa a chefia responder com uma data em vez de uma recusa (UC-32 FA-1, RN-06). Saldo menor que o pedido **avisa e não recusa** (UC-31 FA-2)*
+- [x] **T8.3** Confirmar e cancelar o pedido, travando os itens no servidor (RF-57). *A trava é de `exigirRascunho`, depois de `SELECT ... FOR UPDATE` na linha do pedido, e não da tela: esconder o botão não impede o formulário reenviado. **O confirmado também cancela, e a decisão é de 21/09/2026**: o diagrama da rotina desenhava o cancelamento só a partir do rascunho, e sem a outra seta a venda que cai depois de confirmada não teria registro. O item continua sem mudar depois de confirmado, que é o que a RF-57 protege; `docs/rotinas/3-comercial/pedidos.md` foi atualizado na mesma alteração*
+- [x] **T8.4** Lista de pedidos com filtro por cliente, canal e período (RF-58). *O período é o dia do registro **no fuso do viveiro**: `criado_em` é UTC, e depois das 21h o pedido de hoje cairia no filtro de amanhã. O total da lista é somado no SQL, em centavos, porque carregar os itens de cada pedido só para somar seria uma consulta por linha*
 
-**Pronto quando:** a perda registrada num lote pronto muda o saldo exibido no item do pedido. É a interligação que o trabalho existe para demonstrar.
+**Sem migration:** `pedidos` e `pedidos_itens` já existiam desde `20260901000006`, e a Fase 8 não acrescentou entidade, atributo nem cardinalidade. Por isso `C6`, `C8`, `modelo-dados-pt` e o CHANGELOG não mudaram.
+
+**Uma correção que o teste contra Postgres pegou:** os itens de um pedido entram na mesma transação e compartilham a hora de criação, que por isso não os desempata; a ordem caía no identificador aleatório, e o pedido aparecia numa ordem arbitrária. `listItens` passou a ordenar por espécie e recipiente, agrupado como quem confere uma venda espera ler.
+
+**Pronto quando:** a perda registrada num lote pronto muda o saldo exibido no item do pedido. É a interligação que o trabalho existe para demonstrar. ✅ *Conferido em 21/09/2026 contra Postgres real: lote de 500 posto em pronto dá saldo 500 no item, e a perda de 120 gravada pela porta única passa o item a exibir 380, sem nada mudar no pedido.*
+
+**Aceite:** TA-49, TA-51, TA-52, TA-53, TA-54, TA-64. *Em 21/09/2026: TA-51 (número sequencial e três itens), TA-52 (total do item e do pedido), TA-53 (confirmado recusa alterar, acrescentar e remover item, e o item fica como estava), TA-54 (os três filtros) e TA-64 (o saldo do item sai dos lotes e muda com a perda) contra Postgres real, em `pedidos.db.test.ts`; preço, totais e filtro por teste puro; as recusas por perfil por teste das actions. TA-49 (concluir o pedido pelo cadastro rápido, sem sair da tela) aguarda execução manual no navegador.*
 
 ## Fase 9: PWA e registro sem conexão (cortável)
 

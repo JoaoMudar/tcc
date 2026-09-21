@@ -10,14 +10,20 @@ A negociação nasce no WhatsApp e é conversa entre pessoas. O sistema não par
 
 ```
 rascunho  →  confirmado
-    ↓
-cancelado
+    ↓            ↓
+cancelado ←──────┘
 ```
 
 **Confirmar é o ato que trava o pedido** (RF-57, RN-48). Enquanto ele está em rascunho, item,
 quantidade e preço se alteram; depois de confirmado, não. São três situações, e não há histórico de
 mudança de estado, porque quem mudou o que e quando é pergunta que um viveiro de nove pessoas
 resolve perguntando.
+
+**O confirmado também cancela, e a decisão é de 21/09/2026.** O caminho comum é o cancelamento
+sair do rascunho, e era só ele que este diagrama desenhava. Sem a outra seta, a venda que cai
+depois de confirmada não teria como ser registrada, e o pedido ficaria para sempre afirmando uma
+entrega que não houve. Nada do que a RF-57 protege se perde: item de pedido confirmado continua
+sem mudar, inclusive no cancelado, que fica como estava, para consulta.
 
 ## Conceitos
 
