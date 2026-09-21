@@ -3,6 +3,7 @@
 import { useActionState, useCallback, useState } from 'react';
 import { ClienteRapido } from '@/components/ClienteRapido';
 import { Button } from '@/components/ui/Button';
+import { ComboboxField } from '@/components/ui/ComboboxField';
 import { Notice } from '@/components/ui/Notice';
 import { type SelectOption, SelectField } from '@/components/ui/SelectField';
 import { TextField } from '@/components/ui/TextField';
@@ -78,14 +79,7 @@ export function NovoPedidoForm({ clientes, especies, recipientes, saldos }: Novo
   return (
     <>
       <form action={formAction} className="flex flex-col gap-4">
-        <SelectField
-          label="Cliente"
-          name="cliente_id"
-          options={opcoesCliente}
-          value={clienteId}
-          onChange={(event) => setClienteId(event.target.value)}
-          required
-        />
+        <ComboboxField label="Cliente" name="cliente_id" options={opcoesCliente} value={clienteId} onChange={setClienteId} />
         <Button variant="outline" onClick={() => setAbrirCliente(true)}>
           Cliente novo
         </Button>
@@ -101,21 +95,19 @@ export function NovoPedidoForm({ clientes, especies, recipientes, saldos }: Novo
           return (
             <fieldset key={linha.chave} className="flex flex-col gap-3 rounded-xl border border-line bg-white p-4">
               <legend className="px-1 text-sm font-semibold text-muted">Item {indice + 1}</legend>
-              <SelectField
+              <ComboboxField
                 label="Espécie"
                 name="item_especie"
                 options={especies}
                 value={linha.especieId}
-                onChange={(event) => alterar(linha.chave, 'especieId', event.target.value)}
-                required
+                onChange={(valor) => alterar(linha.chave, 'especieId', valor)}
               />
-              <SelectField
+              <ComboboxField
                 label="Recipiente"
                 name="item_recipiente"
                 options={recipientes}
                 value={linha.recipienteId}
-                onChange={(event) => alterar(linha.chave, 'recipienteId', event.target.value)}
-                required
+                onChange={(valor) => alterar(linha.chave, 'recipienteId', valor)}
               />
               <div className="grid grid-cols-2 gap-3">
                 <TextField

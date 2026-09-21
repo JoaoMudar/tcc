@@ -18,7 +18,8 @@ lado o que a produção tem pronto.
 |---|---|---|---|
 | 1 | **Pedidos** | O que o cliente quer, tem, e por quanto? | [`pedidos.md`](pedidos.md) |
 
-O ciclo é curto e é todo da chefia, que é quem responde por preço
+O ciclo é da chefia, que é quem responde por preço, com duas fases executadas também pela gerência,
+a conferência no viveiro e a separação da carga
 ([`D4` §3.2](../../engenharia/D-arquitetura/D4-matriz-rbac.md)):
 
 ```

@@ -157,7 +157,7 @@ export default async function PedidoPage({ params, searchParams }: PedidoPagePro
               }))}
           />
         )}
-        {podeSituacao && <SituacaoForms pedidoId={pedido.id} situacao={pedido.situacao} />}
+        {podeSituacao && <SituacaoForms pedidoId={pedido.id} situacao={pedido.situacao} perfil={user.perfil} />}
       </div>
     </main>
   );

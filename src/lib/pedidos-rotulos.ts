@@ -23,8 +23,9 @@ export function isCanalVenda(value: string): value is CanalVenda {
 
 /**
  * RN-53: o pedido percorre oito situações, e **cada uma tem dono**. A chefia
- * cadastra e decide; a gerência confere no viveiro e separa. Saber de quem o
- * pedido está esperando é o que a lista usa para pôr a etiqueta de providência.
+ * cadastra e decide; a conferência no viveiro e a separação são da gerência, e a
+ * chefia também as executa. Saber de quem o pedido está esperando é o que a
+ * lista usa para pôr a etiqueta de providência.
  *
  * Substitui as três situações da RN-48 (`rascunho`, `confirmado`, `cancelado`),
  * que descreviam um comercial sem conferência nem separação.
@@ -62,9 +63,18 @@ export interface Transicao {
   de: SituacaoPedido;
   para: SituacaoPedido;
   /** Admin não entra aqui: ele passa por cima, como em `can`. */
-  por: Exclude<Perfil, 'admin'>;
+  por: readonly Exclude<Perfil, 'admin'>[];
   rotulo: string;
 }
+
+/**
+ * **A chefia executa todas as fases, e a gerência só duas**: conferir no viveiro
+ * e separar a carga. A gerência não fica de fora das outras por proteção, e sim
+ * porque são decisão comercial (D4 §3.2); a chefia entra nas duas da gerência
+ * porque é ela quem faz o trabalho quando a gerência não está.
+ */
+const CHEFIA_E_GERENCIA = ['chefia', 'gerencia'] as const;
+const SO_CHEFIA = ['chefia'] as const;
 
 /**
  * Editar item **volta o pedido para o começo da conferência**: o que a gerência
@@ -82,32 +92,37 @@ const EDITAVEIS_PELA_CHEFIA = ['verificado', 'pendente_alteracao', 'aprovado', '
 const CANCELAVEIS = (Object.keys(SITUACOES_PEDIDO) as SituacaoPedido[]).filter((s) => s !== 'cancelado');
 
 export const TRANSICOES: readonly Transicao[] = [
-  { de: 'cadastrado', para: 'verificando', por: 'gerencia', rotulo: 'Iniciar verificação' },
-  { de: 'verificando', para: 'verificado', por: 'gerencia', rotulo: 'Enviar para a chefia' },
-  { de: 'verificado', para: 'aprovado', por: 'chefia', rotulo: 'Aprovar pedido' },
-  { de: 'verificado', para: 'pendente_alteracao', por: 'chefia', rotulo: 'Solicitar alteração' },
-  { de: 'aprovado', para: 'separando', por: 'gerencia', rotulo: 'Organizar cargas' },
-  { de: 'separando', para: 'pronto_envio', por: 'gerencia', rotulo: 'Concluir separação' },
+  { de: 'cadastrado', para: 'verificando', por: CHEFIA_E_GERENCIA, rotulo: 'Iniciar verificação' },
+  { de: 'verificando', para: 'verificado', por: CHEFIA_E_GERENCIA, rotulo: 'Enviar para a chefia' },
+  { de: 'verificado', para: 'aprovado', por: SO_CHEFIA, rotulo: 'Aprovar pedido' },
+  { de: 'verificado', para: 'pendente_alteracao', por: SO_CHEFIA, rotulo: 'Solicitar alteração' },
+  { de: 'aprovado', para: 'separando', por: CHEFIA_E_GERENCIA, rotulo: 'Organizar cargas' },
+  { de: 'separando', para: 'pronto_envio', por: CHEFIA_E_GERENCIA, rotulo: 'Concluir separação' },
   ...EDITAVEIS_PELA_CHEFIA.map((de) => ({
     de,
     para: 'cadastrado' as const,
-    por: 'chefia' as const,
+    por: SO_CHEFIA,
     rotulo: 'Salvar e reenviar para verificação',
   })),
-  ...CANCELAVEIS.map((de) => ({ de, para: 'cancelado' as const, por: 'chefia' as const, rotulo: 'Cancelar pedido' })),
+  ...CANCELAVEIS.map((de) => ({ de, para: 'cancelado' as const, por: SO_CHEFIA, rotulo: 'Cancelar pedido' })),
 ];
+
+/** O admin passa por cima, como em `can`; o resto precisa estar na lista da transição. */
+function executa(transicao: Transicao, perfil: Perfil): boolean {
+  return perfil === 'admin' || (transicao.por as readonly Perfil[]).includes(perfil);
+}
 
 /**
  * A trava de verdade é do servidor (RF-57), e esta função é o contrato que ela
  * consulta. Esconder o botão na tela não impede o formulário reenviado.
  */
 export function podeTransicionar(de: SituacaoPedido, para: SituacaoPedido, perfil: Perfil): boolean {
-  return TRANSICOES.some((t) => t.de === de && t.para === para && (perfil === 'admin' || t.por === perfil));
+  return TRANSICOES.some((t) => t.de === de && t.para === para && executa(t, perfil));
 }
 
 /** O que este perfil pode fazer com o pedido agora, para a tela montar os botões. */
 export function transicoesDe(de: SituacaoPedido, perfil: Perfil): readonly Transicao[] {
-  return TRANSICOES.filter((t) => t.de === de && (perfil === 'admin' || t.por === perfil));
+  return TRANSICOES.filter((t) => t.de === de && executa(t, perfil));
 }
 
 const MOEDA = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });

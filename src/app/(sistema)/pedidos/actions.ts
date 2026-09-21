@@ -139,6 +139,29 @@ export async function removerItemAction(_previous: FormState, formData: FormData
   return { success: 'Item removido.' };
 }
 
+/**
+ * T8.6, RN-53: a mudança de fase que a tela ofereceu, conferida de novo aqui. O
+ * guard do D4 diz que este perfil mexe na situação do pedido; `mudarSituacao`
+ * diz se esta fase, saindo desta situação, é dele (D4 §3.2).
+ */
+export async function transicionarPedidoAction(_previous: FormState, formData: FormData): Promise<FormState> {
+  const user = await requirePermission('confirmacao_pedido', 'A');
+  const pedidoId = formText(formData, 'pedido_id');
+  const para = formText(formData, 'para');
+  if (!isUuid(pedidoId)) return { error: 'Pedido inválido.' };
+  if (!pedidos.isSituacaoPedido(para)) return { error: 'Fase inválida.' };
+
+  try {
+    const { numero } = await withTransaction(pool, (client) =>
+      pedidos.mudarSituacao(client, pedidoId, para, { perfil: user.perfil, usuarioId: user.usuarioId }),
+    );
+    revalidarPedidos(pedidoId);
+    return { success: `Pedido ${numero}: ${pedidos.SITUACOES_PEDIDO[para].toLowerCase()}.` };
+  } catch (error) {
+    return { error: toUserMessage(error) };
+  }
+}
+
 /** T8.3, RF-57: confirmar trava os itens. O guard é o do D4, `confirmacao_pedido`. */
 export async function confirmarPedidoAction(_previous: FormState, formData: FormData): Promise<FormState> {
   const user = await requirePermission('confirmacao_pedido', 'A');

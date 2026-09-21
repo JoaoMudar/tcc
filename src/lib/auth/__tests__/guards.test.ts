@@ -53,11 +53,17 @@ describe('requirePageAccess', () => {
 
   it('página sem permissão manda para a explicação', async () => {
     loggedAs('gerencia');
-    await expect(requirePageAccess('pedidos')).rejects.toThrow('redirect:/sem-permissao');
+    await expect(requirePageAccess('dados_fiscais')).rejects.toThrow('redirect:/sem-permissao');
   });
 
   it('página permitida devolve o usuário', async () => {
     loggedAs('chefia');
     await expect(requirePageAccess('pedidos')).resolves.toMatchObject({ perfil: 'chefia' });
+  });
+
+  it('D4 §3.2: a gerência abre a carteira de pedidos, e não a tela de cadastrar', async () => {
+    loggedAs('gerencia');
+    await expect(requirePageAccess('pedidos')).resolves.toMatchObject({ perfil: 'gerencia' });
+    await expect(requirePageAccess('pedidos', 'C')).rejects.toThrow('redirect:/sem-permissao');
   });
 });

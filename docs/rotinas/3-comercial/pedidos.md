@@ -60,10 +60,11 @@ separação, entrega nem cotação**: essas etapas acontecem na operação e con
 
 ## Quem opera
 
-Pedido é recurso da chefia, e a gerência não o lê
-([`D4` §3.2](../../engenharia/D-arquitetura/D4-matriz-rbac.md)). O que a produção precisa saber do
-comercial é quanto foi vendido de cada espécie, e isso ela lê pelo saldo disponível, sem a carteira
-de pedidos.
+Cadastrar e alterar pedido é da chefia, e a gerência não faz nem um nem outro
+([`D4` §3.2](../../engenharia/D-arquitetura/D4-matriz-rbac.md)). A gerência **lê a carteira
+inteira**, com preço e total, e executa duas fases: conferir o pedido no viveiro e separar a carga
+depois de aprovado. Aprovar, devolver para alteração e cancelar são da chefia, que também executa
+as duas fases da gerência quando é ela quem faz o trabalho.
 
 ## Dependências com outras rotinas
 
