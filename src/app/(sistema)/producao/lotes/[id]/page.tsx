@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { PageHeader } from '@/components/PageHeader';
+import { AcaoRecolhivel } from '@/components/ui/AcaoRecolhivel';
 import { Notice } from '@/components/ui/Notice';
 import { Pill } from '@/components/ui/Pill';
 import { formatData, hojeNoViveiro } from '@/lib/datas';
@@ -14,7 +15,6 @@ import { listEtapasDoLote } from '@/lib/protocolos';
 import { formatVolume, listRecipientes } from '@/lib/recipientes';
 import { isUuid } from '@/lib/uuid';
 import { requirePageAccess } from '@/lib/auth/guards';
-import { AcaoRecolhivel } from './AcaoRecolhivel';
 import { ContagemForm } from './ContagemForm';
 import { DivisaoForm } from './DivisaoForm';
 import { FaseForm } from './FaseForm';

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { PageHeader } from '@/components/PageHeader';
+import { AcaoRecolhivel } from '@/components/ui/AcaoRecolhivel';
 import { Notice } from '@/components/ui/Notice';
 import { Pill, type PillTone } from '@/components/ui/Pill';
 import { formatData } from '@/lib/datas';
@@ -127,14 +128,6 @@ export default async function PedidoPage({ params, searchParams }: PedidoPagePro
                   {produzindo > 0 && ` · ${formatQuantidade(produzindo)} em produção, ainda não pronta`}
                   {falta && ` · faltam ${formatQuantidade(item.quantidade - pronto)}`}
                 </p>
-                {podeEditarItem && (
-                  <ItemDoPedido
-                    pedidoId={pedido.id}
-                    itemId={item.id}
-                    quantidade={item.quantidade}
-                    precoCentavos={item.precoCentavos}
-                  />
-                )}
               </li>
             );
           })}
@@ -145,19 +138,39 @@ export default async function PedidoPage({ params, searchParams }: PedidoPagePro
           <span className="text-2xl font-bold text-ink">{formatMoeda(totalPedido(pedido.itens))}</span>
         </div>
 
-        {podeEditarItem && (
-          <AdicionarItemForm
-            pedidoId={pedido.id}
-            especies={especies.filter((e) => e.ativa).map((e) => ({ value: e.id, label: nomeExibido(e) }))}
-            recipientes={recipientes
-              .filter((r) => r.ativo)
-              .map((r) => ({
-                value: r.id,
-                label: r.volumeLitros === null ? r.nome : `${r.nome} · ${formatVolume(r.volumeLitros)}`,
-              }))}
-          />
-        )}
+        {/* O andamento vem antes da edição: quem abre a ficha quer o próximo passo, não o formulário */}
         {podeSituacao && <SituacaoForms pedidoId={pedido.id} situacao={pedido.situacao} perfil={user.perfil} />}
+
+        {podeEditarItem && (
+          <AcaoRecolhivel titulo="Alterar itens do pedido">
+            <div className="flex flex-col gap-4">
+              <ul className="flex flex-col gap-4">
+                {pedido.itens.map((item) => (
+                  <li key={item.id} className="flex flex-col gap-1">
+                    <span className="text-base font-semibold text-ink">{item.especie}</span>
+                    <span className="text-sm text-muted">{item.recipiente}</span>
+                    <ItemDoPedido
+                      pedidoId={pedido.id}
+                      itemId={item.id}
+                      quantidade={item.quantidade}
+                      precoCentavos={item.precoCentavos}
+                    />
+                  </li>
+                ))}
+              </ul>
+              <AdicionarItemForm
+                pedidoId={pedido.id}
+                especies={especies.filter((e) => e.ativa).map((e) => ({ value: e.id, label: nomeExibido(e) }))}
+                recipientes={recipientes
+                  .filter((r) => r.ativo)
+                  .map((r) => ({
+                    value: r.id,
+                    label: r.volumeLitros === null ? r.nome : `${r.nome} · ${formatVolume(r.volumeLitros)}`,
+                  }))}
+              />
+            </div>
+          </AcaoRecolhivel>
+        )}
       </div>
     </main>
   );

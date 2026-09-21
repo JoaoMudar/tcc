@@ -38,7 +38,8 @@ export function SituacaoForms({ pedidoId, situacao, perfil }: SituacaoFormsProps
   };
 
   return (
-    <div className="flex flex-col gap-3">
+    <section className="flex flex-col gap-3 rounded-xl border border-line bg-white p-4">
+      <h2 className="text-sm font-bold tracking-widest text-muted uppercase">Andamento</h2>
       {[transicao, confirmacao, cancelamento].map((estado, indice) => (
         <Fragment key={indice}>
           {estado.error && <Notice tone="error">{estado.error}</Notice>}
@@ -59,6 +60,6 @@ export function SituacaoForms({ pedidoId, situacao, perfil }: SituacaoFormsProps
           </form>
         );
       })}
-    </div>
+    </section>
   );
 }
