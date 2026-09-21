@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { diaUtilAnterior } from '../datas';
 import {
   CANAIS_VENDA,
   CANAL_PADRAO,
@@ -13,9 +14,13 @@ import {
   parsePreco,
   podeTransicionar,
   precoParaCampo,
+  resolveDisponibilidade,
   totalItem,
   totalPedido,
   transicoesDe,
+  urgenciaPedido,
+  validarComposicaoGenerico,
+  validarDivisaoCargas,
 } from '../pedidos-rotulos';
 import { parseDataEntrega, parseFiltroPedidos, parseObservacoesPedido, parseQuantidadeItem } from '../pedidos';
 
@@ -91,6 +96,240 @@ describe('totais (RF-55)', () => {
 
   it('pedido sem item tem total zero', () => {
     expect(totalPedido([])).toBe(0);
+  });
+
+  it('o filho do item genérico não soma de novo, senão a venda dobraria', () => {
+    // O pai foi vendido por 500 × 2,00. Os filhos herdam o preço e só dizem
+    // quais espécies compõem aquelas 500 mudas.
+    const itens = [
+      { quantidade: 500, precoCentavos: 200 },
+      { quantidade: 300, precoCentavos: 200, itemPaiId: 'pai' },
+      { quantidade: 200, precoCentavos: 200, itemPaiId: 'pai' },
+    ];
+    expect(totalPedido(itens)).toBe(100_000);
+  });
+});
+
+describe('disponibilidade do item (T8.9)', () => {
+  it('disponível não guarda quantidade nem recipiente: é o item inteiro, como pedido', () => {
+    expect(resolveDisponibilidade('disponivel', 500)).toEqual({
+      value: { disponivel: true, quantidadeDisponivel: null, recipienteDisponivelId: null },
+    });
+  });
+
+  it('indisponível é o falso com quantidade zero', () => {
+    expect(resolveDisponibilidade('indisponivel', 500)).toEqual({
+      value: { disponivel: false, quantidadeDisponivel: 0, recipienteDisponivelId: null },
+    });
+  });
+
+  it('parcial guarda quanto tem e em que recipiente está', () => {
+    expect(resolveDisponibilidade('parcial', 500, { quantidade: 300, recipienteId: 'r1' })).toEqual({
+      value: { disponivel: false, quantidadeDisponivel: 300, recipienteDisponivelId: 'r1' },
+    });
+  });
+
+  it('o recipiente da parcial pode ser outro, e isso não é erro', () => {
+    // Achou as 300 em saco 17x22 quando o pedido dizia 10x18: a chefia vê na aprovação
+    const resolvida = resolveDisponibilidade('parcial', 500, { quantidade: 300, recipienteId: 'outro' });
+    expect(resolvida).toHaveProperty('value');
+  });
+
+  it('parcial com zero, negativo ou quebrado é recusada', () => {
+    expect(resolveDisponibilidade('parcial', 500, { quantidade: 0, recipienteId: 'r1' })).toHaveProperty('error');
+    expect(resolveDisponibilidade('parcial', 500, { quantidade: -1, recipienteId: 'r1' })).toHaveProperty('error');
+    expect(resolveDisponibilidade('parcial', 500, { quantidade: 1.5, recipienteId: 'r1' })).toHaveProperty('error');
+    expect(resolveDisponibilidade('parcial', 500, { recipienteId: 'r1' })).toHaveProperty('error');
+  });
+
+  it('parcial igual ao total manda usar disponível, em vez de gravar um parcial que é o todo', () => {
+    const resolvida = resolveDisponibilidade('parcial', 500, { quantidade: 500, recipienteId: 'r1' });
+    expect(resolvida).toHaveProperty('error');
+    expect((resolvida as { error: string }).error).toMatch(/disponível/i);
+  });
+
+  it('parcial sem recipiente é recusada', () => {
+    expect(resolveDisponibilidade('parcial', 500, { quantidade: 300 })).toHaveProperty('error');
+  });
+});
+
+describe('composição do item genérico (T8.9)', () => {
+  const linha = (especieId: string, quantidade: number) => ({ especieId, recipienteId: 'r1', quantidade });
+
+  it('fecha quando a soma é exatamente a do pai', () => {
+    const linhas = [linha('e1', 300), linha('e2', 200)];
+    expect(validarComposicaoGenerico(500, linhas)).toEqual({ value: linhas });
+  });
+
+  it('sem escopo, qualquer espécie serve', () => {
+    expect(validarComposicaoGenerico(100, [linha('qualquer', 100)], [])).toHaveProperty('value');
+  });
+
+  it('com escopo, a espécie de fora é bloqueio, e não aviso', () => {
+    const recusada = validarComposicaoGenerico(100, [linha('e9', 100)], ['e1', 'e2']);
+    expect(recusada).toHaveProperty('error');
+    expect((recusada as { error: string }).error).toMatch(/aceita/i);
+  });
+
+  it('composição vazia é recusada', () => {
+    expect(validarComposicaoGenerico(500, [])).toHaveProperty('error');
+  });
+
+  it('diz quanto falta e quanto passou, que é o que a pessoa precisa para corrigir', () => {
+    expect(validarComposicaoGenerico(500, [linha('e1', 300)])).toEqual({ error: 'Faltam 200 mudas para fechar o item.' });
+    expect(validarComposicaoGenerico(500, [linha('e1', 600)])).toEqual({ error: 'Passou 100 mudas do que o item pede.' });
+  });
+
+  it('linha sem espécie, sem recipiente ou com quantidade inválida diz qual linha é', () => {
+    expect(validarComposicaoGenerico(100, [{ especieId: '', recipienteId: 'r1', quantidade: 100 }])).toEqual({
+      error: 'Escolha a espécie da linha 1.',
+    });
+    expect(validarComposicaoGenerico(100, [{ especieId: 'e1', recipienteId: '', quantidade: 100 }])).toEqual({
+      error: 'Escolha o recipiente da linha 1.',
+    });
+    expect(validarComposicaoGenerico(100, [linha('e1', 50), { ...linha('e2', 0) }])).toHaveProperty('error');
+  });
+});
+
+describe('divisão em cargas (T8.9)', () => {
+  const itens = [
+    { id: 'i1', quantidade: 500, nome: 'Ipê Amarelo' },
+    { id: 'i2', quantidade: 200, nome: 'Araucária' },
+  ];
+
+  it('fecha quando cada item soma o seu total nas cargas', () => {
+    const cargas = [
+      [
+        { itemId: 'i1', quantidade: 300 },
+        { itemId: 'i2', quantidade: 200 },
+      ],
+      [{ itemId: 'i1', quantidade: 200 }],
+    ];
+    expect(validarDivisaoCargas(itens, cargas)).toEqual({ value: cargas });
+  });
+
+  it('divide em três cargas', () => {
+    const cargas = [
+      [{ itemId: 'i1', quantidade: 200 }],
+      [{ itemId: 'i1', quantidade: 200 }],
+      [
+        { itemId: 'i1', quantidade: 100 },
+        { itemId: 'i2', quantidade: 200 },
+      ],
+    ];
+    expect(validarDivisaoCargas(itens, cargas)).toHaveProperty('value');
+  });
+
+  it('item que ficou faltando é recusado, dizendo qual é e quanto deu', () => {
+    const cargas = [
+      [
+        { itemId: 'i1', quantidade: 450 },
+        { itemId: 'i2', quantidade: 200 },
+      ],
+    ];
+    expect(validarDivisaoCargas(itens, cargas)).toEqual({
+      error: 'Ipê Amarelo: a soma das cargas (450) não bate com o total do item (500).',
+    });
+  });
+
+  it('item que passou do total é recusado', () => {
+    const cargas = [
+      [
+        { itemId: 'i1', quantidade: 500 },
+        { itemId: 'i2', quantidade: 250 },
+      ],
+    ];
+    expect(validarDivisaoCargas(itens, cargas)).toHaveProperty('error');
+  });
+
+  it('item que não entrou em carga nenhuma é recusado', () => {
+    const cargas = [[{ itemId: 'i1', quantidade: 500 }]];
+    expect(validarDivisaoCargas(itens, cargas)).toHaveProperty('error');
+  });
+
+  it('quantidade negativa é recusada', () => {
+    const cargas = [
+      [
+        { itemId: 'i1', quantidade: 600 },
+        { itemId: 'i2', quantidade: 200 },
+      ],
+      [{ itemId: 'i1', quantidade: -100 }],
+    ];
+    expect(validarDivisaoCargas(itens, cargas)).toHaveProperty('error');
+  });
+
+  it('carga vazia não é erro: ela é descartada na gravação', () => {
+    const cargas = [
+      [
+        { itemId: 'i1', quantidade: 500 },
+        { itemId: 'i2', quantidade: 200 },
+      ],
+      [],
+    ];
+    expect(validarDivisaoCargas(itens, cargas)).toHaveProperty('value');
+  });
+
+  it('sem carga nenhuma é recusado', () => {
+    expect(validarDivisaoCargas(itens, [])).toHaveProperty('error');
+  });
+
+  it('item de outro pedido é recusado', () => {
+    expect(validarDivisaoCargas(itens, [[{ itemId: 'alheio', quantidade: 1 }]])).toHaveProperty('error');
+  });
+});
+
+describe('urgência do pedido (T8.9)', () => {
+  const hoje = '2026-09-21'; // segunda-feira
+
+  it('sem data de entrega não há urgência nenhuma', () => {
+    expect(urgenciaPedido(hoje, null, null)).toBeNull();
+  });
+
+  it('entrega hoje vem antes de tudo', () => {
+    expect(urgenciaPedido(hoje, hoje, diaUtilAnterior(hoje))).toBe('entrega_hoje');
+  });
+
+  it('entrega que já passou fica atrasada', () => {
+    expect(urgenciaPedido(hoje, '2026-09-18', diaUtilAnterior('2026-09-18'))).toBe('atrasada');
+  });
+
+  it('o dia de carregar chegou, e é o que a gerência precisa ver', () => {
+    // Entrega terça 22, carrega segunda 21, que é hoje
+    expect(urgenciaPedido(hoje, '2026-09-22', diaUtilAnterior('2026-09-22'))).toBe('carregar_hoje');
+  });
+
+  it('entrega amanhã sem ser dia de carregar ainda aparece', () => {
+    // Quando o dia de carregar é depois de hoje, o que resta é o aviso da entrega
+    expect(urgenciaPedido(hoje, '2026-09-22', '2026-09-22')).toBe('entrega_amanha');
+  });
+
+  it('até três dias é em breve, e depois disso não ganha etiqueta', () => {
+    expect(urgenciaPedido(hoje, '2026-09-24', '2026-09-23')).toBe('em_breve');
+    expect(urgenciaPedido(hoje, '2026-10-30', '2026-10-29')).toBeNull();
+  });
+});
+
+describe('dia de carregar (T8.9)', () => {
+  it('entrega na segunda carrega na sexta, pulando o fim de semana', () => {
+    expect(diaUtilAnterior('2026-09-21')).toBe('2026-09-18');
+  });
+
+  it('entrega na terça carrega na segunda', () => {
+    expect(diaUtilAnterior('2026-09-22')).toBe('2026-09-21');
+  });
+
+  it('entrega no sábado e no domingo carregam na sexta', () => {
+    expect(diaUtilAnterior('2026-09-26')).toBe('2026-09-25');
+    expect(diaUtilAnterior('2026-09-27')).toBe('2026-09-25');
+  });
+
+  it('não devolve nunca um sábado nem um domingo', () => {
+    for (let dia = 1; dia <= 28; dia++) {
+      const data = `2026-09-${String(dia).padStart(2, '0')}`;
+      const carrega = new Date(`${diaUtilAnterior(data)}T00:00:00Z`).getUTCDay();
+      expect(carrega).not.toBe(0);
+      expect(carrega).not.toBe(6);
+    }
   });
 });
 

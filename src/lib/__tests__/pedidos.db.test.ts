@@ -11,15 +11,21 @@ import {
   adicionarItem,
   atualizarItem,
   cancelarPedido,
+  concluirVerificacao,
   confirmarPedido,
   criarPedido,
+  definirComposicaoGenerico,
   findPedido,
+  iniciarVerificacao,
   listClientes,
+  listEspeciesPermitidas,
   listHistorico,
   listItens,
   listPedidos,
+  marcarDisponibilidade,
   mudarSituacao,
   removerItem,
+  salvarObservacoesVerificacao,
   totalPedido,
 } from '../pedidos';
 import { insertClienteRapido } from '../pessoas';
@@ -55,6 +61,16 @@ function itens() {
     { especieId: especie, recipienteId: saco, quantidade: 50, precoCentavos: 1250 },
     { especieId: especie, recipienteId: tubete, quantidade: 1, precoCentavos: 999 },
   ];
+}
+
+/**
+ * Do maior para o menor. Os três itens de `itens()` entram na mesma transação e
+ * dois deles têm a mesma espécie e o mesmo recipiente, então a ordem de leitura
+ * os empata e o desempate cai no identificador, que é aleatório. Escolher por
+ * posição daria um teste que passa ou falha conforme o UUID sorteado.
+ */
+function porQuantidade(itens: readonly { id: string; quantidade: number }[]) {
+  return [...itens].sort((a, b) => b.quantidade - a.quantidade);
 }
 
 function novoPedido(extra: Partial<Parameters<typeof criarPedido>[1]> = {}) {
@@ -350,5 +366,297 @@ describe('clientes oferecidos ao pedido', () => {
   it('traz quem tem o papel de cliente ativo (RN-45)', async () => {
     const lista = await listClientes(pool);
     expect(lista.map((c) => c.id)).toContain(cliente);
+  });
+});
+
+/**
+ * A conferência no pátio (T8.10) e a aprovação que consome o que ela apurou
+ * (T8.11). Aqui é contra Postgres real porque quase tudo é SQL, e porque as
+ * restrições da migration fazem parte da regra: o CHECK é que garante que
+ * parcial e indisponível não se confundam.
+ */
+describe('verificação de disponibilidade (T8.10)', () => {
+  async function emVerificacao() {
+    const { id } = await novoPedido();
+    await tx((c) => iniciarVerificacao(c, id, gerencia()));
+    return { id, itens: await listItens(pool, id) };
+  }
+
+  it('abrir a conferência é idempotente: a tela a chama toda vez que é aberta', async () => {
+    const { id } = await novoPedido();
+    expect(await tx((c) => iniciarVerificacao(c, id, gerencia()))).toMatchObject({ iniciada: true });
+
+    // Segunda abertura não muda nada, e não vira linha de histórico
+    expect(await tx((c) => iniciarVerificacao(c, id, gerencia()))).toMatchObject({ iniciada: false });
+    expect((await findPedido(pool, id))!.situacao).toBe('verificando');
+    const idas = (await listHistorico(pool, id)).filter((h) => h.situacaoNova === 'verificando');
+    expect(idas).toHaveLength(1);
+  });
+
+  it('disponível, parcial e indisponível gravam as três formas da mesma coluna', async () => {
+    const { id, itens: doPedido } = await emVerificacao();
+    // Escolhidos pela quantidade, e não pela posição: os dois itens de mesma
+    // espécie e mesmo recipiente empatam na ordenação, e o desempate é o id
+    const [grande, medio, pequeno] = porQuantidade(doPedido);
+    await tx((c) => marcarDisponibilidade(c, id, medio.id, 'disponivel'));
+    await tx((c) => marcarDisponibilidade(c, id, grande.id, 'parcial', { quantidade: 30, recipienteId: tubete }));
+    await tx((c) => marcarDisponibilidade(c, id, pequeno.id, 'indisponivel'));
+
+    const depois = new Map((await listItens(pool, id)).map((item) => [item.id, item]));
+    expect(depois.get(medio.id)).toMatchObject({ disponivel: true, quantidadeDisponivel: null });
+    // O recipiente conferido pode ser outro: achou em tubete o que foi pedido em saco
+    expect(depois.get(grande.id)).toMatchObject({ disponivel: false, quantidadeDisponivel: 30, recipienteDisponivelId: tubete });
+    expect(depois.get(pequeno.id)).toMatchObject({ disponivel: false, quantidadeDisponivel: 0, recipienteDisponivelId: null });
+  });
+
+  it('parcial igual ou maior que o pedido é recusada, e o CHECK do banco diria o mesmo', async () => {
+    const { id, itens: doPedido } = await emVerificacao();
+    const cheio = doPedido[0].quantidade;
+    await expect(
+      tx((c) => marcarDisponibilidade(c, id, doPedido[0].id, 'parcial', { quantidade: cheio, recipienteId: tubete })),
+    ).rejects.toThrow(/disponível/i);
+    expect((await listItens(pool, id))[0].disponivel).toBeNull();
+  });
+
+  it('a observação sozinha não marca o item como respondido', async () => {
+    const { id, itens: doPedido } = await emVerificacao();
+    await tx((c) => salvarObservacoesVerificacao(c, id, [{ itemId: doPedido[0].id, observacoes: 'ver com o Gilberto' }]));
+
+    const [item] = await listItens(pool, id);
+    expect(item.observacoesDisponibilidade).toBe('ver com o Gilberto');
+    expect(item.disponivel).toBeNull();
+  });
+
+  it('fora da conferência não se marca item, porque o pedido já seguiu adiante', async () => {
+    const { id } = await novoPedido();
+    const [item] = await listItens(pool, id);
+    await expect(tx((c) => marcarDisponibilidade(c, id, item.id, 'disponivel'))).rejects.toThrow(/conferência/i);
+  });
+
+  it('item de outro pedido não é marcado por aqui', async () => {
+    const { id } = await emVerificacao();
+    const alheio = await novoPedido();
+    const [itemAlheio] = await listItens(pool, alheio.id);
+    await expect(tx((c) => marcarDisponibilidade(c, id, itemAlheio.id, 'disponivel'))).rejects.toThrow(/não encontrado/i);
+  });
+
+  it('não se envia à chefia pela metade', async () => {
+    const { id, itens: doPedido } = await emVerificacao();
+    await tx((c) => marcarDisponibilidade(c, id, doPedido[0].id, 'disponivel'));
+
+    await expect(tx((c) => concluirVerificacao(c, id, gerencia()))).rejects.toThrow(/sem resposta/i);
+    expect((await findPedido(pool, id))!.situacao).toBe('verificando');
+  });
+
+  it('com tudo respondido, o resumo da conferência fica no histórico', async () => {
+    const { id, itens: doPedido } = await emVerificacao();
+    await tx((c) => marcarDisponibilidade(c, id, doPedido[0].id, 'disponivel'));
+    await tx((c) => marcarDisponibilidade(c, id, doPedido[1].id, 'disponivel'));
+    await tx((c) => marcarDisponibilidade(c, id, doPedido[2].id, 'indisponivel'));
+
+    const { resumo } = await tx((c) => concluirVerificacao(c, id, gerencia()));
+    expect(resumo).toBe('2 de 3 disponíveis.');
+    expect((await findPedido(pool, id))!.situacao).toBe('verificado');
+    expect((await listHistorico(pool, id)).at(-1)).toMatchObject({ situacaoNova: 'verificado', observacoes: resumo });
+  });
+});
+
+describe('aprovação consome a conferência (T8.11)', () => {
+  /** Leva o pedido até `verificado`, com a mesma resposta para todos os itens. */
+  async function verificadoCom(estado: 'disponivel' | 'indisponivel') {
+    const { id } = await novoPedido();
+    await tx((c) => iniciarVerificacao(c, id, gerencia()));
+    for (const item of await listItens(pool, id)) await tx((c) => marcarDisponibilidade(c, id, item.id, estado));
+    await tx((c) => concluirVerificacao(c, id, gerencia()));
+    return id;
+  }
+
+  /** Um disponível, um parcial e um indisponível, e devolve quem é quem. */
+  async function conferido(parcial: number) {
+    const { id } = await novoPedido();
+    await tx((c) => iniciarVerificacao(c, id, gerencia()));
+    const [grande, medio, pequeno] = porQuantidade(await listItens(pool, id));
+    await tx((c) => marcarDisponibilidade(c, id, medio.id, 'disponivel'));
+    await tx((c) => marcarDisponibilidade(c, id, grande.id, 'parcial', { quantidade: parcial, recipienteId: tubete }));
+    await tx((c) => marcarDisponibilidade(c, id, pequeno.id, 'indisponivel'));
+    await tx((c) => concluirVerificacao(c, id, gerencia()));
+    return { id, grande, medio, pequeno };
+  }
+
+  it('o indisponível sai do pedido e o parcial passa a valer pelo que existe', async () => {
+    const { id, grande, pequeno } = await conferido(30);
+
+    const resultado = await tx((c) => confirmarPedido(c, id, chefia()));
+    expect(resultado).toMatchObject({ removidos: 1, ajustados: 1 });
+
+    const depois = await listItens(pool, id);
+    expect(depois).toHaveLength(2);
+    // O parcial virou quantidade cheia no recipiente real: quem separa não refaz a conta
+    const ajustado = depois.find((i) => i.id === grande.id)!;
+    expect(ajustado).toMatchObject({ quantidade: 30, recipienteId: tubete });
+    // E deixou de ser parcial: o pedido passou a pedir exatamente o que existe
+    expect(ajustado).toMatchObject({ disponivel: true, quantidadeDisponivel: null });
+    expect(depois.map((i) => i.id)).not.toContain(pequeno.id);
+  });
+
+  it('o que a aprovação mexeu fica escrito no histórico', async () => {
+    const { id } = await conferido(10);
+    await tx((c) => confirmarPedido(c, id, chefia()));
+
+    expect((await listHistorico(pool, id)).at(-1)).toMatchObject({
+      situacaoNova: 'aprovado',
+      observacoes: '1 item(ns) removido(s), 1 ajustado(s) pela conferência.',
+    });
+  });
+
+  it('a aprovação sem nada a consumir não inventa observação', async () => {
+    const id = await verificadoCom('disponivel');
+    await tx((c) => confirmarPedido(c, id, chefia()));
+    expect((await listHistorico(pool, id)).at(-1)).toMatchObject({ situacaoNova: 'aprovado', observacoes: null });
+  });
+
+  it('pedido em que nada sobrou não é aprovado, e diz por quê', async () => {
+    const id = await verificadoCom('indisponivel');
+
+    await expect(tx((c) => confirmarPedido(c, id, chefia()))).rejects.toThrow(/não sobrou item disponível/i);
+    // E a recusa não deixou o pedido pela metade: os itens continuam lá
+    expect(await listItens(pool, id)).toHaveLength(3);
+    expect((await findPedido(pool, id))!.situacao).toBe('verificado');
+  });
+
+  it('a pergunta da nota é respondida na aprovação, e antes dela a coluna é nula', async () => {
+    const id = await verificadoCom('disponivel');
+    const antes = await pool.query<{ precisa: boolean | null }>('SELECT precisa_nota AS precisa FROM pedidos WHERE id = $1', [id]);
+    expect(antes.rows[0].precisa).toBeNull();
+
+    await tx((c) => confirmarPedido(c, id, chefia(), { precisaNota: true }));
+
+    const depois = await pool.query<{ precisa: boolean | null }>('SELECT precisa_nota AS precisa FROM pedidos WHERE id = $1', [id]);
+    expect(depois.rows[0].precisa).toBe(true);
+  });
+});
+
+describe('item genérico (T8.10)', () => {
+  let outraEspecie: string;
+
+  beforeAll(async () => {
+    const { rows } = await pool.query<{ id: string }>(
+      'INSERT INTO especies (nome_cientifico) VALUES ($1) RETURNING id',
+      [`${prefixo} Cedrela`],
+    );
+    outraEspecie = rows[0].id;
+  });
+
+  /** Um pedido com um item genérico só: 500 mudas nativas, no mínimo tubete. */
+  async function comGenerico(especiesPermitidas: readonly string[] = []) {
+    const { id } = await tx((client) =>
+      criarPedido(client, {
+        clienteId: cliente,
+        canal: 'compensacao',
+        dataEntrega: null,
+        observacoes: null,
+        criadoPor: usuario,
+        itens: [
+          {
+            especieId: null,
+            recipienteId: tubete,
+            quantidade: 500,
+            precoCentavos: 200,
+            generico: true,
+            especificacao: '500 mudas nativas, no mínimo tubete',
+            especiesPermitidas,
+          },
+        ],
+      }),
+    );
+    await tx((c) => iniciarVerificacao(c, id, gerencia()));
+    const [pai] = await listItens(pool, id);
+    return { id, pai };
+  }
+
+  it('nasce sem espécie, com a especificação do cliente', async () => {
+    const { pai } = await comGenerico();
+    expect(pai).toMatchObject({ generico: true, especieId: null, especie: null, itemPaiId: null });
+    expect(pai.especificacao).toBe('500 mudas nativas, no mínimo tubete');
+  });
+
+  it('a composição fecha a quantidade do pai, e o pai fica respondido', async () => {
+    const { id, pai } = await comGenerico();
+    await tx((c) =>
+      definirComposicaoGenerico(c, id, pai.id, [
+        { especieId: especie, recipienteId: tubete, quantidade: 300 },
+        { especieId: outraEspecie, recipienteId: saco, quantidade: 200 },
+      ]),
+    );
+
+    const itens = await listItens(pool, id);
+    expect(itens).toHaveLength(3);
+    expect(itens.find((i) => i.id === pai.id)!.disponivel).toBe(true);
+    const filhos = itens.filter((i) => i.itemPaiId === pai.id);
+    expect(filhos.map((f) => f.quantidade).sort((a, b) => a - b)).toEqual([200, 300]);
+    // O filho herda o preço do pai, e o total do pedido não dobra
+    expect(filhos.every((f) => f.precoCentavos === 200)).toBe(true);
+    expect(totalPedido(itens)).toBe(500 * 200);
+  });
+
+  it('a soma que não fecha é recusada, e nenhum filho é criado', async () => {
+    const { id, pai } = await comGenerico();
+    await expect(
+      tx((c) => definirComposicaoGenerico(c, id, pai.id, [{ especieId: especie, recipienteId: tubete, quantidade: 300 }])),
+    ).rejects.toThrow(/faltam 200/i);
+    expect(await listItens(pool, id)).toHaveLength(1);
+  });
+
+  it('recompor troca os filhos, em vez de acrescentar aos anteriores', async () => {
+    const { id, pai } = await comGenerico();
+    await tx((c) =>
+      definirComposicaoGenerico(c, id, pai.id, [{ especieId: especie, recipienteId: tubete, quantidade: 500 }]),
+    );
+    await tx((c) =>
+      definirComposicaoGenerico(c, id, pai.id, [
+        { especieId: especie, recipienteId: tubete, quantidade: 250 },
+        { especieId: outraEspecie, recipienteId: tubete, quantidade: 250 },
+      ]),
+    );
+
+    const filhos = (await listItens(pool, id)).filter((i) => i.itemPaiId === pai.id);
+    expect(filhos).toHaveLength(2);
+    expect(filhos.reduce((soma, f) => soma + f.quantidade, 0)).toBe(500);
+  });
+
+  it('o escopo do cliente é bloqueio no servidor, e não apenas filtro da busca', async () => {
+    const { id, pai } = await comGenerico([especie]);
+    expect(await listEspeciesPermitidas(pool, pai.id)).toEqual([especie]);
+
+    await expect(
+      tx((c) => definirComposicaoGenerico(c, id, pai.id, [{ especieId: outraEspecie, recipienteId: tubete, quantidade: 500 }])),
+    ).rejects.toThrow(/aceita/i);
+
+    // E a espécie de dentro do escopo passa
+    await tx((c) => definirComposicaoGenerico(c, id, pai.id, [{ especieId: especie, recipienteId: tubete, quantidade: 500 }]));
+    expect((await listItens(pool, id)).filter((i) => i.itemPaiId === pai.id)).toHaveLength(1);
+  });
+
+  it('o genérico não se marca por disponível ou indisponível', async () => {
+    const { id, pai } = await comGenerico();
+    await expect(tx((c) => marcarDisponibilidade(c, id, pai.id, 'disponivel'))).rejects.toThrow(/genérico/i);
+  });
+
+  it('o genérico sem composição segura o envio à chefia', async () => {
+    const { id } = await comGenerico();
+    await expect(tx((c) => concluirVerificacao(c, id, gerencia()))).rejects.toThrow(/sem resposta/i);
+  });
+
+  it('a composição sai logo abaixo do pai que ela compõe', async () => {
+    const { id, pai } = await comGenerico();
+    await tx((c) =>
+      definirComposicaoGenerico(c, id, pai.id, [
+        { especieId: especie, recipienteId: tubete, quantidade: 300 },
+        { especieId: outraEspecie, recipienteId: saco, quantidade: 200 },
+      ]),
+    );
+    const itens = await listItens(pool, id);
+    expect(itens[0].id).toBe(pai.id);
+    expect(itens.slice(1).every((i) => i.itemPaiId === pai.id)).toBe(true);
   });
 });

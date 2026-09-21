@@ -16,7 +16,7 @@ function readD4Matrix(): Map<string, [string, string, string]> {
     if (!line.startsWith('| **')) continue;
     const cells = line.split('|').slice(1, -1).map((c) => c.trim());
     if (cells.length !== 4 || cells.slice(1).every((c) => c === '')) continue; // títulos de área
-    const label = cells[0].replace(/\*/g, '').replace(/[¹²³]/g, '').trim();
+    const label = cells[0].replace(/\*/g, '').replace(/[¹²³⁴]/g, '').trim();
     const letters = cells.slice(1).map((c) => c.replace(/[*\s-]/g, '')) as [string, string, string];
     rows.set(label, letters);
   }
@@ -26,8 +26,8 @@ function readD4Matrix(): Map<string, [string, string, string]> {
 describe('ACCESS_MATRIX x D4 §2', () => {
   const doc = readD4Matrix();
 
-  it('tem exatamente os 25 recursos do documento', () => {
-    expect(doc.size).toBe(25);
+  it('tem exatamente os 27 recursos do documento', () => {
+    expect(doc.size).toBe(27);
     expect(Object.values(ACCESS_MATRIX).map((r) => r.label).sort()).toEqual([...doc.keys()].sort());
   });
 

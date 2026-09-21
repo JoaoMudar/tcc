@@ -4,21 +4,27 @@ import { Button } from '@/components/ui/Button';
 import { Pill, type PillTone } from '@/components/ui/Pill';
 import { SelectField } from '@/components/ui/SelectField';
 import { TextField } from '@/components/ui/TextField';
-import { formatData, hojeNoViveiro } from '@/lib/datas';
+import { pedidosDoPeriodo } from '@/lib/cargas';
+import { diaUtilAnterior, formatData, hojeNoViveiro, somaDias } from '@/lib/datas';
 import pool from '@/lib/db';
 import { formatDateTime } from '@/lib/format';
 import { formatQuantidade } from '@/lib/lotes-rotulos';
 import {
   CANAIS_VENDA,
+  DONO_SITUACAO,
+  ROTULO_URGENCIA,
   SITUACOES_PEDIDO,
   type SituacaoPedido,
   formatMoeda,
   listClientes,
   listPedidos,
   parseFiltroPedidos,
+  urgenciaPedido,
 } from '@/lib/pedidos';
+import { PERFIL_LABELS } from '@/lib/perfis';
 import { can } from '@/lib/permissions';
 import { requirePageAccess } from '@/lib/auth/guards';
+import { CalendarioCargas } from './CalendarioCargas';
 
 interface PedidosPageProps {
   searchParams: Promise<{ de?: string; ate?: string; cliente?: string; canal?: string }>;
@@ -37,13 +43,34 @@ const TOM: Record<SituacaoPedido, PillTone> = {
   cancelado: 'red',
 };
 
+/** T8.15: o que o pedido está esperando de quem, para a lista dizer a providência. */
+const PROVIDENCIA: Partial<Record<SituacaoPedido, string>> = {
+  aprovado: 'ORGANIZAR CARGAS',
+  separando: 'SEPARANDO',
+};
+
 /** T8.4, RF-58: a carteira de pedidos, com filtro por cliente, canal e período. */
 export default async function PedidosPage({ searchParams }: PedidosPageProps) {
   // TA-03: a gerência que digita este endereço cai em /sem-permissao
   const user = await requirePageAccess('pedidos');
-  const filtro = parseFiltroPedidos(await searchParams, hojeNoViveiro());
-  const [lista, clientes] = await Promise.all([listPedidos(pool, filtro), listClientes(pool)]);
+  const hoje = hojeNoViveiro();
+  const filtro = parseFiltroPedidos(await searchParams, hoje);
+
+  // O calendário cobre o mês inteiro, e não o filtro: quem carrega caminhão
+  // planeja o mês, e o filtro da carteira é por data de registro, não de entrega.
+  const mes = `${hoje.slice(0, 7)}-01`;
+  const fimDoMes = somaDias(`${somaDias(mes, 31).slice(0, 7)}-01`, -1);
+
+  const [lista, clientes, doMes] = await Promise.all([
+    listPedidos(pool, filtro),
+    listClientes(pool),
+    pedidosDoPeriodo(pool, somaDias(mes, -7), fimDoMes),
+  ]);
   const total = lista.reduce((soma, pedido) => soma + (pedido.situacao === 'cancelado' ? 0 : pedido.totalCentavos), 0);
+
+  // O calendário é ferramenta de quem separa, e a chefia também o usa para saber
+  // o que está por sair. Quem não mexe em carga não o vê.
+  const veCalendario = can(user.perfil, 'cargas_pedido', 'L');
 
   return (
     <main>
@@ -98,6 +125,17 @@ export default async function PedidosPage({ searchParams }: PedidosPageProps) {
           Registrados de {formatData(filtro.de)} a {formatData(filtro.ate)}.
         </p>
 
+        {veCalendario && (
+          <CalendarioCargas
+            mes={mes}
+            hoje={hoje}
+            pedidos={doMes.map((pedido) => ({
+              ...pedido,
+              diaDeCarregar: diaUtilAnterior(pedido.dataEntrega),
+            }))}
+          />
+        )}
+
         {lista.length === 0 ? (
           <p className="text-base text-muted">Nenhum pedido no filtro escolhido.</p>
         ) : (
@@ -119,6 +157,30 @@ export default async function PedidosPage({ searchParams }: PedidosPageProps) {
                     </span>
                     <Pill tone={TOM[pedido.situacao]}>{SITUACOES_PEDIDO[pedido.situacao]}</Pill>
                   </div>
+
+                  {/* T8.15: de quem o pedido está esperando, o que há a fazer e
+                      quanto corre. `DONO_SITUACAO` existia desde a fase anterior
+                      esperando exatamente por esta linha. */}
+                  {pedido.situacao !== 'cancelado' && pedido.situacao !== 'pronto_envio' && (
+                    <div className="flex flex-wrap items-center gap-2">
+                      {DONO_SITUACAO[pedido.situacao] && (
+                        <span className="text-sm text-muted">
+                          esperando {PERFIL_LABELS[DONO_SITUACAO[pedido.situacao]!].toLowerCase()}
+                        </span>
+                      )}
+                      {PROVIDENCIA[pedido.situacao] && (
+                        <Pill tone="blue">{PROVIDENCIA[pedido.situacao]}</Pill>
+                      )}
+                      {(() => {
+                        const urgencia = urgenciaPedido(
+                          hoje,
+                          pedido.dataEntrega,
+                          pedido.dataEntrega ? diaUtilAnterior(pedido.dataEntrega) : null,
+                        );
+                        return urgencia ? <Pill tone="amber">{ROTULO_URGENCIA[urgencia]}</Pill> : null;
+                      })()}
+                    </div>
+                  )}
                 </Link>
               </li>
             ))}

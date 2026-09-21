@@ -6,11 +6,15 @@ import { lerQuantidade } from './lotes-rotulos';
 import type { Perfil } from './perfis';
 import {
   type CanalVenda,
+  type EstadoDisponibilidade,
+  type LinhaComposicao,
   SITUACOES_PEDIDO,
   type SituacaoPedido,
   centavosParaSql,
   isCanalVenda,
   podeTransicionar,
+  resolveDisponibilidade,
+  validarComposicaoGenerico,
 } from './pedidos-rotulos';
 import type { Db } from './sql';
 import { isUuid } from './uuid';
@@ -19,6 +23,7 @@ export {
   CANAIS_VENDA,
   CANAL_PADRAO,
   DONO_SITUACAO,
+  ROTULO_URGENCIA,
   SITUACOES_PEDIDO,
   TRANSICOES,
   formatMoeda,
@@ -26,12 +31,19 @@ export {
   isSituacaoPedido,
   parsePreco,
   podeTransicionar,
+  resolveDisponibilidade,
   totalItem,
   totalPedido,
   transicoesDe,
+  urgenciaPedido,
+  validarComposicaoGenerico,
+  validarDivisaoCargas,
   type CanalVenda,
+  type EstadoDisponibilidade,
+  type LinhaComposicao,
   type SituacaoPedido,
   type Transicao,
+  type Urgencia,
 } from './pedidos-rotulos';
 
 type Client = Pick<PoolClient, 'query'>;
@@ -84,17 +96,34 @@ export function parseFiltroPedidos(
 }
 
 export interface NovoItem {
-  especieId: string;
+  /** Nulo só no item genérico, que é o único que chega sem espécie escolhida. */
+  especieId: string | null;
   recipienteId: string;
   quantidade: number;
   precoCentavos: number;
+  generico?: boolean;
+  /** O que o cliente pediu, em texto. Só no genérico. */
+  especificacao?: string | null;
+  /** Espécies que o cliente aceita no genérico. Vazio é "qualquer uma". */
+  especiesPermitidas?: readonly string[];
 }
 
 export interface ItemPedido extends NovoItem {
   id: string;
-  especie: string;
-  nomeCientifico: string;
+  especie: string | null;
+  nomeCientifico: string | null;
   recipiente: string;
+
+  /** Verificação (T8.10). `disponivel` nulo é "a gerência ainda não conferiu". */
+  disponivel: boolean | null;
+  quantidadeDisponivel: number | null;
+  recipienteDisponivelId: string | null;
+  recipienteDisponivel: string | null;
+  observacoesDisponibilidade: string | null;
+
+  generico: boolean;
+  itemPaiId: string | null;
+  especificacao: string | null;
 }
 
 export interface PedidoResumo {
@@ -169,20 +198,48 @@ export async function listItens(db: Db, pedidoId: string): Promise<ItemPedido[]>
   const { rows } = await db.query<ItemPedido>(
     `SELECT i.id, i.especie_id AS "especieId", ${nomeEspecieSql('e')} AS especie,
             e.nome_cientifico AS "nomeCientifico", i.recipiente_id AS "recipienteId", r.nome AS recipiente,
-            i.quantidade, ROUND(i.preco_unitario * 100)::int AS "precoCentavos"
+            i.quantidade, ROUND(i.preco_unitario * 100)::int AS "precoCentavos",
+            i.disponivel, i.quantidade_disponivel AS "quantidadeDisponivel",
+            i.recipiente_disponivel_id AS "recipienteDisponivelId", rd.nome AS "recipienteDisponivel",
+            i.observacoes_disponibilidade AS "observacoesDisponibilidade",
+            i.generico, i.item_pai_id AS "itemPaiId", i.especificacao
        FROM pedidos_itens i
-       JOIN especies e ON e.id = i.especie_id
+       -- LEFT: o item genérico não tem espécie até a gerência compor
+       LEFT JOIN especies e ON e.id = i.especie_id
        JOIN recipientes r ON r.id = i.recipiente_id
+       LEFT JOIN recipientes rd ON rd.id = i.recipiente_disponivel_id
+       -- O pai só existe para ordenar: o filho precisa sair logo abaixo dele
+       LEFT JOIN pedidos_itens pai ON pai.id = i.item_pai_id
+       LEFT JOIN especies pe ON pe.id = pai.especie_id
+       LEFT JOIN recipientes pr ON pr.id = pai.recipiente_id
       WHERE i.pedido_id = $1
       -- Ordem de leitura, e não de digitação: os itens do mesmo pedido entram na
       -- mesma transação e compartilham a hora de criação, que por isso não os
       -- desempata. Sem critério estável o pedido apareceria numa ordem a cada
       -- consulta; por espécie e recipiente ele fica agrupado como quem confere
       -- uma venda espera ler, e o identificador fecha o desempate.
-      ORDER BY especie, r.nome, i.criado_em, i.id`,
+      --
+      -- O FILHO ORDENA PELO PAI, e não por si: a composição do genérico tem de
+      -- sair embaixo do item que ela compõe. Como o pai genérico não tem espécie,
+      -- ele e os filhos dele caem juntos no NULLS LAST, e o identificador do pai
+      -- os mantém no mesmo bloco.
+      ORDER BY (CASE WHEN i.item_pai_id IS NULL THEN ${nomeEspecieSql('e')} ELSE ${nomeEspecieSql('pe')} END) NULLS LAST,
+               (CASE WHEN i.item_pai_id IS NULL THEN r.nome ELSE pr.nome END) NULLS LAST,
+               COALESCE(i.item_pai_id, i.id),
+               (i.item_pai_id IS NOT NULL),
+               especie NULLS LAST, r.nome, i.criado_em, i.id`,
     [pedidoId],
   );
   return rows;
+}
+
+/** As espécies que o cliente aceita num item genérico. Lista vazia é "qualquer uma". */
+export async function listEspeciesPermitidas(db: Db, itemId: string): Promise<string[]> {
+  const { rows } = await db.query<{ especieId: string }>(
+    'SELECT especie_id AS "especieId" FROM pedidos_itens_especies_permitidas WHERE item_id = $1',
+    [itemId],
+  );
+  return rows.map((row) => row.especieId);
 }
 
 /** Clientes para a lista fechada do pedido: quem tem o papel ativo (RN-45). */
@@ -199,14 +256,14 @@ export async function listClientes(db: Db): Promise<{ id: string; nome: string }
   return rows;
 }
 
-interface PedidoTravado {
+export interface PedidoTravado {
   id: string;
   numero: number;
   situacao: SituacaoPedido;
 }
 
 /** `SELECT ... FOR UPDATE`: duas alterações no mesmo pedido esperam uma pela outra. */
-async function travarPedido(client: Client, pedidoId: string): Promise<PedidoTravado> {
+export async function travarPedido(client: Client, pedidoId: string): Promise<PedidoTravado> {
   const { rows } = await client.query<PedidoTravado>(
     'SELECT id, numero_pedido AS numero, situacao FROM pedidos WHERE id = $1 FOR UPDATE',
     [pedidoId],
@@ -233,11 +290,33 @@ function exigirCadastrado(pedido: PedidoTravado): void {
 
 async function inserirItens(client: Client, pedidoId: string, itens: readonly NovoItem[]): Promise<void> {
   for (const item of itens) {
-    await client.query(
-      `INSERT INTO pedidos_itens (pedido_id, especie_id, recipiente_id, quantidade, preco_unitario)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [pedidoId, item.especieId, item.recipienteId, item.quantidade, centavosParaSql(item.precoCentavos)],
+    const generico = item.generico ?? false;
+    if (generico && item.especieId) throw new UserError('O item genérico é o que não tem espécie escolhida.');
+    if (!generico && !item.especieId) throw new UserError('Escolha a espécie do item.');
+
+    const { rows } = await client.query<{ id: string }>(
+      `INSERT INTO pedidos_itens (pedido_id, especie_id, recipiente_id, quantidade, preco_unitario, generico, especificacao)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING id`,
+      [
+        pedidoId,
+        generico ? null : item.especieId,
+        item.recipienteId,
+        item.quantidade,
+        centavosParaSql(item.precoCentavos),
+        generico,
+        generico ? (item.especificacao ?? null) : null,
+      ],
     );
+
+    // Sem nenhuma linha aqui, qualquer espécie serve: é o caso comum, e é por
+    // isso que o escopo é representado pela ausência (T8.7).
+    for (const especieId of generico ? (item.especiesPermitidas ?? []) : []) {
+      await client.query(
+        'INSERT INTO pedidos_itens_especies_permitidas (item_id, especie_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+        [rows[0].id, especieId],
+      );
+    }
   }
 }
 
@@ -363,19 +442,72 @@ export async function listHistorico(db: Db, pedidoId: string): Promise<LinhaHist
 }
 
 /**
- * RF-57: aprovar exige ao menos um item, que é a pós-condição do UC-31, porque
- * pedido sem item não registra venda nenhuma.
+ * T8.11, RF-57: aprovar exige ao menos um item, que é a pós-condição do UC-31,
+ * porque pedido sem item não registra venda nenhuma.
+ *
+ * **A aprovação consome o que a gerência apurou**, e é o que faz a etapa
+ * seguinte ser simples: o item indisponível sai do pedido, e o parcial passa a
+ * valer pela quantidade e pelo recipiente que existem de verdade. Quem for
+ * separar a carga nunca vê "tem 300 das 500": vê 300, que é o que vai no
+ * caminhão. A alternativa seria arrastar a apuração até o galpão e pedir que
+ * quem está contando faça a conta de novo.
  */
 export async function confirmarPedido(
   client: Client,
   pedidoId: string,
   autor: AutorDaMudanca,
-): Promise<{ numero: number }> {
-  const { rows } = await client.query<{ n: number }>('SELECT COUNT(*)::int AS n FROM pedidos_itens WHERE pedido_id = $1', [
-    pedidoId,
-  ]);
-  if (rows[0].n === 0) throw new UserError('Acrescente ao menos um item antes de aprovar o pedido.');
-  return mudarSituacao(client, pedidoId, 'aprovado', autor);
+  opcoes: { precisaNota?: boolean | null } = {},
+): Promise<{ numero: number; removidos: number; ajustados: number }> {
+  // Indisponível é `disponivel = false` com quantidade zero (T8.7)
+  const apagados = await client.query(
+    'DELETE FROM pedidos_itens WHERE pedido_id = $1 AND disponivel = false AND quantidade_disponivel = 0',
+    [pedidoId],
+  );
+  const removidos = apagados.rowCount ?? 0;
+
+  // Parcial é `disponivel = false` com quantidade maior que zero, e o recipiente
+  // conferido pode ser outro: quem manda é o que a gerência achou no pátio.
+  //
+  // **O item deixa de ser parcial ao ser consumido**, e por isso as três colunas
+  // da conferência são limpas na mesma linha. Não é arrumação: parcial quer
+  // dizer "tem menos do que o pedido pede", e depois da aprovação o pedido pede
+  // exatamente o que existe. Manter `quantidade_disponivel` igual a `quantidade`
+  // afirmaria uma falta que já não há, e é o que o CHECK
+  // `pedidos_itens_disponibilidade_coerente` recusa gravar.
+  const trocados = await client.query(
+    `UPDATE pedidos_itens
+        SET quantidade = quantidade_disponivel,
+            recipiente_id = COALESCE(recipiente_disponivel_id, recipiente_id),
+            disponivel = true,
+            quantidade_disponivel = NULL,
+            recipiente_disponivel_id = NULL
+      WHERE pedido_id = $1 AND disponivel = false AND quantidade_disponivel > 0`,
+    [pedidoId],
+  );
+  const ajustados = trocados.rowCount ?? 0;
+
+  const { rows } = await client.query<{ n: number }>(
+    'SELECT COUNT(*)::int AS n FROM pedidos_itens WHERE pedido_id = $1 AND item_pai_id IS NULL',
+    [pedidoId],
+  );
+  if (rows[0].n === 0) {
+    throw new UserError(
+      removidos > 0
+        ? 'Não sobrou item disponível neste pedido. Cancele o pedido ou peça alteração à gerência.'
+        : 'Acrescente ao menos um item antes de aprovar o pedido.',
+    );
+  }
+
+  // A pergunta da nota acontece na aprovação, e é só aqui que a coluna ganha
+  // valor: nulo continua sendo "ninguém respondeu" (migration 20260921000001).
+  if (opcoes.precisaNota !== undefined) {
+    await client.query('UPDATE pedidos SET precisa_nota = $2 WHERE id = $1', [pedidoId, opcoes.precisaNota]);
+  }
+
+  const resumo =
+    removidos + ajustados > 0 ? `${removidos} item(ns) removido(s), ${ajustados} ajustado(s) pela conferência.` : null;
+  const { numero } = await mudarSituacao(client, pedidoId, 'aprovado', autor, resumo);
+  return { numero, removidos, ajustados };
 }
 
 /**
@@ -384,11 +516,210 @@ export async function confirmarPedido(
  * **O pronto para envio também cancela, e é a decisão de 21/09/2026**: sem essa
  * seta, a venda que cai depois de pronta não teria como ser registrada, e o
  * pedido ficaria para sempre afirmando uma entrega que não houve.
+ *
+ * O motivo é opcional e vai para a observação do histórico (T8.5): cancelamento
+ * é a única saída que não volta atrás, e daqui a um mês "por que este pedido foi
+ * cancelado?" não tem outra resposta no sistema.
  */
 export async function cancelarPedido(
   client: Client,
   pedidoId: string,
   autor: AutorDaMudanca,
+  motivo: string | null = null,
 ): Promise<{ numero: number }> {
-  return mudarSituacao(client, pedidoId, 'cancelado', autor);
+  return mudarSituacao(client, pedidoId, 'cancelado', autor, motivo);
+}
+
+// ------------------------------------------------------------
+// Verificação de disponibilidade (T8.10)
+// ------------------------------------------------------------
+
+/**
+ * Marcar item é escrever o que alguém foi ao pátio conferir, e só faz sentido
+ * com a conferência aberta. Fora dela a resposta seria sobre um pedido que já
+ * seguiu adiante: o aprovado já consumiu a apuração, e regravá-la faria o
+ * pedido discordar de si mesmo.
+ */
+function exigirEmVerificacao(pedido: PedidoTravado): void {
+  if (pedido.situacao === 'verificando') return;
+  throw new UserError(
+    `O pedido ${pedido.numero} está em ${SITUACOES_PEDIDO[pedido.situacao].toLowerCase()}, e a conferência não está aberta.`,
+  );
+}
+
+/**
+ * T8.10: abre a conferência. **É idempotente de propósito**: a tela a chama toda
+ * vez que é aberta, e a gerência abre, sai para olhar o canteiro e volta. De
+ * qualquer outra situação devolve sem mudar nada, em vez de recusar, porque
+ * reabrir uma tela não é erro de ninguém.
+ */
+export async function iniciarVerificacao(
+  client: Client,
+  pedidoId: string,
+  autor: AutorDaMudanca,
+): Promise<{ numero: number; iniciada: boolean }> {
+  const pedido = await travarPedido(client, pedidoId);
+  if (pedido.situacao !== 'cadastrado') return { numero: pedido.numero, iniciada: false };
+  const { numero } = await mudarSituacao(client, pedidoId, 'verificando', autor);
+  return { numero, iniciada: true };
+}
+
+interface ItemParaVerificar {
+  quantidade: number;
+  generico: boolean;
+}
+
+/** T8.10: a resposta da gerência sobre um item específico, gravada na hora. */
+export async function marcarDisponibilidade(
+  client: Client,
+  pedidoId: string,
+  itemId: string,
+  estado: EstadoDisponibilidade,
+  extras: { quantidade?: number | null; recipienteId?: string | null; observacoes?: string | null } = {},
+): Promise<void> {
+  exigirEmVerificacao(await travarPedido(client, pedidoId));
+
+  // `AND pedido_id` em toda escrita de item: impede que o identificador de um
+  // item de outro pedido, reenviado no formulário, escreva onde não devia.
+  const { rows } = await client.query<ItemParaVerificar>(
+    'SELECT quantidade, generico FROM pedidos_itens WHERE id = $2 AND pedido_id = $1',
+    [pedidoId, itemId],
+  );
+  if (!rows[0]) throw new UserError('Item não encontrado neste pedido.');
+  if (rows[0].generico) {
+    throw new UserError('O item genérico se resolve escolhendo as espécies, e não por disponível ou indisponível.');
+  }
+
+  const resolvida = resolveDisponibilidade(estado, rows[0].quantidade, extras);
+  if ('error' in resolvida) throw new UserError(resolvida.error);
+  const { disponivel, quantidadeDisponivel, recipienteDisponivelId } = resolvida.value;
+
+  await client.query(
+    `UPDATE pedidos_itens
+        SET disponivel = $3, quantidade_disponivel = $4, recipiente_disponivel_id = $5,
+            observacoes_disponibilidade = $6
+      WHERE id = $2 AND pedido_id = $1`,
+    [pedidoId, itemId, disponivel, quantidadeDisponivel, recipienteDisponivelId, extras.observacoes ?? null],
+  );
+}
+
+/**
+ * T8.10: a observação sem a resposta, que é o "Salvar e continuar depois". A
+ * gerência anota "ver com o Gilberto" num item que ainda não conferiu, e isso
+ * não pode marcá-lo como respondido.
+ */
+export async function salvarObservacoesVerificacao(
+  client: Client,
+  pedidoId: string,
+  linhas: readonly { itemId: string; observacoes: string | null }[],
+): Promise<void> {
+  exigirEmVerificacao(await travarPedido(client, pedidoId));
+  for (const linha of linhas) {
+    await client.query('UPDATE pedidos_itens SET observacoes_disponibilidade = $3 WHERE id = $2 AND pedido_id = $1', [
+      pedidoId,
+      linha.itemId,
+      linha.observacoes,
+    ]);
+  }
+}
+
+/**
+ * T8.10: a composição do item genérico. Apaga os filhos anteriores e grava os
+ * novos, porque recompor é decidir de novo, e não acrescentar: somar os antigos
+ * com os novos passaria da quantidade do pai na segunda tentativa.
+ *
+ * **O escopo é conferido aqui, e não só na busca da tela**: a lista de espécies
+ * oferecidas é conveniência, a recusa é a regra.
+ */
+export async function definirComposicaoGenerico(
+  client: Client,
+  pedidoId: string,
+  itemPaiId: string,
+  linhas: readonly LinhaComposicao[],
+): Promise<void> {
+  exigirEmVerificacao(await travarPedido(client, pedidoId));
+
+  const { rows } = await client.query<{ quantidade: number; preco: string; generico: boolean }>(
+    'SELECT quantidade, preco_unitario AS preco, generico FROM pedidos_itens WHERE id = $2 AND pedido_id = $1 FOR UPDATE',
+    [pedidoId, itemPaiId],
+  );
+  if (!rows[0]) throw new UserError('Item não encontrado neste pedido.');
+  if (!rows[0].generico) throw new UserError('Este item já tem espécie escolhida, e não se compõe.');
+
+  const { rows: escopo } = await client.query<{ especieId: string }>(
+    'SELECT especie_id AS "especieId" FROM pedidos_itens_especies_permitidas WHERE item_id = $1',
+    [itemPaiId],
+  );
+  const validada = validarComposicaoGenerico(
+    rows[0].quantidade,
+    linhas,
+    escopo.map((linha) => linha.especieId),
+  );
+  if ('error' in validada) throw new UserError(validada.error);
+
+  await client.query('DELETE FROM pedidos_itens WHERE item_pai_id = $2 AND pedido_id = $1', [pedidoId, itemPaiId]);
+
+  for (const linha of validada.value) {
+    // O filho herda o preço do pai: foi por aquele preço que as 500 mudas foram
+    // vendidas, e o filho não é uma venda nova. O total do pedido soma só os
+    // itens de topo, e é o que impede a venda de contar duas vezes (`totalPedido`).
+    await client.query(
+      `INSERT INTO pedidos_itens
+         (pedido_id, especie_id, recipiente_id, quantidade, preco_unitario, generico, item_pai_id, disponivel)
+       VALUES ($1, $2, $3, $4, $5, false, $6, true)`,
+      [pedidoId, linha.especieId, linha.recipienteId, linha.quantidade, rows[0].preco, itemPaiId],
+    );
+  }
+
+  // O pai fica respondido, e é assim que ele deixa de ser pendência na conclusão
+  await client.query(
+    `UPDATE pedidos_itens
+        SET disponivel = true, quantidade_disponivel = NULL, recipiente_disponivel_id = NULL
+      WHERE id = $2 AND pedido_id = $1`,
+    [pedidoId, itemPaiId],
+  );
+}
+
+interface ResumoVerificacao {
+  pendentes: number;
+  total: number;
+  disponiveis: number;
+  genericos: number;
+}
+
+/**
+ * T8.10: fecha a conferência e devolve o pedido à chefia.
+ *
+ * **Não se envia pela metade**: item sem resposta é item que ninguém foi olhar,
+ * e deixar passar faria a chefia aprovar sobre uma apuração incompleta, que é
+ * justamente o que a etapa existe para evitar.
+ */
+export async function concluirVerificacao(
+  client: Client,
+  pedidoId: string,
+  autor: AutorDaMudanca,
+): Promise<{ numero: number; resumo: string }> {
+  const { rows } = await client.query<ResumoVerificacao>(
+    `SELECT COUNT(*) FILTER (WHERE disponivel IS NULL)::int          AS pendentes,
+            COUNT(*)::int                                            AS total,
+            COUNT(*) FILTER (WHERE disponivel AND NOT generico)::int AS disponiveis,
+            COUNT(*) FILTER (WHERE generico)::int                    AS genericos
+       FROM pedidos_itens
+      WHERE pedido_id = $1 AND item_pai_id IS NULL`,
+    [pedidoId],
+  );
+  const { pendentes, total, disponiveis, genericos } = rows[0];
+  if (total === 0) throw new UserError('Este pedido não tem item nenhum para conferir.');
+  if (pendentes > 0) {
+    throw new UserError(
+      pendentes === 1 ? 'Ainda há um item sem resposta.' : `Ainda há ${pendentes} itens sem resposta.`,
+    );
+  }
+
+  const resumo =
+    genericos > 0
+      ? `${disponiveis} de ${total} disponíveis, ${genericos} genérico(s) definido(s).`
+      : `${disponiveis} de ${total} disponíveis.`;
+  const { numero } = await mudarSituacao(client, pedidoId, 'verificado', autor, resumo);
+  return { numero, resumo };
 }

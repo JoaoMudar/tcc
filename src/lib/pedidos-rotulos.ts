@@ -2,6 +2,7 @@
  * Rótulos e contas do pedido que o navegador pode receber: sem SQL e sem `pg`
  * (RNF-11, TA-60). O servidor usa os mesmos, pelas reexportações de `pedidos.ts`.
  */
+import { somaDias } from './datas';
 import type { Perfil } from './perfis';
 
 /** RN-42: lista fechada de cinco valores, e não entidade própria. `atacado` é o padrão. */
@@ -177,6 +178,8 @@ export function chaveSaldo(especieId: string, recipienteId: string): string {
 export interface ItemCalculavel {
   quantidade: number;
   precoCentavos: number;
+  /** Preenchido só no filho de um item genérico. */
+  itemPaiId?: string | null;
 }
 
 /** RF-55: o total do item é quantidade por preço, em centavos. */
@@ -184,7 +187,205 @@ export function totalItem(item: ItemCalculavel): number {
   return item.quantidade * item.precoCentavos;
 }
 
-/** RF-55: o total do pedido é a soma dos itens, e nada mais entra nele. */
+/**
+ * RF-55: o total do pedido é a soma dos itens, e nada mais entra nele.
+ *
+ * **Só os itens de topo somam.** O filho de um item genérico herda o preço do
+ * pai e existe para dizer qual espécie compõe aquelas 500 mudas, não para
+ * cobrá-las de novo: contar os dois dobraria a venda.
+ */
 export function totalPedido(itens: readonly ItemCalculavel[]): number {
-  return itens.reduce((soma, item) => soma + totalItem(item), 0);
+  return itens.filter((item) => !item.itemPaiId).reduce((soma, item) => soma + totalItem(item), 0);
+}
+
+// ------------------------------------------------------------
+// Verificação de disponibilidade (T8.9)
+// ------------------------------------------------------------
+
+/** O que a gerência responde sobre um item, andando no pátio. */
+export type EstadoDisponibilidade = 'disponivel' | 'parcial' | 'indisponivel';
+
+/** As três colunas de `pedidos_itens` que o estado resolve. */
+export interface Disponibilidade {
+  disponivel: boolean;
+  quantidadeDisponivel: number | null;
+  recipienteDisponivelId: string | null;
+}
+
+/**
+ * Três botões viram três colunas. **Parcial e indisponível compartilham
+ * `disponivel = false`**, e quem os distingue é a quantidade: zero é "não tem
+ * nenhuma", maior que zero é "tem só isto". É a mesma forma do CHECK
+ * `pedidos_itens_disponibilidade_coerente`, e esta função existe para a tela e
+ * o servidor chegarem nela pelo mesmo caminho.
+ */
+export function resolveDisponibilidade(
+  estado: EstadoDisponibilidade,
+  total: number,
+  extras: { quantidade?: number | null; recipienteId?: string | null } = {},
+): { error: string } | { value: Disponibilidade } {
+  if (estado === 'disponivel') {
+    return { value: { disponivel: true, quantidadeDisponivel: null, recipienteDisponivelId: null } };
+  }
+  if (estado === 'indisponivel') {
+    return { value: { disponivel: false, quantidadeDisponivel: 0, recipienteDisponivelId: null } };
+  }
+
+  const quantidade = extras.quantidade ?? null;
+  if (quantidade === null || !Number.isInteger(quantidade) || quantidade < 1) {
+    return { error: 'Informe quantas mudas existem, um número inteiro maior que zero.' };
+  }
+  if (quantidade >= total) {
+    return { error: 'Na parcial a quantidade precisa ser menor que a pedida. Se tem tudo, use "Disponível".' };
+  }
+  if (!extras.recipienteId) {
+    return { error: 'Escolha o recipiente em que a muda está.' };
+  }
+  return {
+    value: { disponivel: false, quantidadeDisponivel: quantidade, recipienteDisponivelId: extras.recipienteId },
+  };
+}
+
+/** Uma espécie escolhida para compor um item genérico. */
+export interface LinhaComposicao {
+  especieId: string;
+  recipienteId: string;
+  quantidade: number;
+}
+
+/**
+ * A composição do item genérico: quais espécies atendem "500 mudas nativas".
+ *
+ * **A soma tem de fechar exatamente.** Menos que o pedido entregaria menos do
+ * que foi vendido; mais entregaria muda que ninguém comprou. E o escopo, quando
+ * o cliente deu um, é **bloqueio rígido**: a compensação ambiental que exige
+ * cinco espécies do bioma não aceita a sexta, por mais que o viveiro a tenha.
+ */
+export function validarComposicaoGenerico(
+  quantidadePai: number,
+  linhas: readonly LinhaComposicao[],
+  permitidas: readonly string[] = [],
+): { error: string } | { value: readonly LinhaComposicao[] } {
+  if (linhas.length === 0) return { error: 'Escolha ao menos uma espécie para compor o item.' };
+
+  for (const [indice, linha] of linhas.entries()) {
+    const posicao = `linha ${indice + 1}`;
+    if (!linha.especieId) return { error: `Escolha a espécie da ${posicao}.` };
+    if (!linha.recipienteId) return { error: `Escolha o recipiente da ${posicao}.` };
+    if (!Number.isInteger(linha.quantidade) || linha.quantidade < 1) {
+      return { error: `Informe a quantidade da ${posicao}, um número inteiro maior que zero.` };
+    }
+    if (permitidas.length > 0 && !permitidas.includes(linha.especieId)) {
+      return { error: `A espécie da ${posicao} não está entre as que o cliente aceita.` };
+    }
+  }
+
+  const soma = linhas.reduce((total, linha) => total + linha.quantidade, 0);
+  if (soma < quantidadePai) return { error: `Faltam ${quantidadePai - soma} mudas para fechar o item.` };
+  if (soma > quantidadePai) return { error: `Passou ${soma - quantidadePai} mudas do que o item pede.` };
+
+  return { value: linhas };
+}
+
+// ------------------------------------------------------------
+// Cargas (T8.9)
+// ------------------------------------------------------------
+
+/**
+ * RN-53 para a carga: **dois valores, e não três**. Um estado intermediário de
+ * "separando" seria gravado no primeiro item marcado e não diria nada que o
+ * progresso de itens separados já não diga. O CHECK do banco tem a mesma lista,
+ * e um teste compara as duas.
+ */
+export const SITUACOES_CARGA = {
+  pendente: 'Pendente',
+  pronto: 'Pronto',
+} as const;
+
+export type SituacaoCarga = keyof typeof SITUACOES_CARGA;
+
+export interface ItemParaCarga {
+  id: string;
+  quantidade: number;
+  nome?: string;
+}
+
+export interface LinhaCarga {
+  itemId: string;
+  quantidade: number;
+}
+
+/**
+ * A divisão do pedido em viagens. **Cada item tem de fechar exatamente**: uma
+ * muda que não entrou em carga nenhuma é uma muda que ninguém vai separar, e o
+ * caminhão sai sem ela sem que nada no sistema avise.
+ *
+ * Carga sem item nenhum não é erro aqui: ela é descartada e as demais são
+ * renumeradas na gravação, porque abrir uma carga a mais e não usá-la é o
+ * caminho normal de quem está decidindo quantas viagens serão.
+ */
+export function validarDivisaoCargas(
+  itens: readonly ItemParaCarga[],
+  cargas: readonly (readonly LinhaCarga[])[],
+): { error: string } | { value: readonly (readonly LinhaCarga[])[] } {
+  if (cargas.length === 0) return { error: 'Divida o pedido em ao menos uma carga.' };
+
+  const porItem = new Map(itens.map((item) => [item.id, 0]));
+  for (const carga of cargas) {
+    for (const linha of carga) {
+      const acumulado = porItem.get(linha.itemId);
+      if (acumulado === undefined) return { error: 'Há item na carga que não é deste pedido.' };
+      if (!Number.isInteger(linha.quantidade) || linha.quantidade < 0) {
+        return { error: 'A quantidade da carga precisa ser um número inteiro, zero ou mais.' };
+      }
+      porItem.set(linha.itemId, acumulado + linha.quantidade);
+    }
+  }
+
+  for (const item of itens) {
+    const soma = porItem.get(item.id)!;
+    if (soma !== item.quantidade) {
+      const qual = item.nome ? `${item.nome}: a` : 'A';
+      return { error: `${qual} soma das cargas (${soma}) não bate com o total do item (${item.quantidade}).` };
+    }
+  }
+
+  return { value: cargas };
+}
+
+// ------------------------------------------------------------
+// Urgência (T8.9)
+// ------------------------------------------------------------
+
+/** Primeira regra que casar, da mais urgente para a menos. */
+export type Urgencia = 'atrasada' | 'entrega_hoje' | 'entrega_amanha' | 'carregar_hoje' | 'em_breve' | null;
+
+export const ROTULO_URGENCIA: Record<Exclude<Urgencia, null>, string> = {
+  atrasada: 'ATRASADO',
+  entrega_hoje: 'ENTREGA HOJE',
+  entrega_amanha: 'ENTREGA AMANHÃ',
+  carregar_hoje: 'CARREGAR HOJE',
+  em_breve: 'EM BREVE',
+};
+
+/** Até aqui o pedido ainda é "em breve"; depois disso, nem etiqueta ganha. */
+const DIAS_EM_BREVE = 3;
+
+/**
+ * Quanto o pedido corre, lido das datas e de nada mais. Quem decide se a
+ * etiqueta aparece é a tela, que sabe se o pedido já está pronto para envio.
+ *
+ * As datas chegam como `AAAA-MM-DD` e são comparadas como texto, que para este
+ * formato dá a mesma ordem que a cronológica, e não passa por `Date` nenhum:
+ * `new Date('2026-09-21')` seria meia-noite em UTC, e no fuso do viveiro isso é
+ * o dia 20.
+ */
+export function urgenciaPedido(hoje: string, dataEntrega: string | null, diaDeCarregar: string | null): Urgencia {
+  if (!dataEntrega) return null;
+  if (dataEntrega < hoje) return 'atrasada';
+  if (dataEntrega === hoje) return 'entrega_hoje';
+  if (diaDeCarregar && diaDeCarregar <= hoje) return 'carregar_hoje';
+  if (dataEntrega <= somaDias(hoje, 1)) return 'entrega_amanha';
+  if (dataEntrega <= somaDias(hoje, DIAS_EM_BREVE)) return 'em_breve';
+  return null;
 }
