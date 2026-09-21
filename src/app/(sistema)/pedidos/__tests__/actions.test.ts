@@ -1,0 +1,151 @@
+// @vitest-environment node
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Perfil } from '@/lib/permissions';
+
+vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
+vi.mock('next/navigation', () => ({
+  redirect: vi.fn((path: string) => {
+    throw new Error(`redirect:${path}`);
+  }),
+}));
+vi.mock('@/lib/auth/dal', () => ({ requireUser: vi.fn() }));
+
+const client = { query: vi.fn(), release: vi.fn() };
+vi.mock('@/lib/db', () => ({ default: { query: vi.fn(), connect: vi.fn(async () => client) } }));
+
+const { requireUser } = await import('@/lib/auth/dal');
+const { default: pool } = await import('@/lib/db');
+const { FORBIDDEN_MESSAGE } = await import('@/lib/auth/guards');
+const actions = await import('../actions');
+
+const PEDIDO = '0b9f3f3e-8a5b-4c1a-9d0e-2f6a7b8c9d0e';
+const ITEM = '1c8e2d4f-9a6b-4d2c-8e1f-3a7b8c9d0e1f';
+const ESPECIE = '2d7f1e5a-0b7c-4e3d-9f2a-4b8c9d0e1f2a';
+const RECIPIENTE = '3e6a2f4b-1c8d-4f5e-8a3b-5c9d0e1f2a3b';
+
+function loggedAs(perfil: Perfil) {
+  vi.mocked(requireUser).mockResolvedValue({
+    sessaoId: 's1',
+    usuarioId: 'u1',
+    login: 'x',
+    nomeExibicao: 'X',
+    perfil,
+    deveTrocarSenha: false,
+    expiraEm: new Date(),
+    ultimoUsoEm: new Date(),
+  });
+}
+
+function form(values: Record<string, string | string[]>): FormData {
+  const data = new FormData();
+  for (const [name, value] of Object.entries(values)) {
+    for (const item of Array.isArray(value) ? value : [value]) data.append(name, item);
+  }
+  return data;
+}
+
+function expectNoDatabase() {
+  expect(pool.query).not.toHaveBeenCalled();
+  expect(pool.connect).not.toHaveBeenCalled();
+}
+
+/** Um pedido válido, com um item só. */
+function pedidoValido(extra: Record<string, string | string[]> = {}) {
+  return form({
+    cliente_id: PEDIDO,
+    canal: 'atacado',
+    item_especie: ESPECIE,
+    item_recipiente: RECIPIENTE,
+    item_quantidade: '200',
+    item_preco: '2,50',
+    ...extra,
+  });
+}
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  client.query.mockResolvedValue({ rows: [{ id: PEDIDO, numero: 1 }], rowCount: 1 });
+  loggedAs('chefia');
+});
+
+describe('permissão (RF-06, D4 §3.2)', () => {
+  it('a gerência não registra pedido, e o banco nem é consultado', async () => {
+    loggedAs('gerencia');
+    await expect(actions.criarPedidoAction({}, pedidoValido())).rejects.toThrow(FORBIDDEN_MESSAGE);
+    expectNoDatabase();
+  });
+
+  it('a gerência não confirma pedido', async () => {
+    loggedAs('gerencia');
+    await expect(actions.confirmarPedidoAction({}, form({ pedido_id: PEDIDO }))).rejects.toThrow(FORBIDDEN_MESSAGE);
+    expectNoDatabase();
+  });
+
+  it('a gerência não altera item', async () => {
+    loggedAs('gerencia');
+    const dados = form({ pedido_id: PEDIDO, item_id: ITEM, quantidade: '1', preco: '1,00' });
+    await expect(actions.atualizarItemAction({}, dados)).rejects.toThrow(FORBIDDEN_MESSAGE);
+    expectNoDatabase();
+  });
+
+  it('a chefia registra, e o pedido criado leva à ficha dele', async () => {
+    await expect(actions.criarPedidoAction({}, pedidoValido())).rejects.toThrow(`redirect:/pedidos/${PEDIDO}?feito=criado`);
+    expect(pool.connect).toHaveBeenCalled();
+  });
+});
+
+describe('validação antes do banco (UC-31 FE-1)', () => {
+  it('pedido sem item nenhum é recusado', async () => {
+    const state = await actions.criarPedidoAction({}, form({ cliente_id: PEDIDO, canal: 'atacado' }));
+    expect(state.error).toMatch(/ao menos um item/i);
+    expectNoDatabase();
+  });
+
+  it('a linha em branco que ninguém usou não vira erro nem item', async () => {
+    await expect(
+      actions.criarPedidoAction(
+        {},
+        pedidoValido({ item_especie: [ESPECIE, ''], item_recipiente: [RECIPIENTE, ''], item_quantidade: ['200', ''], item_preco: ['2,50', ''] }),
+      ),
+    ).rejects.toThrow(/^redirect:/);
+    const inseridos = client.query.mock.calls.filter(([sql]) => String(sql).includes('INSERT INTO pedidos_itens'));
+    expect(inseridos).toHaveLength(1);
+  });
+
+  it('preço inválido é recusado dizendo qual item é', async () => {
+    const state = await actions.criarPedidoAction({}, pedidoValido({ item_preco: 'combinar' }));
+    expect(state.error).toMatch(/item 1/i);
+    expectNoDatabase();
+  });
+
+  it('quantidade zerada é recusada', async () => {
+    const state = await actions.criarPedidoAction({}, pedidoValido({ item_quantidade: '0' }));
+    expect(state.error).toMatch(/item 1/i);
+    expectNoDatabase();
+  });
+
+  it('canal fora da lista fechada é recusado (RN-42)', async () => {
+    const state = await actions.criarPedidoAction({}, pedidoValido({ canal: 'escambo' }));
+    expect(state.error).toMatch(/canal de venda/i);
+    expectNoDatabase();
+  });
+
+  it('cliente que não é identificador é recusado antes do SQL', async () => {
+    const state = await actions.criarPedidoAction({}, pedidoValido({ cliente_id: 'x' }));
+    expect(state.error).toMatch(/cliente/i);
+    expectNoDatabase();
+  });
+
+  it('o que foi digitado volta para a tela quando a action recusa', async () => {
+    const state = await actions.criarPedidoAction({}, pedidoValido({ item_preco: 'combinar', observacoes: 'entregar na sexta' }));
+    expect(state.fields?.observacoes).toBe('entregar na sexta');
+  });
+});
+
+describe('preço gravado', () => {
+  it('chega ao SQL em reais, com duas casas, e não em centavos', async () => {
+    await expect(actions.criarPedidoAction({}, pedidoValido({ item_preco: '2,50' }))).rejects.toThrow(/^redirect:/);
+    const [, valores] = client.query.mock.calls.find(([sql]) => String(sql).includes('INSERT INTO pedidos_itens'))!;
+    expect(valores).toContain('2.50');
+  });
+});
