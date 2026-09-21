@@ -151,9 +151,15 @@ no computador e no celular) e o roteiro no navegador com gerência e chefia agua
 
 ## Fase 7: Mapa de lotes
 
-- [ ] **T7.1** Mapa por área e canteiro, com os lotes abertos e a situação lida de `situacao_lote` (RF-44, RNF-14)
-- [ ] **T7.2** Ao tocar no lote: a tarefa pendente mais antiga e os dias de atraso (RF-45)
-- [ ] **T7.3** Mortalidade destacada acima do limite de Configurações (RF-42)
+- [x] **T7.1** Mapa por área e canteiro, com os lotes abertos e a situação lida de `situacao_lote` (RF-44, RNF-14). *`src/lib/mapa.ts` e `MapaProducao.tsx`, na segunda aba da Produção, que deixou de ser aviso de "ainda não pronto". A situação **nunca é lida de coluna**: vem da visão a cada abertura. `montarMapa` não é `montarOcupacao` de propósito: aquela responde quanto cabe no canteiro (RF-33), esta o que pede providência (RF-45), e fundir as duas faria cada tela carregar a pergunta da outra. No computador o desenho, no celular o contador por área e a lista de providência (RNF-14). Cada aba passou a ter o seu recurso no guard: o mapa é `mapa_lotes`, e não `agenda`*
+- [x] **T7.2** Ao tocar no lote: a tarefa pendente mais antiga e os dias de atraso (RF-45). *A pendência vem pronta da visão, que já escolhe **a mais antiga** entre a tarefa lançada e a etapa do protocolo vencida. `textoPendencia` é pura e separa três casos, porque "atrasada 0 dias" seria falso: a vencida diz os dias, a que vence hoje diz "vence hoje" e a etapa em atenção, que ainda não venceu, diz a data. No desenho o texto vai no `title` e no `aria-label`; no celular ele está na lista "Pedem providência", porque tocar não produz ponteiro parado*
+- [x] **T7.3** Mortalidade destacada acima do limite de Configurações (RF-42). *Reusa `mortalidade` e `acimaDoLimite` de `perdas.ts`, e o limite sai de `limiteMortalidade`, nunca de constante (TA-25). **O destaque é contorno, e não cor**: a cor mede tarefa que não foi feita, e somar as duas produziria um vermelho que não diz o que fazer (B2 §2.4.3). O percentual aparece no rótulo do quadrado e no cartão de providência*
+
+**Aceite:** TA-47, TA-48, TA-24, TA-25. *Em 21/09/2026: TA-47 (seis lotes num canteiro, livres distinguíveis), TA-48 (etapa
+vencida há cinco dias deixa o lote crítico sem nada lançado na agenda) e TA-24/TA-25 (a taxa sai das perdas gravadas, e o
+limite alterado muda o destaque sem que nada no lote mude) contra Postgres real, em `mapa.db.test.ts`; a montagem do mapa, a
+ordem da providência e os três textos de pendência por teste puro. TA-58 (o viveiro inteiro no computador e em lista no
+celular) aguarda execução manual no navegador.*
 
 ## Fase 8: Comercial
 
