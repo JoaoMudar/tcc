@@ -33,18 +33,18 @@ quatro módulos do sistema, com o Acesso à frente por atravessar os quatro.
   `atribuicoes_participantes`, também não têm `id`: a chave é o par que as define, e é ela que impede a
   linha repetida. E `ativo` só existe onde há catálogo a arquivar.
 - Nome de entidade fora do esquema `public` vem qualificado (`cadastro.pessoas`), na coluna Chave inclusive.
-- A marca *Especificada, não implementada no protótipo* abaixo do título indica entidade que
-  pertence ao modelo mas ainda não existe no banco; em entidade já existente, a mesma condição
-  aparece como **Especificado, não implementado** na descrição do atributo.
+- A marca abaixo do título registra **quando** a entidade passou a existir no banco, e cita a
+  migration que a criou. Até 18/09/2026 as quatro entidades do protocolo traziam ali a marca
+  *Especificada, não implementada*; nenhuma entidade do modelo está nessa condição hoje.
 
 ---
 
 ## Recorte implementado
 
-Este dicionário descreve o **modelo especificado**, que é maior que o protótipo construído. Das 27
-entidades, **23 existem no banco** (mais a visão `situacao_lote`) e **4 estão especificadas e ainda
-não implementadas** (mais a visão `lotes_etapas_vencimento`). A distinção é registrada entidade por
-entidade, e não é defeito de modelagem: o modelo responde à especificação completa de requisitos, e
+Este dicionário descreve o **modelo especificado**, que desde 18/09/2026 é também o construído: as
+31 entidades existem no banco, mais as visões `situacao_lote` e `lotes_etapas_vencimento`. Até
+aquela data as quatro entidades do protocolo estavam especificadas e não implementadas, e a
+distinção era registrada entidade por entidade. Não era defeito de modelagem: o modelo responde à especificação completa de requisitos, e
 a construção segue a priorização declarada em
 [`B2`](../B-requisitos/B2-especificacao-requisitos.md).
 
@@ -53,8 +53,13 @@ a construção segue a priorização declarada em
 | *(transversal)* Acesso e configurações | 4 | 0 |
 | 1 · Cadastro único | 12 | 3 |
 | 2 · Produção | 5 | 1 |
-| 3 · Comercial | 2 | 0 |
-| **Total** | **23** | **4** |
+| 3 · Comercial | 6 | 0 |
+| **Total** | **27** | **4** |
+
+As quatro entidades que o Comercial ganhou em 21/09/2026, `pedidos_historico`,
+`pedidos_itens_especies_permitidas`, `pedidos_cargas` e `pedidos_cargas_itens`, nasceram já no
+banco, pelas migrations `20260921000001` e `20260921000002`. Nenhuma delas passou pela condição de
+especificada e não implementada, e é por isso que a coluna da direita continua zerada nesta linha.
 
 As 3 do Cadastro único são as do **protocolo de atividades**: `protocolos`, `protocolos_etapas` e
 `especies_protocolos_tempos`. A 1 da Produção é
@@ -425,7 +430,7 @@ estação e com a combinação da equipe é dado, não constante (RN-26).
 
 ## `protocolos`: protocolo de atividades
 
-**Especificada, não implementada.**
+**Implementada em 18/09/2026** (migration `20260918000001_protocolo_de_atividades.sql`).
 
 A receita de manejo de um recipiente: a sequência de etapas que todo lote daquele recipiente passa
 a seguir sozinho (RF-22).
@@ -452,7 +457,7 @@ a seguir sozinho (RF-22).
 
 ## `protocolos_etapas`: etapa do protocolo
 
-**Especificada, não implementada.**
+**Implementada em 18/09/2026** (migration `20260918000001_protocolo_de_atividades.sql`).
 
 Uma linha da receita. Aponta para uma tarefa do catálogo e declara **quando** ela ocorre (RF-22,
 RF-23). É a entidade que carrega a lógica do módulo inteiro.
@@ -503,7 +508,7 @@ RF-23). É a entidade que carrega a lógica do módulo inteiro.
 
 ## `especies_protocolos_tempos`: tempo da etapa por espécie
 
-**Especificada, não implementada.**
+**Implementada em 18/09/2026** (migration `20260918000001_protocolo_de_atividades.sql`).
 
 O que permite a uma espécie de germinação lenta usar setenta dias onde o protocolo diz quarenta,
 sem duplicar a receita inteira (RF-25, RN-36).
@@ -541,11 +546,12 @@ respondia o que a muda era e não onde estava. A revisão de escopo está justif
 | `recipiente_id` | uuid | ● | FK → `recipientes` | Recipiente, que define o porte da muda |
 | `canteiro_id` | uuid | ○ | FK → `canteiros` | Canteiro ocupado. Nulo quando o lote está encerrado |
 | `lote_origem_id` | uuid | ○ | FK → `lotes` | Lote de origem, quando este nasceu de uma repicagem (RN-20) ou de uma divisão (RN-39) |
-| `protocolo_id` | uuid | ○ | FK → `protocolos` | Protocolo que rege o lote, fotografado na criação a partir do recipiente (RF-46). Nulo quando o recipiente ainda não tem protocolo. **Especificado, não implementado.** |
+| `protocolo_id` | uuid | ○ | FK → `protocolos` | Protocolo que rege o lote, fotografado na criação a partir do recipiente (RF-46). Nulo quando o recipiente ainda não tem protocolo. |
 | `quantidade_inicial` | integer | ● | | Quantidade que entrou. Restrição: maior que zero |
 | `quantidade_atual` | integer | ● | | Saldo vivo. Restrição de banco: não negativo (RN-21). **Mantido pela aplicação** na mesma transação do movimento |
 | `fase` | text | ● | | Fase em **lista fechada**: `semeado`, `germinado`, `repicado`, `crescimento`, `rustificacao`, `pronto`, `encerrado` |
-| `data_plantio` | date | ● | | Data em que a leva foi plantada e passou a ocupar o canteiro. É a âncora das etapas do protocolo que contam da criação do lote (RN-31) |
+| `data_criacao` | date | ● | | Data em que a leva passou a ocupar o canteiro. É a âncora das etapas do protocolo que contam da criação do lote (RN-31), e dela sai o ano do código |
+| `data_plantio` | date | ○ | | Data **real** da conclusão do plantio, gravada pelo protocolo ao concluir a etapa. **Nula significa que ainda não germinou**, e as etapas ancoradas nela não vencem nada |
 | `encerrado_em` | timestamptz | ○ | | Momento do encerramento; a partir dele o lote sai da ocupação |
 | `motivo_encerramento` | text | ○ | | Motivo do encerramento em **lista fechada**: `saldo_zero`, `expedido`, `dividido`. Preenchido se e somente se `encerrado_em` o estiver (RN-38) |
 | `posicao` | integer | ○ | | Ordem do lote dentro do canteiro, a partir de 1. Dá ao mapa um desenho estável (RF-44) |
@@ -603,7 +609,7 @@ aqui, com motivo e origem.
 |---|---|:--:|:--:|---|
 | `id` | uuid | ● | PK | Identificador |
 | `lote_id` | uuid | ● | FK → `lotes` | Lote movimentado |
-| `tipo_movimento` | text | ● | | Motivo em **lista fechada**: `entrada`, `perda`, `repicagem_saida`, `repicagem_entrada`, `venda`, `ajuste_contagem`, `transferencia`, `divisao_saida`, `divisao_entrada`. Os dois últimos são **especificados, não implementados** (RN-39) |
+| `tipo_movimento` | text | ● | | Motivo em **lista fechada**: `entrada`, `perda`, `repicagem_saida`, `repicagem_entrada`, `venda`, `ajuste_contagem`, `transferencia`, `divisao_saida`, `divisao_entrada`. Os dois últimos são os da divisão: o original recebe a saída e cada resultante a sua entrada (RN-39) |
 | `quantidade` | integer | ● | | Quantidade movimentada, com sinal: positiva na entrada, negativa na saída |
 | `data_movimento` | date | ● | | Data do movimento |
 | `canteiro_origem_id` | uuid | ○ | FK → `canteiros` | Canteiro de origem, só em `transferencia` |
@@ -758,17 +764,31 @@ decorre: `saudavel`, `atencao` ou `critico`. É o que pinta o mapa de produção
 | Atributo | Origem |
 |---|---|
 | `lote_id`, `codigo_lote`, `canteiro_id`, `posicao` | `lotes`, restrito aos lotes abertos |
-| `atribuicao_pendente_id`, `tipo_tarefa_pendente_id`, `tarefa_pendente` | a atribuição do lote que segue `planejada`, cuja data já passou e que não tem execução concluída |
-| `pendente_desde` | `atribuicoes.data_trabalho` da pendência |
-| `dias_atraso` | a data de hoje menos `pendente_desde`; zero quando não há pendência |
-| `situacao` | `dias_atraso` comparado aos parâmetros `producao.atraso_atencao_dias` e `producao.atraso_critico_dias` de `parametros` |
+| `atribuicao_pendente_id`, `tipo_tarefa_pendente_id`, `tarefa_pendente` | a atribuição do lote que segue `planejada`, cuja data já passou e que não tem execução concluída. Nula quando a pendência veio do protocolo |
+| `protocolo_etapa_pendente_id` | a etapa de `lotes_etapas_vencimento` vencida ou em atenção que **ninguém lançou** na agenda. Nula quando a pendência é uma tarefa lançada |
+| `pendente_desde` | `atribuicoes.data_trabalho` da tarefa, ou o `proximo_vencimento` da etapa |
+| `dias_atraso` | a data de hoje menos `pendente_desde`; zero quando não há pendência, e zero também na etapa que ainda não venceu |
+| `situacao` | `dias_atraso` comparado aos parâmetros `producao.atraso_atencao_dias` e `producao.atraso_critico_dias` de `parametros`. A etapa dentro da janela de aviso do protocolo é `atencao` sem passar por eles |
 
 > **É visão e não coluna** (RF-45): situação gravada envelhece sozinha, e o lote marcado como saudável ontem
 > continuaria saudável hoje, que é o contrário do que a tela mostra.
 
 > **A mais antiga manda.** Havendo três pendências no mesmo lote, quem determina a cor é a que
 > espera há mais tempo, e é ela que aparece ao apontar o lote (RF-45): resolvê-la é a providência
-> que o mapa está pedindo.
+> que o mapa está pedindo. Isso vale entre as duas fontes: a etapa vencida em abril manda sobre a
+> tarefa atrasada em julho.
+
+> **São duas fontes de pendência, e a segunda entrou em 19/09/2026** (`20260919000002`). A visão
+> nasceu antes do protocolo e só conhecia a tarefa lançada; como o protocolo **sugere sem lançar**
+> (RF-47, RN-41), a etapa vencida não produzia linha nenhuma em `atribuicoes`, e o mapa pintava de
+> verde justamente o lote que ninguém olhou. A etapa que já virou tarefa não conta duas vezes: a
+> tarefa carrega `lote_etapa_id`, e a etapa correspondente sai da fonte do protocolo.
+
+> **As duas escalas de atraso convivem, e cada uma rege o que lhe cabe.** Os parâmetros
+> `producao.atraso_*` regem a pendência em dias; a janela de aviso da etapa é **percentual do
+> intervalo** (RN-35), e por isso a etapa em atenção entra como `atencao` sem ser medida em dias:
+> passá-la por um limite fixo devolveria o calendário rígido que o protocolo existe para não ter. A
+> etapa de alerta desligado não pinta nada, como não colore na ficha do lote.
 
 > **Pendência é o que segue `planejada`, e a condição é positiva de propósito.** Os outros dois
 > situacao saem, cada um pelo seu motivo: `confirmada` é a tarefa que a gerência registrou como feita
@@ -788,7 +808,7 @@ decorre: `saudavel`, `atencao` ou `critico`. É o que pinta o mapa de produção
 
 ## `lotes_etapas`: acompanhamento do lote na etapa
 
-**Especificada, não implementada.**
+**Implementada em 18/09/2026** (migration `20260918000001_protocolo_de_atividades.sql`).
 
 Uma linha por par lote e etapa, criada quando o lote nasce. **Guarda fatos, e nunca o vencimento.**
 
@@ -823,7 +843,7 @@ Uma linha por par lote e etapa, criada quando o lote nasce. **Guarda fatos, e nu
 
 ## `lotes_etapas_vencimento`: vencimento e situação da etapa *(não é tabela)*
 
-**Especificada, não implementada.**
+**Criada em 18/09/2026** (migration `20260918000001_protocolo_de_atividades.sql`).
 
 **Visão.** Devolve, para cada lote aberto e etapa ativa que ainda vence algo, o próximo vencimento
 e a situação que dele decorre (RF-51, RF-52).
@@ -866,16 +886,36 @@ e a situação que dele decorre (RF-51, RF-52).
 | `numero_pedido` | serial | ● | UK | Número sequencial legível, usado na comunicação com o cliente |
 | `cliente_id` | uuid | ● | FK → `cadastro.pessoas` | Cliente. Aponta para a **identidade única**, e não para uma tabela de clientes: quem compra e às vezes vende é um cadastro só (RN-45) |
 | `canal_venda` | varchar(50) | ● | | Canal de venda, em lista fechada de cinco: `atacado`, `compensacao`, `paisagismo`, `prefeitura`, `varejo` (RN-42) |
-| `situacao` | varchar(30) | ● | | `rascunho`, `confirmado`, `cancelado` (RN-48) |
-| `data_entrega` | date | ○ | | Data prevista de entrega |
+| `situacao` | varchar(30) | ● | | `cadastrado`, `verificando`, `verificado`, `pendente_alteracao`, `aprovado`, `separando`, `pronto_envio`, `cancelado` (RN-53) |
+| `data_entrega` | date | ○ | | Data prevista de entrega. O dia de carregar é o dia útil anterior a ela, derivado e não gravado (RN-58) |
 | `observacoes` | text | ○ | | Observações |
+| `precisa_nota` | boolean | ○ | | Se o pedido sai com nota fiscal. **Nulo enquanto a chefia não respondeu**, e a pergunta acontece na aprovação |
 | `criado_por` | uuid | ● | FK → `usuarios` | Autor do registro (RN-52) |
 
-**Restrição:** pedido em `confirmado` ou `cancelado` não admite alteração de item (RF-57).
+**Restrição:** pedido fora de `cadastrado` não admite alteração de item (RF-57, RN-48).
 
-> **Não há tabela de histórico de estados.** São três situações e o que o negócio precisa saber é
-> em qual delas o pedido está. Uma tabela de histórico existiria para responder quem mudou o quê e
-> quando, pergunta que um viveiro de nove pessoas resolve perguntando.
+> **Nulo é "ninguém perguntou ainda", e é por isso que `precisa_nota` não é `NOT NULL DEFAULT
+> false`.** Os pedidos anteriores a 21/09/2026 nunca passaram pela pergunta, e gravá-los como falso
+> afirmaria uma resposta que ninguém deu.
+
+## `pedidos_historico`: mudança de situação do pedido
+
+| Atributo | Tipo | Ob. | Chave | Descrição |
+|---|---|:--:|:--:|---|
+| `id` | uuid | ● | PK | Identificador |
+| `pedido_id` | uuid | ● | FK → `pedidos` | Pedido |
+| `situacao_anterior` | varchar(30) | ○ | | Situação de onde veio. **Nula no nascimento do pedido**, que não tem situação anterior |
+| `situacao_nova` | varchar(30) | ● | | Situação para onde foi |
+| `alterado_por` | uuid | ● | FK → `usuarios` | Quem assinou a mudança (RN-52) |
+| `observacoes` | text | ○ | | Motivo do cancelamento, resumo da conferência, o que a transição precisar dizer em uma linha |
+
+**Restrição:** `situacao_nova` diferente de `situacao_anterior`. Linha que não muda nada não é
+histórico, e entraria só para poluir a ficha.
+
+> **A tabela existe desde 21/09/2026, e a decisão anterior era de não a ter.** O argumento de então
+> valia para duas transições feitas pela mesma pessoa, quem mudou o quê se resolvia perguntando. Com
+> oito situações e dois perfis que se revezam, o pedido passa de mão em mão, e "a gerência já
+> conferiu?" deixou de ter resposta óbvia.
 
 > **`canal_venda` é enumeração, e não chave estrangeira.** Canal de venda é lista fechada de cinco
 > valores sem atributos próprios: virar entidade só se justificaria se o canal carregasse margem ou
@@ -887,20 +927,82 @@ e a situação que dele decorre (RF-51, RF-52).
 |---|---|:--:|:--:|---|
 | `id` | uuid | ● | PK | Identificador |
 | `pedido_id` | uuid | ● | FK → `pedidos` | Pedido |
-| `especie_id` | uuid | ● | FK → `especies` | Espécie |
-| `recipiente_id` | uuid | ● | FK → `recipientes` | Recipiente solicitado |
+| `especie_id` | uuid | ○ | FK → `especies` | Espécie. **Nula apenas no item genérico**, que é o pedido sem escolha de espécie |
+| `recipiente_id` | uuid | ● | FK → `recipientes` | Recipiente solicitado. No genérico, o recipiente mínimo aceito |
 | `quantidade` | integer | ● | | Quantidade pedida. Restrição: maior que zero |
 | `preco_unitario` | numeric(10,2) | ● | | **Preço unitário informado por quem registra** (RF-55, RN-50). Restrição: maior que zero |
+| `disponivel` | boolean | ○ | | O que a conferência respondeu. **Nulo é "ninguém conferiu ainda"** (RF-59) |
+| `quantidade_disponivel` | integer | ○ | | Quantas existem, quando `disponivel` é falso. Zero significa indisponível (RN-54) |
+| `recipiente_disponivel_id` | uuid | ○ | FK → `recipientes` | Recipiente em que a muda foi encontrada, que pode diferir do pedido |
+| `observacoes_disponibilidade` | text | ○ | | Observação da gerência sobre o item |
+| `generico` | boolean | ● | | Item pedido sem escolha de espécie (RF-60) |
+| `item_pai_id` | uuid | ○ | FK → `pedidos_itens` | Item genérico que este filho compõe. Nulo no item de topo |
+| `especificacao` | text | ○ | | O que o cliente pediu, em texto. Só no item genérico |
+
+**Restrições:** item genérico não tem espécie, e item não genérico tem; item genérico não tem pai, o
+que mantém a composição em um nível só; `quantidade_disponivel` vai de zero até `quantidade` menos
+um, e só existe quando `disponivel` é falso; `recipiente_disponivel_id` só existe com
+`quantidade_disponivel` maior que zero.
 
 > **O preço é digitado, e o sistema não o calcula.** Não há referência a tabela de preço, piso
 > mínimo nem margem: o valor é o que foi negociado na conversa com o cliente, e ao sistema cabe
 > guardá-lo. O total do item e o do pedido são derivados de `quantidade` por `preco_unitario`, e não
-> materializados.
+> materializados. **O total soma apenas os itens de topo**, porque o filho do genérico herda o preço
+> do pai e contá-los juntos dobraria a venda.
 
-> **Não há coluna de disponibilidade.** O saldo que a tela exibe ao lado do item (RF-56) é somado
-> dos lotes prontos daquela espécie e recipiente a cada consulta. Guardá-lo aqui congelaria uma
-> leitura que muda a cada perda registrada, e o item passaria a mentir sobre o estoque de hoje. É a
-> mesma decisão que fez a situação do lote ser visão e não coluna (RF-45).
+> **A disponibilidade conferida não é o saldo, e a distinção é o ponto.** O saldo que a tela exibe
+> ao lado do item (RF-56) continua somado dos lotes prontos a cada consulta, e guardá-lo aqui
+> congelaria uma leitura que muda a cada perda registrada. As colunas acima guardam outra coisa, a
+> resposta de quem foi ao pátio conferir, com autor e hora em `pedidos_historico`. Uma se recalcula
+> porque o viveiro muda sozinho; a outra se grava porque é afirmação de uma pessoa.
+
+> **Parcial e indisponível compartilham `disponivel = false`.** Quem os distingue é
+> `quantidade_disponivel`, zero contra maior que zero. Um terceiro valor booleano não existe, e uma
+> coluna de texto com três estados admitiria um quarto por engano de digitação.
+
+## `pedidos_itens_especies_permitidas`: escopo do item genérico
+
+| Atributo | Tipo | Ob. | Chave | Descrição |
+|---|---|:--:|:--:|---|
+| `item_id` | uuid | ● | PK, FK → `pedidos_itens` | Item genérico |
+| `especie_id` | uuid | ● | PK, FK → `especies` | Espécie que o cliente aceita |
+
+> **Sem nenhuma linha, qualquer espécie serve.** A ausência representa o caso mais comum, e
+> representá-la assim evita listar as cerca de 150 espécies do catálogo toda vez que o cliente não
+> restringiu nada. Quando há linhas, o servidor recusa espécie de fora (RN-55).
+
+## `pedidos_cargas`: viagem do caminhão
+
+| Atributo | Tipo | Ob. | Chave | Descrição |
+|---|---|:--:|:--:|---|
+| `id` | uuid | ● | PK | Identificador |
+| `pedido_id` | uuid | ● | FK → `pedidos` | Pedido |
+| `numero_carga` | integer | ● | UK com `pedido_id` | Sequencial dentro do pedido. Restrição: maior que zero |
+| `situacao` | varchar(20) | ● | | `pendente` ou `pronto` |
+| `observacoes` | text | ○ | | Observações da carga |
+
+> **São dois valores, e não três.** Um estado intermediário de separação seria gravado no primeiro
+> item marcado e não diria nada que a contagem de itens separados já não diga. Valor que o código
+> nunca escreve é restrição que mente sobre o modelo.
+
+## `pedidos_cargas_itens`: o que vai em cada viagem
+
+| Atributo | Tipo | Ob. | Chave | Descrição |
+|---|---|:--:|:--:|---|
+| `id` | uuid | ● | PK | Identificador |
+| `carga_id` | uuid | ● | FK → `pedidos_cargas` | Carga |
+| `item_id` | uuid | ● | FK → `pedidos_itens` | Item do pedido. **Nunca o item genérico**, e sim os filhos dele (RN-56) |
+| `quantidade` | integer | ● | | Quanto do item vai nesta viagem. Restrição: maior que zero |
+| `separado` | boolean | ● | | Se o item já foi contado e posto no lugar de carregamento |
+
+**Restrição:** um item aparece uma vez por carga. A soma de um item em todas as cargas do pedido
+reproduz a quantidade dele, garantida pela aplicação e não pelo banco, porque a verificação atravessa
+linhas de tabelas diferentes.
+
+> **`separado` é confirmação, e não contagem.** Quantas mudas contar já está em `quantidade`, e um
+> segundo número abriria a pergunta do que fazer quando os dois divergem. Hoje a falta descoberta no
+> galpão volta para a chefia editar o pedido, e registrar a divergência é a evolução natural desta
+> tabela, não o estado dela.
 
 ## Resumo
 
@@ -909,5 +1011,5 @@ e a situação que dele decorre (RF-51, RF-52).
 | *(transversal)* Acesso e configurações | 4 | `usuarios`, `sessoes`, `eventos_login` e `parametros`, os parâmetros do sistema |
 | 1 · Cadastro único | 15 | catálogo (`especies`, `especies_nomes_populares`, `especies_fotos`, `recipientes`, `insumos`), endereço do viveiro (`areas`, `canteiros`), trabalho (`tipos_tarefa`, `turnos_trabalho`), protocolo (`protocolos`, `protocolos_etapas`, `especies_protocolos_tempos`) e o esquema `cadastro` (`pessoas`, `pessoas_papeis`, `pessoas_enderecos`) |
 | 2 · Produção | 6 | `semanas`, `atribuicoes`, `atribuicoes_participantes`, `lotes`, `movimentos_lote`, `lotes_etapas` |
-| 3 · Comercial | 2 | `pedidos` e `pedidos_itens` |
-| **Total** | **27** | mais `situacao_lote` e `lotes_etapas_vencimento`, que são visões e não tabelas |
+| 3 · Comercial | 6 | `pedidos`, `pedidos_itens`, `pedidos_historico`, `pedidos_itens_especies_permitidas`, `pedidos_cargas` e `pedidos_cargas_itens` |
+| **Total** | **31** | mais `situacao_lote` e `lotes_etapas_vencimento`, que são visões e não tabelas |

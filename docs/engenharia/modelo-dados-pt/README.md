@@ -10,10 +10,15 @@ o que restou aqui é o recorte e o cuidado com a legibilidade impressa. O regist
 renomeado, e do que o aplicativo em outro repositório precisa acompanhar, está em
 [`de-para-ingles-portugues.md`](de-para-ingles-portugues.md).
 
-**São doze figuras para vinte e sete entidades**, e nenhuma precisa ser dividida nem girada. Não
-foi sempre assim: até a redução de escopo eram dezenove figuras para sessenta e duas entidades, com
-duas obrigando a paisagem e várias raspando o piso de legibilidade. O ganho não veio de desenhar
-melhor, veio de haver menos o que desenhar.
+**São treze figuras para trinta e uma entidades**, e nenhuma precisa ser girada. Não foi sempre
+assim: até a redução de escopo eram dezenove figuras para sessenta e duas entidades, com duas
+obrigando a paisagem e várias raspando o piso de legibilidade. O ganho não veio de desenhar melhor,
+veio de haver menos o que desenhar.
+
+**O Comercial ocupa duas figuras desde 21/09/2026**, e é a única área dividida. A conferência de
+disponibilidade e a carga acrescentaram quatro entidades ao pedido, e desenhá-las juntas levaria a
+figura 17 abaixo do piso de legibilidade. A divisão foi por assunto, o pedido e o que se confere
+nele numa figura, a viagem do caminhão na outra, e não por corte arbitrário de tamanho.
 
 Fonte Mermaid em `mmd/`, PNGs em `img/`, layout em `mermaid-config.json` (`nodeSpacing` 30 e
 `rankSpacing` 45 no lugar dos padrões 140 e 80 do Mermaid, que são a causa do espalhamento).
@@ -52,15 +57,17 @@ node scripts/mede-figuras.mjs
 | 14 | `fig14-producao-agenda` | Produção: semana, atribuição e participantes | 8,8 pt |
 | 15 | `fig15-producao-lote` | Produção: o lote e seus movimentos | 8,7 pt |
 | 16 | `fig16-producao-protocolo-do-lote` | Produção: o lote seguindo o protocolo | 21,1 pt |
-| 17 | `fig17-comercial-pedido` | Comercial: pedido e item | 12,7 pt |
+| 17 | `fig17-comercial-pedido` | Comercial: pedido, item e a disponibilidade conferida | 7,8 pt |
+| 18 | `fig18-comercial-carga` | Comercial: as cargas do pedido e a separação | 15,0 pt |
 
 **A menor é a 6, a 6,9 pt, e é a conceitual da produção.** Continua sendo a mais apertada da série
 pelo mesmo motivo de sempre: ela é a única que precisa mostrar o ciclo inteiro numa figura só, do
 recipiente ao movimento do lote, passando pelo protocolo e pela agenda. Está acima do piso de 6 pt,
 e em paisagem subiria para 10,3 pt caso a impressão fique ruim.
 
-**As figuras posteriores do capítulo 4 deslocam.** São doze figuras de modelo de dados no lugar das
-seis originais, então a arquitetura (4.6) passa a começar na Figura 18 e a segurança (4.7) na 24.
+**As figuras posteriores do capítulo 4 deslocam.** São treze figuras de modelo de dados no lugar
+das seis originais, então a arquitetura (4.6) passa a começar na Figura 19 e a segurança (4.7) na
+25.
 
 ## Como conferir uma alteração
 
@@ -72,7 +79,7 @@ conferência é um comando, e não uma lembrança:**
 node scripts/confere-modelo-pt.mjs
 ```
 
-Ele compara o **conjunto** de arestas das figuras lógicas (fig08 a fig17) com o das seções 3.1 a
+Ele compara o **conjunto** de arestas das figuras lógicas (fig08 a fig18) com o das seções 3.1 a
 3.4 do `C6`, nos dois sentidos. Até a renomeação ele também traduzia os nomes antes de comparar;
 não traduz mais, porque os dois lados escrevem o mesmo nome.
 

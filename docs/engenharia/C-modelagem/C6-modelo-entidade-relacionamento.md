@@ -101,7 +101,7 @@ erDiagram
   USUARIO      ||--o{ MOVIMENTO_LOTE : "registra"
 ```
 
-O diagrama conceitual apresenta **dezenove entidades**, e não as vinte e sete do modelo
+O diagrama conceitual apresenta **dezenove entidades**, e não as trinta e uma do modelo
 completo. A redução é deliberada: Sommerville (2011) observa que a ausência de detalhe excessivo é
 característica central do modelo, cujo objetivo é destacar o mais relevante e não especificar por
 inteiro. Entidades associativas, de histórico e de auditoria aparecem apenas nos modelos lógicos por
@@ -167,7 +167,7 @@ onde o desenho anterior discordava do [`C8`](C8-dicionario-de-dados.md), foi o `
 Convenção dos diagramas: entidade de **outra** área aparece como **caixa vazia**, apenas para que
 a aresta exista. Os atributos dela estão no diagrama da área a que pertence.
 
-Atributos comuns à maioria das entidades, omitidos dos diagramas para não repetir vinte e sete
+Atributos comuns à maioria das entidades, omitidos dos diagramas para não repetir trinta e uma
 vezes: `id` (chave primária), `criado_em` e `atualizado_em`. Onde `ativo` aparece, é a marca de
 inativação que substitui a exclusão. As exceções, tabelas sem `atualizado_em` porque nada nelas se
 altera, e as duas de ligação, sem `id` porque a chave é o par que as define, estão registradas uma
@@ -667,7 +667,8 @@ disponível também serem derivados.
 
 ### 3.4 Área 3 · Comercial
 
-Duas entidades, e é o tamanho certo. O pedido registra o que foi negociado fora do sistema.
+Seis entidades. O pedido registra o que foi negociado fora do sistema, e o percurso dele entre a
+venda e a saída do caminhão.
 
 ```mermaid
 erDiagram
@@ -679,6 +680,7 @@ erDiagram
     text    situacao
     date    data_entrega
     text    observacoes
+    boolean precisa_nota
     uuid    criado_por FK
   }
   pedidos_itens {
@@ -688,6 +690,39 @@ erDiagram
     uuid    recipiente_id FK
     int     quantidade
     numeric preco_unitario
+    boolean disponivel
+    int     quantidade_disponivel
+    uuid    recipiente_disponivel_id FK
+    text    observacoes_disponibilidade
+    boolean generico
+    uuid    item_pai_id FK
+    text    especificacao
+  }
+  pedidos_historico {
+    uuid    id PK
+    uuid    pedido_id FK
+    text    situacao_anterior
+    text    situacao_nova
+    uuid    alterado_por FK
+    text    observacoes
+  }
+  pedidos_itens_especies_permitidas {
+    uuid    item_id PK
+    uuid    especie_id PK
+  }
+  pedidos_cargas {
+    uuid    id PK
+    uuid    pedido_id FK
+    int     numero_carga
+    text    situacao
+    text    observacoes
+  }
+  pedidos_cargas_itens {
+    uuid    id PK
+    uuid    carga_id FK
+    uuid    item_id FK
+    int     quantidade
+    boolean separado
   }
   pessoas {}
   especies {}
@@ -699,6 +734,14 @@ erDiagram
   usuarios   ||--o{ pedidos      : "registra"
   especies    ||--o{ pedidos_itens : "é vendida em"
   recipientes ||--o{ pedidos_itens : "define porte de"
+  pedidos ||--o{ pedidos_historico : "percorre"
+  usuarios ||--o{ pedidos_historico : "assina"
+  pedidos_itens ||--o{ pedidos_itens : "é composto por"
+  pedidos_itens ||--o{ pedidos_itens_especies_permitidas : "admite"
+  especies ||--o{ pedidos_itens_especies_permitidas : "é admitida em"
+  pedidos ||--o{ pedidos_cargas : "sai em"
+  pedidos_cargas ||--o{ pedidos_cargas_itens : "leva"
+  pedidos_itens ||--o{ pedidos_cargas_itens : "é separado em"
 ```
 
 **`pedidos.cliente_id` aponta para `cadastro.pessoas`, e não para uma tabela de clientes.** É a
@@ -711,9 +754,22 @@ venda nem de tabela de preços: `canal_venda` é enumeração em `pedidos`, porq
 lista fechada de cinco valores sem atributos próprios (RN-42), e o preço é o que foi acordado na
 conversa.
 
-**Não há entidade de disponibilidade.** O saldo que o item exibe (RF-56) é calculado dos lotes
-prontos daquela espécie e recipiente, a cada consulta. Guardá-lo no item congelaria uma leitura que
-muda a cada perda registrada, e o item passaria a mentir sobre o estoque de hoje.
+**O saldo continua sem entidade, e a disponibilidade conferida tem colunas.** São duas coisas, e a
+distinção é o ponto. O saldo que o item exibe (RF-56) é calculado dos lotes prontos daquela espécie
+e recipiente a cada consulta, e guardá-lo congelaria uma leitura que muda a cada perda registrada.
+Já `disponivel`, `quantidade_disponivel` e `recipiente_disponivel_id` guardam o que uma pessoa foi
+ao pátio conferir e respondeu (RF-59), com autor e hora em `pedidos_historico`. Resposta de alguém
+se grava; leitura de estoque se recalcula.
+
+**`pedidos_itens` aponta para si mesma, e é a composição do item pedido sem espécie.** O cliente que
+pede quinhentas mudas nativas sem nomear espécie gera um item de topo com `generico`, e a gerência
+cria um filho por espécie escolhida (RF-60). A composição tem um nível só, garantido por restrição:
+item genérico não tem pai. O filho herda o preço do pai, e o total do pedido soma apenas os itens de
+topo, porque o filho diz qual espécie compõe a venda e não quanto ela custa.
+
+**`recipiente_disponivel_id` é a segunda aresta entre item e recipiente**, e não a repetição da
+primeira. `recipiente_id` é o que o cliente pediu, e o outro é o que a gerência encontrou. Os dois
+convivem até a aprovação, que substitui o primeiro pelo segundo quando eles divergem.
 
 **Não há histórico de estados do pedido.** `situacao` percorre `rascunho`, `confirmado` e
 `cancelado`, e o que o negócio precisa saber é em qual deles o pedido está. Uma tabela de histórico

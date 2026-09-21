@@ -168,8 +168,14 @@ qualquer implementação do motor tem de reproduzir.
 | **TA-50** | RF-17 | - | 1. Informar um CPF inválido no cadastro completo | Documento é recusado no momento da digitação, preservando os demais campos preenchidos | Não executado |
 | **TA-51** | RF-54 | Espécies e recipientes cadastrados | 1. Registrar um pedido com três itens<br>2. Consultar a lista de pedidos | Pedido aparece na lista, com número sequencial e os três itens | Não executado |
 | **TA-52** | RF-55 | Pedido em rascunho | 1. Informar preço unitário em cada um dos três itens<br>2. Conferir os totais | O total de cada item é quantidade por preço, e o total do pedido é a soma dos três | Não executado |
-| **TA-53** | RF-57 | Pedido em rascunho, com itens | 1. Confirmar o pedido<br>2. Tentar alterar a quantidade de um item | O pedido passa a *confirmado* e a alteração do item é recusada | Não executado |
+| **TA-53** | RF-57 | Pedido verificado, com itens | 1. Aprovar o pedido<br>2. Tentar alterar a quantidade de um item | O pedido passa a *aprovado* e a alteração do item é recusada | Não executado |
 | **TA-54** | RF-58 | Pedidos de clientes e canais distintos, em datas distintas | 1. Filtrar por cliente<br>2. Filtrar por canal<br>3. Filtrar por período | Cada filtro retorna somente os pedidos correspondentes | Não executado |
+| **TA-71** | RF-59 | Pedido cadastrado com três itens | 1. Conferir o primeiro como disponível<br>2. Conferir o segundo como disponível em parte, em outro recipiente<br>3. Conferir o terceiro como indisponível | As três respostas ficam gravadas, e a do segundo guarda a quantidade encontrada e o recipiente | Não executado |
+| **TA-72** | RF-59 | Pedido em conferência, com um item sem resposta | 1. Enviar o pedido para a chefia | O envio é recusado, e o pedido continua em *verificando* | Não executado |
+| **TA-73** | RF-60 | Item de quinhentas mudas pedido sem espécie, com duas espécies aceitas pelo cliente | 1. Compor com uma espécie fora das aceitas<br>2. Compor com trezentas de uma aceita e duzentas da outra | A primeira composição é recusada, e a segunda é aceita | Não executado |
+| **TA-74** | RF-57 | Pedido verificado com um item indisponível e um disponível em parte | 1. Aprovar o pedido<br>2. Conferir os itens que restaram | O indisponível sai do pedido, e o parcial passa a valer pela quantidade e pelo recipiente encontrados | Não executado |
+| **TA-75** | RF-61 | Pedido aprovado, dividido em duas cargas | 1. Separar os itens da primeira carga e fechá-la<br>2. Separar os itens da segunda e fechá-la | O pedido só passa a *pronto para envio* ao fechar a segunda carga | Não executado |
+| **TA-76** | RF-62 | Pedido com entrega numa segunda-feira | 1. Consultar o calendário de entregas e carregamentos | A sexta-feira anterior aparece como dia de carregar | Não executado |
 
 ## 7. Requisitos não funcionais
 
@@ -227,10 +233,10 @@ requisitos de prioridade *deve ter* sem verificação correspondente.
 | Agenda da semana | 9 | RF-26, RF-27, RF-28, RF-29, RF-30, RF-31 |
 | Protocolo de atividades por lote | 12 | RF-22, RF-23, RF-24, RF-25, RF-40, RF-46, RF-47, RF-48, RF-49, RF-50, RF-51, RF-52, RF-53 |
 | Mapa de lotes | 2 | RF-44, RF-45 |
-| Clientes e pedidos | 6 | RF-15, RF-17, RF-54, RF-55, RF-57, RF-58 |
+| Clientes e pedidos | 12 | RF-15, RF-17, RF-54, RF-55, RF-57, RF-58, RF-59, RF-60, RF-61, RF-62 |
 | Requisitos não funcionais | 7 | RNF-01, RNF-02, RNF-05, RNF-06, RNF-08, RNF-09, RNF-11, RNF-14 |
 | Casos acrescentados pela matriz de rastreabilidade | 9 | RF-05, RF-11, RF-18, RF-26, RF-28, RF-39, RF-41, RF-43, RF-56, RNF-14 |
-| **Total** | **70** | **53 dos 53 requisitos de prioridade *deve ter*** |
+| **Total** | **76** | **57 dos 57 requisitos de prioridade *deve ter*** |
 
 **Todos os requisitos de prioridade *deve ter* têm caso de aceite.**
 

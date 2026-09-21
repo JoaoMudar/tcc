@@ -1451,3 +1451,55 @@ RN-27, que a tabela de rastreabilidade de `B3` já associa a RF-09, diferente de
 RN-27 para o RF irmão. Nenhuma das duas é uma contradição de conteúdo, só uma lacuna de citação; não
 repetir esse padrão de "termo quase igual, campo de RN esquecido" é o tipo de coisa que uma próxima
 passada, se cortar mais fino, ainda vai achar.
+
+---
+
+## Décima sexta passada: a carga volta ao escopo (21/09/2026)
+
+A redução de 28/08/2026 cortou "entregas e cargas" numa linha só, e o corte foi aplicado a todos os
+artefatos. Em 21/09/2026, ao implementar o Comercial, a rotina real apareceu inteira e mostrou que o
+corte tinha juntado duas coisas diferentes. A entrega é o que acontece depois que o caminhão sai, e
+continua fora. A carga é o trabalho que a gerência faz **antes** de ele sair, e sem ela o sistema
+não sabia dizer nada sobre o intervalo entre a venda e a saída.
+
+**O corte separou mal porque olhou o substantivo e não o trabalho.** "Entregas e cargas" parecia um
+assunto só, logística, que um protótipo acadêmico podia dispensar. São dois. Um é transporte, e o
+viveiro o resolve por telefone. O outro é a conferência da muda no pátio e a contagem no galpão, que
+é exatamente o que uma pessoa faz com o celular na mão e que nenhum outro registro do sistema
+cobria.
+
+### O que estava desencontrado
+
+A migration `20260921000001`, de 21/09/2026, já tinha dado ao pedido oito situações, entre elas
+`verificando`, `separando` e `pronto_envio`. O código e o `D4` §3.2 a acompanharam. Nenhum outro
+artefato soube: `B2` (RF-57), `B3` (RN-48), `C2` (UC-31 e UC-33), `E2` (TA-53), `C6`, `C8`, o
+`CHANGELOG` e as três rotinas do Comercial continuavam descrevendo o fluxo de três situações,
+`rascunho`, `confirmado` e `cancelado`, que o banco já não tinha.
+
+Pior que a defasagem, havia uma afirmação ativa em sentido contrário. O `UC-33` do `C2` trazia a
+nota "o pedido não percorre aprovação de preço, verificação, separação nem entrega: essas etapas
+existem na operação e continuam acontecendo fora do sistema". Ela não estava só desatualizada,
+estava negando o que o banco fazia desde a manhã daquele mesmo dia.
+
+### O que foi corrigido
+
+| Artefato | Estava | Ficou |
+|---|---|---|
+| `B2` | RF-57 com três situações | RF-57 com oito, mais RF-59 a RF-62 |
+| `B3` | RN-48 descrevendo as três situações; RN-53 citada pelo código e inexistente | RN-48 reescrita, e grupo F novo com RN-53 a RN-58 |
+| `C1` | 34 casos de uso, UC-33 "Confirmar pedido" | 38 casos, UC-33 "Aprovar pedido", UC-35 a UC-38 da gerência |
+| `C2` | UC-31 em rascunho, UC-33 negando a verificação | Pós-condições corrigidas, a nota substituída, quatro casos novos |
+| `E2` | TA-53 sobre o fluxo antigo | TA-53 corrigida, TA-71 a TA-76 novos |
+| `D4` | 25 recursos | 27, com `verificacao_pedido` e `cargas_pedido` |
+| `CHANGELOG` | sem entrada para `20260921000001` | as duas entradas de 21/09/2026 |
+| rotinas | diagrama de três estados, "não há tabela de carga" | o fluxo de oito situações e as duas etapas de campo |
+
+### O que não mudou, e é o ponto
+
+**A entrega continua fora do escopo**, e com ela o roteiro de viagem e o motorista. O pedido termina
+em pronto para envio, que é o estado em que a muda está contada e no lugar de carregamento. A
+`A1` §7 não foi alterada.
+
+Também não voltou o perfil de colaborador. A rotina de origem que descrevia estas duas etapas dava
+ao colaborador a marcação de item separado, e adotá-la exigiria um quarto perfil. Os seis
+colaboradores de campo continuam sem acesso, e a contagem no galpão é da gerência.

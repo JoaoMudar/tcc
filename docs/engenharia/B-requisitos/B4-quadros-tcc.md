@@ -98,7 +98,7 @@ Fonte: Elaborado pelo autor (2026).
 | RN-45 | Cada pessoa tem um cadastro único, mesmo sendo cliente, fornecedor e funcionário. |
 | RN-46 | A venda para compensação ambiental exige o nome científico da espécie. |
 | RN-47 | Os dados pessoais de clientes e funcionários seguem a Lei nº 13.709/2018. |
-| RN-48 | O pedido pode estar em rascunho, confirmado ou cancelado, e o item confirmado não muda. |
+| RN-48 | Aprovar o pedido trava o item, que depois disso não muda em espécie, quantidade nem preço. |
 | RN-49 | Uma pessoa pode ter mais de um endereço. |
 | RN-50 | O preço é combinado com o cliente e registrado no pedido. |
 
@@ -110,6 +110,12 @@ Fonte: Elaborado pelo autor (2026).
 |---|---|
 | RN-51 | O perfil do usuário (chefia, gerência ou administrador) define o que ele pode ver e fazer. |
 | RN-52 | Todo registro guarda quem o fez. |
+| RN-53 | O pedido percorre oito situações, cadastrado, verificando, verificado, pendente de alteração, aprovado, separando, pronto para envio e cancelado, e cada uma delas espera por um perfil determinado. |
+| RN-54 | O item conferido está disponível por inteiro, disponível em parte ou indisponível. A parte informada vai de uma muda até uma a menos que a pedida, e exige dizer em que recipiente ela está. |
+| RN-55 | A composição do item pedido sem espécie soma exatamente a quantidade dele, e só admite espécie que o cliente aceite. |
+| RN-56 | O item pedido sem espécie não vai na carga, e sim as espécies que o compõem. A soma de um item nas cargas reproduz a quantidade dele. |
+| RN-57 | A carga fica pronta quando todos os itens dela foram separados, e o pedido fica pronto para envio quando todas as cargas estão prontas. |
+| RN-58 | O dia de carregar é o dia útil anterior à data de entrega, de segunda a sexta-feira. |
 
 Fonte: Elaborado pelo autor (2026).
 
@@ -121,8 +127,8 @@ Fonte: Elaborado pelo autor (2026).
 | Produção, lote e trabalho | RN-08, RN-09, RN-10, RN-11, RN-12, RN-13, RN-14, RN-15, RN-16, RN-17, RN-18, RN-19, RN-20, RN-21, RN-22, RN-23, RN-24, RN-25, RN-26, RN-27, RN-28, RN-29 | 22 |
 | Protocolo de atividades por lote | RN-30, RN-31, RN-32, RN-33, RN-34, RN-35, RN-36, RN-37, RN-38, RN-39, RN-40, RN-41 | 12 |
 | Cliente e pedido | RN-42, RN-43, RN-44, RN-45, RN-46, RN-47, RN-48, RN-49, RN-50 | 9 |
-| Acesso e responsabilidade | RN-51, RN-52 | 2 |
-| **Total** | | **52** |
+| Acesso e responsabilidade | RN-51, RN-52, RN-53, RN-54, RN-55, RN-56, RN-57, RN-58 | 8 |
+| **Total** | | **58** |
 
 Fonte: Elaborado pelo autor (2026).
 
@@ -190,8 +196,12 @@ Fonte: Elaborado pelo autor (2026).
 | RF-54 | Registro de pedido com cliente, canal e itens | O sistema deve permitir registrar pedido com cliente, canal de venda e itens compostos por espécie, recipiente e quantidade. | RN-01, RN-04, RN-42, RN-46 |
 | RF-55 | Preço unitário informado no item | O sistema deve registrar o preço unitário informado em cada item do pedido, e apresentar o total do item e o do pedido. | RN-50 |
 | RF-56 | Saldo disponível ao lado do item | O sistema deve apresentar, ao lado de cada item do pedido, a quantidade de muda pronta que a produção tem daquela espécie e recipiente. | RN-06, RN-08 |
-| RF-57 | Situação do pedido | O sistema deve controlar a situação do pedido (rascunho, confirmado e cancelado), impedindo alteração de item depois da confirmação. | RN-48 |
+| RF-57 | Situação do pedido | O sistema deve controlar a situação do pedido ao longo das oito situações que vão do cadastro ao pronto para envio, impedindo alteração de item depois da aprovação. | RN-48, RN-53 |
 | RF-58 | Listagem de pedidos com filtro | O sistema deve listar os pedidos com filtro por cliente, canal e período. | RN-42 |
+| RF-59 | Disponibilidade conferida item a item | O sistema deve registrar, para cada item do pedido, a disponibilidade conferida no viveiro, que pode ser total, parcial com a quantidade encontrada e o recipiente em que ela está, ou nenhuma. | RN-54 |
+| RF-60 | Composição do item pedido sem espécie | O sistema deve permitir compor em espécies o item que o cliente pediu sem escolher espécie, respeitando as espécies que ele aceita. | RN-55 |
+| RF-61 | Cargas do pedido e separação dos itens | O sistema deve permitir organizar o pedido aprovado em cargas e registrar a separação de cada item em cada carga. | RN-56, RN-57 |
+| RF-62 | Dia de carregar e calendário de entregas | O sistema deve apresentar o dia de carregamento de cada pedido e o calendário de entregas e carregamentos do mês. | RN-58 |
 
 Fonte: Elaborado pelo autor (2026).
 
@@ -243,13 +253,13 @@ Fonte: Elaborado pelo autor (2026).
 
 | Origem | RF: Qtd. | RF: % | RNF: Qtd. | RNF: % |
 |---|---:|---:|---:|---:|
-| Observação participante (OP) | 21 | 32,3 | 0 | 0,0 |
-| Entrevista (EN) | 14 | 21,5 | 0 | 0,0 |
-| Análise documental (AD) | 2 | 3,1 | 0 | 0,0 |
-| Estudo do domínio (DOM) | 6 | 9,2 | 1 | 7,1 |
-| Exigência legal (LEG) | 2 | 3,1 | 3 | 21,4 |
-| Política do projeto (ORG) | 20 | 30,8 | 10 | 71,4 |
-| **Total de menções** | **65** | | **14** | |
+| Observação participante (OP) | 25 | 36,2 | 0 | 0,0 |
+| Entrevista (EN) | 14 | 20,3 | 0 | 0,0 |
+| Análise documental (AD) | 2 | 2,9 | 0 | 0,0 |
+| Estudo do domínio (DOM) | 6 | 8,7 | 1 | 7,1 |
+| Exigência legal (LEG) | 2 | 2,9 | 3 | 21,4 |
+| Política do projeto (ORG) | 20 | 29,0 | 10 | 71,4 |
+| **Total de menções** | **69** | | **14** | |
 
 Fonte: Elaborado pelo autor (2026).
 

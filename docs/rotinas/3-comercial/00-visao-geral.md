@@ -18,19 +18,25 @@ lado o que a produção tem pronto.
 |---|---|---|---|
 | 1 | **Pedidos** | O que o cliente quer, tem, e por quanto? | [`pedidos.md`](pedidos.md) |
 
-O ciclo é da chefia, que é quem responde por preço, com duas fases executadas também pela gerência,
-a conferência no viveiro e a separação da carga
+O ciclo é da chefia, que é quem responde por preço, com duas fases executadas pela gerência, a
+conferência no viveiro e a contagem da carga
 ([`D4` §3.2](../../engenharia/D-arquitetura/D4-matriz-rbac.md)):
 
 ```
-registrar  →  informar o preço de cada item  →  confirmar  →  acompanhar
-                          │
-                   consultar o saldo
+registrar  →  conferir no viveiro  →  aprovar  →  organizar as cargas  →  contar  →  acompanhar
+     │              (gerência)        (chefia)        (gerência)        (gerência)
+consultar o saldo
 ```
 
-**A confirmação trava os itens, e é o fim do ciclo** (RF-57). O que sai do viveiro depois disso é
-combinado entre pessoas, como a negociação foi. Entrega, carga e roteiro de viagem estão fora do
-escopo ([`A1` §7](../../engenharia/A-fundacao/A1-documento-de-visao.md)).
+**Aprovar é o ato que trava os itens** (RF-57), e não o fim do ciclo. Depois dele o pedido ainda
+percorre duas etapas dentro do sistema, a organização das viagens e a contagem do que vai em cada
+uma, até ficar pronto para envio. São oito situações ao todo, e cada uma espera por um perfil
+determinado (RN-53).
+
+A **entrega** continua fora do escopo, e com ela o roteiro de viagem e o motorista
+([`A1` §7](../../engenharia/A-fundacao/A1-documento-de-visao.md)). O sistema acompanha o pedido até
+a muda estar contada e no lugar de carregamento, e o que acontece na estrada é combinado entre
+pessoas, como a negociação foi.
 
 ## Relação com as outras áreas
 

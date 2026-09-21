@@ -1,0 +1,33 @@
+erDiagram
+  pedidos {
+    uuid   id PK
+    serial numero_pedido UK
+    text   situacao
+    date   data_entrega
+  }
+  pedidos_itens {
+    uuid id PK
+    uuid pedido_id FK
+    uuid especie_id FK
+    int  quantidade
+    boolean generico
+  }
+  pedidos_cargas {
+    uuid id PK
+    uuid pedido_id FK
+    int  numero_carga
+    text situacao
+    text observacoes
+  }
+  pedidos_cargas_itens {
+    uuid    id PK
+    uuid    carga_id FK
+    uuid    item_id FK
+    int     quantidade
+    boolean separado
+  }
+
+  pedidos ||--o{ pedidos_cargas : "sai em"
+  pedidos_cargas ||--o{ pedidos_cargas_itens : "leva"
+  pedidos_itens ||--o{ pedidos_cargas_itens : "e separado em"
+  pedidos ||--o{ pedidos_itens : "compoe-se de"

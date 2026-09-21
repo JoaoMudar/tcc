@@ -149,7 +149,7 @@ graph LR
   subgraph M3["3 · Comercial"]
     UC24(["UC-31 · Cadastrar pedido"])
     UC25(["UC-32 · Consultar disponibilidade no pedido"])
-    UC26(["UC-33 · Confirmar pedido"])
+    UC26(["UC-33 · Aprovar pedido"])
     UC28(["UC-34 · Acompanhar pedidos"])
   end
 
@@ -204,6 +204,13 @@ graph LR
     UC18(["UC-30 · Analisar perdas"])
   end
 
+  subgraph M3["3 · Comercial"]
+    UC63(["UC-35 · Conferir disponibilidade do pedido"])
+    UC64(["UC-36 · Compor item pedido sem espécie"])
+    UC65(["UC-37 · Organizar as cargas do pedido"])
+    UC66(["UC-38 · Contar o pedido para carregar"])
+  end
+
   GE --- UC42
   GE --- UC46
   GE --- UC57
@@ -220,6 +227,10 @@ graph LR
   GE --- UC62
   GE --- UC15
   GE --- UC18
+  GE --- UC63
+  GE --- UC64
+  GE --- UC65
+  GE --- UC66
 ```
 
 ### 3.3 Administrador
@@ -288,10 +299,14 @@ alimenta a matriz de rastreabilidade [`B5`](../B-requisitos/B5-matriz-rastreabil
 | **UC-30** | Analisar perdas | 2 · Prod. | Gerência, Chefia | RF-41, RF-42 | - |
 | **UC-31** | Cadastrar pedido | 3 · Com. | Chefia | RF-54, RF-55 | **✔ sim** |
 | **UC-32** | Consultar disponibilidade no pedido | 3 · Com. | Chefia | RF-56 | **✔ sim** |
-| **UC-33** | Confirmar pedido | 3 · Com. | Chefia | RF-57 | **✔ sim** |
+| **UC-33** | Aprovar pedido | 3 · Com. | Chefia | RF-57 | **✔ sim** |
 | **UC-34** | Acompanhar pedidos | 3 · Com. | Chefia | RF-58 | - |
+| **UC-35** | Conferir disponibilidade do pedido | 3 · Com. | Gerência | RF-59, RF-57 | **✔ sim** |
+| **UC-36** | Compor item pedido sem espécie | 3 · Com. | Gerência | RF-60 | **✔ sim** |
+| **UC-37** | Organizar as cargas do pedido | 3 · Com. | Gerência | RF-61 | **✔ sim** |
+| **UC-38** | Contar o pedido para carregar | 3 · Com. | Gerência | RF-61, RF-62 | **✔ sim** |
 
-**34 casos de uso.** Os dez marcados são especificados em detalhe em
+**38 casos de uso.** Os quatorze marcados são especificados em detalhe em
 [`C2`](C2-especificacao-casos-de-uso.md): são os que concentram fluxos alternativos e exceções, e
 aqueles cujo erro tem maior custo operacional.
 
