@@ -3,21 +3,35 @@ import { isDataIso, somaDias } from './datas';
 import { UserError } from './errors';
 import { nomeEspecieSql } from './lotes';
 import { lerQuantidade } from './lotes-rotulos';
-import { type CanalVenda, type SituacaoPedido, centavosParaSql, isCanalVenda } from './pedidos-rotulos';
+import type { Perfil } from './perfis';
+import {
+  type CanalVenda,
+  SITUACOES_PEDIDO,
+  type SituacaoPedido,
+  centavosParaSql,
+  isCanalVenda,
+  podeTransicionar,
+} from './pedidos-rotulos';
 import type { Db } from './sql';
 import { isUuid } from './uuid';
 
 export {
   CANAIS_VENDA,
   CANAL_PADRAO,
+  DONO_SITUACAO,
   SITUACOES_PEDIDO,
+  TRANSICOES,
   formatMoeda,
   isCanalVenda,
+  isSituacaoPedido,
   parsePreco,
+  podeTransicionar,
   totalItem,
   totalPedido,
+  transicoesDe,
   type CanalVenda,
   type SituacaoPedido,
+  type Transicao,
 } from './pedidos-rotulos';
 
 type Client = Pick<PoolClient, 'query'>;
@@ -202,17 +216,19 @@ async function travarPedido(client: Client, pedidoId: string): Promise<PedidoTra
 }
 
 /**
- * RF-57, RN-48: **a trava do item é do servidor**. Esconder o botão na tela do
- * pedido confirmado não impede o formulário reenviado, e é o registro do que foi
- * vendido que está sendo protegido.
+ * RF-57: **a trava do item é do servidor**. Esconder o botão na tela não impede
+ * o formulário reenviado, e é o registro do que foi vendido que está protegido.
+ *
+ * O item só muda enquanto o pedido está em `cadastrado`. Depois disso a gerência
+ * já apurou disponibilidade em cima dele, e mexer por esta porta faria a
+ * apuração mentir: a alteração passa pela edição da chefia, que devolve o pedido
+ * à conferência (T8.10).
  */
-function exigirRascunho(pedido: PedidoTravado): void {
-  if (pedido.situacao === 'rascunho') return;
-  const explicacao =
-    pedido.situacao === 'confirmado'
-      ? 'foi confirmado, e item de pedido confirmado não muda'
-      : 'está cancelado';
-  throw new UserError(`O pedido ${pedido.numero} ${explicacao}.`);
+function exigirCadastrado(pedido: PedidoTravado): void {
+  if (pedido.situacao === 'cadastrado') return;
+  throw new UserError(
+    `O pedido ${pedido.numero} está em ${SITUACOES_PEDIDO[pedido.situacao].toLowerCase()}, e o item não muda mais.`,
+  );
 }
 
 async function inserirItens(client: Client, pedidoId: string, itens: readonly NovoItem[]): Promise<void> {
@@ -248,12 +264,19 @@ export async function criarPedido(client: Client, input: NovoPedido): Promise<{ 
     [input.clienteId, input.canal, input.dataEntrega, input.observacoes, input.criadoPor],
   );
   await inserirItens(client, rows[0].id, input.itens);
+  // O nascimento do pedido é a primeira linha do histórico, e é a única sem
+  // situação anterior. Sem ela a ficha abriria contando a história pela metade.
+  await client.query(
+    `INSERT INTO pedidos_historico (pedido_id, situacao_anterior, situacao_nova, alterado_por)
+     VALUES ($1, NULL, 'cadastrado', $2)`,
+    [rows[0].id, input.criadoPor],
+  );
   return rows[0];
 }
 
 /** RF-57: item novo só entra em pedido que ainda é rascunho. */
 export async function adicionarItem(client: Client, pedidoId: string, item: NovoItem): Promise<void> {
-  exigirRascunho(await travarPedido(client, pedidoId));
+  exigirCadastrado(await travarPedido(client, pedidoId));
   await inserirItens(client, pedidoId, [item]);
 }
 
@@ -263,7 +286,7 @@ export async function atualizarItem(
   itemId: string,
   valores: { quantidade: number; precoCentavos: number },
 ): Promise<void> {
-  exigirRascunho(await travarPedido(client, pedidoId));
+  exigirCadastrado(await travarPedido(client, pedidoId));
   const { rowCount } = await client.query(
     'UPDATE pedidos_itens SET quantidade = $3, preco_unitario = $4 WHERE id = $2 AND pedido_id = $1',
     [pedidoId, itemId, valores.quantidade, centavosParaSql(valores.precoCentavos)],
@@ -272,39 +295,100 @@ export async function atualizarItem(
 }
 
 export async function removerItem(client: Client, pedidoId: string, itemId: string): Promise<void> {
-  exigirRascunho(await travarPedido(client, pedidoId));
+  exigirCadastrado(await travarPedido(client, pedidoId));
   const { rowCount } = await client.query('DELETE FROM pedidos_itens WHERE id = $2 AND pedido_id = $1', [pedidoId, itemId]);
   if (!rowCount) throw new UserError('Item não encontrado neste pedido.');
 }
 
-/**
- * T8.3, RF-57: confirmar é o ato que trava o pedido. Exige ao menos um item,
- * que é a pós-condição do UC-31: pedido sem item não registra venda nenhuma.
- */
-export async function confirmarPedido(client: Client, pedidoId: string): Promise<{ numero: number }> {
-  const pedido = await travarPedido(client, pedidoId);
-  exigirRascunho(pedido);
-  const { rows } = await client.query<{ n: number }>('SELECT COUNT(*)::int AS n FROM pedidos_itens WHERE pedido_id = $1', [
-    pedidoId,
-  ]);
-  if (rows[0].n === 0) throw new UserError('Acrescente ao menos um item antes de confirmar o pedido.');
-  await client.query("UPDATE pedidos SET situacao = 'confirmado' WHERE id = $1", [pedidoId]);
-  return { numero: pedido.numero };
+/** Quem está mudando o pedido: o perfil decide se pode, o usuário assina (RN-52). */
+export interface AutorDaMudanca {
+  perfil: Perfil;
+  usuarioId: string;
 }
 
 /**
- * T8.3: cancelar não apaga, e os itens ficam como estavam.
+ * T8.6: **a única porta que escreve `pedidos.situacao`**. Trava a linha, confere
+ * a transição contra `TRANSICOES` e grava o histórico na mesma transação.
  *
- * **O confirmado também cancela, e a decisão é de 21/09/2026.** O diagrama da
- * rotina desenha o cancelamento saindo do rascunho, que é o caminho comum; sem o
- * outro, a venda que cai depois de confirmada não teria como ser registrada, e o
- * pedido ficaria para sempre afirmando uma entrega que não houve. Nada do que a
- * RF-57 protege se perde: item de pedido confirmado continua sem mudar, aqui
- * também.
+ * Não é trigger de propósito: trigger não conhece o usuário, e toda linha do
+ * histórico precisa de autor. É a mesma razão que faz `registrarMovimento` ser
+ * a porta única do lote.
  */
-export async function cancelarPedido(client: Client, pedidoId: string): Promise<{ numero: number }> {
+export async function mudarSituacao(
+  client: Client,
+  pedidoId: string,
+  para: SituacaoPedido,
+  autor: AutorDaMudanca,
+  observacoes: string | null = null,
+): Promise<{ numero: number; de: SituacaoPedido }> {
   const pedido = await travarPedido(client, pedidoId);
-  if (pedido.situacao === 'cancelado') throw new UserError(`O pedido ${pedido.numero} já está cancelado.`);
-  await client.query("UPDATE pedidos SET situacao = 'cancelado' WHERE id = $1", [pedidoId]);
-  return { numero: pedido.numero };
+  if (!podeTransicionar(pedido.situacao, para, autor.perfil)) {
+    throw new UserError(
+      `O pedido ${pedido.numero} está em ${SITUACOES_PEDIDO[pedido.situacao].toLowerCase()}, ` +
+        `e não pode passar a ${SITUACOES_PEDIDO[para].toLowerCase()}.`,
+    );
+  }
+  await client.query('UPDATE pedidos SET situacao = $2 WHERE id = $1', [pedidoId, para]);
+  await client.query(
+    `INSERT INTO pedidos_historico (pedido_id, situacao_anterior, situacao_nova, alterado_por, observacoes)
+     VALUES ($1, $2, $3, $4, $5)`,
+    [pedidoId, pedido.situacao, para, autor.usuarioId, observacoes],
+  );
+  return { numero: pedido.numero, de: pedido.situacao };
+}
+
+export interface LinhaHistorico {
+  situacaoAnterior: SituacaoPedido | null;
+  situacaoNova: SituacaoPedido;
+  alteradoPor: string;
+  observacoes: string | null;
+  criadoEm: Date;
+}
+
+/**
+ * Separado de `findPedido` de propósito: a ficha é aberta o tempo todo, e o
+ * histórico só interessa a quem for olhá-lo.
+ */
+export async function listHistorico(db: Db, pedidoId: string): Promise<LinhaHistorico[]> {
+  const { rows } = await db.query<LinhaHistorico>(
+    `SELECT h.situacao_anterior AS "situacaoAnterior", h.situacao_nova AS "situacaoNova",
+            u.nome_exibicao AS "alteradoPor", h.observacoes, h.criado_em AS "criadoEm"
+       FROM pedidos_historico h
+       JOIN usuarios u ON u.id = h.alterado_por
+      WHERE h.pedido_id = $1
+      ORDER BY h.criado_em, h.id`,
+    [pedidoId],
+  );
+  return rows;
+}
+
+/**
+ * RF-57: aprovar exige ao menos um item, que é a pós-condição do UC-31, porque
+ * pedido sem item não registra venda nenhuma.
+ */
+export async function confirmarPedido(
+  client: Client,
+  pedidoId: string,
+  autor: AutorDaMudanca,
+): Promise<{ numero: number }> {
+  const { rows } = await client.query<{ n: number }>('SELECT COUNT(*)::int AS n FROM pedidos_itens WHERE pedido_id = $1', [
+    pedidoId,
+  ]);
+  if (rows[0].n === 0) throw new UserError('Acrescente ao menos um item antes de aprovar o pedido.');
+  return mudarSituacao(client, pedidoId, 'aprovado', autor);
+}
+
+/**
+ * Cancelar não apaga, e os itens ficam como estavam.
+ *
+ * **O pronto para envio também cancela, e é a decisão de 21/09/2026**: sem essa
+ * seta, a venda que cai depois de pronta não teria como ser registrada, e o
+ * pedido ficaria para sempre afirmando uma entrega que não houve.
+ */
+export async function cancelarPedido(
+  client: Client,
+  pedidoId: string,
+  autor: AutorDaMudanca,
+): Promise<{ numero: number }> {
+  return mudarSituacao(client, pedidoId, 'cancelado', autor);
 }

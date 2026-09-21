@@ -26,7 +26,16 @@ interface PedidosPageProps {
 
 const CANAL_OPCOES = Object.entries(CANAIS_VENDA).map(([value, label]) => ({ value, label }));
 
-const TOM: Record<SituacaoPedido, PillTone> = { rascunho: 'neutral', confirmado: 'green', cancelado: 'red' };
+const TOM: Record<SituacaoPedido, PillTone> = {
+  cadastrado: 'neutral',
+  verificando: 'blue',
+  verificado: 'blue',
+  pendente_alteracao: 'amber',
+  aprovado: 'green',
+  separando: 'blue',
+  pronto_envio: 'green',
+  cancelado: 'red',
+};
 
 /** T8.4, RF-58: a carteira de pedidos, com filtro por cliente, canal e período. */
 export default async function PedidosPage({ searchParams }: PedidosPageProps) {

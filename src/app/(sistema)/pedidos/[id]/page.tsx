@@ -24,7 +24,16 @@ interface PedidoPageProps {
   searchParams: Promise<{ feito?: string }>;
 }
 
-const TOM: Record<SituacaoPedido, PillTone> = { rascunho: 'neutral', confirmado: 'green', cancelado: 'red' };
+const TOM: Record<SituacaoPedido, PillTone> = {
+  cadastrado: 'neutral',
+  verificando: 'blue',
+  verificado: 'blue',
+  pendente_alteracao: 'amber',
+  aprovado: 'green',
+  separando: 'blue',
+  pronto_envio: 'green',
+  cancelado: 'red',
+};
 
 /**
  * T8.1 a T8.3, UC-31 e UC-32: a ficha do pedido, com o saldo de muda pronta ao
@@ -39,8 +48,8 @@ export default async function PedidoPage({ params, searchParams }: PedidoPagePro
   const pedido = await findPedido(pool, id);
   if (!pedido) notFound();
 
-  const rascunho = pedido.situacao === 'rascunho';
-  const podeEditarItem = rascunho && can(user.perfil, 'pedidos', 'A');
+  const emCadastro = pedido.situacao === 'cadastrado';
+  const podeEditarItem = emCadastro && can(user.perfil, 'pedidos', 'A');
   const podeSituacao = can(user.perfil, 'confirmacao_pedido', 'A') && pedido.situacao !== 'cancelado';
 
   const [prontos, producao, especies, recipientes] = await Promise.all([
@@ -59,7 +68,7 @@ export default async function PedidoPage({ params, searchParams }: PedidoPagePro
         <Link href="/pedidos" className="text-base font-semibold text-brand-dark">
           Voltar
         </Link>
-        {feito === 'criado' && <Notice tone="success">Pedido {pedido.numero} registrado em rascunho.</Notice>}
+        {feito === 'criado' && <Notice tone="success">Pedido {pedido.numero} registrado.</Notice>}
 
         <section className="flex flex-col gap-3 rounded-xl border border-line bg-white p-4">
           <div className="flex items-start justify-between gap-3">
@@ -88,11 +97,11 @@ export default async function PedidoPage({ params, searchParams }: PedidoPagePro
           {pedido.observacoes && <p className="text-base text-muted">{pedido.observacoes}</p>}
         </section>
 
-        {!rascunho && (
-          <Notice tone={pedido.situacao === 'confirmado' ? 'info' : 'warning'}>
-            {pedido.situacao === 'confirmado'
-              ? 'Pedido confirmado: os itens não mudam mais.'
-              : 'Pedido cancelado. Os itens ficam como estavam, para consulta.'}
+        {!emCadastro && (
+          <Notice tone={pedido.situacao === 'cancelado' ? 'warning' : 'info'}>
+            {pedido.situacao === 'cancelado'
+              ? 'Pedido cancelado. Os itens ficam como estavam, para consulta.'
+              : `Pedido em ${SITUACOES_PEDIDO[pedido.situacao].toLowerCase()}: o item não muda por aqui.`}
           </Notice>
         )}
 

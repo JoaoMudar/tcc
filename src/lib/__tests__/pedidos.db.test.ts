@@ -7,6 +7,7 @@ import { saldoPronto } from '../estoque';
 import { alterarFase, criarLote } from '../lotes';
 import { registrarMovimento } from '../movimentos';
 import {
+  SITUACOES_PEDIDO,
   adicionarItem,
   atualizarItem,
   cancelarPedido,
@@ -14,8 +15,10 @@ import {
   criarPedido,
   findPedido,
   listClientes,
+  listHistorico,
   listItens,
   listPedidos,
+  mudarSituacao,
   removerItem,
   totalPedido,
 } from '../pedidos';
@@ -33,6 +36,10 @@ import { withTransaction } from '../transaction';
 const pool = new Pool({ connectionString: process.env.TEST_DATABASE_URL });
 const prefixo = `tp${randomUUID().slice(0, 6)}`;
 const tx = <T>(fn: (client: PoolClient) => Promise<T>) => withTransaction(pool, fn);
+
+/** Quem assina a mudança de situação nos testes (RN-52). */
+const chefia = () => ({ perfil: 'chefia' as const, usuarioId: usuario });
+const gerencia = () => ({ perfil: 'gerencia' as const, usuarioId: usuario });
 
 let usuario: string;
 let cliente: string;
@@ -64,6 +71,17 @@ function novoPedido(extra: Partial<Parameters<typeof criarPedido>[1]> = {}) {
   );
 }
 
+/**
+ * O caminho até a aprovação. No fluxo de oito situações ela não é mais um passo
+ * a partir do cadastro: a gerência confere antes, e é a conferência que
+ * habilita a chefia a aprovar.
+ */
+async function aprovar(id: string) {
+  await tx((c) => mudarSituacao(c, id, 'verificando', gerencia()));
+  await tx((c) => mudarSituacao(c, id, 'verificado', gerencia()));
+  return tx((c) => confirmarPedido(c, id, chefia()));
+}
+
 beforeAll(async () => {
   const { rows } = await pool.query<{ id: string }>(
     `INSERT INTO usuarios (login, nome_exibicao, senha_hash, perfil, deve_trocar_senha)
@@ -92,13 +110,13 @@ afterAll(async () => {
 });
 
 describe('cadastro do pedido (T8.1, RF-54, RF-55)', () => {
-  it('nasce em rascunho, com número sequencial e os três itens (TA-51)', async () => {
+  it('nasce cadastrado, com número sequencial e os três itens (TA-51)', async () => {
     const primeiro = await novoPedido();
     const segundo = await novoPedido();
     expect(segundo.numero).toBe(primeiro.numero + 1);
 
     const ficha = (await findPedido(pool, primeiro.id))!;
-    expect(ficha.situacao).toBe('rascunho');
+    expect(ficha.situacao).toBe('cadastrado');
     expect(ficha.canal).toBe('atacado');
     expect(ficha.cliente).toBe(`${prefixo} Cliente`);
     expect(ficha.itens).toHaveLength(3);
@@ -137,12 +155,12 @@ describe('cadastro do pedido (T8.1, RF-54, RF-55)', () => {
   });
 });
 
-describe('situação do pedido (T8.3, RF-57, RN-48)', () => {
-  it('confirmado recusa alterar, acrescentar e remover item (TA-53)', async () => {
+describe('situação do pedido (T8.3, T8.6, RF-57)', () => {
+  it('aprovado recusa alterar, acrescentar e remover item (TA-53)', async () => {
     const { id } = await novoPedido();
     const [item] = await listItens(pool, id);
-    await tx((client) => confirmarPedido(client, id));
-    expect((await findPedido(pool, id))!.situacao).toBe('confirmado');
+    await aprovar(id);
+    expect((await findPedido(pool, id))!.situacao).toBe('aprovado');
 
     const novo = { especieId: especie, recipienteId: tubete, quantidade: 10, precoCentavos: 100 };
     await expect(tx((c) => atualizarItem(c, id, item.id, { quantidade: 999, precoCentavos: 100 }))).rejects.toThrow(
@@ -157,7 +175,7 @@ describe('situação do pedido (T8.3, RF-57, RN-48)', () => {
     expect(depois.precoCentavos).toBe(item.precoCentavos);
   });
 
-  it('o rascunho aceita alterar, acrescentar e remover', async () => {
+  it('o pedido cadastrado aceita alterar, acrescentar e remover', async () => {
     const { id } = await novoPedido();
     const item = (await listItens(pool, id)).find((i) => i.recipienteId === tubete && i.quantidade === 200)!;
     await tx((c) => atualizarItem(c, id, item.id, { quantidade: 300, precoCentavos: 275 }));
@@ -170,29 +188,29 @@ describe('situação do pedido (T8.3, RF-57, RN-48)', () => {
     expect(await listItens(pool, id)).toHaveLength(3);
   });
 
-  it('confirmar duas vezes é recusado, e o pedido sem item não confirma', async () => {
+  it('aprovar duas vezes é recusado, e o pedido sem item não é aprovado', async () => {
     const { id } = await novoPedido();
-    await tx((c) => confirmarPedido(c, id));
-    await expect(tx((c) => confirmarPedido(c, id))).rejects.toThrow(/não muda/i);
+    await aprovar(id);
+    await expect(tx((c) => confirmarPedido(c, id, chefia()))).rejects.toThrow(/não pode passar/i);
 
     const vazio = await novoPedido();
     for (const item of await listItens(pool, vazio.id)) await tx((c) => removerItem(c, vazio.id, item.id));
-    await expect(tx((c) => confirmarPedido(c, vazio.id))).rejects.toThrow(/ao menos um item/i);
+    await expect(tx((c) => confirmarPedido(c, vazio.id, chefia()))).rejects.toThrow(/ao menos um item/i);
   });
 
-  it('o confirmado cancela, e o cancelado não cancela de novo', async () => {
+  it('o aprovado cancela, e o cancelado não cancela de novo', async () => {
     const { id } = await novoPedido();
-    await tx((c) => confirmarPedido(c, id));
-    await tx((c) => cancelarPedido(c, id));
+    await aprovar(id);
+    await tx((c) => cancelarPedido(c, id, chefia()));
     expect((await findPedido(pool, id))!.situacao).toBe('cancelado');
     // Os itens ficam para consulta: cancelar não apaga
     expect(await listItens(pool, id)).toHaveLength(3);
-    await expect(tx((c) => cancelarPedido(c, id))).rejects.toThrow(/já está cancelado/i);
+    await expect(tx((c) => cancelarPedido(c, id, chefia()))).rejects.toThrow(/não pode passar/i);
   });
 
   it('o cancelado também não aceita item novo', async () => {
     const { id } = await novoPedido();
-    await tx((c) => cancelarPedido(c, id));
+    await tx((c) => cancelarPedido(c, id, chefia()));
     await expect(
       tx((c) => adicionarItem(c, id, { especieId: especie, recipienteId: tubete, quantidade: 1, precoCentavos: 100 })),
     ).rejects.toThrow(/cancelado/i);
@@ -265,6 +283,66 @@ describe('saldo de muda pronta no item (T8.2, RF-56, UC-32)', () => {
     const { id } = await novoPedido();
     const item = (await listItens(pool, id)).find((i) => i.recipienteId === tubete && i.precoCentavos === 250)!;
     expect(item.quantidade).toBe(200);
+  });
+});
+
+describe('fluxo e histórico (T8.6, RF-57, RN-52)', () => {
+  it('a lista fechada do banco é a mesma do TypeScript', async () => {
+    // As oito situações vivem no CHECK e em SITUACOES_PEDIDO. Este teste existe
+    // para as duas não divergirem em silêncio quando uma delas mudar.
+    const { rows } = await pool.query<{ def: string }>(
+      "SELECT pg_get_constraintdef(oid) AS def FROM pg_constraint WHERE conname = 'pedidos_situacao_valida'",
+    );
+    const noBanco = [...rows[0].def.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]).sort();
+    expect(noBanco).toEqual(Object.keys(SITUACOES_PEDIDO).sort());
+  });
+
+  it('o pedido nasce com a primeira linha do histórico, e ela não tem situação anterior', async () => {
+    const { id } = await novoPedido();
+    const historico = await listHistorico(pool, id);
+    expect(historico).toHaveLength(1);
+    expect(historico[0]).toMatchObject({ situacaoAnterior: null, situacaoNova: 'cadastrado' });
+    expect(historico[0].alteradoPor).toBe('Chefia de teste');
+  });
+
+  it('cada mudança grava de onde veio, para onde foi e quem assinou', async () => {
+    const { id } = await novoPedido();
+    await tx((c) => mudarSituacao(c, id, 'verificando', gerencia()));
+    await tx((c) => mudarSituacao(c, id, 'verificado', gerencia(), 'Faltou ipê.'));
+
+    const historico = await listHistorico(pool, id);
+    expect(historico.map((h) => h.situacaoNova)).toEqual(['cadastrado', 'verificando', 'verificado']);
+    expect(historico.at(-1)).toMatchObject({ situacaoAnterior: 'verificando', observacoes: 'Faltou ipê.' });
+  });
+
+  it('a gerência não aprova, e a recusa não deixa o pedido pela metade', async () => {
+    const { id } = await novoPedido();
+    await tx((c) => mudarSituacao(c, id, 'verificando', gerencia()));
+    await tx((c) => mudarSituacao(c, id, 'verificado', gerencia()));
+
+    await expect(tx((c) => mudarSituacao(c, id, 'aprovado', gerencia()))).rejects.toThrow(/não pode passar/i);
+    expect((await findPedido(pool, id))!.situacao).toBe('verificado');
+    expect(await listHistorico(pool, id)).toHaveLength(3);
+  });
+
+  it('não se pula etapa: do cadastro não se vai direto a aprovado', async () => {
+    const { id } = await novoPedido();
+    await expect(tx((c) => mudarSituacao(c, id, 'pronto_envio', chefia()))).rejects.toThrow(/não pode passar/i);
+    expect((await findPedido(pool, id))!.situacao).toBe('cadastrado');
+  });
+
+  it('o fluxo inteiro chega a pronto para envio, e de lá ainda cancela', async () => {
+    const { id } = await novoPedido();
+    await tx((c) => mudarSituacao(c, id, 'verificando', gerencia()));
+    await tx((c) => mudarSituacao(c, id, 'verificado', gerencia()));
+    await tx((c) => mudarSituacao(c, id, 'aprovado', chefia()));
+    await tx((c) => mudarSituacao(c, id, 'separando', gerencia()));
+    await tx((c) => mudarSituacao(c, id, 'pronto_envio', gerencia()));
+    expect((await findPedido(pool, id))!.situacao).toBe('pronto_envio');
+
+    // A decisão de 21/09/2026: a venda que cai depois de pronta fica registrada
+    await tx((c) => cancelarPedido(c, id, chefia()));
+    expect((await findPedido(pool, id))!.situacao).toBe('cancelado');
   });
 });
 

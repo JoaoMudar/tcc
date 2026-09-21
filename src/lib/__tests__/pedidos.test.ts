@@ -2,14 +2,20 @@ import { describe, expect, it } from 'vitest';
 import {
   CANAIS_VENDA,
   CANAL_PADRAO,
+  DONO_SITUACAO,
+  SITUACOES_PEDIDO,
+  TRANSICOES,
   centavosParaSql,
   chaveSaldo,
   formatMoeda,
   isCanalVenda,
+  isSituacaoPedido,
   parsePreco,
+  podeTransicionar,
   precoParaCampo,
   totalItem,
   totalPedido,
+  transicoesDe,
 } from '../pedidos-rotulos';
 import { parseDataEntrega, parseFiltroPedidos, parseObservacoesPedido, parseQuantidadeItem } from '../pedidos';
 
@@ -144,5 +150,90 @@ describe('chave do saldo (RF-56)', () => {
   it('é o par espécie e recipiente, e distingue o recipiente', () => {
     expect(chaveSaldo('e1', 'r1')).toBe(chaveSaldo('e1', 'r1'));
     expect(chaveSaldo('e1', 'r1')).not.toBe(chaveSaldo('e1', 'r2'));
+  });
+});
+
+describe('máquina de estados do pedido (T8.5, RN-53)', () => {
+  it('são as oito situações, na ordem do fluxo', () => {
+    expect(Object.keys(SITUACOES_PEDIDO)).toEqual([
+      'cadastrado',
+      'verificando',
+      'verificado',
+      'pendente_alteracao',
+      'aprovado',
+      'separando',
+      'pronto_envio',
+      'cancelado',
+    ]);
+  });
+
+  it('recusa situação que não está na lista', () => {
+    expect(isSituacaoPedido('aprovado')).toBe(true);
+    expect(isSituacaoPedido('rascunho')).toBe(false);
+  });
+
+  it('cada situação diz de quem o pedido está esperando, e o fim de linha não espera ninguém', () => {
+    expect(DONO_SITUACAO.cadastrado).toBe('gerencia');
+    expect(DONO_SITUACAO.verificado).toBe('chefia');
+    expect(DONO_SITUACAO.pronto_envio).toBeNull();
+    expect(DONO_SITUACAO.cancelado).toBeNull();
+  });
+
+  it('a conferência é da gerência, e a chefia não a executa', () => {
+    expect(podeTransicionar('cadastrado', 'verificando', 'gerencia')).toBe(true);
+    expect(podeTransicionar('cadastrado', 'verificando', 'chefia')).toBe(false);
+    expect(podeTransicionar('verificando', 'verificado', 'gerencia')).toBe(true);
+  });
+
+  it('aprovar e devolver são da chefia, porque é quem responde por preço (RN-50)', () => {
+    expect(podeTransicionar('verificado', 'aprovado', 'chefia')).toBe(true);
+    expect(podeTransicionar('verificado', 'pendente_alteracao', 'chefia')).toBe(true);
+    expect(podeTransicionar('verificado', 'aprovado', 'gerencia')).toBe(false);
+  });
+
+  it('a separação é da gerência', () => {
+    expect(podeTransicionar('aprovado', 'separando', 'gerencia')).toBe(true);
+    expect(podeTransicionar('separando', 'pronto_envio', 'gerencia')).toBe(true);
+    expect(podeTransicionar('aprovado', 'separando', 'chefia')).toBe(false);
+  });
+
+  it('o admin passa por cima, como em can()', () => {
+    expect(podeTransicionar('cadastrado', 'verificando', 'admin')).toBe(true);
+    expect(podeTransicionar('verificado', 'aprovado', 'admin')).toBe(true);
+  });
+
+  it('editar devolve o pedido ao começo da conferência, das quatro situações em que cabe', () => {
+    for (const de of ['verificado', 'pendente_alteracao', 'aprovado', 'separando'] as const) {
+      expect(podeTransicionar(de, 'cadastrado', 'chefia')).toBe(true);
+      expect(podeTransicionar(de, 'cadastrado', 'gerencia')).toBe(false);
+    }
+  });
+
+  it('pronto para envio também cancela, que é a decisão de 21/09/2026', () => {
+    expect(podeTransicionar('pronto_envio', 'cancelado', 'chefia')).toBe(true);
+  });
+
+  it('cancelado é fim de linha, e não cancela de novo', () => {
+    expect(podeTransicionar('cancelado', 'cancelado', 'chefia')).toBe(false);
+    expect(transicoesDe('cancelado', 'chefia')).toEqual([]);
+    expect(transicoesDe('cancelado', 'admin')).toEqual([]);
+  });
+
+  it('não se pula etapa: do cadastro não se vai direto a aprovado nem a pronto', () => {
+    expect(podeTransicionar('cadastrado', 'aprovado', 'chefia')).toBe(false);
+    expect(podeTransicionar('cadastrado', 'pronto_envio', 'admin')).toBe(false);
+    expect(podeTransicionar('verificando', 'aprovado', 'chefia')).toBe(false);
+  });
+
+  it('nenhuma transição sai de cancelado, e nenhuma aponta para si mesma', () => {
+    expect(TRANSICOES.filter((t) => t.de === 'cancelado')).toEqual([]);
+    expect(TRANSICOES.filter((t) => t.de === t.para)).toEqual([]);
+  });
+
+  it('a tela monta os botões do que o perfil pode fazer agora', () => {
+    const daChefia = transicoesDe('verificado', 'chefia').map((t) => t.para);
+    expect(daChefia).toContain('aprovado');
+    expect(daChefia).toContain('pendente_alteracao');
+    expect(transicoesDe('verificado', 'gerencia')).toEqual([]);
   });
 });

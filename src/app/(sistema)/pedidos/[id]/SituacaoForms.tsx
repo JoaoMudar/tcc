@@ -22,7 +22,7 @@ export function SituacaoForms({ pedidoId, situacao }: SituacaoFormsProps) {
 
   return (
     <div className="flex flex-col gap-3">
-      {situacao === 'rascunho' && (
+      {situacao === 'cadastrado' && (
         <form action={confirmarAction} className="flex flex-col gap-2">
           <input type="hidden" name="pedido_id" value={pedidoId} />
           <p className="text-sm text-muted">Depois de confirmado, o item do pedido não muda mais.</p>
