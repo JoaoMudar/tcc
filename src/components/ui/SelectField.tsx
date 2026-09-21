@@ -21,6 +21,7 @@ export function SelectField({
   error,
   className = '',
   defaultValue,
+  value,
   ...rest
 }: SelectFieldProps) {
   const id = useId();
@@ -33,7 +34,8 @@ export function SelectField({
       </label>
       <select
         id={id}
-        defaultValue={defaultValue ?? ''}
+        // Controlado (value) e não-controlado (defaultValue) não convivem no mesmo select
+        {...(value === undefined ? { defaultValue: defaultValue ?? '' } : { value })}
         aria-invalid={error ? true : undefined}
         aria-describedby={errorId}
         className="min-h-touch w-full rounded-lg border-[1.5px] border-gray-300 bg-white px-3 text-base text-ink focus:border-brand-dark focus:outline-none aria-invalid:border-red-600"
