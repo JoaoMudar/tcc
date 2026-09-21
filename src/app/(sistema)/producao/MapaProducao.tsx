@@ -65,26 +65,6 @@ export async function MapaProducao() {
 
   return (
     <>
-      <div className="flex flex-col gap-3">
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          {(Object.keys(SITUACOES_LOTE) as SituacaoLote[]).map((situacao) => (
-            <div key={situacao} className="rounded-xl border border-line bg-white p-4">
-              <p className="text-sm text-muted">{SITUACOES_LOTE[situacao]}</p>
-              <p className={`text-2xl font-bold ${TEXTO[situacao]}`}>{contagem[situacao]}</p>
-            </div>
-          ))}
-          <div className="rounded-xl border border-line bg-white p-4">
-            <p className="text-sm text-muted">Mortalidade acima de {limite}%</p>
-            <p className={`text-2xl font-bold ${destacados.size > 0 ? 'text-red-800' : 'text-ink'}`}>{destacados.size}</p>
-          </div>
-        </div>
-        <p className="text-sm text-muted">
-          {lotes.length} {lotes.length === 1 ? 'lote aberto' : 'lotes abertos'} em {canteiros}{' '}
-          {canteiros === 1 ? 'canteiro' : 'canteiros'}. A cor não é digitada por ninguém: sai das tarefas e das etapas do
-          protocolo vencidas ou a vencer em cada lote.
-        </p>
-      </div>
-
       {/* O desenho, só no computador: é ele que não cabe no celular (RNF-14) */}
       <div className="hidden gap-4 md:grid md:grid-cols-2 xl:grid-cols-3">
         {mapa.map((area) => (
@@ -145,6 +125,27 @@ export async function MapaProducao() {
           </li>
         ))}
       </ul>
+
+      {/* Os contadores ficam abaixo do desenho: quem abre o mapa vem ver o viveiro, e o resumo confere depois */}
+      <div className="flex flex-col gap-3">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          {(Object.keys(SITUACOES_LOTE) as SituacaoLote[]).map((situacao) => (
+            <div key={situacao} className="rounded-xl border border-line bg-white p-4">
+              <p className="text-sm text-muted">{SITUACOES_LOTE[situacao]}</p>
+              <p className={`text-2xl font-bold ${TEXTO[situacao]}`}>{contagem[situacao]}</p>
+            </div>
+          ))}
+          <div className="rounded-xl border border-line bg-white p-4">
+            <p className="text-sm text-muted">Mortalidade acima de {limite}%</p>
+            <p className={`text-2xl font-bold ${destacados.size > 0 ? 'text-red-800' : 'text-ink'}`}>{destacados.size}</p>
+          </div>
+        </div>
+        <p className="text-sm text-muted">
+          {lotes.length} {lotes.length === 1 ? 'lote aberto' : 'lotes abertos'} em {canteiros}{' '}
+          {canteiros === 1 ? 'canteiro' : 'canteiros'}. A cor não é digitada por ninguém: sai das tarefas e das etapas do
+          protocolo vencidas ou a vencer em cada lote.
+        </p>
+      </div>
 
       <h2 className="mt-2 text-sm font-bold tracking-widest text-muted uppercase">Pedem providência</h2>
       {providencia.length === 0 ? (
