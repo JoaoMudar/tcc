@@ -2,6 +2,7 @@
  * Rótulos e contas do pedido que o navegador pode receber: sem SQL e sem `pg`
  * (RNF-11, TA-60). O servidor usa os mesmos, pelas reexportações de `pedidos.ts`.
  */
+import type { Perfil } from './perfis';
 
 /** RN-42: lista fechada de cinco valores, e não entidade própria. `atacado` é o padrão. */
 export const CANAIS_VENDA = {
@@ -20,14 +21,94 @@ export function isCanalVenda(value: string): value is CanalVenda {
   return Object.hasOwn(CANAIS_VENDA, value);
 }
 
-/** RN-48: três situações, e confirmar é o ato que trava os itens (RF-57). */
+/**
+ * RN-53: o pedido percorre oito situações, e **cada uma tem dono**. A chefia
+ * cadastra e decide; a gerência confere no viveiro e separa. Saber de quem o
+ * pedido está esperando é o que a lista usa para pôr a etiqueta de providência.
+ *
+ * Substitui as três situações da RN-48 (`rascunho`, `confirmado`, `cancelado`),
+ * que descreviam um comercial sem conferência nem separação.
+ */
 export const SITUACOES_PEDIDO = {
-  rascunho: 'Rascunho',
-  confirmado: 'Confirmado',
+  cadastrado: 'Cadastrado',
+  verificando: 'Verificando',
+  verificado: 'Verificado',
+  pendente_alteracao: 'Pendente de alteração',
+  aprovado: 'Aprovado',
+  separando: 'Separando',
+  pronto_envio: 'Pronto para envio',
   cancelado: 'Cancelado',
 } as const;
 
 export type SituacaoPedido = keyof typeof SITUACOES_PEDIDO;
+
+export function isSituacaoPedido(value: string): value is SituacaoPedido {
+  return Object.hasOwn(SITUACOES_PEDIDO, value);
+}
+
+/** De quem o pedido está esperando. `null` nas duas situações de fim de linha. */
+export const DONO_SITUACAO: Record<SituacaoPedido, Perfil | null> = {
+  cadastrado: 'gerencia',
+  verificando: 'gerencia',
+  verificado: 'chefia',
+  pendente_alteracao: 'chefia',
+  aprovado: 'gerencia',
+  separando: 'gerencia',
+  pronto_envio: null,
+  cancelado: null,
+};
+
+export interface Transicao {
+  de: SituacaoPedido;
+  para: SituacaoPedido;
+  /** Admin não entra aqui: ele passa por cima, como em `can`. */
+  por: Exclude<Perfil, 'admin'>;
+  rotulo: string;
+}
+
+/**
+ * Editar item **volta o pedido para o começo da conferência**: o que a gerência
+ * apurou vale para os itens de antes, e quem mudou o pedido precisa que ela
+ * olhe de novo. É a chefia quem edita, inclusive em `pendente_alteracao`, que é
+ * a situação em que ela mesma foi chamada a mexer.
+ */
+const EDITAVEIS_PELA_CHEFIA = ['verificado', 'pendente_alteracao', 'aprovado', 'separando'] as const;
+
+/**
+ * **`pronto_envio` também cancela, e é a mesma razão de 21/09/2026**: a venda que
+ * cai depois de pronta precisa ficar registrada, senão o pedido afirma para
+ * sempre uma entrega que não houve.
+ */
+const CANCELAVEIS = (Object.keys(SITUACOES_PEDIDO) as SituacaoPedido[]).filter((s) => s !== 'cancelado');
+
+export const TRANSICOES: readonly Transicao[] = [
+  { de: 'cadastrado', para: 'verificando', por: 'gerencia', rotulo: 'Iniciar verificação' },
+  { de: 'verificando', para: 'verificado', por: 'gerencia', rotulo: 'Enviar para a chefia' },
+  { de: 'verificado', para: 'aprovado', por: 'chefia', rotulo: 'Aprovar pedido' },
+  { de: 'verificado', para: 'pendente_alteracao', por: 'chefia', rotulo: 'Solicitar alteração' },
+  { de: 'aprovado', para: 'separando', por: 'gerencia', rotulo: 'Organizar cargas' },
+  { de: 'separando', para: 'pronto_envio', por: 'gerencia', rotulo: 'Concluir separação' },
+  ...EDITAVEIS_PELA_CHEFIA.map((de) => ({
+    de,
+    para: 'cadastrado' as const,
+    por: 'chefia' as const,
+    rotulo: 'Salvar e reenviar para verificação',
+  })),
+  ...CANCELAVEIS.map((de) => ({ de, para: 'cancelado' as const, por: 'chefia' as const, rotulo: 'Cancelar pedido' })),
+];
+
+/**
+ * A trava de verdade é do servidor (RF-57), e esta função é o contrato que ela
+ * consulta. Esconder o botão na tela não impede o formulário reenviado.
+ */
+export function podeTransicionar(de: SituacaoPedido, para: SituacaoPedido, perfil: Perfil): boolean {
+  return TRANSICOES.some((t) => t.de === de && t.para === para && (perfil === 'admin' || t.por === perfil));
+}
+
+/** O que este perfil pode fazer com o pedido agora, para a tela montar os botões. */
+export function transicoesDe(de: SituacaoPedido, perfil: Perfil): readonly Transicao[] {
+  return TRANSICOES.filter((t) => t.de === de && (perfil === 'admin' || t.por === perfil));
+}
 
 const MOEDA = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 

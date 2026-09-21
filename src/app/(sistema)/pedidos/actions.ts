@@ -141,26 +141,30 @@ export async function removerItemAction(_previous: FormState, formData: FormData
 
 /** T8.3, RF-57: confirmar trava os itens. O guard é o do D4, `confirmacao_pedido`. */
 export async function confirmarPedidoAction(_previous: FormState, formData: FormData): Promise<FormState> {
-  await requirePermission('confirmacao_pedido', 'A');
+  const user = await requirePermission('confirmacao_pedido', 'A');
   const pedidoId = formText(formData, 'pedido_id');
   if (!isUuid(pedidoId)) return { error: 'Pedido inválido.' };
 
   try {
-    const { numero } = await withTransaction(pool, (client) => pedidos.confirmarPedido(client, pedidoId));
+    const { numero } = await withTransaction(pool, (client) =>
+      pedidos.confirmarPedido(client, pedidoId, { perfil: user.perfil, usuarioId: user.usuarioId }),
+    );
     revalidarPedidos(pedidoId);
-    return { success: `Pedido ${numero} confirmado. Os itens não mudam mais.` };
+    return { success: `Pedido ${numero} aprovado. Os itens não mudam mais.` };
   } catch (error) {
     return { error: toUserMessage(error) };
   }
 }
 
 export async function cancelarPedidoAction(_previous: FormState, formData: FormData): Promise<FormState> {
-  await requirePermission('confirmacao_pedido', 'A');
+  const user = await requirePermission('confirmacao_pedido', 'A');
   const pedidoId = formText(formData, 'pedido_id');
   if (!isUuid(pedidoId)) return { error: 'Pedido inválido.' };
 
   try {
-    const { numero } = await withTransaction(pool, (client) => pedidos.cancelarPedido(client, pedidoId));
+    const { numero } = await withTransaction(pool, (client) =>
+      pedidos.cancelarPedido(client, pedidoId, { perfil: user.perfil, usuarioId: user.usuarioId }),
+    );
     revalidarPedidos(pedidoId);
     return { success: `Pedido ${numero} cancelado. O registro continua aqui.` };
   } catch (error) {
