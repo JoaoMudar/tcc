@@ -210,3 +210,44 @@ export function casaEspecie(nome: string, especies: readonly EspecieParaColagem[
 export function montaLinhasColadas(texto: string, especies: readonly EspecieParaColagem[]): LinhaColada[] {
   return parseLinhasPedido(texto).map((linha) => ({ ...linha, casamento: casaEspecie(linha.nome, especies) }));
 }
+
+/**
+ * A colagem que veio de planilha, e não de conversa: células separadas por
+ * tabulação, uma linha por item.
+ *
+ * Devolve `null` quando não há tabulação nenhuma, e é assim que a tela decide
+ * para onde mandar o texto: sem tabulação, o que a pessoa colou é a lista do
+ * WhatsApp, que passa pela revisão de `montaLinhasColadas`; com tabulação, as
+ * colunas já vêm separadas e caem direto nas células, a partir da que está em
+ * foco.
+ */
+export function parseColagemTabular(texto: string): string[][] | null {
+  if (!texto.includes('\t')) return null;
+  const linhas = texto
+    .split(/\r?\n/)
+    .map((linha) => linha.replace(/\s+$/, ''))
+    .filter((linha) => linha.trim() !== '')
+    .map((linha) => linha.split('\t').map((celula) => celula.trim()));
+  return linhas.length > 0 ? linhas : null;
+}
+
+export interface RecipienteParaColagem {
+  id: string;
+  /** Como o recipiente aparece na tela, com o volume junto: "sacos 17x22 · 3 L". */
+  nome: string;
+}
+
+/**
+ * O recipiente que o texto da célula quer dizer. Só aceita igualdade ou um nome
+ * contido no outro: aqui não cabe palpite por semelhança, porque "17x22" e
+ * "20x26" se parecem demais e trocar um pelo outro é separar a muda errada.
+ */
+export function casaRecipiente(texto: string, recipientes: readonly RecipienteParaColagem[]): string | null {
+  const alvo = normalizeNomePopular(texto);
+  if (!alvo) return null;
+  const exato = recipientes.find((recipiente) => normalizeNomePopular(recipiente.nome) === alvo);
+  if (exato) return exato.id;
+  const contido = recipientes.filter((recipiente) => normalizeNomePopular(recipiente.nome).includes(alvo));
+  // Mais de um contém o texto: não dá para escolher por conta própria
+  return contido.length === 1 ? contido[0].id : null;
+}

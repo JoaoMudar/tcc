@@ -22,6 +22,8 @@ export interface ItemDaCarga {
   itemId: string;
   especie: string;
   recipiente: string;
+  /** Altura pedida, em metros: quem separa no pátio procura pelo tamanho também. */
+  alturaM: number | null;
   quantidade: number;
   separado: boolean;
 }
@@ -242,7 +244,8 @@ export async function listCargas(db: Db, pedidoId: string): Promise<Carga[]> {
 
   const { rows: itens } = await db.query<ItemDaCarga & { cargaId: string }>(
     `SELECT ci.id, ci.carga_id AS "cargaId", ci.item_id AS "itemId", ci.quantidade, ci.separado,
-            COALESCE(${nomeEspecieSql('e')}, 'Espécie não definida') AS especie, r.nome AS recipiente
+            COALESCE(${nomeEspecieSql('e')}, 'Espécie não definida') AS especie, r.nome AS recipiente,
+            i.altura_m::float8 AS "alturaM"
        FROM pedidos_cargas_itens ci
        JOIN pedidos_cargas c ON c.id = ci.carga_id
        JOIN pedidos_itens i ON i.id = ci.item_id

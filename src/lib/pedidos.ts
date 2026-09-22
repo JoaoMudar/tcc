@@ -26,10 +26,13 @@ export {
   ROTULO_URGENCIA,
   SITUACOES_PEDIDO,
   TRANSICOES,
+  alturaParaCampo,
+  formatAltura,
   formatMoeda,
   formatTotal,
   isCanalVenda,
   isSituacaoPedido,
+  parseAltura,
   parsePreco,
   podeTransicionar,
   resolveDisponibilidade,
@@ -103,6 +106,11 @@ export interface NovoItem {
   quantidade: number;
   /** Nulo no cadastro: o preço é digitado depois da conferência (RN-50). */
   precoCentavos: number | null;
+  /**
+   * Altura da muda pedida, em metros. Nula é "o cliente não pediu altura", que
+   * é o caso comum: o recipiente já determina o porte na maior parte das vendas.
+   */
+  alturaM?: number | null;
   generico?: boolean;
   /** O que o cliente pediu, em texto. Só no genérico. */
   especificacao?: string | null;
@@ -115,6 +123,7 @@ export interface ItemPedido extends NovoItem {
   especie: string | null;
   nomeCientifico: string | null;
   recipiente: string;
+  alturaM: number | null;
 
   /** Verificação (T8.10). `disponivel` nulo é "a gerência ainda não conferiu". */
   disponivel: boolean | null;
@@ -213,6 +222,7 @@ export async function listItens(db: Db, pedidoId: string): Promise<ItemPedido[]>
     `SELECT i.id, i.especie_id AS "especieId", ${nomeEspecieSql('e')} AS especie,
             e.nome_cientifico AS "nomeCientifico", i.recipiente_id AS "recipienteId", r.nome AS recipiente,
             i.quantidade, ROUND(i.preco_unitario * 100)::int AS "precoCentavos",
+            i.altura_m::float8 AS "alturaM",
             i.disponivel, i.quantidade_disponivel AS "quantidadeDisponivel",
             i.recipiente_disponivel_id AS "recipienteDisponivelId", rd.nome AS "recipienteDisponivel",
             i.observacoes_disponibilidade AS "observacoesDisponibilidade",
@@ -309,8 +319,8 @@ async function inserirItens(client: Client, pedidoId: string, itens: readonly No
     if (!generico && !item.especieId) throw new UserError('Escolha a espécie do item.');
 
     const { rows } = await client.query<{ id: string }>(
-      `INSERT INTO pedidos_itens (pedido_id, especie_id, recipiente_id, quantidade, preco_unitario, generico, especificacao)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO pedidos_itens (pedido_id, especie_id, recipiente_id, quantidade, preco_unitario, generico, especificacao, altura_m)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING id`,
       [
         pedidoId,
@@ -320,6 +330,7 @@ async function inserirItens(client: Client, pedidoId: string, itens: readonly No
         item.precoCentavos === null ? null : centavosParaSql(item.precoCentavos),
         generico,
         generico ? (item.especificacao ?? null) : null,
+        item.alturaM ?? null,
       ],
     );
 
@@ -374,19 +385,23 @@ export async function adicionarItem(client: Client, pedidoId: string, item: Novo
 }
 
 /**
- * RF-57: a quantidade do item, enquanto o pedido é rascunho. **O preço não
- * passa por aqui**: ele é digitado depois da conferência, por `definirPrecos`.
+ * RF-57: a quantidade e a altura do item, enquanto o pedido é rascunho. **O
+ * preço não passa por aqui**: ele é digitado depois da conferência, por
+ * `definirPrecos`.
+ *
+ * A altura chega sempre, e vazia é nula: quem apaga o campo está dizendo que a
+ * altura deixou de fazer parte do combinado, e não que quer manter a anterior.
  */
 export async function atualizarItem(
   client: Client,
   pedidoId: string,
   itemId: string,
-  valores: { quantidade: number },
+  valores: { quantidade: number; alturaM: number | null },
 ): Promise<void> {
   exigirCadastrado(await travarPedido(client, pedidoId));
   const { rowCount } = await client.query(
-    'UPDATE pedidos_itens SET quantidade = $3 WHERE id = $2 AND pedido_id = $1',
-    [pedidoId, itemId, valores.quantidade],
+    'UPDATE pedidos_itens SET quantidade = $3, altura_m = $4 WHERE id = $2 AND pedido_id = $1',
+    [pedidoId, itemId, valores.quantidade, valores.alturaM],
   );
   if (!rowCount) throw new UserError('Item não encontrado neste pedido.');
 }
@@ -733,8 +748,8 @@ export async function definirComposicaoGenerico(
 ): Promise<void> {
   await abrirOuExigirVerificacao(client, pedidoId, autor);
 
-  const { rows } = await client.query<{ quantidade: number; preco: string; generico: boolean }>(
-    'SELECT quantidade, preco_unitario AS preco, generico FROM pedidos_itens WHERE id = $2 AND pedido_id = $1 FOR UPDATE',
+  const { rows } = await client.query<{ quantidade: number; preco: string; generico: boolean; altura: string | null }>(
+    'SELECT quantidade, preco_unitario AS preco, generico, altura_m AS altura FROM pedidos_itens WHERE id = $2 AND pedido_id = $1 FOR UPDATE',
     [pedidoId, itemPaiId],
   );
   if (!rows[0]) throw new UserError('Item não encontrado neste pedido.');
@@ -757,11 +772,13 @@ export async function definirComposicaoGenerico(
     // O filho herda o preço do pai: foi por aquele preço que as 500 mudas foram
     // vendidas, e o filho não é uma venda nova. O total do pedido soma só os
     // itens de topo, e é o que impede a venda de contar duas vezes (`totalPedido`).
+    // A altura vem junto pela mesma razão: ela é parte do que foi combinado no
+    // item genérico, e vale para as espécies que o compõem.
     await client.query(
       `INSERT INTO pedidos_itens
-         (pedido_id, especie_id, recipiente_id, quantidade, preco_unitario, generico, item_pai_id, disponivel)
-       VALUES ($1, $2, $3, $4, $5, false, $6, true)`,
-      [pedidoId, linha.especieId, linha.recipienteId, linha.quantidade, rows[0].preco, itemPaiId],
+         (pedido_id, especie_id, recipiente_id, quantidade, preco_unitario, generico, item_pai_id, disponivel, altura_m)
+       VALUES ($1, $2, $3, $4, $5, false, $6, true, $7)`,
+      [pedidoId, linha.especieId, linha.recipienteId, linha.quantidade, rows[0].preco, itemPaiId, rows[0].altura],
     );
   }
 

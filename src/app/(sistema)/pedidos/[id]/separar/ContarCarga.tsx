@@ -5,13 +5,21 @@ import { Button } from '@/components/ui/Button';
 import { Notice } from '@/components/ui/Notice';
 import { EMPTY_FORM_STATE } from '@/lib/form-state';
 import { formatQuantidade } from '@/lib/lotes-rotulos';
+import { formatAltura } from '@/lib/pedidos-rotulos';
 import { concluirCargaAction, marcarItemSeparadoAction } from './actions';
 
 export interface CargaParaContar {
   id: string;
   numero: number;
   situacao: 'pendente' | 'pronto';
-  itens: readonly { id: string; especie: string; recipiente: string; quantidade: number; separado: boolean }[];
+  itens: readonly {
+    id: string;
+    especie: string;
+    recipiente: string;
+    alturaM: number | null;
+    quantidade: number;
+    separado: boolean;
+  }[];
 }
 
 interface ContarCargaProps {
@@ -78,7 +86,8 @@ export function ContarCarga({ pedidoId, cargas }: ContarCargaProps) {
             <div>
               <p className="text-base font-bold text-ink">{item.especie}</p>
               <p className="text-sm text-muted">
-                {item.recipiente} · {formatQuantidade(item.quantidade)}
+                {item.recipiente}
+                {item.alturaM ? ` · ${formatAltura(item.alturaM)}` : ''} · {formatQuantidade(item.quantidade)}
               </p>
             </div>
             {atual.situacao !== 'pronto' && (

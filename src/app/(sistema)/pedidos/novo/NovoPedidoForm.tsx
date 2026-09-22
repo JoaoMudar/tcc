@@ -9,12 +9,14 @@ import { type SelectOption, SelectField } from '@/components/ui/SelectField';
 import { TextField } from '@/components/ui/TextField';
 import type { EspecieRef } from '@/lib/especies-form';
 import { EMPTY_FORM_STATE } from '@/lib/form-state';
-import { formatQuantidade, lerQuantidade } from '@/lib/lotes-rotulos';
 import type { PessoaRef } from '@/lib/pessoas-form';
-import type { EspecieParaColagem } from '@/lib/pedidos-colagem';
-import { CANAIS_VENDA, CANAL_PADRAO, chaveSaldo } from '@/lib/pedidos-rotulos';
+import { type EspecieParaColagem, parseColagemTabular } from '@/lib/pedidos-colagem';
+import { CANAIS_VENDA, CANAL_PADRAO } from '@/lib/pedidos-rotulos';
 import { criarPedidoAction } from '../actions';
 import { ColarLista, type ItemImportado } from './ColarLista';
+import { GradeItens } from './GradeItens';
+import { ItemEmFoco } from './ItemEmFoco';
+import { type Celula, type Linha, aplicarColagemTabular, estaVazia, linhaVazia, proximaChave } from './linhas-pedido';
 
 /** Saldo pronto e em produção de cada par espécie e recipiente, lido na abertura da tela. */
 export type SaldosPorChave = Record<string, { pronto: number; producao: number }>;
@@ -26,29 +28,14 @@ interface NovoPedidoFormProps {
   saldos: SaldosPorChave;
 }
 
-interface Linha {
-  chave: number;
-  generico: boolean;
-  especieId: string;
-  recipienteId: string;
-  quantidade: string;
-}
-
 const CANAL_OPCOES = Object.entries(CANAIS_VENDA).map(([value, label]) => ({ value, label }));
 
-function linhaVazia(chave: number): Linha {
-  return { chave, generico: false, especieId: '', recipienteId: '', quantidade: '' };
-}
-
-function estaVazia(linha: Linha): boolean {
-  return !linha.generico && !linha.especieId && !linha.recipienteId && !linha.quantidade.trim();
-}
-
 /**
- * T8.1, UC-31: cliente, canal e as linhas do pedido. Cada linha mostra o saldo
- * de muda pronta ao lado (RF-56), e o saldo menor que o pedido **avisa e não
- * recusa** (UC-31 FA-2): o viveiro vende com frequência muda que ainda vai ficar
- * pronta, e barrar isso transformaria uma venda normal em erro de sistema.
+ * T8.1, UC-31: cliente, canal e as linhas do pedido, que são uma planilha na
+ * tela larga e uma lista no celular (`GradeItens`). Cada linha mostra o saldo de
+ * muda pronta (RF-56), e o saldo menor que o pedido **avisa e não recusa**
+ * (UC-31 FA-2): o viveiro vende com frequência muda que ainda vai ficar pronta,
+ * e barrar isso transformaria uma venda normal em erro de sistema.
  *
  * **Não há preço aqui** (RN-50): quem registra está no meio de uma conversa e
  * anota o que o cliente quer. O valor se fecha depois da conferência, quando a
@@ -62,7 +49,8 @@ export function NovoPedidoForm({ clientes, especies, recipientes, saldos }: Novo
   const [abrirCliente, setAbrirCliente] = useState(false);
   const [catalogo, setCatalogo] = useState<EspecieParaColagem[]>([...especies]);
   const [linhas, setLinhas] = useState<Linha[]>([linhaVazia(1)]);
-  const [colando, setColando] = useState(false);
+  const [colando, setColando] = useState<string | null>(null);
+  const [emFoco, setEmFoco] = useState<number | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
 
   const opcoesEspecie: SelectOption[] = catalogo.map((especie) => ({ value: especie.id, label: especie.nome }));
@@ -70,7 +58,18 @@ export function NovoPedidoForm({ clientes, especies, recipientes, saldos }: Novo
   const alterar = (chave: number, campo: keyof Omit<Linha, 'chave'>, valor: string | boolean) =>
     setLinhas((atuais) => atuais.map((linha) => (linha.chave === chave ? { ...linha, [campo]: valor } : linha)));
 
-  const proximaChave = (atuais: readonly Linha[]) => Math.max(0, ...atuais.map((linha) => linha.chave)) + 1;
+  // A última linha não se tira: o pedido sem linha nenhuma não teria onde digitar
+  const remover = (chave: number) => {
+    setLinhas((atuais) => (atuais.length > 1 ? atuais.filter((atual) => atual.chave !== chave) : atuais));
+    setEmFoco(null);
+  };
+
+  /** No celular a linha nova já abre em tela cheia; na planilha ela fica ali, para digitar. */
+  const adicionar = (abrirFicha: boolean) => {
+    const chave = proximaChave(linhas);
+    setLinhas((atuais) => [...atuais, linhaVazia(chave)]);
+    if (abrirFicha) setEmFoco(chave);
+  };
 
   // UC-31 FA-1: o cliente novo entra na lista e já fica escolhido, sem sair da tela
   const aoCriarCliente = useCallback((cliente: PessoaRef) => {
@@ -111,13 +110,41 @@ export function NovoPedidoForm({ clientes, especies, recipientes, saldos }: Novo
         generico: item.generico,
         especieId: item.especieId,
         recipienteId: item.recipienteId,
+        altura: '',
         quantidade: item.quantidade,
       }));
       return [...base, ...novas];
     });
-    setColando(false);
+    setColando(null);
     setAviso(`${importados.length} ${importados.length === 1 ? 'item adicionado' : 'itens adicionados'}.`);
   }
+
+  /**
+   * O Ctrl+V na planilha. **O formato do texto decide o caminho**: o que veio de
+   * planilha já tem as colunas separadas por tabulação e cai direto nas células;
+   * o que veio da conversa é uma coluna de nomes, e passa pela revisão de
+   * `ColarLista`, que é onde a espécie duvidosa é resolvida por alguém.
+   */
+  function aoColar(texto: string, foco: Celula | null) {
+    const celulas = parseColagemTabular(texto);
+    if (!celulas) {
+      setColando(texto);
+      return;
+    }
+    const inicio = foco ?? { linha: 0, coluna: 0 };
+    setLinhas((atuais) =>
+      aplicarColagemTabular(
+        atuais,
+        inicio,
+        celulas,
+        catalogo,
+        recipientes.map((opcao) => ({ id: opcao.value, nome: opcao.label })),
+      ),
+    );
+    setAviso(`${celulas.length} ${celulas.length === 1 ? 'linha colada' : 'linhas coladas'}. Confira as células em branco.`);
+  }
+
+  const linhaEmFoco = linhas.find((linha) => linha.chave === emFoco);
 
   return (
     <>
@@ -126,105 +153,38 @@ export function NovoPedidoForm({ clientes, especies, recipientes, saldos }: Novo
           formulário precisa continuar montado para não perder o que já tem.
           Fora do `<form>` também porque formulário dentro de formulário não é
           HTML válido, e a colagem tem os seus próprios botões de envio. */}
-      {colando && (
+      {colando !== null && (
         <ColarLista
           especies={catalogo}
           recipientes={recipientes}
+          textoInicial={colando}
           onImportar={anexarImportados}
           onEspecieNova={aoCriarEspecie}
-          onFechar={() => setColando(false)}
+          onFechar={() => setColando(null)}
         />
       )}
 
-      <form action={formAction} className="flex flex-col gap-4" hidden={colando}>
+      <form action={formAction} className="flex flex-col gap-4" hidden={colando !== null}>
         <ComboboxField label="Cliente" name="cliente_id" options={opcoesCliente} value={clienteId} onChange={setClienteId} />
         <Button variant="outline" onClick={() => setAbrirCliente(true)}>
           Cliente novo
         </Button>
         <SelectField label="Canal de venda" name="canal" options={CANAL_OPCOES} defaultValue={fields?.canal ?? CANAL_PADRAO} required />
 
-        <div className="mt-2 flex items-center justify-between gap-3">
-          <h2 className="text-sm font-bold tracking-widest text-muted uppercase">Itens</h2>
-          {!colando && (
-            <Button variant="outline" className="w-auto" onClick={() => setColando(true)}>
-              📋 Colar lista
-            </Button>
-          )}
-        </div>
-
         {aviso && <Notice tone="success">{aviso}</Notice>}
 
-        {linhas.map((linha, indice) => {
-          const saldo = saldos[chaveSaldo(linha.especieId, linha.recipienteId)];
-          const pronto = saldo?.pronto ?? 0;
-          const quantidade = lerQuantidade(linha.quantidade);
-          const falta = linha.especieId && linha.recipienteId && quantidade !== null && quantidade > pronto;
-
-          return (
-            <fieldset key={linha.chave} className="flex flex-col gap-3 rounded-xl border border-line bg-white p-4">
-              <legend className="px-1 text-sm font-semibold text-muted">Item {indice + 1}</legend>
-              {/* Listas paralelas: uma posição por linha, lidas juntas no servidor */}
-              <input type="hidden" name="item_generico" value={linha.generico ? '1' : '0'} />
-              <input type="hidden" name="item_especificacao" value="" />
-
-              {linha.generico ? (
-                <>
-                  <input type="hidden" name="item_especie" value="" />
-                  <p className="text-base font-semibold text-blue-900">Espécie a definir na conferência</p>
-                  <Button variant="secondary" onClick={() => alterar(linha.chave, 'generico', false)}>
-                    Escolher a espécie agora
-                  </Button>
-                </>
-              ) : (
-                <ComboboxField
-                  label="Espécie"
-                  name="item_especie"
-                  options={opcoesEspecie}
-                  value={linha.especieId}
-                  onChange={(valor) => alterar(linha.chave, 'especieId', valor)}
-                />
-              )}
-
-              <ComboboxField
-                label="Recipiente"
-                name="item_recipiente"
-                options={recipientes}
-                value={linha.recipienteId}
-                onChange={(valor) => alterar(linha.chave, 'recipienteId', valor)}
-              />
-              <TextField
-                label="Quantidade"
-                name="item_quantidade"
-                inputMode="numeric"
-                autoComplete="off"
-                value={linha.quantidade}
-                onChange={(event) => alterar(linha.chave, 'quantidade', event.target.value)}
-                required
-              />
-
-              {linha.especieId && linha.recipienteId && (
-                <p className={`text-sm ${falta ? 'text-amber-800' : 'text-muted'}`}>
-                  Pronto para venda: <strong>{formatQuantidade(pronto)}</strong>
-                  {saldo && saldo.producao > 0 && ` · ${formatQuantidade(saldo.producao)} em produção, ainda não pronta`}
-                  {falta && ` · faltam ${formatQuantidade(quantidade - pronto)} para o que está sendo pedido`}
-                </p>
-              )}
-
-              {linhas.length > 1 && (
-                <Button
-                  variant="secondary"
-                  onClick={() => setLinhas((atuais) => atuais.filter((atual) => atual.chave !== linha.chave))}
-                >
-                  Tirar este item
-                </Button>
-              )}
-            </fieldset>
-          );
-        })}
-
-        <Button variant="outline" onClick={() => setLinhas((atuais) => [...atuais, linhaVazia(proximaChave(atuais))])}>
-          Mais um item
-        </Button>
+        <GradeItens
+          linhas={linhas}
+          opcoesEspecie={opcoesEspecie}
+          recipientes={recipientes}
+          saldos={saldos}
+          onAlterar={alterar}
+          onRemover={remover}
+          onAdicionar={adicionar}
+          onEditar={setEmFoco}
+          onColar={aoColar}
+          onColarLista={() => setColando('')}
+        />
 
         <TextField label="Entrega prevista (opcional)" name="data_entrega" type="date" defaultValue={fields?.data_entrega} />
         <TextField label="Observação (opcional)" name="observacoes" maxLength={500} defaultValue={fields?.observacoes} />
@@ -235,6 +195,19 @@ export function NovoPedidoForm({ clientes, especies, recipientes, saldos }: Novo
           Registrar pedido
         </Button>
       </form>
+
+      {linhaEmFoco && (
+        <ItemEmFoco
+          linha={linhaEmFoco}
+          indice={linhas.indexOf(linhaEmFoco)}
+          opcoesEspecie={opcoesEspecie}
+          recipientes={recipientes}
+          saldos={saldos}
+          onAlterar={alterar}
+          onRemover={remover}
+          onFechar={() => setEmFoco(null)}
+        />
+      )}
 
       {abrirCliente && <ClienteRapido onCriado={aoCriarCliente} onFechar={() => setAbrirCliente(false)} />}
     </>

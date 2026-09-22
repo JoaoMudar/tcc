@@ -147,6 +147,53 @@ describe('validação antes do banco (UC-31 FE-1)', () => {
     expect(valores).toContain(null);
   });
 
+  it('a altura vazia entra como nula: ela é opcional', async () => {
+    await expect(actions.criarPedidoAction({}, pedidoValido({ item_altura: '' }))).rejects.toThrow(/^redirect:/);
+    const [, valores] = client.query.mock.calls.find(([sql]) => String(sql).includes('INSERT INTO pedidos_itens'))!;
+    expect(valores).toContain(null);
+  });
+
+  it('a altura digitada com vírgula chega ao banco em metros', async () => {
+    await expect(actions.criarPedidoAction({}, pedidoValido({ item_altura: '1,20' }))).rejects.toThrow(/^redirect:/);
+    const [, valores] = client.query.mock.calls.find(([sql]) => String(sql).includes('INSERT INTO pedidos_itens'))!;
+    expect(valores).toContain(1.2);
+  });
+
+  it('altura que não é medida é recusada antes do banco, dizendo de que item se trata', async () => {
+    const state = await actions.criarPedidoAction({}, pedidoValido({ item_altura: 'grande' }));
+    expect(state.error).toMatch(/item 1/i);
+    expectNoDatabase();
+  });
+
+  it('a linha com altura e mais nada não é linha em branco, e cobra o resto', async () => {
+    const state = await actions.criarPedidoAction(
+      {},
+      pedidoValido({
+        item_especie: [ESPECIE, ''],
+        item_recipiente: [RECIPIENTE, ''],
+        item_quantidade: ['200', ''],
+        item_altura: ['', '1,20'],
+      }),
+    );
+    expect(state.error).toMatch(/item 2/i);
+    expectNoDatabase();
+  });
+
+  it('alterar o item leva a altura junto da quantidade', async () => {
+    emSituacao('cadastrado');
+    const state = await actions.atualizarItemAction({}, form({ pedido_id: PEDIDO, item_id: ITEM, quantidade: '300', altura: '0,80' }));
+    expect(state.error).toBeUndefined();
+    const [, valores] = client.query.mock.calls.find(([sql]) => String(sql).includes('UPDATE pedidos_itens SET quantidade'))!;
+    expect(valores).toEqual([PEDIDO, ITEM, 300, 0.8]);
+  });
+
+  it('altura inválida na alteração é recusada, e o campo digitado volta para a tela', async () => {
+    const state = await actions.atualizarItemAction({}, form({ pedido_id: PEDIDO, item_id: ITEM, quantidade: '300', altura: 'x' }));
+    expect(state.error).toMatch(/altura/i);
+    expect(state.fields?.altura).toBe('x');
+    expectNoDatabase();
+  });
+
   it('quantidade zerada é recusada', async () => {
     const state = await actions.criarPedidoAction({}, pedidoValido({ item_quantidade: '0' }));
     expect(state.error).toMatch(/item 1/i);

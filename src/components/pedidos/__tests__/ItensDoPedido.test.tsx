@@ -54,6 +54,13 @@ describe('ItensDoPedido (T8.1)', () => {
     expect(screen.getByText('—')).toBeInTheDocument();
   });
 
+  it('a altura pedida sai junto do recipiente, e só quando existe', () => {
+    const { rerender } = render(<ItensDoPedido itens={[item({ alturaM: 1.2 })]} />);
+    expect(screen.getByText('1,20 m')).toBeInTheDocument();
+    rerender(<ItensDoPedido itens={[item()]} />);
+    expect(screen.queryByText(/ m$/)).toBeNull();
+  });
+
   it('pedido sem item diz isso, em vez de mostrar uma grade vazia', () => {
     render(<ItensDoPedido itens={[]} />);
     expect(screen.getByText('Nenhum item neste pedido.')).toBeInTheDocument();

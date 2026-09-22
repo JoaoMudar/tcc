@@ -7,6 +7,7 @@ import { type SelectOption, SelectField } from '@/components/ui/SelectField';
 import { TextField } from '@/components/ui/TextField';
 import { EMPTY_FORM_STATE } from '@/lib/form-state';
 import { formatQuantidade } from '@/lib/lotes-rotulos';
+import { formatAltura } from '@/lib/pedidos-rotulos';
 import { marcarDisponibilidadeAction } from './actions';
 
 export interface ItemParaConferir {
@@ -14,6 +15,8 @@ export interface ItemParaConferir {
   especie: string;
   recipiente: string;
   recipienteId: string;
+  /** Altura pedida, em metros: é parte do que a gerência vai procurar no pátio. */
+  alturaM: number | null;
   quantidade: number;
   disponivel: boolean | null;
   quantidadeDisponivel: number | null;
@@ -61,7 +64,8 @@ export function VerificacaoItem({ pedidoId, item, recipientes }: VerificacaoItem
       <div>
         <p className="text-base font-bold text-ink">{item.especie}</p>
         <p className="text-sm text-muted">
-          {item.recipiente} · {formatQuantidade(item.quantidade)}
+          {item.recipiente}
+          {item.alturaM ? ` · ${formatAltura(item.alturaM)}` : ''} · {formatQuantidade(item.quantidade)}
         </p>
       </div>
 

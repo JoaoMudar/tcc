@@ -37,6 +37,13 @@ export function AdicionarItemForm({ pedidoId, especies, recipientes }: Adicionar
         value={recipienteId}
         onChange={setRecipienteId}
       />
+      <TextField
+        label="Altura em metros (opcional)"
+        name="item_altura"
+        inputMode="decimal"
+        autoComplete="off"
+        placeholder="1,20"
+      />
       <TextField label="Quantidade" name="item_quantidade" inputMode="numeric" autoComplete="off" required />
       {state.error && <Notice tone="error">{state.error}</Notice>}
       {state.success && <Notice tone="success">{state.success}</Notice>}
