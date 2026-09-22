@@ -9,8 +9,8 @@
 |---|---|---|
 | Crítica | 0 | 0 |
 | Alta | 0 | 0 |
-| Média | 4 | 0 |
-| Baixa | 3 | 0 |
+| Média | 4 | 4 |
+| Baixa | 3 | 3 |
 
 **Veredito:** pode ir para produção depois de resolver SEC-001 e SEC-002. Nenhum achado é explorável por quem não tem conta, e não há injeção, segredo exposto nem falha de controle de acesso.
 
@@ -95,7 +95,7 @@ const nextConfig: NextConfig = {
 ```
 Nota sobre `camera=(self)`: o formulário de espécie usa a câmera do celular pelo `<input type="file" capture>`, que não depende do Permissions-Policy, mas deixar `self` evita quebrar a tela se algum dia ela passar a usar `getUserMedia`.
 - **Como verificar:** `curl -sI https://<host>/pedidos | grep -iE 'content-security|x-frame|strict-transport'` devolve as três linhas. Em desenvolvimento, `npm run build && npm start` e a aba Network do navegador mostram os cabeçalhos em cada resposta de documento.
-- **Status:** Pendente
+- **Status:** Corrigido em `fix/seguranca-owasp`
 
 ### [SEC-002] Conexão com Postgres remoto pode subir sem TLS, MÉDIA · Suspeito
 - **Categoria:** A04 Cryptographic Failures · **CWE:** CWE-319
@@ -136,7 +136,7 @@ export function isLocalHost(connectionString: string): boolean {
 }
 ```
 - **Como verificar:** teste unitário em `src/lib/__tests__/db-host.test.ts` cobrindo `isLocalHost` para localhost, 127.0.0.1 e um host remoto. Em produção, `SELECT ssl FROM pg_stat_ssl JOIN pg_stat_activity USING (pid) WHERE pid = pg_backend_pid();` devolve `t`.
-- **Status:** Pendente
+- **Status:** Corrigido em `fix/seguranca-owasp`
 
 ### [SEC-003] Login sem limite por origem, e cada tentativa custa um scrypt, MÉDIA · Confirmado
 - **Categoria:** A07 Authentication Failures, A06 Insecure Design · **CWE:** CWE-307, CWE-799
@@ -178,7 +178,7 @@ if (input.ip) {
 ```
 Pede um índice, na mesma migration: `CREATE INDEX eventos_login_ip_recente ON eventos_login (ip, criado_em DESC) WHERE NOT sucesso;`
 - **Como verificar:** teste em `src/lib/auth/__tests__/login.test.ts` que grava 20 falhas do mesmo IP com logins diferentes e confirma que a 21ª tentativa é recusada sem chamar `verifyPassword`. Confirmar também que o bloqueio some depois da janela.
-- **Status:** Pendente
+- **Status:** Corrigido em `fix/seguranca-owasp`
 
 ### [SEC-004] Leitor de lista colada trava a aba com texto longo, MÉDIA · Confirmado
 - **Categoria:** A10 Mishandling of Exceptional Conditions · **CWE:** CWE-1333
@@ -204,7 +204,7 @@ E em `parseLinhasPedido`, um teto por linha, que é higiene de entrada e não mu
      if (!bruta) continue;
 ```
 - **Como verificar:** acrescentar em `src/lib/__tests__/pedidos-colagem.test.ts` um caso com `'Ipê' + ' '.repeat(5000) + 'x'` medindo o tempo, com expectativa abaixo de 50 ms, e confirmar que os casos existentes ("Ipê amarelo 500", "2x pitanga", "500un araucária") continuam passando.
-- **Status:** Pendente
+- **Status:** Corrigido em `fix/seguranca-owasp`
 
 ### [SEC-005] Registro de acesso aceita o IP que o cliente disser, BAIXA · Confirmado
 - **Categoria:** A09 Security Logging & Alerting Failures · **CWE:** CWE-348
@@ -228,7 +228,7 @@ E em `parseLinhasPedido`, um teto por linha, que é higiene de entrada e não mu
      ip: forwarded || h.get('x-real-ip') || null,
 ```
 - **Como verificar:** teste que passa `x-forwarded-for: 1.2.3.4, 200.200.200.200` e espera `200.200.200.200`. Em produção, confirmar que o IP gravado em `eventos_login` bate com o da máquina que fez o login.
-- **Status:** Pendente
+- **Status:** Corrigido em `fix/seguranca-owasp`
 
 ### [SEC-006] Pedido aceita qualquer número de itens numa transação só, BAIXA · Confirmado
 - **Categoria:** A10 Mishandling of Exceptional Conditions · **CWE:** CWE-770
@@ -252,7 +252,7 @@ E em `parseLinhasPedido`, um teto por linha, que é higiene de entrada e não mu
 +  }
 ```
 - **Como verificar:** teste em `src/app/(sistema)/pedidos/__tests__/actions.test.ts` montando um `FormData` com 201 itens e esperando a mensagem, sem chegar ao banco.
-- **Status:** Pendente
+- **Status:** Corrigido em `fix/seguranca-owasp`
 
 ### [SEC-007] Ações do CI referenciadas por tag móvel, BAIXA · Confirmado
 - **Categoria:** A03 Software Supply Chain Failures, A08 Software or Data Integrity Failures · **CWE:** CWE-829
@@ -272,7 +272,7 @@ E em `parseLinhasPedido`, um teto por linha, que é higiene de entrada e não mu
 ```
 Os SHA saem de `gh api repos/actions/checkout/git/ref/tags/v4 --jq .object.sha`.
 - **Como verificar:** o próprio CI verde depois da alteração, e `grep -n '@v[0-9]' .github/workflows/ci.yml` sem resultado.
-- **Status:** Pendente
+- **Status:** Corrigido em `fix/seguranca-owasp`
 
 ## 4. Melhorias (sem risco imediato)
 

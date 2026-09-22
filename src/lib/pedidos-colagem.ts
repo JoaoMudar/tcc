@@ -52,6 +52,9 @@ const MARCADOR_LISTA = /^\s*(?:[-*•·–—]|\d{1,2}[.)])\s+/;
 /** Unidades grudadas na quantidade, que são ignoradas: "500un", "500 mudas", "20 pçs". */
 const SUFIXO_UNIDADE = '(?:un|und|unds?|unid(?:ades?)?|mudas?|p(?:c|ç)s?|p(?:c|ç)as?)?';
 
+/** Teto por linha colada: higiene de entrada, nenhum caso real chega perto. */
+const MAX_CARACTERES_LINHA = 200;
+
 /** "1.000", "1,000" e "500" viram inteiro positivo; o resto é nulo. */
 function lerQuantidadeColada(token: string): number | null {
   const digitos = token.replace(/[.,]/g, '');
@@ -73,7 +76,8 @@ function limpaNome(texto: string): string {
  * toda ela o nome, e a quantidade fica para a pessoa preencher.
  */
 function separaNomeEQuantidade(linha: string): { nome: string; quantidade: number | null } {
-  const noFim = linha.match(new RegExp(`^(.+?)[\\s\\-:–—xX×]*\\s*([\\d.,]+)\\s*${SUFIXO_UNIDADE}\\s*$`, 'i'));
+  // `[\s\-:–—xX×]*` já cobre o espaço: um `\s*` a mais fazia o motor testar toda divisão possível (SEC-004)
+  const noFim = linha.match(new RegExp(`^(.+?)[\\s\\-:–—xX×]*([\\d.,]+)\\s*${SUFIXO_UNIDADE}\\s*$`, 'i'));
   if (noFim) {
     const quantidade = lerQuantidadeColada(noFim[2]);
     const nome = limpaNome(noFim[1]);
@@ -92,7 +96,8 @@ function separaNomeEQuantidade(linha: string): { nome: string; quantidade: numbe
 export function parseLinhasPedido(texto: string): LinhaLida[] {
   const lidas: LinhaLida[] = [];
   for (const original of texto.split(/\r?\n/)) {
-    const bruta = original.trim();
+    // Nome de espécie com quantidade não passa disso; o resto é colagem acidental
+    const bruta = original.trim().slice(0, MAX_CARACTERES_LINHA);
     if (!bruta) continue;
     if (!/[a-zA-ZÀ-ɏ]/.test(bruta)) continue;
     const { nome, quantidade } = separaNomeEQuantidade(bruta.replace(MARCADOR_LISTA, ''));

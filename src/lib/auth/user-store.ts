@@ -34,6 +34,15 @@ export async function recordLoginEvent(
   );
 }
 
+/** Falhas recentes vindas desta origem, para barrar varredura de senha entre vários logins. */
+export async function countRecentFailuresByIp(db: Db, ip: string, desde: Date): Promise<number> {
+  const { rows } = await db.query<{ total: number }>(
+    'SELECT COUNT(*)::int AS total FROM eventos_login WHERE ip = $1 AND NOT sucesso AND criado_em > $2',
+    [ip, desde],
+  );
+  return rows[0].total;
+}
+
 export async function saveFailure(db: Db, usuarioId: string, tentativas: number, bloqueadoAte: Date | null): Promise<void> {
   await db.query('UPDATE usuarios SET tentativas_login_falhas = $2, bloqueado_ate = $3 WHERE id = $1', [
     usuarioId,

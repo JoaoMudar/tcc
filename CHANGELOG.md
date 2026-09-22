@@ -3,6 +3,14 @@
 Uma entrada por migration nova, como pede o `CLAUDE.md`. As migrations até `20260901000008` são o
 schema inicial em português e estão descritas no `C8`.
 
+## 22/09/2026 · `20260922000003_eventos_login_por_ip.sql`
+
+- **Índice parcial `eventos_login_ip_recente`** em `eventos_login (ip, criado_em DESC) WHERE NOT sucesso`.
+- O login passa a recusar a origem com 20 falhas nos últimos 15 minutos, somadas entre todos os
+  logins, antes de gastar o scrypt (SEC-003 do relatório de segurança). O bloqueio por usuário
+  continua como estava; este fecha a varredura de uma senha contra vários usuários.
+- Compatível: só acrescenta índice, nenhuma coluna muda.
+
 ## 22/09/2026 · `20260922000002_pedido_item_altura.sql`
 
 - **O item do pedido passa a registrar a altura da muda pedida.** `pedidos_itens` ganha

@@ -202,3 +202,18 @@ describe('colagem vinda de planilha (T8.16)', () => {
     expect(casaRecipiente('   ', RECIPIENTES)).toBeNull();
   });
 });
+
+describe('linha longa (SEC-004)', () => {
+  it('uma linha de espaços sem número no fim não trava a tela', () => {
+    const inicio = performance.now();
+    const lidas = parseLinhasPedido('Ipê' + ' '.repeat(5000) + 'x');
+    expect(performance.now() - inicio).toBeLessThan(50);
+    expect(lidas).toHaveLength(1);
+    expect(lidas[0].quantidade).toBeNull();
+  });
+
+  it('a linha colada é cortada em 200 caracteres', () => {
+    const [lida] = parseLinhasPedido('a'.repeat(1000));
+    expect(lida.bruta).toHaveLength(200);
+  });
+});

@@ -4,6 +4,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { LoginUserRow } from '../user-store';
 
 vi.mock('../user-store', () => ({
+  countRecentFailuresByIp: vi.fn(),
   findUserForLogin: vi.fn(),
   recordLoginEvent: vi.fn(),
   saveFailure: vi.fn(),
@@ -41,6 +42,7 @@ beforeAll(async () => {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(store.countRecentFailuresByIp).mockResolvedValue(0);
 });
 
 describe('attemptLogin', () => {
@@ -92,5 +94,28 @@ describe('attemptLogin', () => {
     vi.mocked(store.findUserForLogin).mockResolvedValue(user({ ativo: false }));
     expect(await attemptLogin(db, input('Canteiro-A3-tubete'))).toEqual({ ok: false, message: INVALID_CREDENTIALS });
     expect(store.resetFailures).not.toHaveBeenCalled();
+  });
+
+  describe('limite por origem (SEC-003)', () => {
+    it('a origem com 20 falhas recentes é recusada antes do scrypt e da busca do usuário', async () => {
+      vi.mocked(store.countRecentFailuresByIp).mockResolvedValue(20);
+      const result = await attemptLogin(db, input('Canteiro-A3-tubete'));
+      expect(result).toEqual({ ok: false, message: 'Muitas tentativas deste aparelho. Tente de novo em 15 minutos.' });
+      expect(store.countRecentFailuresByIp).toHaveBeenCalledWith(db, '10.0.0.1', new Date('2026-09-14T09:45:00Z'));
+      expect(store.findUserForLogin).not.toHaveBeenCalled();
+      expect(store.recordLoginEvent).toHaveBeenCalledWith(db, expect.objectContaining({ usuarioId: null, sucesso: false }));
+    });
+
+    it('abaixo do limite, segue o login normal', async () => {
+      vi.mocked(store.countRecentFailuresByIp).mockResolvedValue(19);
+      vi.mocked(store.findUserForLogin).mockResolvedValue(user());
+      expect(await attemptLogin(db, input('Canteiro-A3-tubete'))).toEqual({ ok: true, usuarioId: 'u1', deveTrocarSenha: false });
+    });
+
+    it('sem IP conhecido, não há o que contar', async () => {
+      vi.mocked(store.findUserForLogin).mockResolvedValue(user());
+      await attemptLogin(db, { ...input('Canteiro-A3-tubete'), ip: null });
+      expect(store.countRecentFailuresByIp).not.toHaveBeenCalled();
+    });
   });
 });

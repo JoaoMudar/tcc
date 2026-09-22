@@ -37,6 +37,12 @@ describe('createPool', () => {
     expect(neonPool).not.toHaveBeenCalled();
   });
 
+  it('exige TLS verificado para Postgres fora da máquina', () => {
+    const url = 'postgresql://viveiro:x@10.0.0.5:5432/viveiro';
+    createPool(url);
+    expect(pgPool).toHaveBeenCalledWith({ connectionString: url, ssl: { rejectUnauthorized: true } });
+  });
+
   it('usa o driver serverless para o Neon', () => {
     const url = 'postgresql://u:p@ep-x-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require';
     createPool(url);
