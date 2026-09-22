@@ -57,7 +57,6 @@ function pedidoValido(extra: Record<string, string | string[]> = {}) {
     item_especie: ESPECIE,
     item_recipiente: RECIPIENTE,
     item_quantidade: '200',
-    item_preco: '2,50',
     ...extra,
   });
 }
@@ -117,8 +116,8 @@ describe('permissão (RF-06, D4 §3.2)', () => {
     expectNoDatabase();
   });
 
-  it('a chefia registra, e o pedido criado leva à ficha dele', async () => {
-    await expect(actions.criarPedidoAction({}, pedidoValido())).rejects.toThrow(`redirect:/pedidos/${PEDIDO}?feito=criado`);
+  it('a chefia registra, e o pedido criado devolve a pessoa à carteira', async () => {
+    await expect(actions.criarPedidoAction({}, pedidoValido())).rejects.toThrow('redirect:/pedidos?feito=criado&numero=1');
     expect(pool.connect).toHaveBeenCalled();
   });
 });
@@ -134,17 +133,18 @@ describe('validação antes do banco (UC-31 FE-1)', () => {
     await expect(
       actions.criarPedidoAction(
         {},
-        pedidoValido({ item_especie: [ESPECIE, ''], item_recipiente: [RECIPIENTE, ''], item_quantidade: ['200', ''], item_preco: ['2,50', ''] }),
+        pedidoValido({ item_especie: [ESPECIE, ''], item_recipiente: [RECIPIENTE, ''], item_quantidade: ['200', ''] }),
       ),
     ).rejects.toThrow(/^redirect:/);
     const inseridos = client.query.mock.calls.filter(([sql]) => String(sql).includes('INSERT INTO pedidos_itens'));
     expect(inseridos).toHaveLength(1);
   });
 
-  it('preço inválido é recusado dizendo qual item é', async () => {
-    const state = await actions.criarPedidoAction({}, pedidoValido({ item_preco: 'combinar' }));
-    expect(state.error).toMatch(/item 1/i);
-    expectNoDatabase();
+  it('o cadastro não pede preço, e o item nasce sem valor nenhum', async () => {
+    // RN-50: o preço se digita depois da conferência, e nulo é "ainda não precificado"
+    await expect(actions.criarPedidoAction({}, pedidoValido())).rejects.toThrow(/^redirect:/);
+    const [, valores] = client.query.mock.calls.find(([sql]) => String(sql).includes('INSERT INTO pedidos_itens'))!;
+    expect(valores).toContain(null);
   });
 
   it('quantidade zerada é recusada', async () => {
@@ -166,16 +166,53 @@ describe('validação antes do banco (UC-31 FE-1)', () => {
   });
 
   it('o que foi digitado volta para a tela quando a action recusa', async () => {
-    const state = await actions.criarPedidoAction({}, pedidoValido({ item_preco: 'combinar', observacoes: 'entregar na sexta' }));
+    const state = await actions.criarPedidoAction({}, pedidoValido({ canal: 'escambo', observacoes: 'entregar na sexta' }));
     expect(state.fields?.observacoes).toBe('entregar na sexta');
+  });
+
+  it('a linha genérica entra sem espécie, para a gerência escolher na conferência', async () => {
+    await expect(
+      actions.criarPedidoAction({}, pedidoValido({ item_especie: '', item_generico: '1', item_especificacao: '500 nativas' })),
+    ).rejects.toThrow(/^redirect:/);
+    const [, valores] = client.query.mock.calls.find(([sql]) => String(sql).includes('INSERT INTO pedidos_itens'))!;
+    expect(valores).toContain(null);
+    expect(valores).toContain('500 nativas');
   });
 });
 
-describe('preço gravado', () => {
+describe('preço depois da conferência (RF-55, RN-50)', () => {
   it('chega ao SQL em reais, com duas casas, e não em centavos', async () => {
-    await expect(actions.criarPedidoAction({}, pedidoValido({ item_preco: '2,50' }))).rejects.toThrow(/^redirect:/);
-    const [, valores] = client.query.mock.calls.find(([sql]) => String(sql).includes('INSERT INTO pedidos_itens'))!;
+    emSituacao('verificado');
+    const state = await actions.definirPrecosAction({}, form({ pedido_id: PEDIDO, preco_item_id: ITEM, preco_valor: '2,50' }));
+    expect(state.error).toBeUndefined();
+    const [, valores] = client.query.mock.calls.find(([sql]) => String(sql).includes('SET preco_unitario'))!;
     expect(valores).toContain('2.50');
+  });
+
+  it('preço inválido é recusado dizendo qual item é, e nada é gravado', async () => {
+    emSituacao('verificado');
+    const state = await actions.definirPrecosAction({}, form({ pedido_id: PEDIDO, preco_item_id: ITEM, preco_valor: 'combinar' }));
+    expect(state.error).toMatch(/item 1/i);
+    const gravou = client.query.mock.calls.filter(([sql]) => String(sql).includes('SET preco_unitario'));
+    expect(gravou).toEqual([]);
+  });
+
+  it('campo em branco é item que a chefia ainda não precificou, e não erro', async () => {
+    emSituacao('verificado');
+    const state = await actions.definirPrecosAction(
+      {},
+      form({ pedido_id: PEDIDO, preco_item_id: [ITEM, ESPECIE], preco_valor: ['2,50', ''] }),
+    );
+    expect(state.error).toBeUndefined();
+    const gravou = client.query.mock.calls.filter(([sql]) => String(sql).includes('SET preco_unitario'));
+    expect(gravou).toHaveLength(1);
+  });
+
+  it('a gerência não precifica: o valor da venda é da chefia', async () => {
+    loggedAs('gerencia');
+    emSituacao('verificado');
+    const state = await actions.definirPrecosAction({}, form({ pedido_id: PEDIDO, preco_item_id: ITEM, preco_valor: '2,50' }));
+    expect(state.error).toMatch(/chefia/i);
   });
 });
 

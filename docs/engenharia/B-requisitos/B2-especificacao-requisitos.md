@@ -376,8 +376,8 @@ para dizer por quanto deveria ter sido vendido.
 
 | ID | Requisito | Ator | Prior. | Origem | Verificação |
 |---|---|---|---|---|---|
-| **RF-54** | O sistema deve permitir registrar pedido com cliente, canal de venda e itens compostos por espécie, recipiente e quantidade | Chefia | D | OP | Pedido registrado aparece na lista de pedidos |
-| **RF-55** | O sistema deve registrar o preço unitário informado em cada item do pedido, e apresentar o total do item e o do pedido | Chefia | D | EN | O total do pedido reproduz a soma de quantidade por preço de cada item |
+| **RF-54** | O sistema deve permitir registrar pedido com cliente, canal de venda e itens compostos por espécie, recipiente e quantidade, montando os itens um a um ou a partir da lista de texto que o cliente enviou, sempre com revisão de quem registra | Chefia | D | OP | Pedido registrado aparece na lista de pedidos; linha colada cuja espécie o sistema não reconhece não entra sem alguém resolvê-la |
+| **RF-55** | O sistema deve registrar o preço unitário informado em cada item do pedido depois da conferência de disponibilidade, e apresentar o total do item e o do pedido | Chefia | D | EN | O total do pedido reproduz a soma de quantidade por preço de cada item; pedido com item sem preço não é aprovado |
 | **RF-56** | O sistema deve apresentar, ao lado de cada item do pedido, a quantidade de muda pronta que a produção tem daquela espécie e recipiente | Chefia | D | OP | Item cuja espécie tem duzentas mudas prontas exibe esse saldo, atualizado a cada consulta |
 | **RF-57** | O sistema deve controlar a situação do pedido ao longo das oito situações que vão do cadastro ao pronto para envio, impedindo alteração de item depois da aprovação | Chefia | D | ORG | Pedido aprovado recusa inclusão e alteração de item |
 | **RF-58** | O sistema deve listar os pedidos com filtro por cliente, canal e período | Chefia | D | OP | Filtro por período retorna apenas os pedidos do intervalo |
@@ -385,6 +385,18 @@ para dizer por quanto deveria ter sido vendido.
 | **RF-60** | O sistema deve permitir compor em espécies o item que o cliente pediu sem escolher espécie, respeitando as espécies que ele aceita | Gerência | D | OP | Composição que não soma exatamente a quantidade do item é recusada |
 | **RF-61** | O sistema deve permitir organizar o pedido aprovado em cargas e registrar a separação de cada item em cada carga | Gerência | D | OP | Carga com item por separar não é dada como pronta |
 | **RF-62** | O sistema deve apresentar o dia de carregamento de cada pedido e o calendário de entregas e carregamentos do mês | Gerência | D | OP | Pedido com entrega na segunda-feira aparece para carregar na sexta-feira anterior |
+
+**RF-55 acontece depois de RF-59, e a ordem é a do trabalho.** Quem registra o pedido está no meio
+de uma conversa de WhatsApp e anota o que o cliente quer; o preço se fecha quando a conferência já
+disse quantas mudas existem e em que recipiente elas estão. Pedir o valor no cadastro obrigava a
+escrever um número provisório, e número provisório que ninguém volta para corrigir é venda
+registrada errada. O item fica sem preço até lá, e a aprovação é que o exige.
+
+**A colagem de lista em RF-54 não decide nada sozinha.** Ela lê o texto, propõe uma espécie por
+linha e marca o que reconheceu com segurança, o que apenas se parece e o que não reconheceu. Quem
+registra confirma linha a linha, e é essa confirmação que entra no pedido. O ganho é de digitação,
+e não de julgamento: a lista do cliente vem com apelido regional, erro de digitação e nome de
+espécie que o viveiro não produz, e nenhum deles pode virar item sozinho.
 
 **RF-56 é a interconexão que o sistema existe para provar.** O saldo exibido não é digitado nem
 mantido à parte: vem de RF-43, que o soma dos lotes prontos. É o ponto em que o que a Produção

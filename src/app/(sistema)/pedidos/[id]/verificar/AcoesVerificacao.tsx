@@ -4,38 +4,24 @@ import { useActionState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Notice } from '@/components/ui/Notice';
 import { EMPTY_FORM_STATE } from '@/lib/form-state';
-import { concluirVerificacaoAction, iniciarVerificacaoAction } from './actions';
+import { concluirVerificacaoAction } from './actions';
 
 interface AcoesVerificacaoProps {
   pedidoId: string;
   /** Falta responder quantos itens de topo. Zero libera o envio. */
   pendentes: number;
-  /** A conferência ainda não foi aberta: o pedido está em cadastrado. */
-  porAbrir: boolean;
 }
 
 /**
  * T8.12: o rodapé da conferência.
  *
- * **Abrir a conferência é um toque, e não um efeito de abrir a tela.** Gravar
- * durante a montagem da página faria o pedido mudar de situação porque alguém
- * espiou a tela, e o histórico registraria uma conferência que ninguém começou.
+ * **Não há botão de abrir.** Abrir a conferência continua sendo gesto de
+ * pessoa, e não efeito de montar a tela, mas o gesto é a primeira resposta:
+ * quem toca "Tem tudo" já começou a conferir, e o servidor abre junto com a
+ * gravação (`abrirOuExigirVerificacao`).
  */
-export function AcoesVerificacao({ pedidoId, pendentes, porAbrir }: AcoesVerificacaoProps) {
-  const [abertura, abrir, abrindo] = useActionState(iniciarVerificacaoAction, EMPTY_FORM_STATE);
+export function AcoesVerificacao({ pedidoId, pendentes }: AcoesVerificacaoProps) {
   const [conclusao, concluir, concluindo] = useActionState(concluirVerificacaoAction, EMPTY_FORM_STATE);
-
-  if (porAbrir) {
-    return (
-      <form action={abrir} className="flex flex-col gap-2">
-        <input type="hidden" name="pedido_id" value={pedidoId} />
-        {abertura.error && <Notice tone="error">{abertura.error}</Notice>}
-        <Button type="submit" pending={abrindo} pendingLabel="Abrindo…">
-          Começar a conferência
-        </Button>
-      </form>
-    );
-  }
 
   return (
     <form action={concluir} className="flex flex-col gap-2">

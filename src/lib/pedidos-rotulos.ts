@@ -177,14 +177,15 @@ export function chaveSaldo(especieId: string, recipienteId: string): string {
 
 export interface ItemCalculavel {
   quantidade: number;
-  precoCentavos: number;
+  /** Nulo até alguém precificar, o que só acontece depois da conferência. */
+  precoCentavos: number | null;
   /** Preenchido só no filho de um item genérico. */
   itemPaiId?: string | null;
 }
 
-/** RF-55: o total do item é quantidade por preço, em centavos. */
-export function totalItem(item: ItemCalculavel): number {
-  return item.quantidade * item.precoCentavos;
+/** RF-55: o total do item é quantidade por preço, em centavos. Sem preço, nulo. */
+export function totalItem(item: ItemCalculavel): number | null {
+  return item.precoCentavos === null ? null : item.quantidade * item.precoCentavos;
 }
 
 /**
@@ -193,9 +194,20 @@ export function totalItem(item: ItemCalculavel): number {
  * **Só os itens de topo somam.** O filho de um item genérico herda o preço do
  * pai e existe para dizer qual espécie compõe aquelas 500 mudas, não para
  * cobrá-las de novo: contar os dois dobraria a venda.
+ *
+ * **Falta um preço, falta o total**: devolver a soma parcial anunciaria um
+ * valor de venda menor que o verdadeiro, e é justamente o número que a chefia
+ * olha para aprovar. Enquanto houver item sem preço, a tela diz "a definir".
  */
-export function totalPedido(itens: readonly ItemCalculavel[]): number {
-  return itens.filter((item) => !item.itemPaiId).reduce((soma, item) => soma + totalItem(item), 0);
+export function totalPedido(itens: readonly ItemCalculavel[]): number | null {
+  const topo = itens.filter((item) => !item.itemPaiId);
+  if (topo.some((item) => item.precoCentavos === null)) return null;
+  return topo.reduce((soma, item) => soma + item.quantidade * item.precoCentavos!, 0);
+}
+
+/** O total que a tela imprime: "R$ 1.250,00" ou "a definir" enquanto faltar preço. */
+export function formatTotal(centavos: number | null): string {
+  return centavos === null ? 'a definir' : formatMoeda(centavos);
 }
 
 // ------------------------------------------------------------

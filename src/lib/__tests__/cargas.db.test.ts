@@ -90,7 +90,7 @@ async function pedidoAprovado(dataEntrega: string | null = null) {
   );
   await tx((c) => iniciarVerificacao(c, id, gerencia()));
   for (const item of await listItens(pool, id)) {
-    await tx((c) => marcarDisponibilidade(c, id, item.id, 'disponivel'));
+    await tx((c) => marcarDisponibilidade(c, id, item.id, 'disponivel', gerencia()));
   }
   await tx((c) => concluirVerificacao(c, id, gerencia()));
   await tx((c) => confirmarPedido(c, id, chefia()));
@@ -166,7 +166,7 @@ describe('organizar em cargas (T8.13)', () => {
       definirComposicaoGenerico(c, id, pai.id, [
         { especieId: especie, recipienteId: tubete, quantidade: 300 },
         { especieId: outraEspecie, recipienteId: tubete, quantidade: 200 },
-      ]),
+      ], gerencia()),
     );
     await tx((c) => concluirVerificacao(c, id, gerencia()));
     await tx((c) => confirmarPedido(c, id, chefia()));

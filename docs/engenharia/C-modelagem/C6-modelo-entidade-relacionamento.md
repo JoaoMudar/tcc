@@ -752,7 +752,8 @@ quem também é fornecedor.
 **`preco_unitario` é digitado, e não referencia tabela de preço** (RN-50). Não há entidade de canal de
 venda nem de tabela de preços: `canal_venda` é enumeração em `pedidos`, porque canal de venda é uma
 lista fechada de cinco valores sem atributos próprios (RN-42), e o preço é o que foi acordado na
-conversa.
+conversa. **O atributo é opcional**, e o nulo é "ainda não precificado": o valor é informado depois
+da conferência, e a aprovação do pedido o exige.
 
 **O saldo continua sem entidade, e a disponibilidade conferida tem colunas.** São duas coisas, e a
 distinção é o ponto. O saldo que o item exibe (RF-56) é calculado dos lotes prontos daquela espécie

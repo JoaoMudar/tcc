@@ -3,6 +3,23 @@
 Uma entrada por migration nova, como pede o `CLAUDE.md`. As migrations até `20260901000008` são o
 schema inicial em português e estão descritas no `C8`.
 
+## 22/09/2026 · `20260922000001_pedido_preco_apos_conferencia.sql`
+
+- **O preço do item passa a ser digitado depois da conferência.** `pedidos_itens.preco_unitario`
+  perde o `NOT NULL`, e o CHECK `pedidos_itens_preco_positivo` passa a aceitar nulo, continuando a
+  recusar zero e negativo.
+- Quem registra o pedido está no meio de uma conversa de WhatsApp e anota espécie, recipiente e
+  quantidade. O valor se fecha quando a gerência já disse o que existe no pátio, porque é a
+  conferência que determina quantas mudas serão vendidas e em que recipiente. Exigir o preço no
+  cadastro obrigava a escrever um número provisório, e número provisório que ninguém volta para
+  corrigir é venda registrada errada.
+- **Nulo é "ainda não precificado", e não "de graça".** A aprovação do pedido recusa item de topo
+  sem preço (`confirmarPedido`), e é essa recusa, e não a coluna, que impede uma venda de ser
+  registrada sem valor. O total do pedido também fica indefinido enquanto faltar um preço: uma soma
+  parcial anunciaria uma venda menor que a verdadeira.
+- O preço continua **digitado** (RN-50): nada de tabela de preço, piso ou margem. Só mudou o momento.
+- Compatível: nenhuma coluna saiu, e todo item já gravado continua com o preço que tinha.
+
 ## 21/09/2026 · `20260921000002_pedidos_verificacao_e_cargas.sql`
 
 - **As duas etapas de campo do pedido ganham onde ser registradas.** A migration anterior deu ao

@@ -15,6 +15,7 @@ import {
   confirmarPedido,
   criarPedido,
   definirComposicaoGenerico,
+  definirPrecos,
   findPedido,
   iniciarVerificacao,
   listClientes,
@@ -152,6 +153,14 @@ describe('cadastro do pedido (T8.1, RF-54, RF-55)', () => {
     expect(naLista.itens).toBe(3);
   });
 
+  it('o pedido sem preço não vale zero na carteira: o total é indefinido', async () => {
+    const { id } = await novoPedido({ itens: itens().map((item) => ({ ...item, precoCentavos: null })) });
+    const naLista = (await listPedidos(pool, { de: hojeNoViveiro(), ate: hojeNoViveiro(), clienteId: null, canal: null })).find(
+      (p) => p.id === id,
+    )!;
+    expect(naLista.totalCentavos).toBeNull();
+  });
+
   it('o preço volta do banco com os centavos intactos', async () => {
     const { id } = await novoPedido();
     const item = (await listItens(pool, id)).find((i) => i.recipienteId === tubete && i.quantidade === 200)!;
@@ -179,7 +188,7 @@ describe('situação do pedido (T8.3, T8.6, RF-57)', () => {
     expect((await findPedido(pool, id))!.situacao).toBe('aprovado');
 
     const novo = { especieId: especie, recipienteId: tubete, quantidade: 10, precoCentavos: 100 };
-    await expect(tx((c) => atualizarItem(c, id, item.id, { quantidade: 999, precoCentavos: 100 }))).rejects.toThrow(
+    await expect(tx((c) => atualizarItem(c, id, item.id, { quantidade: 999 }))).rejects.toThrow(
       /não muda/i,
     );
     await expect(tx((c) => adicionarItem(c, id, novo))).rejects.toThrow(/não muda/i);
@@ -194,11 +203,12 @@ describe('situação do pedido (T8.3, T8.6, RF-57)', () => {
   it('o pedido cadastrado aceita alterar, acrescentar e remover', async () => {
     const { id } = await novoPedido();
     const item = (await listItens(pool, id)).find((i) => i.recipienteId === tubete && i.quantidade === 200)!;
-    await tx((c) => atualizarItem(c, id, item.id, { quantidade: 300, precoCentavos: 275 }));
+    await tx((c) => atualizarItem(c, id, item.id, { quantidade: 300 }));
     await tx((c) => adicionarItem(c, id, { especieId: especie, recipienteId: saco, quantidade: 5, precoCentavos: 1500 }));
     const depois = await listItens(pool, id);
     expect(depois).toHaveLength(4);
-    expect(depois.find((i) => i.id === item.id)).toMatchObject({ quantidade: 300, precoCentavos: 275 });
+    // A quantidade mudou, e o preço não: ele não passa mais por esta porta
+    expect(depois.find((i) => i.id === item.id)).toMatchObject({ quantidade: 300, precoCentavos: 250 });
 
     await tx((c) => removerItem(c, id, item.id));
     expect(await listItens(pool, id)).toHaveLength(3);
@@ -398,9 +408,9 @@ describe('verificação de disponibilidade (T8.10)', () => {
     // Escolhidos pela quantidade, e não pela posição: os dois itens de mesma
     // espécie e mesmo recipiente empatam na ordenação, e o desempate é o id
     const [grande, medio, pequeno] = porQuantidade(doPedido);
-    await tx((c) => marcarDisponibilidade(c, id, medio.id, 'disponivel'));
-    await tx((c) => marcarDisponibilidade(c, id, grande.id, 'parcial', { quantidade: 30, recipienteId: tubete }));
-    await tx((c) => marcarDisponibilidade(c, id, pequeno.id, 'indisponivel'));
+    await tx((c) => marcarDisponibilidade(c, id, medio.id, 'disponivel', gerencia()));
+    await tx((c) => marcarDisponibilidade(c, id, grande.id, 'parcial', gerencia(), { quantidade: 30, recipienteId: tubete }));
+    await tx((c) => marcarDisponibilidade(c, id, pequeno.id, 'indisponivel', gerencia()));
 
     const depois = new Map((await listItens(pool, id)).map((item) => [item.id, item]));
     expect(depois.get(medio.id)).toMatchObject({ disponivel: true, quantidadeDisponivel: null });
@@ -413,36 +423,53 @@ describe('verificação de disponibilidade (T8.10)', () => {
     const { id, itens: doPedido } = await emVerificacao();
     const cheio = doPedido[0].quantidade;
     await expect(
-      tx((c) => marcarDisponibilidade(c, id, doPedido[0].id, 'parcial', { quantidade: cheio, recipienteId: tubete })),
+      tx((c) => marcarDisponibilidade(c, id, doPedido[0].id, 'parcial', gerencia(), { quantidade: cheio, recipienteId: tubete })),
     ).rejects.toThrow(/disponível/i);
     expect((await listItens(pool, id))[0].disponivel).toBeNull();
   });
 
   it('a observação sozinha não marca o item como respondido', async () => {
     const { id, itens: doPedido } = await emVerificacao();
-    await tx((c) => salvarObservacoesVerificacao(c, id, [{ itemId: doPedido[0].id, observacoes: 'ver com o Gilberto' }]));
+    await tx((c) => salvarObservacoesVerificacao(c, id, [{ itemId: doPedido[0].id, observacoes: 'ver com o Gilberto' }], gerencia()));
 
     const [item] = await listItens(pool, id);
     expect(item.observacoesDisponibilidade).toBe('ver com o Gilberto');
     expect(item.disponivel).toBeNull();
   });
 
-  it('fora da conferência não se marca item, porque o pedido já seguiu adiante', async () => {
+  it('responder o primeiro item abre a conferência, e o histórico registra quem abriu', async () => {
+    // O gesto de abrir é a resposta: quem toca "Tem tudo" já começou a conferir,
+    // e exigir um toque antes disso só rendia um erro que não era de ninguém.
     const { id } = await novoPedido();
     const [item] = await listItens(pool, id);
-    await expect(tx((c) => marcarDisponibilidade(c, id, item.id, 'disponivel'))).rejects.toThrow(/conferência/i);
+    await tx((c) => marcarDisponibilidade(c, id, item.id, 'disponivel', gerencia()));
+
+    expect((await findPedido(pool, id))!.situacao).toBe('verificando');
+    expect((await listItens(pool, id)).find((i) => i.id === item.id)!.disponivel).toBe(true);
+    const aberturas = (await listHistorico(pool, id)).filter((h) => h.situacaoNova === 'verificando');
+    expect(aberturas).toHaveLength(1);
+  });
+
+  it('depois de aprovado não se marca item, porque a apuração já foi consumida', async () => {
+    const { id } = await novoPedido();
+    const [item] = await listItens(pool, id);
+    await aprovar(id);
+
+    await expect(tx((c) => marcarDisponibilidade(c, id, item.id, 'disponivel', gerencia()))).rejects.toThrow(
+      /conferência/i,
+    );
   });
 
   it('item de outro pedido não é marcado por aqui', async () => {
     const { id } = await emVerificacao();
     const alheio = await novoPedido();
     const [itemAlheio] = await listItens(pool, alheio.id);
-    await expect(tx((c) => marcarDisponibilidade(c, id, itemAlheio.id, 'disponivel'))).rejects.toThrow(/não encontrado/i);
+    await expect(tx((c) => marcarDisponibilidade(c, id, itemAlheio.id, 'disponivel', gerencia()))).rejects.toThrow(/não encontrado/i);
   });
 
   it('não se envia à chefia pela metade', async () => {
     const { id, itens: doPedido } = await emVerificacao();
-    await tx((c) => marcarDisponibilidade(c, id, doPedido[0].id, 'disponivel'));
+    await tx((c) => marcarDisponibilidade(c, id, doPedido[0].id, 'disponivel', gerencia()));
 
     await expect(tx((c) => concluirVerificacao(c, id, gerencia()))).rejects.toThrow(/sem resposta/i);
     expect((await findPedido(pool, id))!.situacao).toBe('verificando');
@@ -450,9 +477,9 @@ describe('verificação de disponibilidade (T8.10)', () => {
 
   it('com tudo respondido, o resumo da conferência fica no histórico', async () => {
     const { id, itens: doPedido } = await emVerificacao();
-    await tx((c) => marcarDisponibilidade(c, id, doPedido[0].id, 'disponivel'));
-    await tx((c) => marcarDisponibilidade(c, id, doPedido[1].id, 'disponivel'));
-    await tx((c) => marcarDisponibilidade(c, id, doPedido[2].id, 'indisponivel'));
+    await tx((c) => marcarDisponibilidade(c, id, doPedido[0].id, 'disponivel', gerencia()));
+    await tx((c) => marcarDisponibilidade(c, id, doPedido[1].id, 'disponivel', gerencia()));
+    await tx((c) => marcarDisponibilidade(c, id, doPedido[2].id, 'indisponivel', gerencia()));
 
     const { resumo } = await tx((c) => concluirVerificacao(c, id, gerencia()));
     expect(resumo).toBe('2 de 3 disponíveis.');
@@ -461,12 +488,84 @@ describe('verificação de disponibilidade (T8.10)', () => {
   });
 });
 
+describe('preço depois da conferência (RF-55, RN-50)', () => {
+  /** Um pedido sem preço nenhum, como o cadastro passa a criá-lo. */
+  function semPreco() {
+    return novoPedido({
+      itens: itens().map((item) => ({ ...item, precoCentavos: null })),
+    });
+  }
+
+  /** Leva o pedido até `verificado`, respondendo tudo como disponível. */
+  async function conferido(id: string) {
+    await tx((c) => iniciarVerificacao(c, id, gerencia()));
+    for (const item of await listItens(pool, id)) {
+      await tx((c) => marcarDisponibilidade(c, id, item.id, 'disponivel', gerencia()));
+    }
+    await tx((c) => concluirVerificacao(c, id, gerencia()));
+  }
+
+  it('o item nasce sem preço, e o total do pedido fica indefinido', async () => {
+    const { id } = await semPreco();
+    const lidos = await listItens(pool, id);
+    expect(lidos.every((item) => item.precoCentavos === null)).toBe(true);
+    expect(totalPedido(lidos)).toBeNull();
+  });
+
+  it('antes da conferência não se precifica: o pedido ainda é rascunho', async () => {
+    const { id } = await semPreco();
+    const [item] = await listItens(pool, id);
+    await expect(
+      tx((c) => definirPrecos(c, id, [{ itemId: item.id, precoCentavos: 250 }], chefia())),
+    ).rejects.toThrow(/depois da conferência/i);
+  });
+
+  it('a gerência não precifica: o valor da venda é da chefia', async () => {
+    const { id } = await semPreco();
+    await conferido(id);
+    const [item] = await listItens(pool, id);
+    await expect(
+      tx((c) => definirPrecos(c, id, [{ itemId: item.id, precoCentavos: 250 }], gerencia())),
+    ).rejects.toThrow(/chefia/i);
+  });
+
+  it('aprovar sem preço é recusado, e o pedido continua verificado', async () => {
+    const { id } = await semPreco();
+    await conferido(id);
+    await expect(tx((c) => confirmarPedido(c, id, chefia()))).rejects.toThrow(/pre(ç|c)o/i);
+    expect((await findPedido(pool, id))!.situacao).toBe('verificado');
+  });
+
+  it('com os preços salvos o pedido é aprovado, e o total fecha', async () => {
+    const { id } = await semPreco();
+    await conferido(id);
+    const lidos = await listItens(pool, id);
+    await tx((c) => definirPrecos(c, id, lidos.map((item) => ({ itemId: item.id, precoCentavos: 200 })), chefia()));
+
+    await tx((c) => confirmarPedido(c, id, chefia()));
+    expect((await findPedido(pool, id))!.situacao).toBe('aprovado');
+    const depois = await listItens(pool, id);
+    expect(depois.every((item) => item.precoCentavos === 200)).toBe(true);
+    expect(totalPedido(depois)).toBe(depois.reduce((soma, item) => soma + item.quantidade * 200, 0));
+  });
+
+  it('item de outro pedido não é precificado por aqui', async () => {
+    const { id } = await semPreco();
+    await conferido(id);
+    const alheio = await semPreco();
+    const [itemAlheio] = await listItens(pool, alheio.id);
+    await expect(
+      tx((c) => definirPrecos(c, id, [{ itemId: itemAlheio.id, precoCentavos: 250 }], chefia())),
+    ).rejects.toThrow(/não encontrado/i);
+  });
+});
+
 describe('aprovação consome a conferência (T8.11)', () => {
   /** Leva o pedido até `verificado`, com a mesma resposta para todos os itens. */
   async function verificadoCom(estado: 'disponivel' | 'indisponivel') {
     const { id } = await novoPedido();
     await tx((c) => iniciarVerificacao(c, id, gerencia()));
-    for (const item of await listItens(pool, id)) await tx((c) => marcarDisponibilidade(c, id, item.id, estado));
+    for (const item of await listItens(pool, id)) await tx((c) => marcarDisponibilidade(c, id, item.id, estado, gerencia()));
     await tx((c) => concluirVerificacao(c, id, gerencia()));
     return id;
   }
@@ -476,9 +575,9 @@ describe('aprovação consome a conferência (T8.11)', () => {
     const { id } = await novoPedido();
     await tx((c) => iniciarVerificacao(c, id, gerencia()));
     const [grande, medio, pequeno] = porQuantidade(await listItens(pool, id));
-    await tx((c) => marcarDisponibilidade(c, id, medio.id, 'disponivel'));
-    await tx((c) => marcarDisponibilidade(c, id, grande.id, 'parcial', { quantidade: parcial, recipienteId: tubete }));
-    await tx((c) => marcarDisponibilidade(c, id, pequeno.id, 'indisponivel'));
+    await tx((c) => marcarDisponibilidade(c, id, medio.id, 'disponivel', gerencia()));
+    await tx((c) => marcarDisponibilidade(c, id, grande.id, 'parcial', gerencia(), { quantidade: parcial, recipienteId: tubete }));
+    await tx((c) => marcarDisponibilidade(c, id, pequeno.id, 'indisponivel', gerencia()));
     await tx((c) => concluirVerificacao(c, id, gerencia()));
     return { id, grande, medio, pequeno };
   }
@@ -586,7 +685,7 @@ describe('item genérico (T8.10)', () => {
       definirComposicaoGenerico(c, id, pai.id, [
         { especieId: especie, recipienteId: tubete, quantidade: 300 },
         { especieId: outraEspecie, recipienteId: saco, quantidade: 200 },
-      ]),
+      ], gerencia()),
     );
 
     const itens = await listItens(pool, id);
@@ -602,7 +701,7 @@ describe('item genérico (T8.10)', () => {
   it('a soma que não fecha é recusada, e nenhum filho é criado', async () => {
     const { id, pai } = await comGenerico();
     await expect(
-      tx((c) => definirComposicaoGenerico(c, id, pai.id, [{ especieId: especie, recipienteId: tubete, quantidade: 300 }])),
+      tx((c) => definirComposicaoGenerico(c, id, pai.id, [{ especieId: especie, recipienteId: tubete, quantidade: 300 }], gerencia())),
     ).rejects.toThrow(/faltam 200/i);
     expect(await listItens(pool, id)).toHaveLength(1);
   });
@@ -610,13 +709,13 @@ describe('item genérico (T8.10)', () => {
   it('recompor troca os filhos, em vez de acrescentar aos anteriores', async () => {
     const { id, pai } = await comGenerico();
     await tx((c) =>
-      definirComposicaoGenerico(c, id, pai.id, [{ especieId: especie, recipienteId: tubete, quantidade: 500 }]),
+      definirComposicaoGenerico(c, id, pai.id, [{ especieId: especie, recipienteId: tubete, quantidade: 500 }], gerencia()),
     );
     await tx((c) =>
       definirComposicaoGenerico(c, id, pai.id, [
         { especieId: especie, recipienteId: tubete, quantidade: 250 },
         { especieId: outraEspecie, recipienteId: tubete, quantidade: 250 },
-      ]),
+      ], gerencia()),
     );
 
     const filhos = (await listItens(pool, id)).filter((i) => i.itemPaiId === pai.id);
@@ -629,17 +728,17 @@ describe('item genérico (T8.10)', () => {
     expect(await listEspeciesPermitidas(pool, pai.id)).toEqual([especie]);
 
     await expect(
-      tx((c) => definirComposicaoGenerico(c, id, pai.id, [{ especieId: outraEspecie, recipienteId: tubete, quantidade: 500 }])),
+      tx((c) => definirComposicaoGenerico(c, id, pai.id, [{ especieId: outraEspecie, recipienteId: tubete, quantidade: 500 }], gerencia())),
     ).rejects.toThrow(/aceita/i);
 
     // E a espécie de dentro do escopo passa
-    await tx((c) => definirComposicaoGenerico(c, id, pai.id, [{ especieId: especie, recipienteId: tubete, quantidade: 500 }]));
+    await tx((c) => definirComposicaoGenerico(c, id, pai.id, [{ especieId: especie, recipienteId: tubete, quantidade: 500 }], gerencia()));
     expect((await listItens(pool, id)).filter((i) => i.itemPaiId === pai.id)).toHaveLength(1);
   });
 
   it('o genérico não se marca por disponível ou indisponível', async () => {
     const { id, pai } = await comGenerico();
-    await expect(tx((c) => marcarDisponibilidade(c, id, pai.id, 'disponivel'))).rejects.toThrow(/genérico/i);
+    await expect(tx((c) => marcarDisponibilidade(c, id, pai.id, 'disponivel', gerencia()))).rejects.toThrow(/genérico/i);
   });
 
   it('o genérico sem composição segura o envio à chefia', async () => {
@@ -653,7 +752,7 @@ describe('item genérico (T8.10)', () => {
       definirComposicaoGenerico(c, id, pai.id, [
         { especieId: especie, recipienteId: tubete, quantidade: 300 },
         { especieId: outraEspecie, recipienteId: saco, quantidade: 200 },
-      ]),
+      ], gerencia()),
     );
     const itens = await listItens(pool, id);
     expect(itens[0].id).toBe(pai.id);

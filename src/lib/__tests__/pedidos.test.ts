@@ -9,6 +9,7 @@ import {
   centavosParaSql,
   chaveSaldo,
   formatMoeda,
+  formatTotal,
   isCanalVenda,
   isSituacaoPedido,
   parsePreco,
@@ -91,7 +92,7 @@ describe('totais (RF-55)', () => {
   it('soma em centavos, e não acumula erro de fração', () => {
     // O mesmo total em número quebrado daria 0,30000000000000004
     const itens = Array.from({ length: 3 }, () => ({ quantidade: 1, precoCentavos: 10 }));
-    expect(formatMoeda(totalPedido(itens))).toBe(formatMoeda(30));
+    expect(formatMoeda(totalPedido(itens)!)).toBe(formatMoeda(30));
   });
 
   it('pedido sem item tem total zero', () => {
@@ -107,6 +108,33 @@ describe('totais (RF-55)', () => {
       { quantidade: 200, precoCentavos: 200, itemPaiId: 'pai' },
     ];
     expect(totalPedido(itens)).toBe(100_000);
+  });
+
+  it('sem preço não há total: o item ainda não foi precificado', () => {
+    expect(totalItem({ quantidade: 200, precoCentavos: null })).toBeNull();
+  });
+
+  it('um item sem preço deixa o pedido inteiro sem total, e não uma soma parcial', () => {
+    // Somar só os precificados anunciaria uma venda menor que a verdadeira, e é
+    // esse número que a chefia olha para aprovar.
+    const itens = [
+      { quantidade: 200, precoCentavos: 250 },
+      { quantidade: 50, precoCentavos: null },
+    ];
+    expect(totalPedido(itens)).toBeNull();
+  });
+
+  it('o filho sem preço não impede o total: quem soma é o item de topo', () => {
+    const itens = [
+      { quantidade: 500, precoCentavos: 200 },
+      { quantidade: 500, precoCentavos: null, itemPaiId: 'pai' },
+    ];
+    expect(totalPedido(itens)).toBe(100_000);
+  });
+
+  it('formatTotal diz "a definir" enquanto falta preço', () => {
+    expect(formatTotal(null)).toBe('a definir');
+    expect(formatTotal(50_000)).toBe(formatMoeda(50_000));
   });
 });
 

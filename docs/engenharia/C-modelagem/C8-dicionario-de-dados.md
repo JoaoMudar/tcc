@@ -940,7 +940,7 @@ histórico, e entraria só para poluir a ficha.
 | `especie_id` | uuid | ○ | FK → `especies` | Espécie. **Nula apenas no item genérico**, que é o pedido sem escolha de espécie |
 | `recipiente_id` | uuid | ● | FK → `recipientes` | Recipiente solicitado. No genérico, o recipiente mínimo aceito |
 | `quantidade` | integer | ● | | Quantidade pedida. Restrição: maior que zero |
-| `preco_unitario` | numeric(10,2) | ● | | **Preço unitário informado por quem registra** (RF-55, RN-50). Restrição: maior que zero |
+| `preco_unitario` | numeric(10,2) | ○ | | **Preço unitário informado por quem registra, depois da conferência** (RF-55, RN-50). Nulo é "ainda não precificado". Restrição: maior que zero quando existe |
 | `disponivel` | boolean | ○ | | O que a conferência respondeu. **Nulo é "ninguém conferiu ainda"** (RF-59) |
 | `quantidade_disponivel` | integer | ○ | | Quantas existem, quando `disponivel` é falso. Zero significa indisponível (RN-54) |
 | `recipiente_disponivel_id` | uuid | ○ | FK → `recipientes` | Recipiente em que a muda foi encontrada, que pode diferir do pedido |
@@ -959,6 +959,15 @@ um, e só existe quando `disponivel` é falso; `recipiente_disponivel_id` só ex
 > guardá-lo. O total do item e o do pedido são derivados de `quantidade` por `preco_unitario`, e não
 > materializados. **O total soma apenas os itens de topo**, porque o filho do genérico herda o preço
 > do pai e contá-los juntos dobraria a venda.
+
+> **O preço entra depois da conferência, e por isso a coluna é opcional.** Quem registra o pedido
+> está no meio de uma conversa e anota espécie, recipiente e quantidade; o valor se fecha quando a
+> gerência já disse o que existe no pátio, porque é a conferência que determina quantas mudas serão
+> vendidas e em que recipiente. Nulo é "ainda não precificado", e não "de graça": a aprovação do
+> pedido recusa item de topo sem preço, e é essa recusa que impede uma venda de ser registrada sem
+> valor. Enquanto faltar preço em algum item, o total do pedido também não existe: uma soma parcial
+> anunciaria uma venda menor que a verdadeira, e é justamente esse número que a chefia olha para
+> aprovar.
 
 > **A disponibilidade conferida não é o saldo, e a distinção é o ponto.** O saldo que a tela exibe
 > ao lado do item (RF-56) continua somado dos lotes prontos a cada consulta, e guardá-lo aqui

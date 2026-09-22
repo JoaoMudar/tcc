@@ -25,7 +25,7 @@ fluxo antigo de três situações não sabia dizer:
 |---|---|---|
 | `cadastrado` | Gerência | A chefia registrou; falta conferir no viveiro |
 | `verificando` | Gerência | A conferência está aberta, item a item |
-| `verificado` | Chefia | A gerência respondeu tudo e devolveu |
+| `verificado` | Chefia | A gerência respondeu tudo e devolveu; é aqui que a chefia fecha o preço |
 | `pendente_alteracao` | Chefia | A chefia pediu mudança antes de aprovar |
 | `aprovado` | Gerência | Vendido, e o item não muda mais. Falta organizar as viagens |
 | `separando` | Gerência | As cargas existem, e estão sendo contadas |
@@ -37,8 +37,14 @@ confere a transição contra a tabela de transições e grava `pedidos_historico
 Não é trigger de propósito: trigger não conhece o usuário, e toda linha do histórico precisa de
 autor (RN-52).
 
-**Aprovar é o ato que trava o item** (RF-57). Antes disso item, quantidade e preço se alteram;
-depois, não. A chefia ainda pode editar, e editar **devolve o pedido ao começo da conferência**: o
+**A conferência abre na primeira resposta.** Quem está no pátio toca "Tem tudo" no primeiro item, e
+o pedido passa de `cadastrado` a `verificando` na mesma transação da resposta. Abrir continua sendo
+gesto de pessoa, e não efeito de abrir a tela: o gesto é a resposta, e o histórico registra quem
+abriu. Um botão separado antes disso só rendia um item sem resposta e um erro que não era de
+ninguém.
+
+**Aprovar é o ato que trava o item** (RF-57). Antes disso item e quantidade se alteram; depois,
+não. A chefia ainda pode editar, e editar **devolve o pedido ao começo da conferência**: o
 que a gerência apurou valia para os itens de antes.
 
 **O pronto para envio também cancela, e a decisão é de 21/09/2026.** Sem essa seta, a venda que cai
@@ -89,10 +95,32 @@ o carregamento sem ninguém entender por quê.
 
 ## Conceitos
 
-### Preço digitado
+### Preço digitado, e digitado depois da conferência
 
 O preço vem no item do pedido, digitado por quem registra (RF-55, RN-50). O sistema guarda por
 quanto se vendeu, e não calcula custo, margem nem piso.
+
+**O cadastro não pede preço.** Quem registra o pedido está no meio de uma conversa de WhatsApp e
+anota espécie, recipiente e quantidade. O valor se fecha com o pedido em `verificado`, quando a
+conferência já disse quantas mudas existem e em que recipiente: é aí que a ficha mostra o
+formulário de preços, e é a chefia quem o preenche. **A aprovação exige todos os preços**, e é essa
+recusa que impede uma venda de ser registrada sem valor. Enquanto faltar um, a tela diz "a definir"
+no lugar do total, em vez de anunciar uma soma parcial.
+
+### Colar a lista do cliente
+
+A lista chega pelo WhatsApp como texto solto: "- Ipê amarelo 500", "200 araucária", "2x pitanga".
+No cadastro do pedido, **Colar lista** lê esse texto, uma espécie por linha, e propõe o casamento
+com o catálogo: a linha reconhecida com certeza sai marcada como exata, a parecida como provável,
+já com a espécie escolhida, e a desconhecida fica em vermelho segurando a importação.
+
+**Nada entra sem revisão** (RF-54). A linha que ninguém reconheceu se resolve de três maneiras:
+escolhendo uma espécie da lista, cadastrando a espécie ali mesmo (nome popular e científico) ou
+tornando o item genérico, que deixa a escolha para a conferência.
+
+**O sistema aprende os apelidos.** Corrigida a espécie à mão, aparece um botão que salva o texto
+colado como outro nome popular dela (RN-01: um nome pertence a uma espécie só). Da próxima vez,
+aquele mesmo apelido é reconhecido sozinho.
 
 ### Saldo ao lado do item
 

@@ -100,7 +100,7 @@ Fonte: Elaborado pelo autor (2026).
 | RN-47 | Os dados pessoais de clientes e funcionários seguem a Lei nº 13.709/2018. |
 | RN-48 | Aprovar o pedido trava o item, que depois disso não muda em espécie, quantidade nem preço. |
 | RN-49 | Uma pessoa pode ter mais de um endereço. |
-| RN-50 | O preço é combinado com o cliente e registrado no pedido. |
+| RN-50 | O preço é combinado com o cliente e registrado no pedido depois da conferência de disponibilidade, e o pedido não é aprovado enquanto faltar o preço de algum item. |
 
 Fonte: Elaborado pelo autor (2026).
 
@@ -193,8 +193,8 @@ Fonte: Elaborado pelo autor (2026).
 | RF-51 | Ficha do lote com etapas e vencimentos | O sistema deve apresentar, no lote, as etapas do protocolo com a data da última execução, o próximo vencimento e a situação de cada uma. | RN-40 |
 | RF-52 | Etapa em atenção e em atraso | O sistema deve apresentar a etapa em atenção dentro da janela de aviso e em atraso depois do vencimento, e sem indicação de situação quando o alerta da etapa estiver desligado. | RN-35 |
 | RF-53 | Encerramento do protocolo do lote | O sistema deve encerrar o protocolo do lote quando ele se encerra por saldo zero, por expedição total ou por divisão, deixando de sugerir etapas dele e cancelando as tarefas ainda não confirmadas sem removê-las. | RN-38 |
-| RF-54 | Registro de pedido com cliente, canal e itens | O sistema deve permitir registrar pedido com cliente, canal de venda e itens compostos por espécie, recipiente e quantidade. | RN-01, RN-04, RN-42, RN-46 |
-| RF-55 | Preço unitário informado no item | O sistema deve registrar o preço unitário informado em cada item do pedido, e apresentar o total do item e o do pedido. | RN-50 |
+| RF-54 | Registro de pedido com cliente, canal e itens | O sistema deve permitir registrar pedido com cliente, canal de venda e itens compostos por espécie, recipiente e quantidade, montando os itens um a um ou a partir da lista de texto que o cliente enviou, sempre com revisão de quem registra. | RN-01, RN-04, RN-42, RN-46 |
+| RF-55 | Preço unitário informado no item | O sistema deve registrar o preço unitário informado em cada item do pedido depois da conferência de disponibilidade, e apresentar o total do item e o do pedido. | RN-50 |
 | RF-56 | Saldo disponível ao lado do item | O sistema deve apresentar, ao lado de cada item do pedido, a quantidade de muda pronta que a produção tem daquela espécie e recipiente. | RN-06, RN-08 |
 | RF-57 | Situação do pedido | O sistema deve controlar a situação do pedido ao longo das oito situações que vão do cadastro ao pronto para envio, impedindo alteração de item depois da aprovação. | RN-48, RN-53 |
 | RF-58 | Listagem de pedidos com filtro | O sistema deve listar os pedidos com filtro por cliente, canal e período. | RN-42 |
