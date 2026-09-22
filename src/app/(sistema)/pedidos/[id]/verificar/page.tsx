@@ -86,7 +86,8 @@ export default async function VerificarPage({ params }: VerificarPageProps) {
 
         {porAbrir && (
           <Notice tone="info">
-            A conferência ainda não foi aberta. Ao começar, o pedido passa a constar como em verificação.
+            A conferência ainda não foi aberta. Ao responder o primeiro item, o pedido passa a constar como em
+            verificação.
           </Notice>
         )}
 
@@ -141,7 +142,7 @@ export default async function VerificarPage({ params }: VerificarPageProps) {
           ))}
         </ul>
 
-        <AcoesVerificacao pedidoId={pedido.id} pendentes={pendentes} porAbrir={porAbrir} />
+        <AcoesVerificacao pedidoId={pedido.id} pendentes={pendentes} />
       </div>
     </main>
   );

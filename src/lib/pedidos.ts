@@ -27,6 +27,7 @@ export {
   SITUACOES_PEDIDO,
   TRANSICOES,
   formatMoeda,
+  formatTotal,
   isCanalVenda,
   isSituacaoPedido,
   parsePreco,
@@ -100,7 +101,8 @@ export interface NovoItem {
   especieId: string | null;
   recipienteId: string;
   quantidade: number;
-  precoCentavos: number;
+  /** Nulo no cadastro: o preço é digitado depois da conferência (RN-50). */
+  precoCentavos: number | null;
   generico?: boolean;
   /** O que o cliente pediu, em texto. Só no genérico. */
   especificacao?: string | null;
@@ -136,7 +138,8 @@ export interface PedidoResumo {
   criadoEm: Date;
   dataEntrega: string | null;
   itens: number;
-  totalCentavos: number;
+  /** Nulo enquanto algum item de topo não tiver preço. */
+  totalCentavos: number | null;
 }
 
 export interface FichaPedido extends Omit<PedidoResumo, 'itens' | 'totalCentavos'> {
@@ -149,9 +152,20 @@ export interface FichaPedido extends Omit<PedidoResumo, 'itens' | 'totalCentavos
 /**
  * O total vem somado no SQL, em centavos: a lista mostra dezenas de pedidos, e
  * carregar os itens de cada um só para somar seria uma consulta por linha.
+ *
+ * **Só os itens de topo somam**, como em `totalPedido`: o filho do genérico
+ * herda o preço do pai e contar os dois dobraria a venda.
+ *
+ * **Falta um preço, o total é nulo.** Somar só os precificados anunciaria na
+ * carteira uma venda menor que a verdadeira; a tela diz "a definir" no lugar.
  */
-const TOTAL_SQL = `COALESCE((SELECT SUM(ROUND(i.preco_unitario * 100) * i.quantidade)
-                               FROM pedidos_itens i WHERE i.pedido_id = p.id), 0)::bigint`;
+const TOTAL_SQL = `CASE
+  WHEN EXISTS (SELECT 1 FROM pedidos_itens i
+                WHERE i.pedido_id = p.id AND i.item_pai_id IS NULL AND i.preco_unitario IS NULL)
+  THEN NULL
+  ELSE COALESCE((SELECT SUM(ROUND(i.preco_unitario * 100) * i.quantidade)
+                   FROM pedidos_itens i WHERE i.pedido_id = p.id AND i.item_pai_id IS NULL), 0)
+END::bigint`;
 
 /**
  * RF-58: pedidos do período, com cliente e canal opcionais. O período é o dia do
@@ -159,7 +173,7 @@ const TOTAL_SQL = `COALESCE((SELECT SUM(ROUND(i.preco_unitario * 100) * i.quanti
  * de hoje cairia no filtro de amanhã.
  */
 export async function listPedidos(db: Db, filtro: FiltroPedidos): Promise<PedidoResumo[]> {
-  const { rows } = await db.query<Omit<PedidoResumo, 'totalCentavos'> & { totalCentavos: string }>(
+  const { rows } = await db.query<Omit<PedidoResumo, 'totalCentavos'> & { totalCentavos: string | null }>(
     `SELECT p.id, p.numero_pedido AS numero, p.cliente_id AS "clienteId", c.nome AS cliente,
             p.canal_venda AS canal, p.situacao, p.criado_em AS "criadoEm",
             to_char(p.data_entrega, 'YYYY-MM-DD') AS "dataEntrega",
@@ -175,7 +189,7 @@ export async function listPedidos(db: Db, filtro: FiltroPedidos): Promise<Pedido
     [filtro.de, filtro.ate, filtro.clienteId, filtro.canal],
   );
   // `bigint` volta do `pg` como texto, para não perder precisão que aqui não existe
-  return rows.map((row) => ({ ...row, totalCentavos: Number(row.totalCentavos) }));
+  return rows.map((row) => ({ ...row, totalCentavos: row.totalCentavos === null ? null : Number(row.totalCentavos) }));
 }
 
 export async function findPedido(db: Db, id: string): Promise<FichaPedido | null> {
@@ -303,7 +317,7 @@ async function inserirItens(client: Client, pedidoId: string, itens: readonly No
         generico ? null : item.especieId,
         item.recipienteId,
         item.quantidade,
-        centavosParaSql(item.precoCentavos),
+        item.precoCentavos === null ? null : centavosParaSql(item.precoCentavos),
         generico,
         generico ? (item.especificacao ?? null) : null,
       ],
@@ -359,16 +373,20 @@ export async function adicionarItem(client: Client, pedidoId: string, item: Novo
   await inserirItens(client, pedidoId, [item]);
 }
 
+/**
+ * RF-57: a quantidade do item, enquanto o pedido é rascunho. **O preço não
+ * passa por aqui**: ele é digitado depois da conferência, por `definirPrecos`.
+ */
 export async function atualizarItem(
   client: Client,
   pedidoId: string,
   itemId: string,
-  valores: { quantidade: number; precoCentavos: number },
+  valores: { quantidade: number },
 ): Promise<void> {
   exigirCadastrado(await travarPedido(client, pedidoId));
   const { rowCount } = await client.query(
-    'UPDATE pedidos_itens SET quantidade = $3, preco_unitario = $4 WHERE id = $2 AND pedido_id = $1',
-    [pedidoId, itemId, valores.quantidade, centavosParaSql(valores.precoCentavos)],
+    'UPDATE pedidos_itens SET quantidade = $3 WHERE id = $2 AND pedido_id = $1',
+    [pedidoId, itemId, valores.quantidade],
   );
   if (!rowCount) throw new UserError('Item não encontrado neste pedido.');
 }
@@ -441,6 +459,51 @@ export async function listHistorico(db: Db, pedidoId: string): Promise<LinhaHist
   return rows;
 }
 
+/** As situações em que o preço pode ser digitado: depois da conferência, antes da aprovação. */
+const PRECIFICAVEIS: readonly SituacaoPedido[] = ['verificado', 'pendente_alteracao'];
+
+/**
+ * RF-55, RN-50: **o preço é digitado depois da conferência**, e não no cadastro.
+ *
+ * Quem registra o pedido está no meio de uma conversa e anota espécie,
+ * recipiente e quantidade; o valor se fecha quando a gerência já disse o que
+ * existe no pátio, porque é a conferência que diz quantas mudas serão vendidas
+ * e em que recipiente. Fora dessas duas situações a porta é fechada pela mesma
+ * razão de `exigirCadastrado`: o aprovado é o registro do que foi vendido.
+ *
+ * **O filho do item genérico recebe o preço do pai**, e não um seu: as 500 mudas
+ * foram vendidas por aquele preço, e a composição só diz quais espécies as
+ * atendem. O total do pedido soma apenas os itens de topo (`totalPedido`).
+ */
+export async function definirPrecos(
+  client: Client,
+  pedidoId: string,
+  linhas: readonly { itemId: string; precoCentavos: number }[],
+  autor: AutorDaMudanca,
+): Promise<void> {
+  const pedido = await travarPedido(client, pedidoId);
+  if (!PRECIFICAVEIS.includes(pedido.situacao)) {
+    throw new UserError(
+      `O pedido ${pedido.numero} está em ${SITUACOES_PEDIDO[pedido.situacao].toLowerCase()}, ` +
+        'e o preço se digita depois da conferência.',
+    );
+  }
+  // O valor da venda é da chefia (D4 §3.2), como o resto do recurso `pedidos`:
+  // a gerência responde o que existe no pátio, e não por quanto se vende.
+  if (autor.perfil === 'gerencia') {
+    throw new UserError('O preço do pedido é digitado pela chefia.');
+  }
+
+  for (const linha of linhas) {
+    const { rowCount } = await client.query(
+      `UPDATE pedidos_itens SET preco_unitario = $3
+        WHERE pedido_id = $1 AND (id = $2 OR item_pai_id = $2)`,
+      [pedidoId, linha.itemId, centavosParaSql(linha.precoCentavos)],
+    );
+    if (!rowCount) throw new UserError('Item não encontrado neste pedido.');
+  }
+}
+
 /**
  * T8.11, RF-57: aprovar exige ao menos um item, que é a pós-condição do UC-31,
  * porque pedido sem item não registra venda nenhuma.
@@ -486,8 +549,10 @@ export async function confirmarPedido(
   );
   const ajustados = trocados.rowCount ?? 0;
 
-  const { rows } = await client.query<{ n: number }>(
-    'SELECT COUNT(*)::int AS n FROM pedidos_itens WHERE pedido_id = $1 AND item_pai_id IS NULL',
+  const { rows } = await client.query<{ n: number; semPreco: number }>(
+    `SELECT COUNT(*)::int AS n,
+            COUNT(*) FILTER (WHERE preco_unitario IS NULL)::int AS "semPreco"
+       FROM pedidos_itens WHERE pedido_id = $1 AND item_pai_id IS NULL`,
     [pedidoId],
   );
   if (rows[0].n === 0) {
@@ -495,6 +560,17 @@ export async function confirmarPedido(
       removidos > 0
         ? 'Não sobrou item disponível neste pedido. Cancele o pedido ou peça alteração à gerência.'
         : 'Acrescente ao menos um item antes de aprovar o pedido.',
+    );
+  }
+
+  // Aprovar é registrar a venda, e venda sem valor não é registro nenhum. É
+  // esta checagem que sustenta o preço opcional na coluna (migration
+  // 20260922000001): nulo é "ainda não precificado", e não chega ao aprovado.
+  if (rows[0].semPreco > 0) {
+    throw new UserError(
+      rows[0].semPreco === 1
+        ? 'Falta o preço de um item. Informe os preços antes de aprovar o pedido.'
+        : `Faltam os preços de ${rows[0].semPreco} itens. Informe-os antes de aprovar o pedido.`,
     );
   }
 
@@ -535,13 +611,28 @@ export async function cancelarPedido(
 // ------------------------------------------------------------
 
 /**
- * Marcar item é escrever o que alguém foi ao pátio conferir, e só faz sentido
- * com a conferência aberta. Fora dela a resposta seria sobre um pedido que já
- * seguiu adiante: o aprovado já consumiu a apuração, e regravá-la faria o
- * pedido discordar de si mesmo.
+ * Marcar item é escrever o que alguém foi ao pátio conferir.
+ *
+ * **Responder o primeiro item abre a conferência**, na mesma transação da
+ * resposta: quem tocou "Tem tudo" começou a conferir, e pedir um toque antes
+ * disso só rendia um erro que não era de ninguém. A abertura continua sendo
+ * gesto de pessoa, e não efeito de abrir a tela, e por isso o histórico ganha a
+ * linha com autor como sempre ganhou.
+ *
+ * De qualquer outra situação a escrita é recusada: o aprovado já consumiu a
+ * apuração, e regravá-la faria o pedido discordar de si mesmo.
  */
-function exigirEmVerificacao(pedido: PedidoTravado): void {
-  if (pedido.situacao === 'verificando') return;
+async function abrirOuExigirVerificacao(
+  client: Client,
+  pedidoId: string,
+  autor: AutorDaMudanca,
+): Promise<PedidoTravado> {
+  const pedido = await travarPedido(client, pedidoId);
+  if (pedido.situacao === 'verificando') return pedido;
+  if (pedido.situacao === 'cadastrado') {
+    await mudarSituacao(client, pedidoId, 'verificando', autor);
+    return { ...pedido, situacao: 'verificando' };
+  }
   throw new UserError(
     `O pedido ${pedido.numero} está em ${SITUACOES_PEDIDO[pedido.situacao].toLowerCase()}, e a conferência não está aberta.`,
   );
@@ -575,9 +666,10 @@ export async function marcarDisponibilidade(
   pedidoId: string,
   itemId: string,
   estado: EstadoDisponibilidade,
+  autor: AutorDaMudanca,
   extras: { quantidade?: number | null; recipienteId?: string | null; observacoes?: string | null } = {},
 ): Promise<void> {
-  exigirEmVerificacao(await travarPedido(client, pedidoId));
+  await abrirOuExigirVerificacao(client, pedidoId, autor);
 
   // `AND pedido_id` em toda escrita de item: impede que o identificador de um
   // item de outro pedido, reenviado no formulário, escreva onde não devia.
@@ -612,8 +704,9 @@ export async function salvarObservacoesVerificacao(
   client: Client,
   pedidoId: string,
   linhas: readonly { itemId: string; observacoes: string | null }[],
+  autor: AutorDaMudanca,
 ): Promise<void> {
-  exigirEmVerificacao(await travarPedido(client, pedidoId));
+  await abrirOuExigirVerificacao(client, pedidoId, autor);
   for (const linha of linhas) {
     await client.query('UPDATE pedidos_itens SET observacoes_disponibilidade = $3 WHERE id = $2 AND pedido_id = $1', [
       pedidoId,
@@ -636,8 +729,9 @@ export async function definirComposicaoGenerico(
   pedidoId: string,
   itemPaiId: string,
   linhas: readonly LinhaComposicao[],
+  autor: AutorDaMudanca,
 ): Promise<void> {
-  exigirEmVerificacao(await travarPedido(client, pedidoId));
+  await abrirOuExigirVerificacao(client, pedidoId, autor);
 
   const { rows } = await client.query<{ quantidade: number; preco: string; generico: boolean }>(
     'SELECT quantidade, preco_unitario AS preco, generico FROM pedidos_itens WHERE id = $2 AND pedido_id = $1 FOR UPDATE',

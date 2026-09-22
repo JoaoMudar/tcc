@@ -53,7 +53,16 @@ export default async function NovoPedidoPage() {
         ) : (
           <NovoPedidoForm
             clientes={clientes.map((c) => ({ value: c.id, label: c.nome }))}
-            especies={especies.filter((e) => e.ativa).map((e) => ({ value: e.id, label: nomeExibido(e) }))}
+            // A colagem precisa de TODOS os nomes, e não só do de tela: é por
+            // sinônimo e por científico que a linha do WhatsApp é reconhecida.
+            especies={especies
+              .filter((e) => e.ativa)
+              .map((e) => ({
+                id: e.id,
+                nome: nomeExibido(e),
+                nomeCientifico: e.nomeCientifico,
+                nomesPopulares: e.nomesPopulares,
+              }))}
             recipientes={recipientes
               .filter((r) => r.ativo)
               .map((r) => ({

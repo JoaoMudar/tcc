@@ -37,10 +37,7 @@ export function AdicionarItemForm({ pedidoId, especies, recipientes }: Adicionar
         value={recipienteId}
         onChange={setRecipienteId}
       />
-      <div className="grid grid-cols-2 gap-3">
-        <TextField label="Quantidade" name="item_quantidade" inputMode="numeric" autoComplete="off" required />
-        <TextField label="Preço por muda" name="item_preco" inputMode="decimal" autoComplete="off" placeholder="12,50" required />
-      </div>
+      <TextField label="Quantidade" name="item_quantidade" inputMode="numeric" autoComplete="off" required />
       {state.error && <Notice tone="error">{state.error}</Notice>}
       {state.success && <Notice tone="success">{state.success}</Notice>}
       <Button type="submit" variant="outline" pending={pending}>

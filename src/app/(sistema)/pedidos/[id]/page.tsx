@@ -1,16 +1,17 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { PageHeader } from '@/components/PageHeader';
+import { ItensDoPedido } from '@/components/pedidos/ItensDoPedido';
 import { AcaoRecolhivel } from '@/components/ui/AcaoRecolhivel';
 import { Notice } from '@/components/ui/Notice';
 import { Pill, type PillTone } from '@/components/ui/Pill';
+import { Toast } from '@/components/ui/Toast';
 import { formatData } from '@/lib/datas';
 import pool from '@/lib/db';
 import { nomeExibido, searchEspecies } from '@/lib/especies';
 import { saldoEmProducao, saldoPronto } from '@/lib/estoque';
 import { formatDateTime } from '@/lib/format';
-import { formatQuantidade } from '@/lib/lotes-rotulos';
-import { CANAIS_VENDA, SITUACOES_PEDIDO, type SituacaoPedido, findPedido, formatMoeda, totalItem, totalPedido } from '@/lib/pedidos';
+import { CANAIS_VENDA, SITUACOES_PEDIDO, type SituacaoPedido, findPedido } from '@/lib/pedidos';
 import { chaveSaldo } from '@/lib/pedidos-rotulos';
 import { can } from '@/lib/permissions';
 import { formatVolume, listRecipientes } from '@/lib/recipientes';
@@ -18,6 +19,7 @@ import { isUuid } from '@/lib/uuid';
 import { requirePageAccess } from '@/lib/auth/guards';
 import { AdicionarItemForm } from './AdicionarItemForm';
 import { ItemDoPedido } from './ItemDoPedido';
+import { PrecosForm } from './PrecosForm';
 import { SituacaoForms } from './SituacaoForms';
 
 interface PedidoPageProps {
@@ -57,6 +59,10 @@ export default async function PedidoPage({ params, searchParams }: PedidoPagePro
   const podeSeparar =
     can(user.perfil, 'cargas_pedido', 'A') &&
     (pedido.situacao === 'aprovado' || pedido.situacao === 'separando');
+  // RF-55: o preço se digita depois da conferência, e é da chefia (D4 §3.2)
+  const podePrecificar =
+    can(user.perfil, 'pedidos', 'A') &&
+    (pedido.situacao === 'verificado' || pedido.situacao === 'pendente_alteracao');
 
   const [prontos, producao, especies, recipientes] = await Promise.all([
     saldoPronto(pool),
@@ -74,9 +80,8 @@ export default async function PedidoPage({ params, searchParams }: PedidoPagePro
         <Link href="/pedidos" className="text-base font-semibold text-brand-dark">
           Voltar
         </Link>
-        {feito === 'criado' && <Notice tone="success">Pedido {pedido.numero} registrado.</Notice>}
         {feito === 'verificado' && (
-          <Notice tone="success">Conferência enviada para a chefia. O pedido está aguardando aprovação.</Notice>
+          <Toast tone="success">Conferência enviada para a chefia. O pedido está aguardando aprovação.</Toast>
         )}
 
         {/* T8.12: a porta da conferência. Só aparece enquanto ela cabe, e para
@@ -136,49 +141,38 @@ export default async function PedidoPage({ params, searchParams }: PedidoPagePro
         )}
 
         <h2 className="mt-2 text-sm font-bold tracking-widest text-muted uppercase">Itens</h2>
-        {pedido.itens.length === 0 && <p className="text-base text-muted">Nenhum item neste pedido.</p>}
-        <ul className="flex flex-col gap-3">
-          {pedido.itens.map((item) => {
+        <ItensDoPedido
+          itens={pedido.itens.map((item) => {
             // O genérico ainda não tem espécie, e por isso não tem saldo para ler
             const chave = item.especieId ? chaveSaldo(item.especieId, item.recipienteId) : null;
-            const pronto = chave ? (porChave.get(chave) ?? 0) : 0;
-            const produzindo = chave ? (emProducao.get(chave) ?? 0) : 0;
-            const falta = chave !== null && item.quantidade > pronto;
-            const filho = item.itemPaiId !== null;
-            return (
-              <li
-                key={item.id}
-                className={`flex flex-col gap-2 rounded-xl border border-line bg-white p-4 ${filho ? 'ml-4 border-dashed' : ''}`}
-              >
-                <div className="flex items-baseline justify-between gap-3">
-                  <span className="text-base font-semibold text-ink">
-                    {item.especie ?? 'Espécie a definir na conferência'}
-                  </span>
-                  {/* O filho herda o preço do pai, e não é cobrado de novo (totalPedido) */}
-                  {!filho && <span className="text-base font-bold text-ink">{formatMoeda(totalItem(item))}</span>}
-                </div>
-                <span className="text-sm text-muted">
-                  {item.recipiente} · {formatQuantidade(item.quantidade)}
-                  {!filho && ` × ${formatMoeda(item.precoCentavos)}`}
-                </span>
-                {item.especificacao && <p className="text-sm text-muted">Pedido do cliente: {item.especificacao}</p>}
-                {/* RF-56: somado dos lotes prontos agora, e não gravado no item */}
-                {chave && (
-                  <p className={`text-sm ${falta ? 'text-amber-800' : 'text-muted'}`}>
-                    Pronto para venda: <strong>{formatQuantidade(pronto)}</strong>
-                    {produzindo > 0 && ` · ${formatQuantidade(produzindo)} em produção, ainda não pronta`}
-                    {falta && ` · faltam ${formatQuantidade(item.quantidade - pronto)}`}
-                  </p>
-                )}
-              </li>
-            );
+            return {
+              id: item.id,
+              especie: item.especie,
+              recipiente: item.recipiente,
+              quantidade: item.quantidade,
+              precoCentavos: item.precoCentavos,
+              itemPaiId: item.itemPaiId,
+              especificacao: item.especificacao,
+              pronto: chave ? (porChave.get(chave) ?? 0) : null,
+              emProducao: chave ? (emProducao.get(chave) ?? 0) : null,
+            };
           })}
-        </ul>
+        />
 
-        <div className="flex items-baseline justify-between gap-3 rounded-xl border border-line bg-white p-4">
-          <span className="text-base text-muted">Total do pedido</span>
-          <span className="text-2xl font-bold text-ink">{formatMoeda(totalPedido(pedido.itens))}</span>
-        </div>
+        {podePrecificar && (
+          <PrecosForm
+            pedidoId={pedido.id}
+            itens={pedido.itens
+              .filter((item) => item.itemPaiId === null)
+              .map((item) => ({
+                id: item.id,
+                especie: item.especie ?? 'Espécie a definir',
+                recipiente: item.recipiente,
+                quantidade: item.quantidade,
+                precoCentavos: item.precoCentavos,
+              }))}
+          />
+        )}
 
         {/* O andamento vem antes da edição: quem abre a ficha quer o próximo passo, não o formulário */}
         {podeSituacao && <SituacaoForms pedidoId={pedido.id} situacao={pedido.situacao} perfil={user.perfil} />}
@@ -191,12 +185,7 @@ export default async function PedidoPage({ params, searchParams }: PedidoPagePro
                   <li key={item.id} className="flex flex-col gap-1">
                     <span className="text-base font-semibold text-ink">{item.especie}</span>
                     <span className="text-sm text-muted">{item.recipiente}</span>
-                    <ItemDoPedido
-                      pedidoId={pedido.id}
-                      itemId={item.id}
-                      quantidade={item.quantidade}
-                      precoCentavos={item.precoCentavos}
-                    />
+                    <ItemDoPedido pedidoId={pedido.id} itemId={item.id} quantidade={item.quantidade} />
                   </li>
                 ))}
               </ul>

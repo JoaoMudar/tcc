@@ -93,6 +93,34 @@ describe('permissão (D4 §3.2)', () => {
   });
 });
 
+describe('a resposta abre a conferência (T8.12)', () => {
+  it('responder o primeiro item do pedido cadastrado abre a conferência e grava junto', async () => {
+    respondeCom({ id: PEDIDO, numero: 1, situacao: 'cadastrado', quantidade: 500, generico: false, preco: '2.00' });
+    const dados = form({ pedido_id: PEDIDO, item_id: ITEM, estado: 'disponivel' });
+
+    expect((await actions.marcarDisponibilidadeAction({}, dados)).error).toBeUndefined();
+    // A abertura e a resposta saem na mesma transação
+    expect(gravouEm('UPDATE pedidos SET situacao')).toHaveLength(1);
+    expect(gravouEm('INSERT INTO pedidos_historico')).toHaveLength(1);
+    expect(gravouEm('UPDATE pedidos_itens')).toHaveLength(1);
+  });
+
+  it('com a conferência já aberta a situação não é reescrita', async () => {
+    const dados = form({ pedido_id: PEDIDO, item_id: ITEM, estado: 'disponivel' });
+    await actions.marcarDisponibilidadeAction({}, dados);
+    expect(gravouEm('UPDATE pedidos SET situacao')).toEqual([]);
+  });
+
+  it('depois de aprovado a resposta é recusada, e nada é gravado', async () => {
+    respondeCom({ id: PEDIDO, numero: 1, situacao: 'aprovado', quantidade: 500, generico: false, preco: '2.00' });
+    const dados = form({ pedido_id: PEDIDO, item_id: ITEM, estado: 'disponivel' });
+
+    const state = await actions.marcarDisponibilidadeAction({}, dados);
+    expect(state.error).toMatch(/conferência não está aberta/i);
+    expect(gravouEm('UPDATE pedidos_itens')).toEqual([]);
+  });
+});
+
 describe('validação antes do banco', () => {
   it('resposta fora das três é recusada', async () => {
     const state = await actions.marcarDisponibilidadeAction({}, form({ pedido_id: PEDIDO, item_id: ITEM, estado: 'talvez' }));

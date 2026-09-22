@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/Button';
 import { Pill, type PillTone } from '@/components/ui/Pill';
 import { SelectField } from '@/components/ui/SelectField';
 import { TextField } from '@/components/ui/TextField';
+import { Toast } from '@/components/ui/Toast';
 import { pedidosDoPeriodo } from '@/lib/cargas';
 import { diaUtilAnterior, formatData, hojeNoViveiro, somaDias } from '@/lib/datas';
 import pool from '@/lib/db';
@@ -16,6 +17,7 @@ import {
   SITUACOES_PEDIDO,
   type SituacaoPedido,
   formatMoeda,
+  formatTotal,
   listClientes,
   listPedidos,
   parseFiltroPedidos,
@@ -27,7 +29,7 @@ import { requirePageAccess } from '@/lib/auth/guards';
 import { CalendarioCargas } from './CalendarioCargas';
 
 interface PedidosPageProps {
-  searchParams: Promise<{ de?: string; ate?: string; cliente?: string; canal?: string }>;
+  searchParams: Promise<{ de?: string; ate?: string; cliente?: string; canal?: string; feito?: string; numero?: string }>;
 }
 
 const CANAL_OPCOES = Object.entries(CANAIS_VENDA).map(([value, label]) => ({ value, label }));
@@ -54,7 +56,8 @@ export default async function PedidosPage({ searchParams }: PedidosPageProps) {
   // TA-03: a gerência que digita este endereço cai em /sem-permissao
   const user = await requirePageAccess('pedidos');
   const hoje = hojeNoViveiro();
-  const filtro = parseFiltroPedidos(await searchParams, hoje);
+  const params = await searchParams;
+  const filtro = parseFiltroPedidos(params, hoje);
 
   // O calendário cobre o mês inteiro, e não o filtro: quem carrega caminhão
   // planeja o mês, e o filtro da carteira é por data de registro, não de entrega.
@@ -66,7 +69,12 @@ export default async function PedidosPage({ searchParams }: PedidosPageProps) {
     listClientes(pool),
     pedidosDoPeriodo(pool, somaDias(mes, -7), fimDoMes),
   ]);
-  const total = lista.reduce((soma, pedido) => soma + (pedido.situacao === 'cancelado' ? 0 : pedido.totalCentavos), 0);
+  // Cancelado não entra, e o que ainda não tem preço também não: o pedido em
+  // conferência ainda não é venda nenhuma, e contá-lo como zero seria o mesmo
+  // que afirmar que ele vale isso. Quantos ficaram de fora é dito logo abaixo.
+  const somaveis = lista.filter((pedido) => pedido.situacao !== 'cancelado' && pedido.totalCentavos !== null);
+  const total = somaveis.reduce((soma, pedido) => soma + pedido.totalCentavos!, 0);
+  const semPreco = lista.filter((pedido) => pedido.situacao !== 'cancelado' && pedido.totalCentavos === null).length;
 
   // O calendário é ferramenta de quem separa, e a chefia também o usa para saber
   // o que está por sair. Quem não mexe em carga não o vê.
@@ -76,6 +84,15 @@ export default async function PedidosPage({ searchParams }: PedidosPageProps) {
     <main>
       <PageHeader area="3 · Comercial" title="Pedidos" />
       <div className="mx-auto flex max-w-3xl flex-col gap-4 p-4 md:p-8">
+        {/* O pedido recém-cadastrado traz a pessoa de volta para cá, e o aviso
+            do que aconteceu some sozinho: quem registra um já vai registrar o
+            seguinte, e um banner fixo só ocuparia a tela do celular. */}
+        {params.feito === 'criado' && (
+          <Toast tone="success">
+            Pedido {params.numero ?? ''} registrado. O preço entra depois da conferência.
+          </Toast>
+        )}
+
         {can(user.perfil, 'pedidos', 'C') && (
           <Link
             href="/pedidos/novo"
@@ -119,6 +136,11 @@ export default async function PedidosPage({ searchParams }: PedidosPageProps) {
           <div className="rounded-xl border border-line bg-white p-4">
             <p className="text-sm text-muted">Total, sem os cancelados</p>
             <p className="text-2xl font-bold text-ink">{formatMoeda(total)}</p>
+            {semPreco > 0 && (
+              <p className="text-sm text-muted">
+                {semPreco === 1 ? '1 pedido ainda sem preço' : `${semPreco} pedidos ainda sem preço`}
+              </p>
+            )}
           </div>
         </div>
         <p className="text-sm text-muted">
@@ -147,7 +169,7 @@ export default async function PedidosPage({ searchParams }: PedidosPageProps) {
                     <span className="text-base font-semibold text-ink">
                       {pedido.numero} · {pedido.cliente}
                     </span>
-                    <span className="text-base font-bold text-ink">{formatMoeda(pedido.totalCentavos)}</span>
+                    <span className="text-base font-bold text-ink">{formatTotal(pedido.totalCentavos)}</span>
                   </div>
                   <div className="flex items-center justify-between gap-3">
                     <span className="text-sm text-muted">

@@ -17,6 +17,7 @@ const { requireUser } = await import('@/lib/auth/dal');
 const { default: pool } = await import('@/lib/db');
 const { FORBIDDEN_MESSAGE } = await import('@/lib/auth/guards');
 const especies = await import('../especies/actions');
+const rapidas = await import('../especies/acoes-rapidas');
 const recipientes = await import('../recipientes/actions');
 const insumos = await import('../insumos/actions');
 const areas = await import('../areas/actions');
@@ -322,6 +323,98 @@ describe('espécies (RF-10)', () => {
       ID,
       ['Cedro-rosa', 'Cedro'],
     ]);
+  });
+});
+
+describe('espécie rápida e aprendizado de nomes (T8.16)', () => {
+  const OUTRA = '1c8e2d4f-9a6b-4d2c-8e1f-3a7b8c9d0e1f';
+
+  /** Os nomes que o banco já conhece, que é a única consulta de leitura das duas actions. */
+  function jaCadastradas(nomes: { especieId: string; nome: string; especie: string }[]) {
+    client.query.mockImplementation(async (sql: string) => {
+      if (sql.includes('UNION ALL')) return { rows: nomes, rowCount: nomes.length };
+      if (sql.includes('INSERT INTO especies ')) return { rows: [{ id: ID }] };
+      if (sql.includes('SELECT e.id, e.nome_cientifico')) {
+        return { rows: [{ id: ID, nomeCientifico: 'Cedrela fissilis', nomesPopulares: ['Cedro-rosa'], caracteristicas: [] }] };
+      }
+      return { rows: [], rowCount: 1 };
+    });
+  }
+
+  it('a gerência não cadastra espécie, nem pelo atalho do pedido', async () => {
+    loggedAs('gerencia');
+    await expect(
+      rapidas.criarEspecieRapidaAction({}, form({ nome_popular: 'Cedro-rosa', nome_cientifico: 'Cedrela fissilis' })),
+    ).rejects.toThrow(FORBIDDEN_MESSAGE);
+    expectNoDatabase();
+  });
+
+  it('a espécie nova entra ativa, com o nome popular como principal', async () => {
+    loggedAs('chefia');
+    jaCadastradas([]);
+    const state = await rapidas.criarEspecieRapidaAction(
+      {},
+      form({ nome_popular: 'Cedro-rosa', nome_cientifico: 'Cedrela fissilis' }),
+    );
+    expect(state.error).toBeUndefined();
+    expect(state.especie).toMatchObject({ id: ID, nome: 'Cedro-rosa' });
+    expect(client.query).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO especies_nomes_populares'), [
+      ID,
+      ['Cedro-rosa'],
+    ]);
+  });
+
+  it('nome que já existe reaproveita a espécie, e não duplica o catálogo', async () => {
+    loggedAs('chefia');
+    jaCadastradas([{ especieId: ID, nome: 'cedro rosa', especie: 'Cedro-rosa' }]);
+    const state = await rapidas.criarEspecieRapidaAction(
+      {},
+      form({ nome_popular: 'Cedro-Rosa', nome_cientifico: 'Cedrela fissilis' }),
+    );
+    expect(state.existente).toMatchObject({ id: ID });
+    const inseriu = client.query.mock.calls.filter(([sql]) => String(sql).includes('INSERT INTO especies '));
+    expect(inseriu).toEqual([]);
+  });
+
+  it('sem o nome científico a espécie não é cadastrada', async () => {
+    loggedAs('chefia');
+    jaCadastradas([]);
+    const state = await rapidas.criarEspecieRapidaAction({}, form({ nome_popular: 'Cedro-rosa', nome_cientifico: '' }));
+    expect(state.error).toMatch(/nome científico/i);
+  });
+
+  it('o nome corrigido à mão vira outro nome da espécie', async () => {
+    loggedAs('chefia');
+    jaCadastradas([]);
+    const state = await rapidas.adicionarNomePopularAction({}, form({ especie_id: ID, nome: 'cedro vermelho' }));
+    expect(state.nomeSalvo).toEqual({ especieId: ID, nome: 'cedro vermelho' });
+    expect(client.query).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO especies_nomes_populares'), [
+      ID,
+      'cedro vermelho',
+    ]);
+  });
+
+  it('nome que é de outra espécie é recusado, dizendo de quem ele é (RN-01)', async () => {
+    loggedAs('chefia');
+    jaCadastradas([{ especieId: OUTRA, nome: 'Cedro-vermelho', especie: 'Cedro-rosa' }]);
+    const state = await rapidas.adicionarNomePopularAction({}, form({ especie_id: ID, nome: 'cedro vermelho' }));
+    expect(state.error).toMatch(/já é nome de Cedro-rosa/i);
+    const inseriu = client.query.mock.calls.filter(([sql]) => String(sql).includes('INSERT INTO especies_nomes_populares'));
+    expect(inseriu).toEqual([]);
+  });
+
+  it('o nome que a própria espécie já tem não é conflito dela mesma', async () => {
+    loggedAs('chefia');
+    jaCadastradas([{ especieId: ID, nome: 'Cedro-vermelho', especie: 'Cedro-rosa' }]);
+    const state = await rapidas.adicionarNomePopularAction({}, form({ especie_id: ID, nome: 'cedro vermelho' }));
+    expect(state.error).toBeUndefined();
+  });
+
+  it('espécie que não é identificador é recusada antes do SQL', async () => {
+    loggedAs('chefia');
+    const state = await rapidas.adicionarNomePopularAction({}, form({ especie_id: 'x', nome: 'cedro' }));
+    expect(state.error).toMatch(/espécie inválida/i);
+    expectNoDatabase();
   });
 });
 

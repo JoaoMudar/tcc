@@ -52,7 +52,9 @@ export async function iniciarVerificacaoAction(_previous: FormState, formData: F
  * item: quem está no pátio com o celular na mão responde e segue andando.
  */
 export async function marcarDisponibilidadeAction(_previous: FormState, formData: FormData): Promise<FormState> {
-  await requirePermission('verificacao_pedido', 'A');
+  // 'C' como em `iniciarVerificacaoAction`: responder o primeiro item abre a
+  // conferência, e quem responde precisa poder abri-la.
+  const user = await requirePermission('verificacao_pedido', 'C');
   const pedidoId = formText(formData, 'pedido_id');
   const itemId = formText(formData, 'item_id');
   const estado = formText(formData, 'estado');
@@ -76,7 +78,7 @@ export async function marcarDisponibilidadeAction(_previous: FormState, formData
 
   try {
     await withTransaction(pool, (client) =>
-      pedidos.marcarDisponibilidade(client, pedidoId, itemId, estado, extras),
+      pedidos.marcarDisponibilidade(client, pedidoId, itemId, estado, { perfil: user.perfil, usuarioId: user.usuarioId }, extras),
     );
   } catch (error) {
     return { error: toUserMessage(error) };
@@ -90,7 +92,7 @@ export async function marcarDisponibilidadeAction(_previous: FormState, formData
  * Gilberto" num item não pode marcá-lo como conferido.
  */
 export async function salvarObservacoesAction(_previous: FormState, formData: FormData): Promise<FormState> {
-  await requirePermission('verificacao_pedido', 'A');
+  const user = await requirePermission('verificacao_pedido', 'C');
   const pedidoId = formText(formData, 'pedido_id');
   if (!isUuid(pedidoId)) return { error: 'Pedido inválido.' };
 
@@ -106,7 +108,12 @@ export async function salvarObservacoesAction(_previous: FormState, formData: Fo
   }
 
   try {
-    await withTransaction(pool, (client) => pedidos.salvarObservacoesVerificacao(client, pedidoId, linhas));
+    await withTransaction(pool, (client) =>
+      pedidos.salvarObservacoesVerificacao(client, pedidoId, linhas, {
+        perfil: user.perfil,
+        usuarioId: user.usuarioId,
+      }),
+    );
   } catch (error) {
     return { error: toUserMessage(error) };
   }
@@ -119,7 +126,7 @@ export async function salvarObservacoesAction(_previous: FormState, formData: Fo
  * posição por linha da tela, como no cadastro do pedido.
  */
 export async function definirComposicaoAction(_previous: FormState, formData: FormData): Promise<FormState> {
-  await requirePermission('verificacao_pedido', 'A');
+  const user = await requirePermission('verificacao_pedido', 'C');
   const pedidoId = formText(formData, 'pedido_id');
   const itemPaiId = formText(formData, 'item_pai_id');
   if (!isUuid(pedidoId) || !isUuid(itemPaiId)) return { error: 'Item inválido.' };
@@ -141,7 +148,12 @@ export async function definirComposicaoAction(_previous: FormState, formData: Fo
   }
 
   try {
-    await withTransaction(pool, (client) => pedidos.definirComposicaoGenerico(client, pedidoId, itemPaiId, linhas));
+    await withTransaction(pool, (client) =>
+      pedidos.definirComposicaoGenerico(client, pedidoId, itemPaiId, linhas, {
+        perfil: user.perfil,
+        usuarioId: user.usuarioId,
+      }),
+    );
   } catch (error) {
     return { error: toUserMessage(error) };
   }
