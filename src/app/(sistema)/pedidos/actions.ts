@@ -15,6 +15,9 @@ function revalidarPedidos(id?: string) {
   if (id) revalidatePath(`/pedidos/${id}`);
 }
 
+/** Teto do que é pedido de verdade: a maior lista já vista no viveiro tem dezenas de linhas. */
+const MAX_ITENS_POR_ENVIO = 200;
+
 /**
  * Os itens chegam como listas paralelas: uma posição por linha da tela.
  *
@@ -24,6 +27,10 @@ function revalidarPedidos(id?: string) {
  */
 function lerItens(formData: FormData): { error: string } | { value: pedidos.NovoItem[] } {
   const especies = formData.getAll('item_especie').map(String);
+  // Antes de abrir transação: milhares de INSERT seguram conexão do pool (SEC-006)
+  if (especies.length > MAX_ITENS_POR_ENVIO) {
+    return { error: `O pedido aceita até ${MAX_ITENS_POR_ENVIO} itens por vez. Divida em mais de um envio.` };
+  }
   const recipientes = formData.getAll('item_recipiente').map(String);
   const quantidades = formData.getAll('item_quantidade').map(String);
   const alturas = formData.getAll('item_altura').map(String);

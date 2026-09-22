@@ -2,6 +2,7 @@ import 'server-only';
 import { cookies, headers } from 'next/headers';
 import { cache } from 'react';
 import pool from '@/lib/db';
+import { clientIp } from './client-ip';
 import { SESSION_COOKIE, SESSION_RENEW_AFTER_MS, sessionCookieOptions, sessionExpiry } from './session-config';
 import {
   type SessionUser,
@@ -15,9 +16,8 @@ import { generateSessionToken, hashToken } from './tokens';
 /** Origem e aparelho da requisição, para a sessão e o registro de acesso (RF-04). */
 export async function requestOrigin(): Promise<{ ip: string | null; agenteUsuario: string | null }> {
   const h = await headers();
-  const forwarded = h.get('x-forwarded-for')?.split(',')[0]?.trim();
   return {
-    ip: forwarded || h.get('x-real-ip') || null,
+    ip: clientIp(h.get('x-forwarded-for'), h.get('x-real-ip')),
     agenteUsuario: h.get('user-agent')?.slice(0, 300) ?? null,
   };
 }

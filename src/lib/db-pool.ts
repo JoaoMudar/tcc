@@ -1,7 +1,7 @@
 import { Pool as PgPool } from 'pg';
 import { Pool as NeonPool, neonConfig } from '@neondatabase/serverless';
 import ws from 'ws';
-import { isNeonHost } from './db-host';
+import { isLocalHost, isNeonHost } from './db-host';
 
 /**
  * Cria o pool conforme o host. Sem 'server-only' de propósito: é reusado por
@@ -16,5 +16,8 @@ export function createPool(connectionString: string | undefined): PgPool {
     // O Pool do Neon implementa a mesma interface do pg.Pool
     return new NeonPool({ connectionString }) as unknown as PgPool;
   }
-  return new PgPool({ connectionString });
+  // Banco fora da máquina exige TLS: a senha e o CPF do cadastro não andam em texto claro (SEC-002)
+  return new PgPool(
+    isLocalHost(connectionString) ? { connectionString } : { connectionString, ssl: { rejectUnauthorized: true } },
+  );
 }

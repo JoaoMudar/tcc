@@ -159,6 +159,16 @@ describe('validação antes do banco (UC-31 FE-1)', () => {
     expect(valores).toContain(1.2);
   });
 
+  it('SEC-006: mais de 200 itens num envio é recusado antes do banco', async () => {
+    const muitos = (valor: string) => Array.from({ length: 201 }, () => valor);
+    const state = await actions.criarPedidoAction(
+      {},
+      pedidoValido({ item_especie: muitos(ESPECIE), item_recipiente: muitos(RECIPIENTE), item_quantidade: muitos('10') }),
+    );
+    expect(state.error).toMatch(/até 200 itens/);
+    expectNoDatabase();
+  });
+
   it('altura que não é medida é recusada antes do banco, dizendo de que item se trata', async () => {
     const state = await actions.criarPedidoAction({}, pedidoValido({ item_altura: 'grande' }));
     expect(state.error).toMatch(/item 1/i);
