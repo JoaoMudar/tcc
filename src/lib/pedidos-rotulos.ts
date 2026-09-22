@@ -161,6 +161,43 @@ export function parsePreco(text: string): { error: string } | { value: number } 
   return { value: centavos };
 }
 
+/** Altura maior que isto no campo do pedido é dedo escorregando, e não muda. */
+const ALTURA_MAXIMA_M = 20;
+/** Abaixo disto seria semente, e não muda pronta para venda. */
+const ALTURA_MINIMA_M = 0.05;
+
+/**
+ * A altura da muda pedida, em metros, como o viveiro fala: 0,80 · 1,20.
+ *
+ * **Vazio é nulo, e não erro** (RF-54): a altura é opcional, porque o
+ * recipiente já determina o porte na maior parte das vendas. Quem digita
+ * ponto no lugar da vírgula é entendido do mesmo jeito.
+ */
+export function parseAltura(text: string): { error: string } | { value: number | null } {
+  const limpo = text.trim().replace(/\s*m$/i, '').replace(/\s/g, '');
+  if (limpo === '') return { value: null };
+  const normalizado = limpo.replace(',', '.');
+  if (!/^\d+(\.\d{1,2})?$/.test(normalizado)) {
+    return { error: 'A altura precisa ser um valor em metros, como 1,20.' };
+  }
+  const metros = Math.round(Number(normalizado) * 100) / 100;
+  if (metros < ALTURA_MINIMA_M) return { error: 'A altura precisa ser de ao menos 0,05 m.' };
+  if (metros > ALTURA_MAXIMA_M) return { error: 'A altura precisa ser de até 20 m.' };
+  return { value: metros };
+}
+
+/** A altura na tela, com a unidade junto. Nula não escreve nada. */
+export function formatAltura(metros: number | null | undefined): string {
+  if (metros === null || metros === undefined) return '';
+  return `${metros.toFixed(2).replace('.', ',')} m`;
+}
+
+/** A altura de volta no campo, sem a unidade, para ser editada. */
+export function alturaParaCampo(metros: number | null | undefined): string {
+  if (metros === null || metros === undefined) return '';
+  return metros.toFixed(2).replace('.', ',');
+}
+
 /** O campo volta para a tela como a pessoa espera lê-lo, e não como "1250". */
 export function precoParaCampo(centavos: number): string {
   return (centavos / 100).toFixed(2).replace('.', ',');

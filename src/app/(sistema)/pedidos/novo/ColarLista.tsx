@@ -29,6 +29,8 @@ interface ColarListaProps {
   onImportar: (itens: ItemImportado[]) => void;
   /** A espécie criada aqui precisa entrar na lista do formulário também. */
   onEspecieNova: (especie: EspecieRef) => void;
+  /** O texto que já veio colado na planilha, quando a colagem caiu aqui pelo Ctrl+V. */
+  textoInicial?: string;
   onFechar: () => void;
 }
 
@@ -71,10 +73,17 @@ function jaConhece(especie: EspecieParaColagem | undefined, nome: string): boole
  * O sistema aprende: o nome corrigido à mão pode virar outro nome da espécie, e
  * a próxima lista com aquele mesmo apelido é reconhecida sozinha.
  */
-export function ColarLista({ especies, recipientes, onImportar, onEspecieNova, onFechar }: ColarListaProps) {
+export function ColarLista({
+  especies,
+  recipientes,
+  textoInicial = '',
+  onImportar,
+  onEspecieNova,
+  onFechar,
+}: ColarListaProps) {
   const [catalogo, setCatalogo] = useState<EspecieParaColagem[]>([...especies]);
   const [recipientePadrao, setRecipientePadrao] = useState(recipientes.length === 1 ? recipientes[0].value : '');
-  const [texto, setTexto] = useState('');
+  const [texto, setTexto] = useState(textoInicial);
   const [linhas, setLinhas] = useState<LinhaRevisao[] | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [criandoPara, setCriandoPara] = useState<LinhaRevisao | null>(null);

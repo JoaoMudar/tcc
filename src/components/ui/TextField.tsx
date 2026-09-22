@@ -2,19 +2,24 @@ import { useId, type InputHTMLAttributes } from 'react';
 
 interface TextFieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'id'> {
   label: string;
-  name: string;
+  name?: string;
   hint?: string;
   error?: string;
+  /**
+   * Célula de planilha: o rótulo vira só leitura de tela, porque quem o lê com
+   * os olhos já o leu no cabeçalho da coluna.
+   */
+  compacto?: boolean;
 }
 
-export function TextField({ label, hint, error, className = '', ...rest }: TextFieldProps) {
+export function TextField({ label, hint, error, compacto = false, className = '', ...rest }: TextFieldProps) {
   const id = useId();
   const hintId = hint ? `${id}-dica` : undefined;
   const errorId = error ? `${id}-erro` : undefined;
 
   return (
     <div className={`flex flex-col gap-1 ${className}`}>
-      <label htmlFor={id} className="text-sm font-semibold text-gray-700">
+      <label htmlFor={id} className={compacto ? 'sr-only' : 'text-sm font-semibold text-gray-700'}>
         {label}
       </label>
       <input

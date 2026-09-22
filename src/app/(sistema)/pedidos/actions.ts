@@ -26,6 +26,7 @@ function lerItens(formData: FormData): { error: string } | { value: pedidos.Novo
   const especies = formData.getAll('item_especie').map(String);
   const recipientes = formData.getAll('item_recipiente').map(String);
   const quantidades = formData.getAll('item_quantidade').map(String);
+  const alturas = formData.getAll('item_altura').map(String);
   const genericos = formData.getAll('item_generico').map(String);
   const especificacoes = formData.getAll('item_especificacao').map(String);
   const itens: pedidos.NovoItem[] = [];
@@ -33,18 +34,21 @@ function lerItens(formData: FormData): { error: string } | { value: pedidos.Novo
   for (let i = 0; i < especies.length; i++) {
     const generico = genericos[i] === '1';
     // Linha em branco é linha que a pessoa abriu e não usou, e não erro
-    if (!generico && !especies[i] && !recipientes[i] && !quantidades[i]?.trim()) continue;
+    if (!generico && !especies[i] && !recipientes[i] && !quantidades[i]?.trim() && !alturas[i]?.trim()) continue;
     const posicao = `item ${i + 1}`;
     if (!generico && !isUuid(especies[i])) return { error: `Escolha a espécie do ${posicao}.` };
     if (!isUuid(recipientes[i])) return { error: `Escolha o recipiente do ${posicao}.` };
     const quantidade = pedidos.parseQuantidadeItem(quantidades[i] ?? '');
     if ('error' in quantidade) return { error: `No ${posicao}: ${quantidade.error.toLowerCase()}` };
+    const altura = pedidos.parseAltura(alturas[i] ?? '');
+    if ('error' in altura) return { error: `No ${posicao}: ${altura.error.toLowerCase()}` };
     const especificacao = pedidos.parseObservacoesPedido(especificacoes[i] ?? '');
     if ('error' in especificacao) return { error: `No ${posicao}: a especificação é longa demais.` };
     itens.push({
       especieId: generico ? null : especies[i],
       recipienteId: recipientes[i],
       quantidade: quantidade.value,
+      alturaM: altura.value,
       precoCentavos: null,
       generico,
       especificacao: generico ? especificacao.value : null,
@@ -114,19 +118,21 @@ export async function adicionarItemAction(_previous: FormState, formData: FormDa
   return { success: 'Item acrescentado.' };
 }
 
-/** RF-57: a quantidade muda enquanto o pedido é rascunho. O preço vem depois da conferência. */
+/** RF-57: a quantidade e a altura mudam enquanto o pedido é rascunho. O preço vem depois da conferência. */
 export async function atualizarItemAction(_previous: FormState, formData: FormData): Promise<FormState> {
   await requirePermission('pedidos', 'A');
   const pedidoId = formText(formData, 'pedido_id');
   const itemId = formText(formData, 'item_id');
   if (!isUuid(pedidoId) || !isUuid(itemId)) return { error: 'Item inválido.' };
-  const fields = { quantidade: formText(formData, 'quantidade') };
+  const fields = { quantidade: formText(formData, 'quantidade'), altura: formText(formData, 'altura') };
   const quantidade = pedidos.parseQuantidadeItem(fields.quantidade);
   if ('error' in quantidade) return { error: quantidade.error, fields };
+  const altura = pedidos.parseAltura(fields.altura);
+  if ('error' in altura) return { error: altura.error, fields };
 
   try {
     await withTransaction(pool, (client) =>
-      pedidos.atualizarItem(client, pedidoId, itemId, { quantidade: quantidade.value }),
+      pedidos.atualizarItem(client, pedidoId, itemId, { quantidade: quantidade.value, alturaM: altura.value }),
     );
   } catch (error) {
     return { error: toUserMessage(error), fields };

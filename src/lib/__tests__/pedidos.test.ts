@@ -2,16 +2,19 @@ import { describe, expect, it } from 'vitest';
 import { diaUtilAnterior } from '../datas';
 import {
   CANAIS_VENDA,
+  alturaParaCampo,
   CANAL_PADRAO,
   DONO_SITUACAO,
   SITUACOES_PEDIDO,
   TRANSICOES,
   centavosParaSql,
   chaveSaldo,
+  formatAltura,
   formatMoeda,
   formatTotal,
   isCanalVenda,
   isSituacaoPedido,
+  parseAltura,
   parsePreco,
   podeTransicionar,
   precoParaCampo,
@@ -369,6 +372,43 @@ describe('quantidade do item', () => {
   it('recusa zero e quebrado', () => {
     expect(parseQuantidadeItem('0')).toHaveProperty('error');
     expect(parseQuantidadeItem('1,5')).toHaveProperty('error');
+  });
+});
+
+describe('altura da muda pedida (RF-54)', () => {
+  it('lê a vírgula, que é como o viveiro escreve', () => {
+    expect(parseAltura('1,20')).toEqual({ value: 1.2 });
+  });
+
+  it('lê o ponto também, e a unidade escrita junto', () => {
+    expect(parseAltura('0.8')).toEqual({ value: 0.8 });
+    expect(parseAltura('1,20 m')).toEqual({ value: 1.2 });
+  });
+
+  it('em branco é nula, e não erro: a altura é opcional', () => {
+    expect(parseAltura('')).toEqual({ value: null });
+    expect(parseAltura('   ')).toEqual({ value: null });
+  });
+
+  it('recusa zero, negativo e texto', () => {
+    expect(parseAltura('0')).toHaveProperty('error');
+    expect(parseAltura('-1')).toHaveProperty('error');
+    expect(parseAltura('grande')).toHaveProperty('error');
+  });
+
+  it('recusa o que só pode ser a quantidade digitada no campo errado', () => {
+    expect(parseAltura('500')).toHaveProperty('error');
+  });
+
+  it('não guarda mais que dois decimais, que é o que a trena mede', () => {
+    expect(parseAltura('1,205')).toHaveProperty('error');
+  });
+
+  it('na tela sai com a unidade, e no campo sai sem', () => {
+    expect(formatAltura(1.2)).toBe('1,20 m');
+    expect(formatAltura(null)).toBe('');
+    expect(alturaParaCampo(1.2)).toBe('1,20');
+    expect(alturaParaCampo(null)).toBe('');
   });
 });
 

@@ -9,13 +9,23 @@ const MAX_VISIVEL = 8;
 
 interface ComboboxFieldProps {
   label: string;
-  name: string;
+  /**
+   * Sem `name` o campo não entra no formulário: é o caso da planilha de itens,
+   * que emite os próprios campos escondidos, um bloco por linha.
+   */
+  name?: string;
   options: readonly SelectOption[];
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   hint?: string;
   error?: string;
+  /**
+   * Célula de planilha: rótulo só para leitor de tela, sem as linhas de apoio
+   * embaixo, e a lista de opções flutuando sobre as linhas seguintes em vez de
+   * empurrá-las para baixo.
+   */
+  compacto?: boolean;
 }
 
 /**
@@ -36,6 +46,7 @@ export function ComboboxField({
   placeholder = 'Digite para procurar…',
   hint,
   error,
+  compacto = false,
 }: ComboboxFieldProps) {
   const id = useId();
   const hintId = hint ? `${id}-dica` : undefined;
@@ -76,15 +87,15 @@ export function ComboboxField({
 
   return (
     <div
-      className="flex flex-col gap-1"
+      className={`flex flex-col gap-1 ${compacto ? 'relative' : ''}`}
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget)) setAberta(false);
       }}
     >
-      <label htmlFor={id} className="text-sm font-semibold text-gray-700">
+      <label htmlFor={id} className={compacto ? 'sr-only' : 'text-sm font-semibold text-gray-700'}>
         {label}
       </label>
-      <input type="hidden" name={name} value={value} />
+      {name && <input type="hidden" name={name} value={value} />}
       <input
         id={id}
         type="text"
@@ -95,11 +106,19 @@ export function ComboboxField({
         onFocus={() => setAberta(true)}
         aria-invalid={error ? true : undefined}
         aria-describedby={[hintId, errorId, digitouSemEscolher ? avisoId : null].filter(Boolean).join(' ') || undefined}
-        className="min-h-touch w-full rounded-lg border-[1.5px] border-gray-300 bg-white px-3 text-base text-ink placeholder:text-gray-400 focus:border-brand-dark focus:outline-none aria-invalid:border-red-600"
+        className={`min-h-touch w-full rounded-lg border-[1.5px] bg-white px-3 text-base text-ink placeholder:text-gray-400 focus:border-brand-dark focus:outline-none aria-invalid:border-red-600 ${
+          // Na célula não cabe a frase de aviso, então a borda é que avisa que
+          // o texto digitado ainda não virou escolha
+          compacto && digitouSemEscolher ? 'border-amber-600' : 'border-gray-300'
+        }`}
       />
 
       {aberta && (
-        <ul className="flex max-h-72 flex-col divide-y divide-line overflow-y-auto rounded-lg border-[1.5px] border-gray-300 bg-white">
+        <ul
+          className={`flex max-h-72 flex-col divide-y divide-line overflow-y-auto rounded-lg border-[1.5px] border-gray-300 bg-white ${
+            compacto ? 'absolute top-full right-0 left-0 z-20 shadow-lg' : ''
+          }`}
+        >
           {visiveis.length === 0 ? (
             <li className="px-3 py-3 text-base text-muted">Nada encontrado com esse texto.</li>
           ) : (
@@ -124,8 +143,8 @@ export function ComboboxField({
         </ul>
       )}
 
-      {escolhida && !aberta && <p className="text-sm text-muted">Escolhido: {escolhida.label}</p>}
-      {digitouSemEscolher && !aberta && (
+      {escolhida && !aberta && !compacto && <p className="text-sm text-muted">Escolhido: {escolhida.label}</p>}
+      {digitouSemEscolher && !aberta && !compacto && (
         <p id={avisoId} className="text-sm font-semibold text-amber-800">
           Toque num nome da lista para escolher.
         </p>

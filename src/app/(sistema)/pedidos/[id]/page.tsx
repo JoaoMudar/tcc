@@ -149,6 +149,7 @@ export default async function PedidoPage({ params, searchParams }: PedidoPagePro
               id: item.id,
               especie: item.especie,
               recipiente: item.recipiente,
+              alturaM: item.alturaM,
               quantidade: item.quantidade,
               precoCentavos: item.precoCentavos,
               itemPaiId: item.itemPaiId,
@@ -185,7 +186,12 @@ export default async function PedidoPage({ params, searchParams }: PedidoPagePro
                   <li key={item.id} className="flex flex-col gap-1">
                     <span className="text-base font-semibold text-ink">{item.especie}</span>
                     <span className="text-sm text-muted">{item.recipiente}</span>
-                    <ItemDoPedido pedidoId={pedido.id} itemId={item.id} quantidade={item.quantidade} />
+                    <ItemDoPedido
+                      pedidoId={pedido.id}
+                      itemId={item.id}
+                      quantidade={item.quantidade}
+                      alturaM={item.alturaM}
+                    />
                   </li>
                 ))}
               </ul>

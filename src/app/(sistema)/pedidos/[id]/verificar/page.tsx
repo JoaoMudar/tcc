@@ -103,6 +103,7 @@ export default async function VerificarPage({ params }: VerificarPageProps) {
                 especie: item.especie ?? '',
                 recipiente: item.recipiente,
                 recipienteId: item.recipienteId,
+                alturaM: item.alturaM,
                 quantidade: item.quantidade,
                 disponivel: item.disponivel,
                 quantidadeDisponivel: item.quantidadeDisponivel,

@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   type EspecieParaColagem,
   casaEspecie,
+  casaRecipiente,
   coeficienteDice,
   montaLinhasColadas,
+  parseColagemTabular,
   parseLinhasPedido,
 } from '../pedidos-colagem';
 
@@ -152,5 +154,51 @@ describe('montaLinhasColadas', () => {
     expect(linhas).toHaveLength(2);
     expect(linhas[0]).toMatchObject({ quantidade: 500, casamento: { situacao: 'exata', especieId: 'ipe' } });
     expect(linhas[1]).toMatchObject({ quantidade: 150, casamento: { situacao: 'nenhuma' } });
+  });
+});
+
+
+describe('colagem vinda de planilha (T8.16)', () => {
+  const RECIPIENTES = [
+    { id: 'tub', nome: 'Tubete · 0,05 L' },
+    { id: 's1722', nome: 'Saco 17x22 · 3 L' },
+    { id: 's2026', nome: 'Saco 20x26 · 6 L' },
+  ];
+
+  it('separa as células pela tabulação, uma linha por item', () => {
+    expect(parseColagemTabular('Ipê\tTubete\t1,20\t500\nPitanga\tTubete\t\t100')).toEqual([
+      ['Ipê', 'Tubete', '1,20', '500'],
+      ['Pitanga', 'Tubete', '', '100'],
+    ]);
+  });
+
+  it('sem tabulação devolve nulo, porque aquilo é lista de conversa e não planilha', () => {
+    expect(parseColagemTabular('Ipê amarelo 500\npitanga 100')).toBeNull();
+  });
+
+  it('ignora linha vazia e a quebra de linha do Windows', () => {
+    expect(parseColagemTabular('Ipê\t500\r\n\r\nPitanga\t100\r\n')).toEqual([
+      ['Ipê', '500'],
+      ['Pitanga', '100'],
+    ]);
+  });
+
+  it('linhas de tamanhos diferentes continuam sendo o que vieram', () => {
+    expect(parseColagemTabular('Ipê\tTubete\nPitanga\tTubete\t0,80\t100')).toEqual([
+      ['Ipê', 'Tubete'],
+      ['Pitanga', 'Tubete', '0,80', '100'],
+    ]);
+  });
+
+  it('o recipiente casa por igualdade e por nome contido, sem acento', () => {
+    expect(casaRecipiente('Tubete · 0,05 L', RECIPIENTES)).toBe('tub');
+    expect(casaRecipiente('17x22', RECIPIENTES)).toBe('s1722');
+  });
+
+  it('o que serve a mais de um recipiente não é escolhido por conta própria', () => {
+    // "Saco" está nos dois: chutar aqui separaria a muda no tamanho errado
+    expect(casaRecipiente('Saco', RECIPIENTES)).toBeNull();
+    expect(casaRecipiente('balde', RECIPIENTES)).toBeNull();
+    expect(casaRecipiente('   ', RECIPIENTES)).toBeNull();
   });
 });

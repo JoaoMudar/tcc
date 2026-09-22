@@ -1,10 +1,12 @@
 import { formatQuantidade } from '@/lib/lotes-rotulos';
-import { formatMoeda, formatTotal, totalItem, totalPedido } from '@/lib/pedidos-rotulos';
+import { formatAltura, formatMoeda, formatTotal, totalItem, totalPedido } from '@/lib/pedidos-rotulos';
 
 export interface ItemExibido {
   id: string;
   especie: string | null;
   recipiente: string;
+  /** Altura pedida, em metros. Nula é "o cliente não pediu altura". */
+  alturaM?: number | null;
   quantidade: number;
   precoCentavos: number | null;
   itemPaiId: string | null;
@@ -70,7 +72,13 @@ export function ItensDoPedido({ itens }: ItensDoPedidoProps) {
                   </span>
                 )}
               </span>
-              <span className="text-base text-muted">{item.recipiente}</span>
+              {/* A altura anda junto do recipiente, e não em coluna própria: as
+                  duas dizem o tamanho da muda, e uma coluna a mais estouraria os
+                  360px do celular */}
+              <span className="text-base text-muted">
+                {item.recipiente}
+                {item.alturaM ? <span className="block text-sm">{formatAltura(item.alturaM)}</span> : null}
+              </span>
               <span className="text-right text-base font-semibold text-ink">{formatQuantidade(item.quantidade)}</span>
               {comPreco && (
                 <span className="text-right text-base font-bold text-ink">

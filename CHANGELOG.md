@@ -3,6 +3,23 @@
 Uma entrada por migration nova, como pede o `CLAUDE.md`. As migrations até `20260901000008` são o
 schema inicial em português e estão descritas no `C8`.
 
+## 22/09/2026 · `20260922000002_pedido_item_altura.sql`
+
+- **O item do pedido passa a registrar a altura da muda pedida.** `pedidos_itens` ganha
+  `altura_m NUMERIC(4,2)`, opcional, com o CHECK `pedidos_itens_altura_positiva` aceitando de zero
+  exclusive até 20 metros.
+- O cliente não pede só espécie e recipiente: pede "ipê de 1,20". Até aqui a altura ia para a
+  observação do pedido, em texto solto, ou se perdia na conversa, e a conferência no pátio não
+  tinha como saber qual muda separar quando o mesmo par espécie e recipiente tem levas de tamanhos
+  diferentes.
+- **Em metros, porque é como o viveiro fala**: 0,80, 1,20. Dois decimais são precisão de sobra para
+  o que se mede com trena.
+- **Nula é "o cliente não pediu altura"**, que é o caso comum, já que o recipiente costuma
+  determinar o porte. O limite de 20 metros não é regra de negócio: é defesa contra a quantidade
+  digitada no campo errado.
+- O filho do item genérico herda a altura do pai, pela mesma razão que já herdava o preço.
+- Compatível: a coluna nasce nula, e todo item já gravado continua como estava.
+
 ## 22/09/2026 · `20260922000001_pedido_preco_apos_conferencia.sql`
 
 - **O preço do item passa a ser digitado depois da conferência.** `pedidos_itens.preco_unitario`

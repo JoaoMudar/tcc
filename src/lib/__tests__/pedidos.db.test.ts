@@ -175,6 +175,38 @@ describe('cadastro do pedido (T8.1, RF-54, RF-55)', () => {
     expect(chaves[0]).toContain('saco');
   });
 
+  it('a altura pedida vai e volta em metros, e nula é o caso comum', async () => {
+    const { id } = await novoPedido({
+      itens: [
+        { especieId: especie, recipienteId: tubete, quantidade: 10, precoCentavos: null, alturaM: 1.2 },
+        { especieId: especie, recipienteId: saco, quantidade: 20, precoCentavos: null },
+      ],
+    });
+    const lidos = await listItens(pool, id);
+    expect(lidos.find((item) => item.quantidade === 10)!.alturaM).toBe(1.2);
+    expect(lidos.find((item) => item.quantidade === 20)!.alturaM).toBeNull();
+  });
+
+  it('alterar o item muda a altura, e o campo apagado a torna nula de novo', async () => {
+    const { id } = await novoPedido({
+      itens: [{ especieId: especie, recipienteId: tubete, quantidade: 10, precoCentavos: null, alturaM: 1.2 }],
+    });
+    const [item] = await listItens(pool, id);
+
+    await tx((c) => atualizarItem(c, id, item.id, { quantidade: 10, alturaM: 0.8 }));
+    expect((await listItens(pool, id))[0].alturaM).toBe(0.8);
+
+    await tx((c) => atualizarItem(c, id, item.id, { quantidade: 10, alturaM: null }));
+    expect((await listItens(pool, id))[0].alturaM).toBeNull();
+  });
+
+  it('o banco recusa altura zerada e altura de árvore adulta', async () => {
+    const comAltura = (alturaM: number) =>
+      novoPedido({ itens: [{ especieId: especie, recipienteId: tubete, quantidade: 10, precoCentavos: null, alturaM }] });
+    await expect(comAltura(0)).rejects.toThrow(/altura_positiva/);
+    await expect(comAltura(25)).rejects.toThrow(/altura_positiva/);
+  });
+
   it('pedido sem item nenhum não gasta número', async () => {
     await expect(novoPedido({ itens: [] })).rejects.toThrow(/ao menos um item/i);
   });
@@ -188,7 +220,7 @@ describe('situação do pedido (T8.3, T8.6, RF-57)', () => {
     expect((await findPedido(pool, id))!.situacao).toBe('aprovado');
 
     const novo = { especieId: especie, recipienteId: tubete, quantidade: 10, precoCentavos: 100 };
-    await expect(tx((c) => atualizarItem(c, id, item.id, { quantidade: 999 }))).rejects.toThrow(
+    await expect(tx((c) => atualizarItem(c, id, item.id, { quantidade: 999, alturaM: null }))).rejects.toThrow(
       /não muda/i,
     );
     await expect(tx((c) => adicionarItem(c, id, novo))).rejects.toThrow(/não muda/i);
@@ -203,7 +235,7 @@ describe('situação do pedido (T8.3, T8.6, RF-57)', () => {
   it('o pedido cadastrado aceita alterar, acrescentar e remover', async () => {
     const { id } = await novoPedido();
     const item = (await listItens(pool, id)).find((i) => i.recipienteId === tubete && i.quantidade === 200)!;
-    await tx((c) => atualizarItem(c, id, item.id, { quantidade: 300 }));
+    await tx((c) => atualizarItem(c, id, item.id, { quantidade: 300, alturaM: null }));
     await tx((c) => adicionarItem(c, id, { especieId: especie, recipienteId: saco, quantidade: 5, precoCentavos: 1500 }));
     const depois = await listItens(pool, id);
     expect(depois).toHaveLength(4);
@@ -663,6 +695,7 @@ describe('item genérico (T8.10)', () => {
             precoCentavos: 200,
             generico: true,
             especificacao: '500 mudas nativas, no mínimo tubete',
+            alturaM: 1.2,
             especiesPermitidas,
           },
         ],
@@ -696,6 +729,15 @@ describe('item genérico (T8.10)', () => {
     // O filho herda o preço do pai, e o total do pedido não dobra
     expect(filhos.every((f) => f.precoCentavos === 200)).toBe(true);
     expect(totalPedido(itens)).toBe(500 * 200);
+  });
+
+  it('o filho herda a altura pedida no genérico: ela é parte do que foi combinado', async () => {
+    const { id, pai } = await comGenerico();
+    await tx((c) =>
+      definirComposicaoGenerico(c, id, pai.id, [{ especieId: especie, recipienteId: tubete, quantidade: 500 }], gerencia()),
+    );
+    const filho = (await listItens(pool, id)).find((item) => item.itemPaiId === pai.id)!;
+    expect(filho.alturaM).toBe(1.2);
   });
 
   it('a soma que não fecha é recusada, e nenhum filho é criado', async () => {

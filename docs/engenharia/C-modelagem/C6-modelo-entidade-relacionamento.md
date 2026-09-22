@@ -689,6 +689,7 @@ erDiagram
     uuid    especie_id FK
     uuid    recipiente_id FK
     int     quantidade
+    numeric altura_m
     numeric preco_unitario
     boolean disponivel
     int     quantidade_disponivel
@@ -754,6 +755,13 @@ venda nem de tabela de preços: `canal_venda` é enumeração em `pedidos`, porq
 lista fechada de cinco valores sem atributos próprios (RN-42), e o preço é o que foi acordado na
 conversa. **O atributo é opcional**, e o nulo é "ainda não precificado": o valor é informado depois
 da conferência, e a aprovação do pedido o exige.
+
+**`altura_m` é o tamanho da muda que o cliente pediu, em metros, e é opcional** (RF-54). O cliente
+não pede só a espécie e o recipiente: pede "ipê de 1,20". O atributo mora no item, e não na
+observação do pedido, porque é a conferência que precisa dele para saber qual muda separar quando o
+mesmo par espécie e recipiente tem levas de tamanhos diferentes. Nulo é "o cliente não pediu
+altura", que é o caso comum, já que o recipiente costuma determinar o porte. O filho do item
+genérico herda a altura do pai, pela mesma razão que herda o preço.
 
 **O saldo continua sem entidade, e a disponibilidade conferida tem colunas.** São duas coisas, e a
 distinção é o ponto. O saldo que o item exibe (RF-56) é calculado dos lotes prontos daquela espécie

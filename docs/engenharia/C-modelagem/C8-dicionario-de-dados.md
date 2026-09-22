@@ -940,6 +940,7 @@ histórico, e entraria só para poluir a ficha.
 | `especie_id` | uuid | ○ | FK → `especies` | Espécie. **Nula apenas no item genérico**, que é o pedido sem escolha de espécie |
 | `recipiente_id` | uuid | ● | FK → `recipientes` | Recipiente solicitado. No genérico, o recipiente mínimo aceito |
 | `quantidade` | integer | ● | | Quantidade pedida. Restrição: maior que zero |
+| `altura_m` | numeric(4,2) | ○ | | Altura da muda pedida, em metros (RF-54). Nula é "o cliente não pediu altura". Restrição: maior que zero e até 20 |
 | `preco_unitario` | numeric(10,2) | ○ | | **Preço unitário informado por quem registra, depois da conferência** (RF-55, RN-50). Nulo é "ainda não precificado". Restrição: maior que zero quando existe |
 | `disponivel` | boolean | ○ | | O que a conferência respondeu. **Nulo é "ninguém conferiu ainda"** (RF-59) |
 | `quantidade_disponivel` | integer | ○ | | Quantas existem, quando `disponivel` é falso. Zero significa indisponível (RN-54) |
@@ -949,7 +950,8 @@ histórico, e entraria só para poluir a ficha.
 | `item_pai_id` | uuid | ○ | FK → `pedidos_itens` | Item genérico que este filho compõe. Nulo no item de topo |
 | `especificacao` | text | ○ | | O que o cliente pediu, em texto. Só no item genérico |
 
-**Restrições:** item genérico não tem espécie, e item não genérico tem; item genérico não tem pai, o
+**Restrições:** a altura, quando existe, vai de zero exclusive até 20 metros; item genérico não tem
+espécie, e item não genérico tem; item genérico não tem pai, o
 que mantém a composição em um nível só; `quantidade_disponivel` vai de zero até `quantidade` menos
 um, e só existe quando `disponivel` é falso; `recipiente_disponivel_id` só existe com
 `quantidade_disponivel` maior que zero.
@@ -968,6 +970,13 @@ um, e só existe quando `disponivel` é falso; `recipiente_disponivel_id` só ex
 > valor. Enquanto faltar preço em algum item, o total do pedido também não existe: uma soma parcial
 > anunciaria uma venda menor que a verdadeira, e é justamente esse número que a chefia olha para
 > aprovar.
+
+> **A altura é parte do que foi combinado, e por isso mora no item.** O cliente não pede só a
+> espécie e o recipiente: pede "ipê de 1,20". Guardá-la aqui, e não na observação do pedido, é o que
+> permite a conferência saber qual muda separar quando o mesmo par espécie e recipiente tem levas de
+> tamanhos diferentes. Ela é opcional porque o recipiente já determina o porte na maior parte das
+> vendas, e o limite de 20 metros não é regra de negócio: é defesa contra a quantidade digitada no
+> campo errado. O filho do item genérico herda a altura do pai, pela mesma razão que herda o preço.
 
 > **A disponibilidade conferida não é o saldo, e a distinção é o ponto.** O saldo que a tela exibe
 > ao lado do item (RF-56) continua somado dos lotes prontos a cada consulta, e guardá-lo aqui

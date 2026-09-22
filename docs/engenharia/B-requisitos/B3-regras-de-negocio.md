@@ -469,7 +469,7 @@ não dependa de abrir outro arquivo. **Não editar aqui**: a fonte é o `B2`.
 | RF-51 | O sistema deve apresentar, no lote, as etapas do protocolo com a data da última execução, o próximo vencimento e a situação de cada uma | D | EN |
 | RF-52 | O sistema deve apresentar a etapa em atenção dentro da janela de aviso e em atraso depois do vencimento, e sem indicação de situação quando o alerta da etapa estiver desligado | D | OP |
 | RF-53 | O sistema deve encerrar o protocolo do lote quando ele se encerra por saldo zero, por expedição total ou por divisão, deixando de sugerir etapas dele e cancelando as tarefas ainda não confirmadas sem removê-las | D | ORG |
-| RF-54 | O sistema deve permitir registrar pedido com cliente, canal de venda e itens compostos por espécie, recipiente e quantidade, montando os itens um a um ou a partir da lista de texto que o cliente enviou, sempre com revisão de quem registra | D | OP |
+| RF-54 | O sistema deve permitir registrar pedido com cliente, canal de venda e itens compostos por espécie, recipiente, quantidade e altura opcional, montando os itens um a um ou a partir da lista de texto que o cliente enviou, sempre com revisão de quem registra | D | OP |
 | RF-55 | O sistema deve registrar o preço unitário informado em cada item do pedido depois da conferência de disponibilidade, e apresentar o total do item e o do pedido | D | EN |
 | RF-56 | O sistema deve apresentar, ao lado de cada item do pedido, a quantidade de muda pronta que a produção tem daquela espécie e recipiente | D | OP |
 | RF-57 | O sistema deve controlar a situação do pedido ao longo das oito situações que vão do cadastro ao pronto para envio, impedindo alteração de item depois da aprovação | D | ORG |

@@ -104,6 +104,7 @@ export default async function SepararPage({ params }: SepararPageProps) {
                 id: item.id,
                 especie: item.especie,
                 recipiente: item.recipiente,
+                alturaM: item.alturaM,
                 quantidade: item.quantidade,
                 separado: item.separado,
               })),
