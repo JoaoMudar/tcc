@@ -25,8 +25,13 @@ interface GradeItensProps {
   onColarLista: () => void;
 }
 
-/** Os trilhos da planilha, repetidos no cabeçalho e em cada linha. */
-const TRILHOS = 'grid grid-cols-[minmax(0,1fr)_11rem_6rem_7rem_3rem] items-start gap-x-2';
+function IconeLixeira() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+      <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
 function rotulo(opcoes: readonly SelectOption[], valor: string): string | null {
   return opcoes.find((opcao) => opcao.value === valor)?.label ?? null;
@@ -39,6 +44,9 @@ function rotulo(opcoes: readonly SelectOption[], valor: string): string | null {
  * **Os campos do formulário não são os que aparecem.** São os escondidos, um
  * bloco por linha, porque os dois desenhos convivem na mesma página e campos
  * com nome nos dois dobrariam as listas paralelas que o servidor lê.
+ *
+ * **A planilha só aparece de `lg` para cima**: com o menu lateral, a tela `md`
+ * deixa menos de 500px para cinco colunas, e a espécie sumia espremida.
  *
  * **No celular não se edita na lista** (RNF-03): cinco colunas em 360px seriam
  * alvos de toque menores que o dedo. A lista mostra o pedido, e tocar num item
@@ -94,37 +102,56 @@ export function GradeItens({
         </div>
       ))}
 
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center gap-3">
         <h2 className="text-sm font-bold tracking-widest text-muted uppercase">Itens</h2>
-        <Button variant="outline" className="w-auto" onClick={onColarLista}>
+        <Button variant="outline" className="h-9 min-h-0! w-auto! shrink-0 px-3! text-sm!" onClick={onColarLista}>
           📋 Colar lista
         </Button>
       </div>
 
-      {/* Planilha: tela larga */}
-      <div className="hidden overflow-hidden rounded-xl border border-line bg-white md:block" onPaste={aoColar}>
-        <div className={`${TRILHOS} border-b border-line px-3 py-2 text-xs font-bold tracking-wide text-muted uppercase`}>
-          <span>Espécie</span>
-          <span>Recipiente</span>
-          <span>Altura</span>
-          <span>Quantidade</span>
-          <span className="sr-only">Excluir</span>
-        </div>
-
-        <ul className="flex flex-col divide-y divide-line">
-          {linhas.map((linha, indice) => {
-            const { saldo, pronto, quantidade, falta } = saldoDa(linha);
-            return (
-              <li key={linha.chave} className="px-3 py-2">
-                <div className={TRILHOS}>
+      {/* Planilha: tela larga. Sem `overflow-hidden` no contorno, porque a lista
+          de opções da célula precisa passar por cima da borda de baixo */}
+      <div className="hidden rounded-xl border border-line bg-white lg:block" onPaste={aoColar}>
+        <table className="w-full table-fixed border-collapse text-base">
+          <colgroup>
+            <col />
+            <col className="w-48" />
+            <col className="w-28" />
+            <col className="w-32" />
+            <col className="w-12" />
+          </colgroup>
+          <thead>
+            <tr className="bg-surface text-left text-xs font-bold tracking-wide text-muted uppercase">
+              <th scope="col" className="rounded-tl-xl px-3 py-2">
+                Espécie
+              </th>
+              <th scope="col" className="border-l border-line px-3 py-2">
+                Recipiente
+              </th>
+              <th scope="col" className="border-l border-line px-3 py-2">
+                Altura (m)
+              </th>
+              <th scope="col" className="border-l border-line px-3 py-2 text-right">
+                Quantidade
+              </th>
+              <th scope="col" className="rounded-tr-xl border-l border-line">
+                <span className="sr-only">Excluir</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {linhas.map((linha, indice) => {
+              const { saldo, pronto, quantidade, falta } = saldoDa(linha);
+              return (
+                <tr key={linha.chave} className="border-t border-line align-top">
                   {/* O foco marca em que célula a colagem começa, e o `onFocus`
-                      do contêiner vale para o campo de dentro, qualquer que ele seja */}
-                  <div className="min-w-0" onFocus={() => setFoco({ linha: indice, coluna: 0 })}>
+                      da célula vale para o campo de dentro, qualquer que ele seja */}
+                  <td className="p-0" onFocus={() => setFoco({ linha: indice, coluna: 0 })}>
                     {linha.generico ? (
                       <button
                         type="button"
                         onClick={() => onAlterar(linha.chave, 'generico', false)}
-                        className="min-h-touch rounded-lg px-1 text-left text-base font-semibold text-blue-900 underline"
+                        className="h-11 w-full px-3 text-left font-semibold text-blue-900 underline"
                       >
                         Espécie a definir na conferência
                       </button>
@@ -135,73 +162,80 @@ export function GradeItens({
                         options={opcoesEspecie}
                         value={linha.especieId}
                         onChange={(valor) => onAlterar(linha.chave, 'especieId', valor)}
-                        placeholder="Procurar…"
+                        placeholder="Digite o nome…"
                       />
                     )}
-                  </div>
-                  <div className="min-w-0" onFocus={() => setFoco({ linha: indice, coluna: 1 })}>
+                    {/* RF-56: o saldo não é coluna, é a linha miúda embaixo da espécie */}
+                    {linha.especieId && linha.recipienteId && (
+                      <p className={`px-3 pb-1.5 text-xs ${falta ? 'font-semibold text-amber-800' : 'text-muted'}`}>
+                        Pronto: {formatQuantidade(pronto)}
+                        {saldo && saldo.producao > 0 && ` · ${formatQuantidade(saldo.producao)} em produção`}
+                        {falta && quantidade !== null && ` · faltam ${formatQuantidade(quantidade - pronto)}`}
+                      </p>
+                    )}
+                  </td>
+                  <td className="border-l border-line p-0" onFocus={() => setFoco({ linha: indice, coluna: 1 })}>
                     <ComboboxField
                       label={`Recipiente do item ${indice + 1}`}
                       compacto
                       options={recipientes}
                       value={linha.recipienteId}
                       onChange={(valor) => onAlterar(linha.chave, 'recipienteId', valor)}
-                      placeholder="Procurar…"
+                      placeholder="Escolha…"
                     />
-                  </div>
-                  <TextField
-                    label={`Altura do item ${indice + 1}, em metros`}
-                    compacto
-                    inputMode="decimal"
-                    autoComplete="off"
-                    placeholder="1,20"
-                    value={linha.altura}
-                    onFocus={() => setFoco({ linha: indice, coluna: 2 })}
-                    onChange={(evento) => onAlterar(linha.chave, 'altura', evento.target.value)}
-                  />
-                  <TextField
-                    label={`Quantidade do item ${indice + 1}`}
-                    compacto
-                    inputMode="numeric"
-                    autoComplete="off"
-                    value={linha.quantidade}
-                    onFocus={() => setFoco({ linha: indice, coluna: 3 })}
-                    onChange={(evento) => onAlterar(linha.chave, 'quantidade', evento.target.value)}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => onRemover(linha.chave)}
-                    aria-label={`Excluir o item ${indice + 1}`}
-                    className="min-h-touch rounded-lg text-xl text-muted active:bg-gray-100"
-                  >
-                    🗑
-                  </button>
-                </div>
-
-                {/* RF-56: o saldo não é coluna, é o aviso que aparece quando falta muda */}
-                {linha.especieId && linha.recipienteId && (
-                  <p className={`mt-1 text-sm ${falta ? 'text-amber-800' : 'text-muted'}`}>
-                    Pronto para venda: <strong>{formatQuantidade(pronto)}</strong>
-                    {saldo && saldo.producao > 0 && ` · ${formatQuantidade(saldo.producao)} em produção, ainda não pronta`}
-                    {falta && quantidade !== null && ` · faltam ${formatQuantidade(quantidade - pronto)}`}
-                  </p>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+                  </td>
+                  <td className="border-l border-line p-0">
+                    <TextField
+                      label={`Altura do item ${indice + 1}, em metros`}
+                      compacto
+                      inputMode="decimal"
+                      autoComplete="off"
+                      placeholder="opcional"
+                      value={linha.altura}
+                      onFocus={() => setFoco({ linha: indice, coluna: 2 })}
+                      onChange={(evento) => onAlterar(linha.chave, 'altura', evento.target.value)}
+                    />
+                  </td>
+                  <td className="border-l border-line p-0">
+                    <TextField
+                      label={`Quantidade do item ${indice + 1}`}
+                      compacto
+                      className="[&_input]:text-right"
+                      inputMode="numeric"
+                      autoComplete="off"
+                      value={linha.quantidade}
+                      onFocus={() => setFoco({ linha: indice, coluna: 3 })}
+                      onChange={(evento) => onAlterar(linha.chave, 'quantidade', evento.target.value)}
+                    />
+                  </td>
+                  <td className="border-l border-line p-0">
+                    <button
+                      type="button"
+                      onClick={() => onRemover(linha.chave)}
+                      aria-label={`Excluir o item ${indice + 1}`}
+                      title="Excluir linha"
+                      className="flex h-11 w-full items-center justify-center text-muted hover:bg-red-50 hover:text-red-700"
+                    >
+                      <IconeLixeira />
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
 
         <button
           type="button"
           onClick={() => onAdicionar(false)}
-          className="min-h-touch w-full border-t border-line px-3 text-left text-base font-bold text-brand active:bg-brand-light"
+          className="h-11 w-full rounded-b-xl border-t border-line px-3 text-left text-base font-bold text-brand hover:bg-brand-light"
         >
           + Adicionar linha
         </button>
       </div>
 
       {/* Lista: celular */}
-      <div className="overflow-hidden rounded-xl border border-line bg-white md:hidden">
+      <div className="overflow-hidden rounded-xl border border-line bg-white lg:hidden">
         <ul className="flex flex-col divide-y divide-line">
           {linhas.map((linha, indice) => {
             const { falta, quantidade } = saldoDa(linha);

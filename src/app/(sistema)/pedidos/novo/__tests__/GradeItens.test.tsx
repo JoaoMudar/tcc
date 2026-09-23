@@ -38,9 +38,8 @@ function enviados(container: HTMLElement, nome: string): string[] {
 describe('planilha de itens do pedido (T8.1, RF-54)', () => {
   it('as colunas saem na ordem em que se lê um pedido', () => {
     montar([preenchida()]);
-    const cabecalho = ['Espécie', 'Recipiente', 'Altura', 'Quantidade'];
-    const textos = cabecalho.map((titulo) => screen.getByText(titulo, { selector: 'span' }).textContent);
-    expect(textos).toEqual(cabecalho);
+    const textos = screen.getAllByRole('columnheader').map((th) => th.textContent);
+    expect(textos).toEqual(['Espécie', 'Recipiente', 'Altura (m)', 'Quantidade', 'Excluir']);
   });
 
   it('cada linha manda um campo escondido de cada, e não um por desenho de tela', () => {

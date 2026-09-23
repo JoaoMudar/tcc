@@ -8,6 +8,7 @@ import { listClientes } from '@/lib/pedidos';
 import { chaveSaldo } from '@/lib/pedidos-rotulos';
 import { formatVolume, listRecipientes } from '@/lib/recipientes';
 import { requirePageAccess } from '@/lib/auth/guards';
+import { can } from '@/lib/permissions';
 import { NovoPedidoForm, type SaldosPorChave } from './NovoPedidoForm';
 
 /**
@@ -16,7 +17,7 @@ import { NovoPedidoForm, type SaldosPorChave } from './NovoPedidoForm';
  * lugar nenhum.
  */
 export default async function NovoPedidoPage() {
-  await requirePageAccess('pedidos', 'C');
+  const user = await requirePageAccess('pedidos', 'C');
   const [clientes, especies, recipientes, prontos, producao] = await Promise.all([
     listClientes(pool),
     searchEspecies(pool),
@@ -39,7 +40,7 @@ export default async function NovoPedidoPage() {
   return (
     <main>
       <PageHeader area="3 · Comercial" title="Novo pedido" />
-      <div className="mx-auto flex max-w-xl flex-col gap-4 p-4 md:p-8">
+      <div className="mx-auto flex max-w-xl flex-col gap-4 p-4 md:p-8 lg:max-w-4xl">
         <Link href="/pedidos" className="text-base font-semibold text-brand-dark">
           Voltar
         </Link>
@@ -70,6 +71,7 @@ export default async function NovoPedidoPage() {
                 label: r.volumeLitros === null ? r.nome : `${r.nome} · ${formatVolume(r.volumeLitros)}`,
               }))}
             saldos={saldos}
+            verFiscal={can(user.perfil, 'dados_fiscais', 'C')}
           />
         )}
       </div>

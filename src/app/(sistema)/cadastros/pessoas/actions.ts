@@ -34,9 +34,18 @@ export async function savePessoaAction(_previous: PessoaFormState, formData: For
   if (id && !isUuid(id)) return { error: 'Pessoa inválida.' };
 
   const fields = textFields(formData);
+  // Cadastro aberto de dentro do pedido (UC-31 FA-1): volta com o cliente em vez de ir para a ficha
+  const paraPedido = !id && formData.get('para_pedido') === '1';
+  const usarId = formText(formData, 'usar_pessoa_id');
+  if (paraPedido && usarId) return usarComoCliente(usarId, fields);
+
   const get = (name: string) => fields[name] ?? '';
   const parsed = pessoas.parsePessoaFields(get);
   if ('error' in parsed) return { error: parsed.error, fields };
+  if (paraPedido) {
+    if (!parsed.value.telefone) return { error: 'Informe o telefone do cliente.', fields };
+    if (!parsed.value.papeis.some((p) => p.papel === 'cliente')) parsed.value.papeis.push({ papel: 'cliente', tipoVinculo: null });
+  }
   const fiscal = incluiFiscal ? pessoas.parseFiscalFields(parsed.value.tipo, get) : null;
   if (fiscal && 'error' in fiscal) return { error: fiscal.error, fields };
 
@@ -62,6 +71,7 @@ export async function savePessoaAction(_previous: PessoaFormState, formData: For
   }
 
   revalidatePath('/cadastros/pessoas');
+  if (paraPedido) return { success: `Cliente ${parsed.value.nome} cadastrado.`, cliente: { id: pessoaId, nome: parsed.value.nome } };
   if (!id) redirect(`/cadastros/pessoas/${pessoaId}?salvo=1`);
   revalidatePath(`/cadastros/pessoas/${id}`);
   return { success: 'Cadastro salvo.' };
@@ -76,17 +86,7 @@ export async function createClienteRapido(_previous: ClienteRapidoState, formDat
   const fields = { nome: formText(formData, 'nome'), telefone: formText(formData, 'telefone') };
 
   const usarId = formText(formData, 'usar_pessoa_id');
-  if (usarId) {
-    if (!isUuid(usarId)) return { error: 'Pessoa inválida.', fields };
-    try {
-      const nome = await pessoas.addPapel(pool, usarId, 'cliente');
-      if (!nome) return { error: 'Pessoa não encontrada.', fields };
-      revalidatePath('/cadastros/pessoas');
-      return { success: `${nome} agora também é cliente.`, cliente: { id: usarId, nome } };
-    } catch (error) {
-      return { error: toUserMessage(error), fields };
-    }
-  }
+  if (usarId) return usarComoCliente(usarId, fields);
 
   const nome = fields.nome.trim().replace(/\s+/g, ' ');
   if (nome.length < 2 || nome.length > 120) return { error: 'O nome precisa ter de 2 a 120 caracteres.', fields };
@@ -104,6 +104,19 @@ export async function createClienteRapido(_previous: ClienteRapidoState, formDat
     );
     revalidatePath('/cadastros/pessoas');
     return { success: `Cliente ${nome} cadastrado.`, cliente: { id, nome } };
+  } catch (error) {
+    return { error: toUserMessage(error), fields };
+  }
+}
+
+/** "Sim, é a mesma pessoa": o cadastro que já existe ganha o papel de cliente (RF-14). */
+async function usarComoCliente(pessoaId: string, fields: Record<string, string>): Promise<ClienteRapidoState> {
+  if (!isUuid(pessoaId)) return { error: 'Pessoa inválida.', fields };
+  try {
+    const nome = await pessoas.addPapel(pool, pessoaId, 'cliente');
+    if (!nome) return { error: 'Pessoa não encontrada.', fields };
+    revalidatePath('/cadastros/pessoas');
+    return { success: `${nome} agora também é cliente.`, cliente: { id: pessoaId, nome } };
   } catch (error) {
     return { error: toUserMessage(error), fields };
   }

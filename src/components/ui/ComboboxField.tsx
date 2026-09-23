@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { filtraOpcoes } from '@/lib/busca-opcoes';
 import type { SelectOption } from './SelectField';
 
@@ -26,6 +26,12 @@ interface ComboboxFieldProps {
    * empurrá-las para baixo.
    */
   compacto?: boolean;
+  /**
+   * Obrigatório na validação do navegador. Vai no campo visível, porque o
+   * escondido não é validado: sem isto o envio vazio só é barrado no servidor,
+   * e o campo não fica marcado junto com os outros que faltam.
+   */
+  required?: boolean;
 }
 
 /**
@@ -47,6 +53,7 @@ export function ComboboxField({
   hint,
   error,
   compacto = false,
+  required = false,
 }: ComboboxFieldProps) {
   const id = useId();
   const hintId = hint ? `${id}-dica` : undefined;
@@ -68,6 +75,13 @@ export function ComboboxField({
   const escondidas = encontradas.length - visiveis.length;
   const digitouSemEscolher = busca.trim() !== '' && !escolhida;
 
+  // Texto digitado sem tocar na lista enche o campo visível, mas não é escolha:
+  // para o navegador barrar o envio, o campo precisa se declarar inválido
+  const campoRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    campoRef.current?.setCustomValidity(required && digitouSemEscolher ? 'Toque num nome da lista para escolher.' : '');
+  }, [required, digitouSemEscolher]);
+
   function escolher(opcao: SelectOption) {
     setValorVisto(opcao.value);
     setBusca(opcao.label);
@@ -87,7 +101,7 @@ export function ComboboxField({
 
   return (
     <div
-      className={`flex flex-col gap-1 ${compacto ? 'relative' : ''}`}
+      className={compacto ? 'relative' : 'flex flex-col gap-1'}
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget)) setAberta(false);
       }}
@@ -97,8 +111,10 @@ export function ComboboxField({
       </label>
       {name && <input type="hidden" name={name} value={value} />}
       <input
+        ref={campoRef}
         id={id}
         type="text"
+        required={required}
         autoComplete="off"
         placeholder={placeholder}
         value={busca}
@@ -106,17 +122,22 @@ export function ComboboxField({
         onFocus={() => setAberta(true)}
         aria-invalid={error ? true : undefined}
         aria-describedby={[hintId, errorId, digitouSemEscolher ? avisoId : null].filter(Boolean).join(' ') || undefined}
-        className={`min-h-touch w-full rounded-lg border-[1.5px] bg-white px-3 text-base text-ink placeholder:text-gray-400 focus:border-brand-dark focus:outline-none aria-invalid:border-red-600 ${
-          // Na célula não cabe a frase de aviso, então a borda é que avisa que
-          // o texto digitado ainda não virou escolha
-          compacto && digitouSemEscolher ? 'border-amber-600' : 'border-gray-300'
-        }`}
+        className={
+          compacto
+            ? // Célula de planilha: sem moldura de formulário, a grade da tabela é
+              // a borda. O texto digitado que ainda não virou escolha fica em
+              // âmbar, porque na célula não cabe a frase de aviso
+              `h-11 w-full bg-transparent px-3 text-base placeholder:text-gray-400 focus:bg-white focus:outline-2 focus:-outline-offset-2 focus:outline-brand ${
+                digitouSemEscolher ? 'text-amber-800' : 'text-ink'
+              }`
+            : 'min-h-touch w-full rounded-lg border-[1.5px] border-gray-300 bg-white px-3 text-base text-ink placeholder:text-gray-400 focus:border-brand-dark focus:outline-none aria-invalid:border-red-600'
+        }
       />
 
       {aberta && (
         <ul
           className={`flex max-h-72 flex-col divide-y divide-line overflow-y-auto rounded-lg border-[1.5px] border-gray-300 bg-white ${
-            compacto ? 'absolute top-full right-0 left-0 z-20 shadow-lg' : ''
+            compacto ? 'absolute top-full left-0 z-30 w-max max-w-sm min-w-full shadow-lg' : ''
           }`}
         >
           {visiveis.length === 0 ? (
@@ -143,7 +164,6 @@ export function ComboboxField({
         </ul>
       )}
 
-      {escolhida && !aberta && !compacto && <p className="text-sm text-muted">Escolhido: {escolhida.label}</p>}
       {digitouSemEscolher && !aberta && !compacto && (
         <p id={avisoId} className="text-sm font-semibold text-amber-800">
           Toque num nome da lista para escolher.
