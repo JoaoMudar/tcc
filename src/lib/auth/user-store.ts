@@ -59,14 +59,6 @@ export async function resetFailures(db: Db, usuarioId: string): Promise<void> {
   );
 }
 
-export async function findPasswordHash(db: Db, usuarioId: string): Promise<string | null> {
-  const { rows } = await db.query<{ senhaHash: string }>(
-    'SELECT senha_hash AS "senhaHash" FROM usuarios WHERE id = $1',
-    [usuarioId],
-  );
-  return rows[0]?.senhaHash ?? null;
-}
-
 /** Grava a senha nova e zera o bloqueio. `deveTrocar` é true quando o admin define a provisória. */
 export async function updatePassword(db: Db, usuarioId: string, senhaHash: string, deveTrocar: boolean): Promise<void> {
   await db.query(

@@ -11,12 +11,12 @@ Esta rodada faz duas coisas: confere se as sete correções da primeira auditori
 |---|---|---|
 | Crítica | 0 | 0 |
 | Alta | 0 | 0 |
-| Média | 5 | 4 |
-| Baixa | 6 | 3 |
+| Média | 5 | 5 |
+| Baixa | 6 | 6 |
 
-Os corrigidos são os sete da primeira rodada (SEC-001 a SEC-007), todos conferidos no código e nos testes. Os quatro pendentes (SEC-008 a SEC-011) são novos, e três deles são o que sobrou de correções anteriores.
+Os sete da primeira rodada (SEC-001 a SEC-007) foram conferidos no código e nos testes. Os quatro novos (SEC-008 a SEC-011) foram corrigidos em 23/09/2026, na mesma branch; SEC-008 depende ainda de a VPS seguir o D3 §6.1.
 
-**Veredito:** pode ir para produção **na Vercel** como está. Em **VPS**, só depois de SEC-008: ali o IP do cliente é forjável, e isso anula o limite de login por origem e permite trancar o escritório inteiro para fora do sistema.
+**Veredito:** pode ir para produção na Vercel. Em **VPS**, desde que publicada atrás do nginx descrito em `docs/engenharia/D-arquitetura/D3-diagrama-implantacao.md` §6.1 (SEC-008).
 
 **Top 3 ações imediatas:**
 1. Em VPS, nunca expor o `next start` direto: nginx na frente reescrevendo `X-Forwarded-For`, e o Next ouvindo só em `127.0.0.1` (SEC-008).
@@ -75,7 +75,7 @@ location / {
 ```
   2. Registrar isso no documento de implantação (hoje nenhum arquivo de `docs/` fala de proxy), incluindo que, se houver CDN na frente, o nginx precisa usar `real_ip_header` com a lista de IPs da CDN, e não `$remote_addr`.
 - **Como verificar:** na VPS, `curl -s -H 'X-Forwarded-For: 1.2.3.4' -d ... https://<host>/login` seguido de `SELECT ip FROM eventos_login ORDER BY criado_em DESC LIMIT 1;` devolve o IP real da máquina que fez o `curl`, e não `1.2.3.4`. De fora, `curl http://<host>:3000` não conecta.
-- **Status:** Pendente
+- **Status:** Corrigido no repositório: `npm start` ouve só em `127.0.0.1` (`package.json`), e o proxy está documentado no D3 §6.1. Na VPS, conferir com o `curl` acima ao publicar.
 
 ### [SEC-009] Rajada simultânea de logins passa inteira pelo limite por origem, BAIXA · Confirmado
 - **Categoria:** A06 Insecure Design, A07 Authentication Failures · **CWE:** CWE-367, CWE-400
@@ -123,7 +123,7 @@ export async function comVagaDeVerificacao<T>(verificar: () => Promise<T>): Prom
 ```
   Com nove pessoas usando o sistema, oito verificações simultâneas nunca faltam para quem entra de verdade.
 - **Como verificar:** teste em `src/lib/auth/__tests__/password.test.ts` que abre 9 chamadas de `comVagaDeVerificacao` com uma promessa que não resolve e confirma que a nona devolve `null`, e que a vaga volta depois que uma termina, inclusive quando ela lança erro.
-- **Status:** Pendente
+- **Status:** Corrigido: `comVagaDeVerificacao` em `src/lib/auth/password.ts`, usada no login (`login.ts`) e na troca de senha; testes em `password.test.ts` e `login.test.ts`.
 
 ### [SEC-010] `sslmode=disable` na URL desfaz o TLS obrigatório de SEC-002, BAIXA · Suspeito
 - **Categoria:** A04 Cryptographic Failures · **CWE:** CWE-319, CWE-295
@@ -152,7 +152,7 @@ export async function comVagaDeVerificacao<T>(verificar: () => Promise<T>): Prom
 +  }
 ```
 - **Como verificar:** casos em `src/lib/__tests__/db-pool.test.ts` com `postgresql://u:p@db.exemplo.com/v?sslmode=disable` e `?sslmode=no-verify` esperando o erro, e `localhost` com `sslmode=disable` sendo aceito.
-- **Status:** Pendente
+- **Status:** Corrigido: `desligaTls` em `src/lib/db-pool.ts` recusa também `sslmode=prefer`, e vale para o Neon; testes em `db-pool.test.ts`.
 
 ### [SEC-011] Troca de senha testa a senha atual sem limite de tentativas, BAIXA · Confirmado
 - **Categoria:** A07 Authentication Failures · **CWE:** CWE-307
@@ -198,7 +198,7 @@ export async function comVagaDeVerificacao<T>(verificar: () => Promise<T>): Prom
 ```
   (`let bloqueado = false;` declarado antes do `try`; o `redirect` fica fora dele porque lança de propósito, como em `login/actions.ts`.)
 - **Como verificar:** teste em `src/app/trocar-senha/__tests__/actions.test.ts`, com o banco mockado, que envia cinco senhas atuais erradas e espera `saveFailure` com `bloqueadoAte` na quinta, `endCurrentSession` chamado e o redirecionamento para `/login`.
-- **Status:** Pendente
+- **Status:** Corrigido: `src/app/trocar-senha/actions.ts`, testes em `src/app/trocar-senha/__tests__/actions.test.ts`. `findPasswordHash` saiu de `user-store.ts`, sem outro uso.
 
 ## 4. Achados da primeira rodada, conferidos
 

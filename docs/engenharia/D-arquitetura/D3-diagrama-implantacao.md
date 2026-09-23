@@ -137,3 +137,32 @@ adia registros, e o registro adiado é recuperado pela fila local do dispositivo
 | Aplicação → banco | Conexão cifrada; credencial mantida exclusivamente no servidor, nunca entregue ao navegador (RNF-11) |
 | Aplicação → serviços externos | Sem credencial de terceiro embarcada no cliente; a mensageria é acionada por ação do usuário, não pelo servidor |
 | Repositório | Credenciais e dados sensíveis jamais versionados, com verificação automática que bloqueia o envio (RNF-19) |
+
+### 6.1 Publicação em servidor próprio
+
+A plataforma de nuvem reescreve o cabeçalho que informa o endereço de origem de cada requisição, e
+é esse endereço que limita as tentativas de entrada por aparelho e que fica no registro de acesso.
+Se a aplicação for publicada num servidor próprio, **o servidor de aplicação nunca recebe a conexão
+direto da internet**. Sem um intermediário que reescreva o cabeçalho, quem faz a requisição escreve
+nele o endereço que quiser, escapa do limite por origem e ainda pode bloquear a entrada de todos que
+usam a mesma rede de quem trabalha no escritório.
+
+Por isso o comando de produção abre a aplicação só na própria máquina (`next start -H 127.0.0.1`), e
+um proxy reverso recebe as conexões de fora. O proxy substitui o cabeçalho em vez de acrescentar ao
+que o cliente mandou:
+
+```nginx
+location / {
+  proxy_pass http://127.0.0.1:3000;
+  # Reescreve, não acrescenta: o que o cliente mandou é descartado
+  proxy_set_header X-Forwarded-For $remote_addr;
+  proxy_set_header X-Real-IP $remote_addr;
+  proxy_set_header Host $host;
+}
+```
+
+Com uma rede de distribuição de conteúdo na frente do proxy, `$remote_addr` passa a ser o endereço
+da rede de distribuição, e todas as pessoas parecem vir da mesma origem. Nesse caso o proxy usa
+`real_ip_header` com a lista de endereços publicada pela rede de distribuição, e só confia no
+cabeçalho quando a conexão vem de um deles. Para conferir a publicação, uma requisição feita de
+outra máquina direto à porta 3000 não deve conectar.
