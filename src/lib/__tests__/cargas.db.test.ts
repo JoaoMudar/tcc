@@ -180,7 +180,7 @@ describe('organizar em cargas (T8.13)', () => {
 
   it('divide em duas viagens quando cada item fecha', async () => {
     const id = await pedidoAprovado();
-    const [grande, pequeno] = [...(await listItens(pool, id))].sort((a, b) => b.quantidade - a.quantidade);
+    const [grande, pequeno] = [...(await listItens(pool, id))].sort((a, b) => b.quantidade! - a.quantidade!);
 
     await tx((c) =>
       criarCargas(
@@ -205,7 +205,7 @@ describe('organizar em cargas (T8.13)', () => {
 
   it('item que não fecha é recusado, e nenhuma carga é criada', async () => {
     const id = await pedidoAprovado();
-    const [grande, pequeno] = [...(await listItens(pool, id))].sort((a, b) => b.quantidade - a.quantidade);
+    const [grande, pequeno] = [...(await listItens(pool, id))].sort((a, b) => b.quantidade! - a.quantidade!);
 
     await expect(
       tx((c) =>
@@ -229,7 +229,7 @@ describe('organizar em cargas (T8.13)', () => {
 
   it('a carga que ficou sem item é descartada, e as demais renumeradas em sequência', async () => {
     const id = await pedidoAprovado();
-    const [grande, pequeno] = [...(await listItens(pool, id))].sort((a, b) => b.quantidade - a.quantidade);
+    const [grande, pequeno] = [...(await listItens(pool, id))].sort((a, b) => b.quantidade! - a.quantidade!);
 
     // A do meio ficou zerada: quem estava decidindo abriu três e usou duas
     await tx((c) =>
@@ -292,7 +292,7 @@ describe('contar e concluir (T8.13)', () => {
 
   it('o pedido só fica pronto na última carga', async () => {
     const id = await pedidoAprovado();
-    const [grande, pequeno] = [...(await listItens(pool, id))].sort((a, b) => b.quantidade - a.quantidade);
+    const [grande, pequeno] = [...(await listItens(pool, id))].sort((a, b) => b.quantidade! - a.quantidade!);
     await tx((c) =>
       criarCargas(
         c,

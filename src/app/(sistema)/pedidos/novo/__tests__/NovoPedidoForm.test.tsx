@@ -4,6 +4,7 @@ import { NovoPedidoForm } from '../NovoPedidoForm';
 
 vi.mock('../../actions', () => ({ criarPedidoAction: vi.fn() }));
 vi.mock('@/app/(sistema)/cadastros/pessoas/actions', () => ({ savePessoaAction: vi.fn() }));
+vi.mock('@/app/(sistema)/cadastros/especies/acoes-rapidas', () => ({ criarEspecieRapidaAction: vi.fn() }));
 
 function montar() {
   return render(
@@ -59,5 +60,44 @@ describe('NovoPedidoForm (T8.1)', () => {
     fireEvent.change(screen.getByLabelText('Cliente'), { target: { value: 'boa' } });
     fireEvent.click(screen.getByText('Sítio Boa Vista'));
     expect(screen.queryByText(/Escolhido:/)).toBeNull();
+  });
+
+  it('a observação é caixa de texto, que aceita quebra de linha', () => {
+    montar();
+    expect(screen.getByLabelText('Observação (opcional)').tagName).toBe('TEXTAREA');
+  });
+
+  it('a lixeira da única linha limpa a linha, em vez de não fazer nada', () => {
+    const { container } = render(
+      <NovoPedidoForm
+        clientes={[]}
+        especies={[{ id: 'pit', nome: 'Pitanga', nomeCientifico: 'Eugenia uniflora' }]}
+        recipientes={[{ value: 'tub', label: 'Tubete' }]}
+        saldos={{}}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText('Quantidade do item 1'), { target: { value: '300' } });
+    fireEvent.change(screen.getByLabelText('Espécie do item 1'), { target: { value: 'pit' } });
+    fireEvent.click(screen.getAllByText('Pitanga')[0]);
+    expect(enviados(container, 'item_especie')).toEqual(['pit']);
+    expect(enviados(container, 'item_quantidade')).toEqual(['300']);
+
+    fireEvent.click(screen.getByLabelText('Excluir o item 1'));
+    expect(enviados(container, 'item_especie')).toEqual(['']);
+    expect(enviados(container, 'item_quantidade')).toEqual(['']);
+    expect(screen.getByLabelText('Espécie do item 1')).toHaveValue('');
+  });
+
+  it('espécie digitada que não existe abre o cadastro rápido com o nome preenchido', () => {
+    montar();
+    fireEvent.change(screen.getByLabelText('Espécie do item 1'), { target: { value: 'Guapuruvu' } });
+    fireEvent.click(screen.getByText('+ Cadastrar "Guapuruvu" como espécie nova'));
+    expect(screen.getByRole('dialog', { name: 'Espécie nova' })).toBeTruthy();
+    expect(screen.getByLabelText('Nome popular')).toHaveValue('Guapuruvu');
+  });
+
+  it('a quantidade não é obrigatória no cadastro', () => {
+    montar();
+    expect(screen.getByLabelText('Quantidade do item 1')).not.toBeRequired();
   });
 });

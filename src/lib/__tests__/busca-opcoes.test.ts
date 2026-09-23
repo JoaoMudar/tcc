@@ -39,4 +39,13 @@ describe('filtraOpcoes', () => {
     filtraOpcoes(ESPECIES, 'ipe');
     expect(ESPECIES).toEqual(original);
   });
+
+  it('acha pelo detalhe também, que é onde fica o nome científico', () => {
+    const opcoes = [
+      { value: '1', label: 'Cedro', detalhe: 'Cedrela fissilis' },
+      { value: '2', label: 'Pitanga', detalhe: 'Eugenia uniflora' },
+    ];
+    expect(filtraOpcoes(opcoes, 'cedrela').map((o) => o.value)).toEqual(['1']);
+    expect(filtraOpcoes(opcoes, 'pitanga uniflora').map((o) => o.value)).toEqual(['2']);
+  });
 });

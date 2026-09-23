@@ -1,10 +1,12 @@
 'use client';
 
 import { useActionState, useCallback, useState } from 'react';
+import { EspecieRapida } from '@/components/EspecieRapida';
 import { Button } from '@/components/ui/Button';
 import { ComboboxField } from '@/components/ui/ComboboxField';
 import { Notice } from '@/components/ui/Notice';
 import { type SelectOption, SelectField } from '@/components/ui/SelectField';
+import { TextArea } from '@/components/ui/TextArea';
 import { TextField } from '@/components/ui/TextField';
 import type { EspecieRef } from '@/lib/especies-form';
 import { EMPTY_FORM_STATE } from '@/lib/form-state';
@@ -56,15 +58,25 @@ export function NovoPedidoForm({ clientes, especies, recipientes, saldos, verFis
   const [colando, setColando] = useState<string | null>(null);
   const [emFoco, setEmFoco] = useState<number | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
+  // A linha que pediu espécie nova, e o nome que foi digitado nela
+  const [criandoEspecie, setCriandoEspecie] = useState<{ chave: number; nome: string } | null>(null);
 
-  const opcoesEspecie: SelectOption[] = catalogo.map((especie) => ({ value: especie.id, label: especie.nome }));
+  // O científico vai embaixo, miúdo: o popular é o que se fala, o científico é o que desempata
+  const opcoesEspecie: SelectOption[] = catalogo.map((especie) => ({
+    value: especie.id,
+    label: especie.nome,
+    detalhe: especie.nomeCientifico && especie.nomeCientifico !== especie.nome ? especie.nomeCientifico : undefined,
+  }));
 
   const alterar = (chave: number, campo: keyof Omit<Linha, 'chave'>, valor: string | boolean) =>
     setLinhas((atuais) => atuais.map((linha) => (linha.chave === chave ? { ...linha, [campo]: valor } : linha)));
 
-  // A última linha não se tira: o pedido sem linha nenhuma não teria onde digitar
+  // A última linha não se tira, se limpa: o pedido sem linha nenhuma não teria
+  // onde digitar. Chave nova para os campos da linha voltarem do zero também
   const remover = (chave: number) => {
-    setLinhas((atuais) => (atuais.length > 1 ? atuais.filter((atual) => atual.chave !== chave) : atuais));
+    setLinhas((atuais) =>
+      atuais.length > 1 ? atuais.filter((atual) => atual.chave !== chave) : [linhaVazia(proximaChave(atuais))],
+    );
     setEmFoco(null);
   };
 
@@ -99,6 +111,23 @@ export function NovoPedidoForm({ clientes, especies, recipientes, saldos, verFis
           ],
     );
   }, []);
+
+  // T8.16 na grade: a espécie cadastrada entra no catálogo e já fica escolhida na linha
+  const chaveCriando = criandoEspecie?.chave;
+  const aoCriarEspecieNaLinha = useCallback(
+    (especie: EspecieRef) => {
+      aoCriarEspecie(especie);
+      if (chaveCriando !== undefined) {
+        setLinhas((atuais) =>
+          atuais.map((linha) => (linha.chave === chaveCriando ? { ...linha, especieId: especie.id, generico: false } : linha)),
+        );
+      }
+      setCriandoEspecie(null);
+    },
+    [aoCriarEspecie, chaveCriando],
+  );
+  const fecharEspecie = useCallback(() => setCriandoEspecie(null), []);
+  const pedirEspecie = (chave: number, nome: string) => setCriandoEspecie({ chave, nome });
 
   /**
    * Os itens colados entram como itens comuns. **A linha vazia inicial é
@@ -199,7 +228,14 @@ export function NovoPedidoForm({ clientes, especies, recipientes, saldos, verFis
           />
           <TextField label="Entrega prevista (opcional)" name="data_entrega" type="date" defaultValue={fields?.data_entrega} />
         </div>
-        <TextField label="Observação (opcional)" name="observacoes" maxLength={500} defaultValue={fields?.observacoes} />
+        <TextArea
+          label="Observação (opcional)"
+          name="observacoes"
+          rows={1}
+          ajustaAltura
+          maxLength={500}
+          defaultValue={fields?.observacoes}
+        />
 
         {aviso && <Notice tone="success">{aviso}</Notice>}
 
@@ -214,6 +250,7 @@ export function NovoPedidoForm({ clientes, especies, recipientes, saldos, verFis
           onEditar={setEmFoco}
           onColar={aoColar}
           onColarLista={() => setColando('')}
+          onCriarEspecie={pedirEspecie}
         />
 
         {state.error && <Notice tone="error">{state.error}</Notice>}
@@ -232,7 +269,13 @@ export function NovoPedidoForm({ clientes, especies, recipientes, saldos, verFis
           onAlterar={alterar}
           onRemover={remover}
           onFechar={() => setEmFoco(null)}
+          onCriarEspecie={pedirEspecie}
         />
+      )}
+
+      {/* Depois da ficha do item, para ficar por cima dela no celular */}
+      {criandoEspecie && (
+        <EspecieRapida nomeSugerido={criandoEspecie.nome} onCriada={aoCriarEspecieNaLinha} onFechar={fecharEspecie} />
       )}
 
       {abrirCliente && <ClienteNovoTela verFiscal={verFiscal} onCriado={aoCriarCliente} onFechar={fecharCliente} />}

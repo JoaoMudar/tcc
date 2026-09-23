@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useId, useRef, useState } from 'react';
-import { filtraOpcoes } from '@/lib/busca-opcoes';
+import { filtraOpcoes, normalizeTexto } from '@/lib/busca-opcoes';
 import type { SelectOption } from './SelectField';
 
 /** Mais do que isto vira rolagem dentro de rolagem na tela do celular. */
@@ -32,6 +32,13 @@ interface ComboboxFieldProps {
    * e o campo não fica marcado junto com os outros que faltam.
    */
   required?: boolean;
+  /**
+   * Texto que não achou nada na lista pode virar cadastro novo: com esta prop,
+   * a lista aberta termina num botão que entrega o texto digitado a quem chamou.
+   */
+  onCriarNova?: (texto: string) => void;
+  /** O rótulo desse botão. */
+  rotuloCriar?: (texto: string) => string;
 }
 
 /**
@@ -54,6 +61,8 @@ export function ComboboxField({
   error,
   compacto = false,
   required = false,
+  onCriarNova,
+  rotuloCriar = (texto) => `+ Cadastrar "${texto}"`,
 }: ComboboxFieldProps) {
   const id = useId();
   const hintId = hint ? `${id}-dica` : undefined;
@@ -74,6 +83,11 @@ export function ComboboxField({
   const visiveis = encontradas.slice(0, MAX_VISIVEL);
   const escondidas = encontradas.length - visiveis.length;
   const digitouSemEscolher = busca.trim() !== '' && !escolhida;
+  // Nome idêntico ao de uma opção é escolha, não cadastro: seria a mesma de novo
+  const podeCriar =
+    onCriarNova !== undefined &&
+    busca.trim() !== '' &&
+    !options.some((opcao) => normalizeTexto(opcao.label) === normalizeTexto(busca.trim()));
 
   // Texto digitado sem tocar na lista enche o campo visível, mas não é escolha:
   // para o navegador barrar o envio, o campo precisa se declarar inválido
@@ -133,6 +147,10 @@ export function ComboboxField({
             : 'min-h-touch w-full rounded-lg border-[1.5px] border-gray-300 bg-white px-3 text-base text-ink placeholder:text-gray-400 focus:border-brand-dark focus:outline-none aria-invalid:border-red-600'
         }
       />
+      {/* O científico da espécie escolhida, miúdo embaixo do nome popular */}
+      {escolhida?.detalhe && busca === escolhida.label && (
+        <p className={`text-xs text-muted italic ${compacto ? '-mt-2 px-3 pb-1' : ''}`}>{escolhida.detalhe}</p>
+      )}
 
       {aberta && (
         <ul
@@ -152,6 +170,7 @@ export function ComboboxField({
                   className="min-h-touch w-full px-3 py-2 text-left text-base text-ink active:bg-brand-light aria-[current]:font-bold"
                 >
                   {opcao.label}
+                  {opcao.detalhe && <span className="block text-sm font-normal text-muted italic">{opcao.detalhe}</span>}
                 </button>
               </li>
             ))
@@ -159,6 +178,20 @@ export function ComboboxField({
           {escondidas > 0 && (
             <li className="px-3 py-2 text-sm text-muted">
               e mais {escondidas}: digite um pedaço do nome para achar
+            </li>
+          )}
+          {podeCriar && (
+            <li>
+              <button
+                type="button"
+                onClick={() => {
+                  setAberta(false);
+                  onCriarNova?.(busca.trim());
+                }}
+                className="min-h-touch w-full px-3 py-2 text-left text-base font-bold text-brand active:bg-brand-light"
+              >
+                {rotuloCriar(busca.trim())}
+              </button>
             </li>
           )}
         </ul>

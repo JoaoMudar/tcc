@@ -939,7 +939,7 @@ histórico, e entraria só para poluir a ficha.
 | `pedido_id` | uuid | ● | FK → `pedidos` | Pedido |
 | `especie_id` | uuid | ○ | FK → `especies` | Espécie. **Nula apenas no item genérico**, que é o pedido sem escolha de espécie |
 | `recipiente_id` | uuid | ● | FK → `recipientes` | Recipiente solicitado. No genérico, o recipiente mínimo aceito |
-| `quantidade` | integer | ● | | Quantidade pedida. Restrição: maior que zero |
+| `quantidade` | integer | ○ | | Quantidade pedida. **Nula é "o cliente ainda não disse quantas"**: opcional no cadastro e exigida antes da conferência, trava que é do código (`mudarSituacao`). Restrição: maior que zero quando existe |
 | `altura_m` | numeric(4,2) | ○ | | Altura da muda pedida, em metros (RF-54). Nula é "o cliente não pediu altura". Restrição: maior que zero e até 20 |
 | `preco_unitario` | numeric(10,2) | ○ | | **Preço unitário informado por quem registra, depois da conferência** (RF-55, RN-50). Nulo é "ainda não precificado". Restrição: maior que zero quando existe |
 | `disponivel` | boolean | ○ | | O que a conferência respondeu. **Nulo é "ninguém conferiu ainda"** (RF-59) |

@@ -70,8 +70,8 @@ function itens() {
  * os empata e o desempate cai no identificador, que é aleatório. Escolher por
  * posição daria um teste que passa ou falha conforme o UUID sorteado.
  */
-function porQuantidade(itens: readonly { id: string; quantidade: number }[]) {
-  return [...itens].sort((a, b) => b.quantidade - a.quantidade);
+function porQuantidade(itens: readonly { id: string; quantidade: number | null }[]) {
+  return [...itens].sort((a, b) => b.quantidade! - a.quantidade!);
 }
 
 function novoPedido(extra: Partial<Parameters<typeof criarPedido>[1]> = {}) {
@@ -373,6 +373,21 @@ describe('fluxo e histórico (T8.6, RF-57, RN-52)', () => {
     expect(historico.at(-1)).toMatchObject({ situacaoAnterior: 'verificando', observacoes: 'Faltou ipê.' });
   });
 
+  it('item sem quantidade entra no cadastro, e segura a conferência até ser preenchido', async () => {
+    const { id } = await novoPedido({
+      itens: [{ especieId: especie, recipienteId: tubete, quantidade: null, precoCentavos: null }],
+    });
+    const [item] = await listItens(pool, id);
+    expect(item.quantidade).toBeNull();
+
+    await expect(tx((c) => mudarSituacao(c, id, 'verificando', gerencia()))).rejects.toThrow(/sem quantidade/i);
+    expect((await findPedido(pool, id))!.situacao).toBe('cadastrado');
+
+    await tx((c) => atualizarItem(c, id, item.id, { quantidade: 40, alturaM: null }));
+    await tx((c) => mudarSituacao(c, id, 'verificando', gerencia()));
+    expect((await findPedido(pool, id))!.situacao).toBe('verificando');
+  });
+
   it('a gerência não aprova, e a recusa não deixa o pedido pela metade', async () => {
     const { id } = await novoPedido();
     await tx((c) => mudarSituacao(c, id, 'verificando', gerencia()));
@@ -578,7 +593,18 @@ describe('preço depois da conferência (RF-55, RN-50)', () => {
     expect((await findPedido(pool, id))!.situacao).toBe('aprovado');
     const depois = await listItens(pool, id);
     expect(depois.every((item) => item.precoCentavos === 200)).toBe(true);
-    expect(totalPedido(depois)).toBe(depois.reduce((soma, item) => soma + item.quantidade * 200, 0));
+    expect(totalPedido(depois)).toBe(depois.reduce((soma, item) => soma + item.quantidade! * 200, 0));
+  });
+
+  it('item sem quantidade não recebe preço', async () => {
+    const { id } = await semPreco();
+    await conferido(id);
+    const [item] = await listItens(pool, id);
+    // A conferência já exige a quantidade: aqui ela some por fora, para provar a trava
+    await pool.query('UPDATE pedidos_itens SET quantidade = NULL WHERE id = $1', [item.id]);
+    await expect(
+      tx((c) => definirPrecos(c, id, [{ itemId: item.id, precoCentavos: 250 }], chefia())),
+    ).rejects.toThrow(/quantidade/i);
   });
 
   it('item de outro pedido não é precificado por aqui', async () => {
@@ -725,7 +751,7 @@ describe('item genérico (T8.10)', () => {
     expect(itens).toHaveLength(3);
     expect(itens.find((i) => i.id === pai.id)!.disponivel).toBe(true);
     const filhos = itens.filter((i) => i.itemPaiId === pai.id);
-    expect(filhos.map((f) => f.quantidade).sort((a, b) => a - b)).toEqual([200, 300]);
+    expect(filhos.map((f) => f.quantidade).sort((a, b) => a! - b!)).toEqual([200, 300]);
     // O filho herda o preço do pai, e o total do pedido não dobra
     expect(filhos.every((f) => f.precoCentavos === 200)).toBe(true);
     expect(totalPedido(itens)).toBe(500 * 200);
@@ -762,7 +788,7 @@ describe('item genérico (T8.10)', () => {
 
     const filhos = (await listItens(pool, id)).filter((i) => i.itemPaiId === pai.id);
     expect(filhos).toHaveLength(2);
-    expect(filhos.reduce((soma, f) => soma + f.quantidade, 0)).toBe(500);
+    expect(filhos.reduce((soma, f) => soma + f.quantidade!, 0)).toBe(500);
   });
 
   it('o escopo do cliente é bloqueio no servidor, e não apenas filtro da busca', async () => {

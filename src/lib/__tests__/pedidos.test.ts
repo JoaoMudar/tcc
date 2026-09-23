@@ -26,7 +26,13 @@ import {
   validarComposicaoGenerico,
   validarDivisaoCargas,
 } from '../pedidos-rotulos';
-import { parseDataEntrega, parseFiltroPedidos, parseObservacoesPedido, parseQuantidadeItem } from '../pedidos';
+import {
+  parseDataEntrega,
+  parseFiltroPedidos,
+  parseObservacoesPedido,
+  parseQuantidadeItem,
+  parseQuantidadeOpcional,
+} from '../pedidos';
 
 describe('canal de venda', () => {
   it('é a lista fechada de cinco valores da RN-42', () => {
@@ -80,6 +86,11 @@ describe('preço digitado (RF-55, RN-50)', () => {
 describe('totais (RF-55)', () => {
   it('o total do item é quantidade por preço', () => {
     expect(totalItem({ quantidade: 200, precoCentavos: 250 })).toBe(50_000);
+  });
+
+  it('sem quantidade não há total, nem do item nem do pedido', () => {
+    expect(totalItem({ quantidade: null, precoCentavos: 250 })).toBeNull();
+    expect(totalPedido([{ quantidade: null, precoCentavos: 250 }, { quantidade: 10, precoCentavos: 100 }])).toBeNull();
   });
 
   it('o total do pedido é a soma dos itens', () => {
@@ -372,6 +383,12 @@ describe('quantidade do item', () => {
   it('recusa zero e quebrado', () => {
     expect(parseQuantidadeItem('0')).toHaveProperty('error');
     expect(parseQuantidadeItem('1,5')).toHaveProperty('error');
+  });
+
+  it('no cadastro pode ficar em branco, e o que for escrito continua valendo as mesmas regras', () => {
+    expect(parseQuantidadeOpcional('  ')).toEqual({ value: null });
+    expect(parseQuantidadeOpcional('500')).toEqual({ value: 500 });
+    expect(parseQuantidadeOpcional('0')).toHaveProperty('error');
   });
 });
 

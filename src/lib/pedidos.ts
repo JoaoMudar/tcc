@@ -62,6 +62,15 @@ export function parseQuantidadeItem(text: string): { error: string } | { value: 
   return { value: numero };
 }
 
+/**
+ * A quantidade do cadastro, que pode ficar em branco: o cliente às vezes diz as
+ * espécies antes de dizer quantas quer. Ela é cobrada antes da conferência.
+ */
+export function parseQuantidadeOpcional(text: string): { error: string } | { value: number | null } {
+  if (text.trim() === '') return { value: null };
+  return parseQuantidadeItem(text);
+}
+
 export function parseDataEntrega(text: string): { error: string } | { value: string | null } {
   const texto = text.trim();
   if (texto === '') return { value: null };
@@ -103,7 +112,8 @@ export interface NovoItem {
   /** Nulo só no item genérico, que é o único que chega sem espécie escolhida. */
   especieId: string | null;
   recipienteId: string;
-  quantidade: number;
+  /** Nula enquanto o cliente não disse quantas; exigida antes da conferência. */
+  quantidade: number | null;
   /** Nulo no cadastro: o preço é digitado depois da conferência (RN-50). */
   precoCentavos: number | null;
   /**
@@ -396,7 +406,7 @@ export async function atualizarItem(
   client: Client,
   pedidoId: string,
   itemId: string,
-  valores: { quantidade: number; alturaM: number | null },
+  valores: { quantidade: number | null; alturaM: number | null },
 ): Promise<void> {
   exigirCadastrado(await travarPedido(client, pedidoId));
   const { rowCount } = await client.query(
@@ -439,6 +449,22 @@ export async function mudarSituacao(
       `O pedido ${pedido.numero} está em ${SITUACOES_PEDIDO[pedido.situacao].toLowerCase()}, ` +
         `e não pode passar a ${SITUACOES_PEDIDO[para].toLowerCase()}.`,
     );
+  }
+  // A quantidade é opcional no cadastro, e não na conferência: sem o número a
+  // gerência não tem como dizer se o pátio tem a muda
+  if (para === 'verificando') {
+    const { rows } = await client.query<{ faltam: number }>(
+      'SELECT COUNT(*)::int AS faltam FROM pedidos_itens WHERE pedido_id = $1 AND quantidade IS NULL',
+      [pedidoId],
+    );
+    const faltam = rows[0]?.faltam ?? 0;
+    if (faltam > 0) {
+      throw new UserError(
+        faltam === 1
+          ? `O pedido ${pedido.numero} tem um item sem quantidade. Preencha antes de conferir.`
+          : `O pedido ${pedido.numero} tem ${faltam} itens sem quantidade. Preencha antes de conferir.`,
+      );
+    }
   }
   await client.query('UPDATE pedidos SET situacao = $2 WHERE id = $1', [pedidoId, para]);
   await client.query(
@@ -510,11 +536,18 @@ export async function definirPrecos(
   }
 
   for (const linha of linhas) {
-    const { rowCount } = await client.query(
+    // Preço sem quantidade não fecha total nenhum. A conferência já exige o
+    // número, e esta trava não deixa a regra depender só da ordem das situações.
+    // O erro desfaz a transação, e o preço gravado junto sai com ele
+    const { rows, rowCount } = await client.query<{ quantidade: number | null }>(
       `UPDATE pedidos_itens SET preco_unitario = $3
-        WHERE pedido_id = $1 AND (id = $2 OR item_pai_id = $2)`,
+        WHERE pedido_id = $1 AND (id = $2 OR item_pai_id = $2)
+        RETURNING quantidade`,
       [pedidoId, linha.itemId, centavosParaSql(linha.precoCentavos)],
     );
+    if (rows.some((item) => item.quantidade === null)) {
+      throw new UserError('Preencha a quantidade do item antes do preço.');
+    }
     if (!rowCount) throw new UserError('Item não encontrado neste pedido.');
   }
 }

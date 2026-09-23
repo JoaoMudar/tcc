@@ -3,6 +3,21 @@
 Uma entrada por migration nova, como pede o `CLAUDE.md`. As migrations até `20260901000008` são o
 schema inicial em português e estão descritas no `C8`.
 
+## 23/09/2026 · `20260923000001_pedido_item_quantidade_opcional.sql`
+
+- **A quantidade do item do pedido passa a ser opcional no cadastro.** `pedidos_itens.quantidade`
+  perde o `NOT NULL`; o CHECK `pedidos_itens_quantidade_positiva` continua recusando zero e
+  negativo.
+- O cliente costuma dizer as espécies antes de dizer quantas quer de cada uma. Exigir o número no
+  cadastro obrigava a inventar um valor provisório, pela mesma razão que já tinha tirado o preço
+  do cadastro.
+- **A quantidade é exigida antes da conferência**: `mudarSituacao` recusa passar o pedido a
+  `verificando` enquanto houver item sem quantidade. A trava é do código porque depende da
+  situação do pedido, que o CHECK de linha não enxerga.
+- `definirPrecos` também recusa preço em item sem quantidade, para que a regra "preço pede
+  quantidade" não dependa só da ordem das situações.
+- Compatível: todo item já gravado tem quantidade, e continua como estava.
+
 ## 22/09/2026 · `20260922000003_eventos_login_por_ip.sql`
 
 - **Índice parcial `eventos_login_ip_recente`** em `eventos_login (ip, criado_em DESC) WHERE NOT sucesso`.
