@@ -74,6 +74,26 @@ describe('planilha de itens do pedido (T8.1, RF-54)', () => {
     expect(onAlterar).toHaveBeenCalledWith(1, 'generico', true);
   });
 
+  it('o genérico fica no campo da espécie, em azul, com a descrição embaixo', () => {
+    const { container } = montar([preenchida({ generico: true }), preenchida({ chave: 2 })]);
+    expect(screen.getByLabelText('Espécie do item 1')).toHaveValue('Genérico');
+    expect(screen.getByLabelText('O que o cliente pediu no item 1')).toBeInTheDocument();
+    expect(screen.queryByLabelText('O que o cliente pediu no item 2')).toBeNull();
+    expect(screen.queryByText(/Escolher a espécie/)).toBeNull();
+    const [generica, comEspecie] = container.querySelectorAll('tbody tr');
+    expect(generica).toHaveClass('bg-blue-50');
+    expect(comEspecie).not.toHaveClass('bg-blue-50');
+  });
+
+  it('escolher uma espécie no genérico desfaz o genérico', () => {
+    const onAlterar = vi.fn();
+    montar([preenchida({ generico: true, especieId: '' })], { onAlterar });
+    fireEvent.change(screen.getByLabelText('Espécie do item 1'), { target: { value: 'pit' } });
+    expect(onAlterar).toHaveBeenCalledWith(1, 'generico', false);
+    fireEvent.click(screen.getByText('Pitanga'));
+    expect(onAlterar).toHaveBeenLastCalledWith(1, 'especieId', 'pit');
+  });
+
   it('a lixeira tira a linha, e o "+" acrescenta outra', () => {
     const onRemover = vi.fn();
     const onAdicionar = vi.fn();

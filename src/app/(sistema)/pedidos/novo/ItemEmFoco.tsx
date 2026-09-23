@@ -49,30 +49,35 @@ export function ItemEmFoco({
 
   return (
     <Modal titulo={`Item ${indice + 1}`} onFechar={onFechar}>
-      {linha.generico ? (
-        <>
-          {/* O genérico se descreve: é o texto que a gerência lê para montar o item */}
-          <TextField
-            label="O que o cliente pediu"
-            autoComplete="off"
-            placeholder="Ex.: mudas nativas, o que tiver"
-            value={linha.especificacao}
-            onChange={(evento) => onAlterar(linha.chave, 'especificacao', evento.target.value)}
-          />
-          <Button variant="secondary" onClick={() => onAlterar(linha.chave, 'generico', false)}>
-            Escolher a espécie agora
-          </Button>
-        </>
-      ) : (
-        <ComboboxField
-          label="Espécie"
-          options={opcoesEspecie}
-          value={linha.especieId}
-          onChange={(valor) => onAlterar(linha.chave, 'especieId', valor)}
-          onCriarNova={(nome) => onCriarEspecie(linha.chave, nome)}
-          rotuloCriar={(nome) => `+ Cadastrar "${nome}" como espécie nova`}
-          // O genérico é a primeira opção: a espécie fica para a conferência
-          opcaoFixa={{ rotulo: 'Genérico', onEscolher: () => onAlterar(linha.chave, 'generico', true) }}
+      <ComboboxField
+        label="Espécie"
+        options={opcoesEspecie}
+        value={linha.especieId}
+        onChange={(valor) => {
+          // Escolher ou digitar outra espécie desfaz o genérico
+          if (linha.generico) onAlterar(linha.chave, 'generico', false);
+          onAlterar(linha.chave, 'especieId', valor);
+        }}
+        onCriarNova={(nome) => onCriarEspecie(linha.chave, nome)}
+        rotuloCriar={(nome) => `+ Cadastrar "${nome}" como espécie nova`}
+        // O genérico é a primeira opção, e escolhido fica no campo como qualquer espécie
+        opcaoFixa={{
+          rotulo: 'Genérico',
+          ativa: linha.generico,
+          onEscolher: () => {
+            onAlterar(linha.chave, 'especieId', '');
+            onAlterar(linha.chave, 'generico', true);
+          },
+        }}
+      />
+      {/* O genérico se descreve: é o texto que a gerência lê para montar o item */}
+      {linha.generico && (
+        <TextField
+          label="O que o cliente pediu"
+          autoComplete="off"
+          placeholder="Ex.: mudas nativas, o que tiver"
+          value={linha.especificacao}
+          onChange={(evento) => onAlterar(linha.chave, 'especificacao', evento.target.value)}
         />
       )}
 

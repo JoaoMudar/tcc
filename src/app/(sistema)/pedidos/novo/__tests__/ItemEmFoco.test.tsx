@@ -64,4 +64,29 @@ describe('item do pedido em tela cheia (T8.1)', () => {
     fireEvent.click(screen.getByText('Genérico'));
     expect(onAlterar).toHaveBeenCalledWith(2, 'generico', true);
   });
+
+  it('o genérico escolhido fica no campo da espécie, sem botão para voltar', () => {
+    const onAlterar = vi.fn();
+    render(
+      <ItemEmFoco
+        linha={{ ...linhaVazia(4), generico: true }}
+        indice={0}
+        opcoesEspecie={[{ value: 'ipe', label: 'Ipê-amarelo' }]}
+        recipientes={[{ value: 'tub', label: 'Tubete' }]}
+        saldos={{}}
+        onAlterar={onAlterar}
+        onRemover={vi.fn()}
+        onFechar={vi.fn()}
+        onCriarEspecie={vi.fn()}
+      />,
+    );
+    expect(screen.getByLabelText('Espécie')).toHaveValue('Genérico');
+    expect(screen.getByLabelText('O que o cliente pediu')).toBeInTheDocument();
+    expect(screen.queryByText(/Escolher a espécie/)).toBeNull();
+
+    fireEvent.change(screen.getByLabelText('Espécie'), { target: { value: 'ipe' } });
+    fireEvent.click(screen.getByText('Ipê-amarelo'));
+    expect(onAlterar).toHaveBeenCalledWith(4, 'generico', false);
+    expect(onAlterar).toHaveBeenLastCalledWith(4, 'especieId', 'ipe');
+  });
 });

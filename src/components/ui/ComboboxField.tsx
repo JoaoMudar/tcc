@@ -42,8 +42,10 @@ interface ComboboxFieldProps {
   /**
    * Escolha que não é da lista e vem sempre primeiro, qualquer que seja o texto
    * digitado: é o item genérico do pedido, cuja espécie se decide depois.
+   * Com `ativa`, ela é a escolha atual: o campo mostra o rótulo como mostraria
+   * uma opção da lista, e digitar desfaz a escolha com `onChange('')`.
    */
-  opcaoFixa?: { rotulo: string; onEscolher: () => void };
+  opcaoFixa?: { rotulo: string; onEscolher: () => void; ativa?: boolean };
 }
 
 /**
@@ -76,7 +78,8 @@ export function ComboboxField({
   const avisoId = `${id}-aviso`;
 
   const escolhida = options.find((opcao) => opcao.value === value);
-  const [busca, setBusca] = useState(escolhida?.label ?? '');
+  const fixaAtiva = opcaoFixa?.ativa ?? false;
+  const [busca, setBusca] = useState(fixaAtiva ? opcaoFixa!.rotulo : (escolhida?.label ?? ''));
   const [aberta, setAberta] = useState(false);
   // Escolha vinda de fora (o cliente recém-criado no modal) precisa aparecer no campo
   const [valorVisto, setValorVisto] = useState(value);
@@ -84,14 +87,23 @@ export function ComboboxField({
     setValorVisto(value);
     setBusca(options.find((opcao) => opcao.value === value)?.label ?? '');
   }
+  // A opção fixa escolhida aparece no campo; desfeita pela digitação, o texto fica
+  const [fixaVista, setFixaVista] = useState(fixaAtiva);
+  if (fixaAtiva !== fixaVista) {
+    setFixaVista(fixaAtiva);
+    if (fixaAtiva) setBusca(opcaoFixa!.rotulo);
+  }
+  const mostraFixa = fixaAtiva && busca === opcaoFixa?.rotulo;
 
-  const encontradas = filtraOpcoes(options, busca);
+  // Com o rótulo fixo no campo, a lista abre inteira: "Genérico" não é busca
+  const encontradas = filtraOpcoes(options, mostraFixa ? '' : busca);
   const visiveis = encontradas.slice(0, MAX_VISIVEL);
   const escondidas = encontradas.length - visiveis.length;
-  const digitouSemEscolher = busca.trim() !== '' && !escolhida;
+  const digitouSemEscolher = busca.trim() !== '' && !escolhida && !mostraFixa;
   // Nome idêntico ao de uma opção é escolha, não cadastro: seria a mesma de novo
   const podeCriar =
     onCriarNova !== undefined &&
+    !mostraFixa &&
     busca.trim() !== '' &&
     !options.some((opcao) => normalizeTexto(opcao.label) === normalizeTexto(busca.trim()));
 
@@ -113,7 +125,7 @@ export function ComboboxField({
     setBusca(texto);
     setAberta(true);
     // Texto digitado não é escolha: enquanto não tocarem na lista, o campo vai vazio
-    if (value) {
+    if (value || fixaAtiva) {
       setValorVisto('');
       onChange('');
     }
@@ -148,9 +160,11 @@ export function ComboboxField({
               // a borda. O texto digitado que ainda não virou escolha fica em
               // âmbar, porque na célula não cabe a frase de aviso
               `h-11 w-full bg-transparent px-3 text-base placeholder:text-gray-400 focus:bg-white focus:outline-2 focus:-outline-offset-2 focus:outline-brand ${
-                digitouSemEscolher ? 'text-amber-800' : 'text-ink'
+                mostraFixa ? 'font-bold text-blue-800' : digitouSemEscolher ? 'text-amber-800' : 'text-ink'
               }`
-            : 'min-h-touch w-full rounded-lg border-[1.5px] border-gray-300 bg-white px-3 text-base text-ink placeholder:text-gray-400 focus:border-brand-dark focus:outline-none aria-invalid:border-red-600'
+            : `min-h-touch w-full rounded-lg border-[1.5px] border-gray-300 bg-white px-3 text-base placeholder:text-gray-400 focus:border-brand-dark focus:outline-none aria-invalid:border-red-600 ${
+                mostraFixa ? 'font-bold text-blue-800' : 'text-ink'
+              }`
         }
       />
       {/* O científico da espécie escolhida, miúdo embaixo do nome popular */}
@@ -172,6 +186,7 @@ export function ComboboxField({
                   setAberta(false);
                   opcaoFixa.onEscolher();
                 }}
+                aria-current={fixaAtiva ? true : undefined}
                 className="min-h-touch w-full px-3 py-2 text-left text-base font-bold text-blue-800 active:bg-brand-light"
               >
                 {opcaoFixa.rotulo}

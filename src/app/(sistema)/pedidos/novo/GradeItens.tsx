@@ -85,11 +85,24 @@ export function GradeItens({
     onColar(texto, foco);
   }
 
-  /** O genérico é a primeira opção da espécie: a escolha fica para a conferência. */
-  const opcaoGenerico = (chave: number) => ({
+  /**
+   * O genérico é a primeira opção da espécie, e escolhido fica no campo como
+   * qualquer espécie: a escolha de verdade fica para a conferência.
+   */
+  const opcaoGenerico = (linha: Linha) => ({
     rotulo: 'Genérico',
-    onEscolher: () => onAlterar(chave, 'generico', true),
+    ativa: linha.generico,
+    onEscolher: () => {
+      onAlterar(linha.chave, 'especieId', '');
+      onAlterar(linha.chave, 'generico', true);
+    },
   });
+
+  /** Espécie escolhida ou digitação que desfaz a escolha: nos dois casos a linha deixa de ser genérica. */
+  function escolherEspecie(linha: Linha, valor: string) {
+    if (linha.generico) onAlterar(linha.chave, 'generico', false);
+    onAlterar(linha.chave, 'especieId', valor);
+  }
 
   function saldoDa(linha: Linha) {
     const saldo = saldos[chaveSaldo(linha.especieId, linha.recipienteId)];
@@ -154,40 +167,30 @@ export function GradeItens({
             {linhas.map((linha, indice) => {
               const { saldo, pronto, quantidade, falta } = saldoDa(linha);
               return (
-                <tr key={linha.chave} className="border-t border-line align-top">
+                <tr key={linha.chave} className={`border-t border-line align-top ${linha.generico ? 'bg-blue-50' : ''}`}>
                   {/* O foco marca em que célula a colagem começa, e o `onFocus`
                       da célula vale para o campo de dentro, qualquer que ele seja */}
                   <td className="p-0" onFocus={() => setFoco({ linha: indice, coluna: 0 })}>
-                    {linha.generico ? (
-                      <>
-                        {/* O genérico se descreve: é o texto que a gerência lê para montar o item */}
-                        <TextField
-                          label={`O que o cliente pediu no item ${indice + 1}`}
-                          compacto
-                          autoComplete="off"
-                          placeholder="Ex.: mudas nativas, o que tiver"
-                          value={linha.especificacao}
-                          onChange={(evento) => onAlterar(linha.chave, 'especificacao', evento.target.value)}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => onAlterar(linha.chave, 'generico', false)}
-                          className="px-3 pb-1.5 text-left text-xs font-semibold text-blue-900 underline"
-                        >
-                          Escolher a espécie
-                        </button>
-                      </>
-                    ) : (
-                      <ComboboxField
-                        label={`Espécie do item ${indice + 1}`}
+                    <ComboboxField
+                      label={`Espécie do item ${indice + 1}`}
+                      compacto
+                      options={opcoesEspecie}
+                      value={linha.especieId}
+                      onChange={(valor) => escolherEspecie(linha, valor)}
+                      onCriarNova={(nome) => onCriarEspecie(linha.chave, nome)}
+                      rotuloCriar={rotuloCriarEspecie}
+                      opcaoFixa={opcaoGenerico(linha)}
+                      placeholder="Digite o nome…"
+                    />
+                    {/* O genérico se descreve: é o texto que a gerência lê para montar o item */}
+                    {linha.generico && (
+                      <TextField
+                        label={`O que o cliente pediu no item ${indice + 1}`}
                         compacto
-                        options={opcoesEspecie}
-                        value={linha.especieId}
-                        onChange={(valor) => onAlterar(linha.chave, 'especieId', valor)}
-                        onCriarNova={(nome) => onCriarEspecie(linha.chave, nome)}
-                        rotuloCriar={rotuloCriarEspecie}
-                        opcaoFixa={opcaoGenerico(linha.chave)}
-                        placeholder="Digite o nome…"
+                        autoComplete="off"
+                        placeholder="O que o cliente pediu? Ex.: mudas nativas"
+                        value={linha.especificacao}
+                        onChange={(evento) => onAlterar(linha.chave, 'especificacao', evento.target.value)}
                       />
                     )}
                     {/* RF-56: o saldo não é coluna, é a linha miúda embaixo da espécie */}
@@ -268,11 +271,11 @@ export function GradeItens({
             const { falta, quantidade } = saldoDa(linha);
             const opcaoEspecie = linha.generico ? undefined : opcoesEspecie.find((opcao) => opcao.value === linha.especieId);
             const especie = linha.generico
-              ? `Sem espécie: ${linha.especificacao.trim() || 'descreva o pedido'}`
+              ? `Genérico: ${linha.especificacao.trim() || 'descreva o pedido'}`
               : (opcaoEspecie?.label ?? null);
             const recipiente = rotulo(recipientes, linha.recipienteId);
             return (
-              <li key={linha.chave}>
+              <li key={linha.chave} className={linha.generico ? 'bg-blue-50' : undefined}>
                 <button
                   type="button"
                   onClick={() => onEditar(linha.chave)}
