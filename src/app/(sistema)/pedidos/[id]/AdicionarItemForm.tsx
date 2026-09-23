@@ -7,6 +7,7 @@ import { Notice } from '@/components/ui/Notice';
 import type { SelectOption } from '@/components/ui/SelectField';
 import { TextField } from '@/components/ui/TextField';
 import { EMPTY_FORM_STATE } from '@/lib/form-state';
+import { normalizaCampoAltura } from '@/lib/pedidos-rotulos';
 import { adicionarItemAction } from '../actions';
 
 interface AdicionarItemFormProps {
@@ -43,7 +44,10 @@ export function AdicionarItemForm({ pedidoId, especies, recipientes }: Adicionar
         name="item_altura"
         inputMode="decimal"
         autoComplete="off"
-        placeholder="1,20"
+        placeholder="1,20 ou 120"
+        onBlur={(evento) => {
+          evento.currentTarget.value = normalizaCampoAltura(evento.currentTarget.value);
+        }}
       />
       <TextField label="Quantidade" name="item_quantidade" inputMode="numeric" autoComplete="off" required />
       {state.error && <Notice tone="error">{state.error}</Notice>}

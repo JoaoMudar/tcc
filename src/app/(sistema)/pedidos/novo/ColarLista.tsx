@@ -11,6 +11,7 @@ import { TextArea } from '@/components/ui/TextArea';
 import { TextField } from '@/components/ui/TextField';
 import { EMPTY_NOME_POPULAR_STATE, type EspecieRef } from '@/lib/especies-form';
 import { normalizeNomePopular } from '@/lib/especies-nomes';
+import { formatAltura, formatMoeda, normalizaCampoAltura, parseAltura } from '@/lib/pedidos-rotulos';
 import { type EspecieParaColagem, type SituacaoCasamento, montaLinhasColadas } from '@/lib/pedidos-colagem';
 
 export interface ItemImportado {
@@ -19,6 +20,7 @@ export interface ItemImportado {
   especie: string;
   recipienteId: string;
   /** Texto: o formulário do pedido trabalha com campos controlados. */
+  altura: string;
   quantidade: string;
 }
 
@@ -46,10 +48,16 @@ interface LinhaRevisao {
   especieId: string;
   especie: string;
   recipienteId: string;
+  /** O recipiente veio do padrão do cabeçalho, e acompanha quando ele muda. */
+  segueOPadrao: boolean;
+  altura: string;
   quantidade: string;
+  /** O preço que veio na lista, só para mostrar que foi visto e ficou de fora (RN-50). */
+  precoCentavos: number | null;
 }
 
-const EXEMPLO = 'Cole aqui, uma espécie por linha. Ex:\nIpê amarelo 500\n200 araucária\npitanga - 100';
+const EXEMPLO =
+  'Cole aqui, uma espécie por linha ou separadas por "|". Ex:\nIpê amarelo 500\nGuabiroba - 60 cm - R$ 10,00\n200 araucária tubete\npitanga 80-100cm | ingá 1,20 m';
 
 /** A espécie já conhece o texto colado? Então não há nome novo a aprender. */
 function jaConhece(especie: EspecieParaColagem | undefined, nome: string): boolean {
@@ -120,13 +128,18 @@ export function ColarLista({
   }));
 
   function reconhecer() {
-    if (!recipientePadrao) {
-      setErro('Escolha o recipiente padrão antes de reconhecer.');
-      return;
-    }
-    const lidas = montaLinhasColadas(texto, catalogo);
+    const lidas = montaLinhasColadas(
+      texto,
+      catalogo,
+      recipientes.map((opcao) => ({ id: opcao.value, nome: opcao.label })),
+    );
     if (lidas.length === 0) {
       setErro('Nada reconhecido. Cole uma linha por espécie, ex: "Ipê amarelo 500".');
+      return;
+    }
+    // O recipiente escrito na lista dispensa o padrão; só a linha sem ele precisa
+    if (!recipientePadrao && lidas.some((linha) => !linha.recipienteId)) {
+      setErro('Escolha o recipiente padrão antes de reconhecer.');
       return;
     }
     setErro(null);
@@ -142,8 +155,11 @@ export function ColarLista({
         generico: false,
         especieId: linha.casamento.especieId ?? '',
         especie: linha.casamento.especie ?? '',
-        recipienteId: recipientePadrao,
+        recipienteId: linha.recipienteId ?? recipientePadrao,
+        segueOPadrao: !linha.recipienteId,
+        altura: formatAltura(linha.alturaM),
         quantidade: linha.quantidade === null ? '' : String(linha.quantidade),
+        precoCentavos: linha.precoCentavos,
       })),
     );
   }
@@ -165,9 +181,12 @@ export function ColarLista({
     });
   }
 
+  /** Troca só as linhas que ainda estavam no padrão: o recipiente lido na lista ou escolhido à mão fica. */
   function trocarRecipientePadrao(valor: string) {
     setRecipientePadrao(valor);
-    setLinhas((atuais) => atuais?.map((linha) => ({ ...linha, recipienteId: valor })) ?? null);
+    setLinhas(
+      (atuais) => atuais?.map((linha) => (linha.segueOPadrao ? { ...linha, recipienteId: valor } : linha)) ?? null,
+    );
   }
 
   function aoCriarEspecie(especie: EspecieRef) {
@@ -203,6 +222,7 @@ export function ColarLista({
     (linha) =>
       (!linha.generico && !linha.especieId) ||
       !linha.recipienteId ||
+      'error' in parseAltura(linha.altura) ||
       (linha.quantidade.trim() !== '' && !/^\d+$/.test(linha.quantidade.trim())),
   ).length;
 
@@ -256,24 +276,35 @@ export function ColarLista({
         </Button>
       </div>
 
-      {/* A mesma grade dos itens do pedido. A célula da espécie diz de longe o
-          que falta: verde achou, vermelho não achou, azul é o genérico. Sem
-          `overflow-hidden`, pela mesma razão da planilha: a lista de opções
-          passa por cima da borda de baixo */}
+      {/* A mesma grade dos itens do pedido, nas mesmas colunas. A célula da
+          espécie diz de longe o que falta: verde achou, vermelho não achou, azul
+          é o genérico. Sem `overflow-hidden`, pela mesma razão da planilha: a
+          lista de opções passa por cima da borda de baixo.
+          Abaixo de `lg` cada linha vira um bloco: a espécie ocupa a largura toda
+          e recipiente, altura e quantidade ficam lado a lado embaixo, porque seis
+          colunas em 360px seriam alvos menores que o dedo (RNF-03) */}
       <div className="rounded-xl border border-line bg-white">
-        <table className="w-full table-fixed border-collapse text-base">
+        <table className="w-full border-collapse text-base max-lg:block lg:table-fixed">
           <colgroup>
             <col />
-            <col className="w-20 sm:w-32" />
-            <col className="w-16 sm:w-24" />
-            <col className="w-10 sm:w-12" />
+            <col className="w-44" />
+            <col className="w-28" />
+            <col className="w-24" />
+            <col className="w-24" />
+            <col className="w-12" />
           </colgroup>
-          <thead>
+          <thead className="max-lg:hidden">
             <tr className="bg-surface text-left text-xs font-bold tracking-wide text-muted uppercase">
               <th scope="col" className="rounded-tl-xl px-3 py-2">
                 Espécie
               </th>
-              <th scope="col" className="border-l border-line px-2 py-2 text-right sm:px-3">
+              <th scope="col" className="border-l border-line px-3 py-2">
+                Recipiente
+              </th>
+              <th scope="col" className="border-l border-line px-3 py-2">
+                Altura
+              </th>
+              <th scope="col" className="border-l border-line px-3 py-2 text-right">
                 Qtd
               </th>
               <th scope="col" className="border-l border-line px-1 py-2 text-center">
@@ -284,18 +315,25 @@ export function ColarLista({
               </th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="max-lg:block">
             {linhas.map((linha, indice) => {
               const achou = linha.generico || !!linha.especieId;
               const especie = catalogo.find((candidata) => candidata.id === linha.especieId);
               const podeAprender =
-                linha.resolvidaAMao && !!linha.especieId && !linha.nomeAprendido && !jaConhece(especie, linha.nomeColado);
+                linha.resolvidaAMao &&
+                !!linha.especieId &&
+                !!linha.nomeColado &&
+                !linha.nomeAprendido &&
+                !jaConhece(especie, linha.nomeColado);
 
               return (
-                <tr key={linha.chave} className="border-t border-line align-top">
+                <tr
+                  key={linha.chave}
+                  className="grid grid-cols-[1.4fr_1fr_1fr_2.75rem_2.75rem] border-t border-line first:border-t-0 lg:table-row lg:align-top lg:first:border-t"
+                >
                   <td
                     data-situacao={linha.generico ? 'generico' : achou ? 'encontrada' : 'nao-encontrada'}
-                    className={`border-l-4 p-0 ${
+                    className={`col-span-5 border-l-4 p-0 ${
                       linha.generico
                         ? 'border-l-blue-500 bg-blue-50'
                         : achou
@@ -323,8 +361,14 @@ export function ColarLista({
                       lido: &quot;{linha.bruta}&quot;
                       {!linha.generico && linha.casouPor && ` · reconhecido por "${linha.casouPor}"`}
                     </p>
+                    {/* RN-50: o preço é visto e deixado de lado, e a pessoa fica sabendo */}
+                    {linha.precoCentavos !== null && (
+                      <p className="px-3 pb-1.5 text-xs text-muted">
+                        {formatMoeda(linha.precoCentavos)} não entra no pedido: o preço é lançado depois da conferência
+                      </p>
+                    )}
 
-                    {!linha.generico && !linha.especieId && (
+                    {!linha.generico && !linha.especieId && linha.nomeColado && (
                       <button
                         type="button"
                         onClick={() => setCriandoPara(linha)}
@@ -353,18 +397,41 @@ export function ColarLista({
                       </p>
                     )}
                   </td>
-                  <td className="border-l border-line p-0">
+                  <td className="min-w-0 border-line p-0 max-lg:border-t lg:border-l">
+                    <ComboboxField
+                      label={`Recipiente da linha ${indice + 1}`}
+                      compacto
+                      options={recipientes}
+                      value={linha.recipienteId}
+                      onChange={(valor) => alterar(linha.chave, { recipienteId: valor, segueOPadrao: false })}
+                      placeholder="Recipiente"
+                    />
+                  </td>
+                  <td className="min-w-0 border-l border-line p-0 max-lg:border-t">
+                    <TextField
+                      label={`Altura da linha ${indice + 1}`}
+                      compacto
+                      inputMode="decimal"
+                      autoComplete="off"
+                      placeholder="Altura"
+                      value={linha.altura}
+                      onChange={(event) => alterar(linha.chave, { altura: event.target.value })}
+                      onBlur={(event) => alterar(linha.chave, { altura: normalizaCampoAltura(event.target.value) })}
+                    />
+                  </td>
+                  <td className="min-w-0 border-l border-line p-0 max-lg:border-t">
                     <TextField
                       label={`Quantidade da linha ${indice + 1}`}
                       compacto
                       className="[&_input]:text-right"
                       inputMode="numeric"
                       autoComplete="off"
+                      placeholder="Qtd"
                       value={linha.quantidade}
                       onChange={(event) => alterar(linha.chave, { quantidade: event.target.value })}
                     />
                   </td>
-                  <td className="border-l border-line p-0">
+                  <td className="border-l border-line p-0 max-lg:border-t">
                     <label className="flex h-11 w-full cursor-pointer items-center justify-center">
                       <span className="sr-only">Tornar genérico o item da linha {indice + 1}</span>
                       <input
@@ -382,7 +449,7 @@ export function ColarLista({
                       />
                     </label>
                   </td>
-                  <td className="border-l border-line p-0">
+                  <td className="border-l border-line p-0 max-lg:border-t">
                     <button
                       type="button"
                       aria-label={`Tirar a linha ${linha.bruta}`}
@@ -405,8 +472,8 @@ export function ColarLista({
       {pendentes > 0 ? (
         <Notice tone="warning">
           {pendentes === 1
-            ? 'Uma linha a resolver: falta a espécie, ou a quantidade não é um número.'
-            : `${pendentes} linhas a resolver: falta a espécie, ou a quantidade não é um número.`}
+            ? 'Uma linha a resolver: falta a espécie ou o recipiente, ou a altura ou a quantidade não se entende.'
+            : `${pendentes} linhas a resolver: falta a espécie ou o recipiente, ou a altura ou a quantidade não se entende.`}
         </Notice>
       ) : (
         <Button
@@ -417,6 +484,7 @@ export function ColarLista({
                 especieId: linha.especieId,
                 especie: linha.especie,
                 recipienteId: linha.recipienteId,
+                altura: normalizaCampoAltura(linha.altura.trim()),
                 quantidade: linha.quantidade.trim(),
               })),
             )

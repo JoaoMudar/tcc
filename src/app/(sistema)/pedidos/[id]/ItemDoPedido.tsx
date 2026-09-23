@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { Notice } from '@/components/ui/Notice';
 import { TextField } from '@/components/ui/TextField';
 import { EMPTY_FORM_STATE } from '@/lib/form-state';
-import { alturaParaCampo } from '@/lib/pedidos-rotulos';
+import { formatAltura, normalizaCampoAltura } from '@/lib/pedidos-rotulos';
 import { atualizarItemAction, removerItemAction } from '../actions';
 
 interface ItemDoPedidoProps {
@@ -44,8 +44,11 @@ export function ItemDoPedido({ pedidoId, itemId, quantidade, alturaM }: ItemDoPe
           name="altura"
           inputMode="decimal"
           autoComplete="off"
-          placeholder="1,20"
-          defaultValue={fields?.altura ?? alturaParaCampo(alturaM)}
+          placeholder="1,20 ou 120"
+          defaultValue={fields?.altura ?? formatAltura(alturaM)}
+          onBlur={(evento) => {
+            evento.currentTarget.value = normalizaCampoAltura(evento.currentTarget.value);
+          }}
         />
         {state.error && <Notice tone="error">{state.error}</Notice>}
         {state.success && <Notice tone="success">{state.success}</Notice>}

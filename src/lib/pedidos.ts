@@ -32,6 +32,7 @@ export {
   formatTotal,
   isCanalVenda,
   isSituacaoPedido,
+  normalizaCampoAltura,
   parseAltura,
   parsePreco,
   podeTransicionar,

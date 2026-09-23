@@ -40,7 +40,7 @@ describe('planilha de itens do pedido (T8.1, RF-54)', () => {
   it('as colunas saem na ordem em que se lê um pedido', () => {
     montar([preenchida()]);
     const textos = screen.getAllByRole('columnheader').map((th) => th.textContent);
-    expect(textos).toEqual(['Espécie', 'Recipiente', 'Altura (m)', 'Quantidade', 'Excluir']);
+    expect(textos).toEqual(['Espécie', 'Recipiente', 'Altura', 'Quantidade', 'Excluir']);
   });
 
   it('cada linha manda um campo escondido de cada, e não um por desenho de tela', () => {
@@ -118,5 +118,19 @@ describe('planilha de itens do pedido (T8.1, RF-54)', () => {
     fireEvent.change(screen.getByLabelText('Espécie do item 1'), { target: { value: 'Guapuruvu' } });
     fireEvent.click(screen.getByText('+ Cadastrar "Guapuruvu" como espécie nova'));
     expect(onCriarEspecie).toHaveBeenCalledWith(7, 'Guapuruvu');
+  });
+
+  it('a altura digitada em centímetros vira metros ao sair do campo', () => {
+    const onAlterar = vi.fn();
+    montar([preenchida({ altura: '' })], { onAlterar });
+    fireEvent.blur(screen.getByLabelText('Altura do item 1, em metros'), {
+      target: { value: '120' },
+    });
+    expect(onAlterar).toHaveBeenLastCalledWith(1, 'altura', '1,20 m');
+  });
+
+  it('no celular a altura aparece uma vez só com a unidade', () => {
+    montar([preenchida({ altura: '1,20 m' })]);
+    expect(screen.getByText('Tubete · 0,05 L · 1,20 m')).toBeInTheDocument();
   });
 });

@@ -6,7 +6,7 @@ import { ComboboxField } from '@/components/ui/ComboboxField';
 import type { SelectOption } from '@/components/ui/SelectField';
 import { TextField } from '@/components/ui/TextField';
 import { formatQuantidade, lerQuantidade } from '@/lib/lotes-rotulos';
-import { chaveSaldo } from '@/lib/pedidos-rotulos';
+import { chaveSaldo, normalizaCampoAltura } from '@/lib/pedidos-rotulos';
 import type { Celula, Linha } from './linhas-pedido';
 import type { SaldosPorChave } from './NovoPedidoForm';
 
@@ -134,7 +134,7 @@ export function GradeItens({
                 Recipiente
               </th>
               <th scope="col" className="border-l border-line px-3 py-2">
-                Altura (m)
+                Altura
               </th>
               <th scope="col" className="border-l border-line px-3 py-2 text-right">
                 Quantidade
@@ -201,6 +201,7 @@ export function GradeItens({
                       value={linha.altura}
                       onFocus={() => setFoco({ linha: indice, coluna: 2 })}
                       onChange={(evento) => onAlterar(linha.chave, 'altura', evento.target.value)}
+                      onBlur={(evento) => onAlterar(linha.chave, 'altura', normalizaCampoAltura(evento.target.value))}
                     />
                   </td>
                   <td className="border-l border-line p-0">
@@ -261,7 +262,8 @@ export function GradeItens({
                     <span className="text-base font-semibold text-ink">{especie ?? `Item ${indice + 1}, sem espécie`}</span>
                     {opcaoEspecie?.detalhe && <span className="text-xs text-muted italic">{opcaoEspecie.detalhe}</span>}
                     <span className="text-sm text-muted">
-                      {[recipiente, linha.altura && `${linha.altura} m`].filter(Boolean).join(' · ') || 'Toque para preencher'}
+                      {[recipiente, linha.altura && normalizaCampoAltura(linha.altura)].filter(Boolean).join(' · ') ||
+                        'Toque para preencher'}
                     </span>
                   </span>
                   <span className={`text-base font-semibold ${falta ? 'text-amber-800' : 'text-ink'}`}>
