@@ -10,9 +10,9 @@ describe('AcoesVerificacao', () => {
     expect(screen.getByRole('button').textContent).toBe('Enviar');
   });
 
-  it('com item pendente, avisa quantos faltam e não mostra o botão', () => {
+  it('com item pendente, não mostra o botão nem aviso', () => {
     render(<AcoesVerificacao pedidoId="pedido-1" pendentes={2} />);
     expect(screen.queryByRole('button')).toBeNull();
-    expect(screen.getByText('Faltam 2 itens para responder antes de enviar.')).toBeTruthy();
+    expect(screen.queryByText(/para responder antes de enviar/)).toBeNull();
   });
 });
