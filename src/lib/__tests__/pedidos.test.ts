@@ -14,11 +14,13 @@ import {
   formatTotal,
   isCanalVenda,
   isSituacaoPedido,
+  itemVendavel,
   normalizaCampoAltura,
   parseAltura,
   parsePreco,
   podeTransicionar,
   precoParaCampo,
+  quantidadeConfirmada,
   resolveDisponibilidade,
   totalItem,
   totalPedido,
@@ -139,6 +141,27 @@ describe('totais (RF-55)', () => {
     expect(totalPedido(itens)).toBeNull();
   });
 
+  it('na lista montada quem soma são os filhos, cada um pelo seu preço', () => {
+    const itens = [
+      { id: 'pai', generico: true, quantidade: null, precoCentavos: null },
+      { id: 'a', itemPaiId: 'pai', quantidade: 100, precoCentavos: 300 },
+      { id: 'b', itemPaiId: 'pai', quantidade: 50, precoCentavos: 1000 },
+    ];
+    expect(totalPedido(itens)).toBe(30_000 + 50_000);
+  });
+
+  it('a lista montada ainda sem espécies deixa o total a definir', () => {
+    expect(totalPedido([{ id: 'pai', generico: true, quantidade: null, precoCentavos: null }])).toBeNull();
+  });
+
+  it('o item que não tem nenhuma não pede preço para o total existir', () => {
+    const itens = [
+      { quantidade: 100, precoCentavos: 250 },
+      { quantidade: 50, precoCentavos: null, disponivel: false, quantidadeDisponivel: 0 },
+    ];
+    expect(totalPedido(itens)).toBe(25_000);
+  });
+
   it('o filho sem preço não impede o total: quem soma é o item de topo', () => {
     const itens = [
       { quantidade: 500, precoCentavos: 200 },
@@ -154,50 +177,142 @@ describe('totais (RF-55)', () => {
 });
 
 describe('disponibilidade do item (T8.9)', () => {
+  // O item completo, como era todo item antes do orçamento incompleto
+  const completo = { quantidade: 500, recipienteId: 'r1' };
+
   it('disponível não guarda quantidade nem recipiente: é o item inteiro, como pedido', () => {
-    expect(resolveDisponibilidade('disponivel', 500)).toEqual({
+    expect(resolveDisponibilidade('disponivel', completo)).toEqual({
+      value: { disponivel: true, quantidadeDisponivel: null, recipienteDisponivelId: null },
+    });
+  });
+
+  it('"tem tudo, em 17x22": o recipiente conferido acompanha o disponível quando é outro', () => {
+    expect(resolveDisponibilidade('disponivel', completo, { recipienteId: 'r2' })).toEqual({
+      value: { disponivel: true, quantidadeDisponivel: null, recipienteDisponivelId: 'r2' },
+    });
+    // O mesmo do pedido não é informação: grava nulo
+    expect(resolveDisponibilidade('disponivel', completo, { recipienteId: 'r1' })).toEqual({
       value: { disponivel: true, quantidadeDisponivel: null, recipienteDisponivelId: null },
     });
   });
 
   it('indisponível é o falso com quantidade zero', () => {
-    expect(resolveDisponibilidade('indisponivel', 500)).toEqual({
+    expect(resolveDisponibilidade('indisponivel', completo)).toEqual({
       value: { disponivel: false, quantidadeDisponivel: 0, recipienteDisponivelId: null },
     });
   });
 
   it('parcial guarda quanto tem e em que recipiente está', () => {
-    expect(resolveDisponibilidade('parcial', 500, { quantidade: 300, recipienteId: 'r1' })).toEqual({
-      value: { disponivel: false, quantidadeDisponivel: 300, recipienteDisponivelId: 'r1' },
+    expect(resolveDisponibilidade('parcial', completo, { quantidade: 300, recipienteId: 'r2' })).toEqual({
+      value: { disponivel: false, quantidadeDisponivel: 300, recipienteDisponivelId: 'r2' },
     });
   });
 
-  it('o recipiente da parcial pode ser outro, e isso não é erro', () => {
-    // Achou as 300 em saco 17x22 quando o pedido dizia 10x18: a chefia vê na aprovação
-    const resolvida = resolveDisponibilidade('parcial', 500, { quantidade: 300, recipienteId: 'outro' });
-    expect(resolvida).toHaveProperty('value');
+  it('parcial no recipiente pedido não precisa repeti-lo', () => {
+    expect(resolveDisponibilidade('parcial', completo, { quantidade: 300 })).toEqual({
+      value: { disponivel: false, quantidadeDisponivel: 300, recipienteDisponivelId: null },
+    });
   });
 
   it('parcial com zero, negativo ou quebrado é recusada', () => {
-    expect(resolveDisponibilidade('parcial', 500, { quantidade: 0, recipienteId: 'r1' })).toHaveProperty('error');
-    expect(resolveDisponibilidade('parcial', 500, { quantidade: -1, recipienteId: 'r1' })).toHaveProperty('error');
-    expect(resolveDisponibilidade('parcial', 500, { quantidade: 1.5, recipienteId: 'r1' })).toHaveProperty('error');
-    expect(resolveDisponibilidade('parcial', 500, { recipienteId: 'r1' })).toHaveProperty('error');
+    expect(resolveDisponibilidade('parcial', completo, { quantidade: 0, recipienteId: 'r1' })).toHaveProperty('error');
+    expect(resolveDisponibilidade('parcial', completo, { quantidade: -1, recipienteId: 'r1' })).toHaveProperty('error');
+    expect(resolveDisponibilidade('parcial', completo, { quantidade: 1.5, recipienteId: 'r1' })).toHaveProperty('error');
+    expect(resolveDisponibilidade('parcial', completo, { recipienteId: 'r1' })).toHaveProperty('error');
   });
 
-  it('parcial igual ao total manda usar disponível, em vez de gravar um parcial que é o todo', () => {
-    const resolvida = resolveDisponibilidade('parcial', 500, { quantidade: 500, recipienteId: 'r1' });
+  it('parcial igual ao total manda usar "Tem tudo", em vez de gravar um parcial que é o todo', () => {
+    const resolvida = resolveDisponibilidade('parcial', completo, { quantidade: 500, recipienteId: 'r1' });
     expect(resolvida).toHaveProperty('error');
-    expect((resolvida as { error: string }).error).toMatch(/disponível/i);
+    expect((resolvida as { error: string }).error).toMatch(/tem tudo/i);
   });
 
-  it('parcial sem recipiente é recusada', () => {
-    expect(resolveDisponibilidade('parcial', 500, { quantidade: 300 })).toHaveProperty('error');
+  describe('item sem quantidade ("tem ipê?")', () => {
+    const semQuantidade = { quantidade: null, recipienteId: 'r1' };
+
+    it('"tenho 350": disponível com a quantidade contada', () => {
+      expect(resolveDisponibilidade('disponivel', semQuantidade, { quantidade: 350 })).toEqual({
+        value: { disponivel: true, quantidadeDisponivel: 350, recipienteDisponivelId: null },
+      });
+    });
+
+    it('sem dizer quantas, a resposta positiva é recusada', () => {
+      expect(resolveDisponibilidade('disponivel', semQuantidade)).toEqual({
+        error: 'Informe quantas mudas existem, um número inteiro maior que zero.',
+      });
+    });
+
+    it('"não tem" continua sendo zero', () => {
+      expect(resolveDisponibilidade('indisponivel', semQuantidade)).toEqual({
+        value: { disponivel: false, quantidadeDisponivel: 0, recipienteDisponivelId: null },
+      });
+    });
+  });
+
+  describe('item sem recipiente ("manda ipê")', () => {
+    it('a resposta com muda diz em que recipiente ela está', () => {
+      const semRecipiente = { quantidade: 200, recipienteId: null };
+      expect(resolveDisponibilidade('disponivel', semRecipiente)).toEqual({
+        error: 'Escolha o recipiente em que a muda está.',
+      });
+      expect(resolveDisponibilidade('disponivel', semRecipiente, { recipienteId: 'r2' })).toEqual({
+        value: { disponivel: true, quantidadeDisponivel: null, recipienteDisponivelId: 'r2' },
+      });
+    });
+
+    it('sem quantidade e sem recipiente: "tem 350 em 17x22"', () => {
+      const vazio = { quantidade: null, recipienteId: null };
+      expect(resolveDisponibilidade('disponivel', vazio, { quantidade: 350, recipienteId: 'r2' })).toEqual({
+        value: { disponivel: true, quantidadeDisponivel: 350, recipienteDisponivelId: 'r2' },
+      });
+      expect(resolveDisponibilidade('disponivel', vazio, { quantidade: 350 })).toHaveProperty('error');
+    });
+
+    it('"não tem" não pede recipiente', () => {
+      expect(resolveDisponibilidade('indisponivel', { quantidade: null, recipienteId: null })).toHaveProperty('value');
+    });
+  });
+});
+
+describe('quantidade confirmada pela conferência', () => {
+  it('"tem tudo" confirma a pedida; parcial e "tenho 350" confirmam a contada', () => {
+    expect(quantidadeConfirmada({ quantidade: 500, disponivel: true, quantidadeDisponivel: null })).toBe(500);
+    expect(quantidadeConfirmada({ quantidade: 500, disponivel: false, quantidadeDisponivel: 300 })).toBe(300);
+    expect(quantidadeConfirmada({ quantidade: null, disponivel: true, quantidadeDisponivel: 350 })).toBe(350);
+    expect(quantidadeConfirmada({ quantidade: 500, disponivel: false, quantidadeDisponivel: 0 })).toBe(0);
+  });
+});
+
+describe('item vendável', () => {
+  const pai = (quantidade: number | null) => ({ id: 'pai', generico: true, quantidade, precoCentavos: null });
+  const filho = { id: 'f', itemPaiId: 'pai', quantidade: 100, precoCentavos: null };
+
+  it('o genérico com quantidade é vendido, e o filho dele não', () => {
+    const itens = [pai(500), filho];
+    expect(itemVendavel(itens[0], itens)).toBe(true);
+    expect(itemVendavel(filho, itens)).toBe(false);
+  });
+
+  it('na lista montada é o contrário: o filho é vendido, e o genérico não', () => {
+    const itens = [pai(null), filho];
+    expect(itemVendavel(itens[0], itens)).toBe(false);
+    expect(itemVendavel(filho, itens)).toBe(true);
+  });
+
+  it('o que a conferência disse que não tem nenhuma não é vendido', () => {
+    const item = { quantidade: 100, precoCentavos: null, disponivel: false, quantidadeDisponivel: 0 };
+    expect(itemVendavel(item, [item])).toBe(false);
   });
 });
 
 describe('composição do item genérico (T8.9)', () => {
   const linha = (especieId: string, quantidade: number) => ({ especieId, recipienteId: 'r1', quantidade });
+
+  it('sem quantidade no pai não há soma a fechar: é a lista montada', () => {
+    const linhas = [linha('e1', 120), linha('e2', 35)];
+    expect(validarComposicaoGenerico(null, linhas)).toEqual({ value: linhas });
+    expect(validarComposicaoGenerico(null, [])).toHaveProperty('error');
+  });
 
   it('fecha quando a soma é exatamente a do pai', () => {
     const linhas = [linha('e1', 300), linha('e2', 200)];

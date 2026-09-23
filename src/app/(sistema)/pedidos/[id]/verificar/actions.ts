@@ -61,15 +61,17 @@ export async function marcarDisponibilidadeAction(_previous: FormState, formData
   if (!isUuid(pedidoId) || !isUuid(itemId)) return { error: 'Item inválido.' };
   if (!isEstado(estado)) return { error: 'Resposta inválida.' };
 
-  const extras: { quantidade?: number; recipienteId?: string | null; observacoes?: string | null } = {};
+  const extras: { quantidade?: number | null; recipienteId?: string | null; observacoes?: string | null } = {};
 
-  if (estado === 'parcial') {
-    const quantidade = pedidos.parseQuantidadeItem(formText(formData, 'quantidade'));
+  // Quantas e em que recipiente: o parcial sempre diz, e o item que chegou sem
+  // quantidade ou sem recipiente também. Quem exige o quê é `resolveDisponibilidade`
+  if (estado !== 'indisponivel') {
+    const quantidade = pedidos.parseQuantidadeOpcional(formText(formData, 'quantidade'));
     if ('error' in quantidade) return { error: quantidade.error };
     const recipienteId = formText(formData, 'recipiente_id');
-    if (!isUuid(recipienteId)) return { error: 'Escolha o recipiente em que a muda está.' };
+    if (recipienteId !== '' && !isUuid(recipienteId)) return { error: 'Escolha o recipiente em que a muda está.' };
     extras.quantidade = quantidade.value;
-    extras.recipienteId = recipienteId;
+    extras.recipienteId = recipienteId || null;
   }
 
   const observacoes = pedidos.parseObservacoesPedido(formText(formData, 'observacoes'));

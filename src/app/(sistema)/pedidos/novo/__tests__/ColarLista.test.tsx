@@ -76,8 +76,32 @@ describe('conferência da lista colada (T8.16)', () => {
 
     fireEvent.click(screen.getByText('Adicionar 1 item ao pedido'));
     expect(onImportar).toHaveBeenCalledWith([
-      { generico: false, especieId: 'pit', especie: 'Pitanga', recipienteId: 'tub', altura: '', quantidade: '' },
+      { generico: false, especieId: 'pit', especie: 'Pitanga', especificacao: '', recipienteId: 'tub', altura: '', quantidade: '' },
     ]);
+  });
+
+  it('sem recipiente padrão a lista é reconhecida, e o recipiente fica a definir (RF-54)', () => {
+    const onImportar = vi.fn();
+    render(
+      <ColarLista
+        especies={ESPECIES}
+        recipientes={RECIPIENTES}
+        textoInicial="Pitanga 30"
+        onImportar={onImportar}
+        onEspecieNova={vi.fn()}
+        onFechar={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByText('Reconhecer →'));
+    fireEvent.click(screen.getByText('Adicionar 1 item ao pedido'));
+    expect(onImportar.mock.calls[0][0][0]).toMatchObject({ especieId: 'pit', recipienteId: '', quantidade: '30' });
+  });
+
+  it('o genérico leva a linha colada como descrição do que o cliente pediu', () => {
+    const { onImportar } = conferir('mudas nativas o que tiver');
+    fireEvent.click(screen.getByLabelText('Tornar genérico o item da linha 1'));
+    fireEvent.click(screen.getByText('Adicionar 1 item ao pedido'));
+    expect(onImportar.mock.calls[0][0][0]).toMatchObject({ generico: true, especificacao: 'mudas nativas o que tiver' });
   });
 
   it('quantidade que não é número continua segurando', () => {
@@ -102,6 +126,7 @@ describe('conferência da lista colada (T8.16)', () => {
         generico: false,
         especieId: 'pit',
         especie: 'Pitanga',
+        especificacao: '',
         recipienteId: 's1722',
         altura: '0,80 m',
         quantidade: '',

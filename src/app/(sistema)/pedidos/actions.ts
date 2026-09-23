@@ -21,9 +21,13 @@ const MAX_ITENS_POR_ENVIO = 200;
 /**
  * Os itens chegam como listas paralelas: uma posição por linha da tela.
  *
- * **Sem preço**: ele é digitado depois da conferência (`definirPrecosAction`).
+ * **Sem preço**: ele é digitado depois da conferência (`negociarItensAction`).
  * O item genérico chega com `item_generico` marcado e sem espécie: é o "500
  * mudas nativas" que a gerência resolve escolhendo as espécies (T8.7).
+ *
+ * **Recipiente e quantidade são opcionais** (RF-54): o cliente que pergunta
+ * "tem ipê?" não disse nenhum dos dois, e a conferência responde. O que se
+ * exige é saber o que foi pedido: a espécie, ou a descrição no genérico.
  */
 function lerItens(formData: FormData): { error: string } | { value: pedidos.NovoItem[] } {
   const especies = formData.getAll('item_especie').map(String);
@@ -44,16 +48,18 @@ function lerItens(formData: FormData): { error: string } | { value: pedidos.Novo
     if (!generico && !especies[i] && !recipientes[i] && !quantidades[i]?.trim() && !alturas[i]?.trim()) continue;
     const posicao = `item ${i + 1}`;
     if (!generico && !isUuid(especies[i])) return { error: `Escolha a espécie do ${posicao}.` };
-    if (!isUuid(recipientes[i])) return { error: `Escolha o recipiente do ${posicao}.` };
+    const recipienteId = recipientes[i] ? recipientes[i] : null;
+    if (recipienteId !== null && !isUuid(recipienteId)) return { error: `O recipiente do ${posicao} é inválido.` };
     const quantidade = pedidos.parseQuantidadeOpcional(quantidades[i] ?? '');
     if ('error' in quantidade) return { error: `No ${posicao}: ${quantidade.error.toLowerCase()}` };
     const altura = pedidos.parseAltura(alturas[i] ?? '');
     if ('error' in altura) return { error: `No ${posicao}: ${altura.error.toLowerCase()}` };
     const especificacao = pedidos.parseObservacoesPedido(especificacoes[i] ?? '');
     if ('error' in especificacao) return { error: `No ${posicao}: a especificação é longa demais.` };
+    if (generico && !especificacao.value) return { error: `Descreva o que o cliente pediu no ${posicao}.` };
     itens.push({
       especieId: generico ? null : especies[i],
-      recipienteId: recipientes[i],
+      recipienteId,
       quantidade: quantidade.value,
       alturaM: altura.value,
       precoCentavos: null,
@@ -125,7 +131,11 @@ export async function adicionarItemAction(_previous: FormState, formData: FormDa
   return { success: 'Item acrescentado.' };
 }
 
-/** RF-57: a quantidade e a altura mudam enquanto o pedido é rascunho. O preço vem depois da conferência. */
+/**
+ * RF-57: recipiente, quantidade e altura mudam enquanto o pedido é orçamento. O
+ * preço vem depois da conferência. O recipiente só muda quando o campo vem no
+ * formulário, e vazio é "o cliente não disse o tamanho".
+ */
 export async function atualizarItemAction(_previous: FormState, formData: FormData): Promise<FormState> {
   await requirePermission('pedidos', 'A');
   const pedidoId = formText(formData, 'pedido_id');
@@ -136,10 +146,20 @@ export async function atualizarItemAction(_previous: FormState, formData: FormDa
   if ('error' in quantidade) return { error: quantidade.error, fields };
   const altura = pedidos.parseAltura(fields.altura);
   if ('error' in altura) return { error: altura.error, fields };
+  let recipienteId: string | null | undefined;
+  if (formData.has('recipiente')) {
+    const texto = formText(formData, 'recipiente');
+    if (texto !== '' && !isUuid(texto)) return { error: 'Recipiente inválido.', fields };
+    recipienteId = texto || null;
+  }
 
   try {
     await withTransaction(pool, (client) =>
-      pedidos.atualizarItem(client, pedidoId, itemId, { quantidade: quantidade.value, alturaM: altura.value }),
+      pedidos.atualizarItem(client, pedidoId, itemId, {
+        quantidade: quantidade.value,
+        alturaM: altura.value,
+        ...(recipienteId === undefined ? {} : { recipienteId }),
+      }),
     );
   } catch (error) {
     return { error: toUserMessage(error), fields };
@@ -187,40 +207,62 @@ export async function transicionarPedidoAction(_previous: FormState, formData: F
 }
 
 /**
- * RF-55: os preços do pedido conferido, em listas paralelas como o resto do
- * projeto. O guard é `confirmacao_pedido`, o mesmo da aprovação; quem não é
- * chefia é recusado dentro de `definirPrecos`.
+ * RF-55: a negociação do pedido conferido (preço, quantidade e recipiente de
+ * cada item), em listas paralelas como o resto do projeto. O guard é
+ * `confirmacao_pedido`, o mesmo da aprovação; quem não é chefia é recusado
+ * dentro de `negociarItens`.
+ *
+ * Campo em branco é o que a chefia ainda não fechou, e não erro: ela salva o
+ * que já sabe e volta. A aprovação é que exige todos.
  */
-export async function definirPrecosAction(_previous: FormState, formData: FormData): Promise<FormState> {
+export async function negociarItensAction(_previous: FormState, formData: FormData): Promise<FormState> {
   const user = await requirePermission('confirmacao_pedido', 'A');
   const pedidoId = formText(formData, 'pedido_id');
   if (!isUuid(pedidoId)) return { error: 'Pedido inválido.' };
 
-  const itens = formData.getAll('preco_item_id').map(String);
-  const valores = formData.getAll('preco_valor').map(String);
-  const linhas: { itemId: string; precoCentavos: number }[] = [];
+  const itens = formData.getAll('negociar_item_id').map(String);
+  const precos = formData.getAll('negociar_preco').map(String);
+  const quantidades = formData.getAll('negociar_quantidade').map(String);
+  const recipientes = formData.getAll('negociar_recipiente').map(String);
+  const linhas: pedidos.LinhaNegociacao[] = [];
 
   for (const [indice, itemId] of itens.entries()) {
     if (!isUuid(itemId)) return { error: 'Item inválido.' };
-    const texto = (valores[indice] ?? '').trim();
-    // Campo em branco é item que a chefia ainda não precificou, e não erro: ela
-    // salva o que já sabe e volta. A aprovação é que exige todos.
-    if (texto === '') continue;
-    const preco = pedidos.parsePreco(texto);
-    if ('error' in preco) return { error: `No item ${indice + 1}: ${preco.error.toLowerCase()}` };
-    linhas.push({ itemId, precoCentavos: preco.value });
+    const posicao = `item ${indice + 1}`;
+
+    const textoPreco = (precos[indice] ?? '').trim();
+    const preco = textoPreco === '' ? null : pedidos.parsePreco(textoPreco);
+    if (preco && 'error' in preco) return { error: `No ${posicao}: ${preco.error.toLowerCase()}` };
+
+    // Zero é "tirar o item", e por isso não passa pelo parse do cadastro, que o recusa
+    const textoQuantidade = (quantidades[indice] ?? '').trim();
+    let quantidade: number | null = null;
+    if (textoQuantidade === '0') quantidade = 0;
+    else if (textoQuantidade !== '') {
+      const lida = pedidos.parseQuantidadeItem(textoQuantidade);
+      if ('error' in lida) return { error: `No ${posicao}: ${lida.error.toLowerCase()}` };
+      quantidade = lida.value;
+    }
+
+    const recipienteId = (recipientes[indice] ?? '').trim() || null;
+    if (recipienteId !== null && !isUuid(recipienteId)) return { error: `No ${posicao}: recipiente inválido.` };
+
+    if (preco === null && quantidade === null && recipienteId === null) continue;
+    linhas.push({ itemId, precoCentavos: preco ? preco.value : null, quantidade, recipienteId });
   }
   if (linhas.length === 0) return { error: 'Informe ao menos um preço.' };
 
+  let removidos: number;
   try {
-    await withTransaction(pool, (client) =>
-      pedidos.definirPrecos(client, pedidoId, linhas, { perfil: user.perfil, usuarioId: user.usuarioId }),
-    );
+    ({ removidos } = await withTransaction(pool, (client) =>
+      pedidos.negociarItens(client, pedidoId, linhas, { perfil: user.perfil, usuarioId: user.usuarioId }),
+    ));
   } catch (error) {
     return { error: toUserMessage(error) };
   }
   revalidarPedidos(pedidoId);
-  return { success: linhas.length === 1 ? 'Preço salvo.' : `${linhas.length} preços salvos.` };
+  if (removidos > 0) return { success: removidos === 1 ? 'Item tirado do pedido.' : `${removidos} itens tirados do pedido.` };
+  return { success: 'Negociação salva.' };
 }
 
 /** T8.3, RF-57: confirmar trava os itens. O guard é o do D4, `confirmacao_pedido`. */

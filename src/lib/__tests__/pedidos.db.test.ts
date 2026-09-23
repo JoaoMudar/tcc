@@ -1,4 +1,6 @@
 import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { Pool, type PoolClient } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { insertArea, insertCanteiro } from '../areas';
@@ -15,7 +17,6 @@ import {
   confirmarPedido,
   criarPedido,
   definirComposicaoGenerico,
-  definirPrecos,
   findPedido,
   iniciarVerificacao,
   listClientes,
@@ -25,6 +26,7 @@ import {
   listPedidos,
   marcarDisponibilidade,
   mudarSituacao,
+  negociarItens,
   removerItem,
   salvarObservacoesVerificacao,
   totalPedido,
@@ -43,6 +45,9 @@ import { withTransaction } from '../transaction';
 const pool = new Pool({ connectionString: process.env.TEST_DATABASE_URL });
 const prefixo = `tp${randomUUID().slice(0, 6)}`;
 const tx = <T>(fn: (client: PoolClient) => Promise<T>) => withTransaction(pool, fn);
+
+/** Uma linha de negociação que só põe preço. */
+const soPreco = (itemId: string, precoCentavos: number) => ({ itemId, precoCentavos, quantidade: null, recipienteId: null });
 
 /** Quem assina a mudança de situação nos testes (RN-52). */
 const chefia = () => ({ perfil: 'chefia' as const, usuarioId: usuario });
@@ -373,19 +378,30 @@ describe('fluxo e histórico (T8.6, RF-57, RN-52)', () => {
     expect(historico.at(-1)).toMatchObject({ situacaoAnterior: 'verificando', observacoes: 'Faltou ipê.' });
   });
 
-  it('item sem quantidade entra no cadastro, e segura a conferência até ser preenchido', async () => {
+  it('item sem quantidade nem recipiente entra no cadastro, e não segura a conferência', async () => {
     const { id } = await novoPedido({
-      itens: [{ especieId: especie, recipienteId: tubete, quantidade: null, precoCentavos: null }],
+      itens: [{ especieId: especie, recipienteId: null, quantidade: null, precoCentavos: null }],
     });
     const [item] = await listItens(pool, id);
-    expect(item.quantidade).toBeNull();
+    expect(item).toMatchObject({ quantidade: null, recipienteId: null, recipiente: null });
 
-    await expect(tx((c) => mudarSituacao(c, id, 'verificando', gerencia()))).rejects.toThrow(/sem quantidade/i);
-    expect((await findPedido(pool, id))!.situacao).toBe('cadastrado');
-
-    await tx((c) => atualizarItem(c, id, item.id, { quantidade: 40, alturaM: null }));
     await tx((c) => mudarSituacao(c, id, 'verificando', gerencia()));
     expect((await findPedido(pool, id))!.situacao).toBe('verificando');
+  });
+
+  it('a chefia completa o item no orçamento, e a resposta dada sobre o item antigo cai', async () => {
+    const { id } = await novoPedido({
+      itens: [{ especieId: especie, recipienteId: null, quantidade: 100, precoCentavos: null }],
+    });
+    const [item] = await listItens(pool, id);
+    await tx((c) => marcarDisponibilidade(c, id, item.id, 'disponivel', gerencia(), { recipienteId: saco }));
+    // A chefia recebe, reenvia (volta ao orçamento) e completa o recipiente
+    await tx((c) => concluirVerificacao(c, id, gerencia()));
+    await tx((c) => mudarSituacao(c, id, 'cadastrado', chefia()));
+    await tx((c) => atualizarItem(c, id, item.id, { quantidade: 100, alturaM: null, recipienteId: tubete }));
+
+    const [depois] = await listItens(pool, id);
+    expect(depois).toMatchObject({ recipienteId: tubete, disponivel: null, recipienteDisponivelId: null });
   });
 
   it('a gerência não aprova, e a recusa não deixa o pedido pela metade', async () => {
@@ -456,13 +472,13 @@ describe('verificação de disponibilidade (T8.10)', () => {
     // espécie e mesmo recipiente empatam na ordenação, e o desempate é o id
     const [grande, medio, pequeno] = porQuantidade(doPedido);
     await tx((c) => marcarDisponibilidade(c, id, medio.id, 'disponivel', gerencia()));
-    await tx((c) => marcarDisponibilidade(c, id, grande.id, 'parcial', gerencia(), { quantidade: 30, recipienteId: tubete }));
+    await tx((c) => marcarDisponibilidade(c, id, grande.id, 'parcial', gerencia(), { quantidade: 30, recipienteId: saco }));
     await tx((c) => marcarDisponibilidade(c, id, pequeno.id, 'indisponivel', gerencia()));
 
     const depois = new Map((await listItens(pool, id)).map((item) => [item.id, item]));
     expect(depois.get(medio.id)).toMatchObject({ disponivel: true, quantidadeDisponivel: null });
-    // O recipiente conferido pode ser outro: achou em tubete o que foi pedido em saco
-    expect(depois.get(grande.id)).toMatchObject({ disponivel: false, quantidadeDisponivel: 30, recipienteDisponivelId: tubete });
+    // O recipiente conferido pode ser outro: achou em saco o que foi pedido em tubete
+    expect(depois.get(grande.id)).toMatchObject({ disponivel: false, quantidadeDisponivel: 30, recipienteDisponivelId: saco });
     expect(depois.get(pequeno.id)).toMatchObject({ disponivel: false, quantidadeDisponivel: 0, recipienteDisponivelId: null });
   });
 
@@ -471,7 +487,7 @@ describe('verificação de disponibilidade (T8.10)', () => {
     const cheio = doPedido[0].quantidade;
     await expect(
       tx((c) => marcarDisponibilidade(c, id, doPedido[0].id, 'parcial', gerencia(), { quantidade: cheio, recipienteId: tubete })),
-    ).rejects.toThrow(/disponível/i);
+    ).rejects.toThrow(/tem tudo/i);
     expect((await listItens(pool, id))[0].disponivel).toBeNull();
   });
 
@@ -535,7 +551,7 @@ describe('verificação de disponibilidade (T8.10)', () => {
   });
 });
 
-describe('preço depois da conferência (RF-55, RN-50)', () => {
+describe('negociação depois da conferência (RF-55, RN-50)', () => {
   /** Um pedido sem preço nenhum, como o cadastro passa a criá-lo. */
   function semPreco() {
     return novoPedido({
@@ -559,27 +575,25 @@ describe('preço depois da conferência (RF-55, RN-50)', () => {
     expect(totalPedido(lidos)).toBeNull();
   });
 
-  it('antes da conferência não se precifica: o pedido ainda é rascunho', async () => {
+  it('antes da conferência não se negocia: o pedido ainda é orçamento', async () => {
     const { id } = await semPreco();
     const [item] = await listItens(pool, id);
-    await expect(
-      tx((c) => definirPrecos(c, id, [{ itemId: item.id, precoCentavos: 250 }], chefia())),
-    ).rejects.toThrow(/depois da conferência/i);
+    await expect(tx((c) => negociarItens(c, id, [soPreco(item.id, 250)], chefia()))).rejects.toThrow(
+      /depois da conferência/i,
+    );
   });
 
-  it('a gerência não precifica: o valor da venda é da chefia', async () => {
+  it('a gerência não negocia: o valor da venda é da chefia', async () => {
     const { id } = await semPreco();
     await conferido(id);
     const [item] = await listItens(pool, id);
-    await expect(
-      tx((c) => definirPrecos(c, id, [{ itemId: item.id, precoCentavos: 250 }], gerencia())),
-    ).rejects.toThrow(/chefia/i);
+    await expect(tx((c) => negociarItens(c, id, [soPreco(item.id, 250)], gerencia()))).rejects.toThrow(/chefia/i);
   });
 
   it('aprovar sem preço é recusado, e o pedido continua verificado', async () => {
     const { id } = await semPreco();
     await conferido(id);
-    await expect(tx((c) => confirmarPedido(c, id, chefia()))).rejects.toThrow(/pre(ç|c)o/i);
+    await expect(tx((c) => confirmarPedido(c, id, chefia()))).rejects.toThrow(/3 itens sem preço/i);
     expect((await findPedido(pool, id))!.situacao).toBe('verificado');
   });
 
@@ -587,7 +601,7 @@ describe('preço depois da conferência (RF-55, RN-50)', () => {
     const { id } = await semPreco();
     await conferido(id);
     const lidos = await listItens(pool, id);
-    await tx((c) => definirPrecos(c, id, lidos.map((item) => ({ itemId: item.id, precoCentavos: 200 })), chefia()));
+    await tx((c) => negociarItens(c, id, lidos.map((item) => soPreco(item.id, 200)), chefia()));
 
     await tx((c) => confirmarPedido(c, id, chefia()));
     expect((await findPedido(pool, id))!.situacao).toBe('aprovado');
@@ -596,25 +610,264 @@ describe('preço depois da conferência (RF-55, RN-50)', () => {
     expect(totalPedido(depois)).toBe(depois.reduce((soma, item) => soma + item.quantidade! * 200, 0));
   });
 
-  it('item sem quantidade não recebe preço', async () => {
+  it('baixar a quantidade e tirar item não devolvem o pedido à conferência', async () => {
     const { id } = await semPreco();
     await conferido(id);
-    const [item] = await listItens(pool, id);
-    // A conferência já exige a quantidade: aqui ela some por fora, para provar a trava
-    await pool.query('UPDATE pedidos_itens SET quantidade = NULL WHERE id = $1', [item.id]);
-    await expect(
-      tx((c) => definirPrecos(c, id, [{ itemId: item.id, precoCentavos: 250 }], chefia())),
-    ).rejects.toThrow(/quantidade/i);
+    const [grande, medio, pequeno] = porQuantidade(await listItens(pool, id));
+    const { removidos } = await tx((c) =>
+      negociarItens(
+        c,
+        id,
+        [
+          { itemId: grande.id, precoCentavos: 200, quantidade: 150, recipienteId: null },
+          { itemId: medio.id, precoCentavos: 300, quantidade: null, recipienteId: null },
+          { itemId: pequeno.id, precoCentavos: null, quantidade: 0, recipienteId: null },
+        ],
+        chefia(),
+      ),
+    );
+    expect(removidos).toBe(1);
+    expect((await findPedido(pool, id))!.situacao).toBe('verificado');
+    const depois = await listItens(pool, id);
+    expect(depois.map((i) => i.quantidade).sort((a, b) => a! - b!)).toEqual([50, 150]);
   });
 
-  it('item de outro pedido não é precificado por aqui', async () => {
+  it('pedir mais do que a conferência confirmou é recusado', async () => {
+    const { id } = await semPreco();
+    await conferido(id);
+    const [grande] = porQuantidade(await listItens(pool, id));
+    await expect(
+      tx((c) => negociarItens(c, id, [{ itemId: grande.id, precoCentavos: 200, quantidade: 201, recipienteId: null }], chefia())),
+    ).rejects.toThrow(/confirmou 200/i);
+  });
+
+  it('item de outro pedido não é negociado por aqui', async () => {
     const { id } = await semPreco();
     await conferido(id);
     const alheio = await semPreco();
     const [itemAlheio] = await listItens(pool, alheio.id);
+    await expect(tx((c) => negociarItens(c, id, [soPreco(itemAlheio.id, 250)], chefia()))).rejects.toThrow(
+      /não encontrado/i,
+    );
+  });
+});
+
+describe('os sete jeitos de o pedido chegar (pedidos-como-chegam.md)', () => {
+  /** Cria o pedido com os itens dados e abre a conferência. */
+  async function pedidoCom(itensDoPedido: Parameters<typeof criarPedido>[1]['itens']) {
+    const { id } = await novoPedido({ itens: itensDoPedido });
+    await tx((c) => iniciarVerificacao(c, id, gerencia()));
+    return id;
+  }
+
+  /** Conclui a conferência, precifica tudo o que é vendido e aprova. */
+  async function fecharCom(id: string, linhas: Parameters<typeof negociarItens>[2], concluir = true) {
+    if (concluir) await tx((c) => concluirVerificacao(c, id, gerencia()));
+    await tx((c) => negociarItens(c, id, linhas, chefia()));
+    await tx((c) => confirmarPedido(c, id, chefia()));
+    const ficha = (await findPedido(pool, id))!;
+    expect(ficha.situacao).toBe('aprovado');
+    // Todo item que sai para a carga tem recipiente e quantidade
+    expect(ficha.itens.filter((i) => !i.generico).every((i) => i.recipienteId && i.quantidade)).toBe(true);
+    return ficha;
+  }
+
+  it('1. só a lista: a gerência diz quantas tem e onde, a chefia propõe a quantidade', async () => {
+    const id = await pedidoCom([{ especieId: especie, recipienteId: null, quantidade: null, precoCentavos: null }]);
+    const [item] = await listItens(pool, id);
+    await tx((c) => marcarDisponibilidade(c, id, item.id, 'disponivel', gerencia(), { quantidade: 350, recipienteId: saco }));
+    expect((await listItens(pool, id))[0]).toMatchObject({ disponivel: true, quantidadeDisponivel: 350 });
+
+    const ficha = await fecharCom(id, [{ itemId: item.id, precoCentavos: 500, quantidade: 300, recipienteId: saco }]);
+    expect(ficha.itens[0]).toMatchObject({ quantidade: 300, recipienteId: saco, precoCentavos: 500 });
+  });
+
+  it('1. sem a chefia dizer a quantidade, a aprovação recusa e conta o que falta', async () => {
+    const id = await pedidoCom([{ especieId: especie, recipienteId: null, quantidade: null, precoCentavos: null }]);
+    const [item] = await listItens(pool, id);
+    await tx((c) => marcarDisponibilidade(c, id, item.id, 'disponivel', gerencia(), { quantidade: 350, recipienteId: saco }));
+    await tx((c) => concluirVerificacao(c, id, gerencia()));
+    await expect(tx((c) => confirmarPedido(c, id, chefia()))).rejects.toThrow(
+      /um item sem quantidade, um item sem preço/i,
+    );
+  });
+
+  it('2. espécie e quantidade: a gerência diz em qual recipiente tem', async () => {
+    const id = await pedidoCom([{ especieId: especie, recipienteId: null, quantidade: 200, precoCentavos: null }]);
+    const [item] = await listItens(pool, id);
+    await tx((c) => marcarDisponibilidade(c, id, item.id, 'disponivel', gerencia(), { recipienteId: saco }));
+    const ficha = await fecharCom(id, [soPreco(item.id, 400)]);
+    expect(ficha.itens[0]).toMatchObject({ quantidade: 200, recipienteId: saco });
+  });
+
+  it('3. espécie e tamanho: a gerência diz quantas tem', async () => {
+    const id = await pedidoCom([
+      { especieId: especie, recipienteId: saco, quantidade: null, precoCentavos: null, alturaM: 1.2 },
+    ]);
+    const [item] = await listItens(pool, id);
+    await tx((c) => marcarDisponibilidade(c, id, item.id, 'disponivel', gerencia(), { quantidade: 80 }));
+    const ficha = await fecharCom(id, [{ itemId: item.id, precoCentavos: 900, quantidade: 80, recipienteId: null }]);
+    expect(ficha.itens[0]).toMatchObject({ quantidade: 80, recipienteId: saco, alturaM: 1.2 });
+  });
+
+  it('4. completo: só conferir e pôr preço', async () => {
+    const id = await pedidoCom([{ especieId: especie, recipienteId: saco, quantidade: 200, precoCentavos: null }]);
+    const [item] = await listItens(pool, id);
+    await tx((c) => marcarDisponibilidade(c, id, item.id, 'disponivel', gerencia()));
+    await fecharCom(id, [soPreco(item.id, 400)]);
+  });
+
+  it('5. genérico por tamanho: a composição fecha a quantidade e herda o preço', async () => {
+    const id = await pedidoCom([
+      { especieId: null, recipienteId: tubete, quantidade: 500, precoCentavos: null, generico: true, especificacao: 'nativas' },
+    ]);
+    const [pai] = await listItens(pool, id);
+    await tx((c) =>
+      definirComposicaoGenerico(c, id, pai.id, [{ especieId: especie, recipienteId: tubete, quantidade: 500 }], gerencia()),
+    );
+    const ficha = await fecharCom(id, [soPreco(pai.id, 200)]);
+    expect(totalPedido(ficha.itens)).toBe(500 * 200);
+  });
+
+  it('6. genérico com filtro: só dentro do filtro', async () => {
+    const id = await pedidoCom([
+      {
+        especieId: null,
+        recipienteId: tubete,
+        quantidade: 300,
+        precoCentavos: null,
+        generico: true,
+        especificacao: 'frutíferas',
+        especiesPermitidas: [especie],
+      },
+    ]);
+    const [pai] = await listItens(pool, id);
+    await tx((c) =>
+      definirComposicaoGenerico(c, id, pai.id, [{ especieId: especie, recipienteId: saco, quantidade: 300 }], gerencia()),
+    );
+    await fecharCom(id, [soPreco(pai.id, 300)]);
+  });
+
+  it('7. projeto: a gerência monta a lista, e cada espécie é uma venda com preço próprio', async () => {
+    const id = await pedidoCom([
+      {
+        especieId: null,
+        recipienteId: null,
+        quantidade: null,
+        precoCentavos: null,
+        generico: true,
+        especificacao: 'Recompor 2 ha de mata ciliar',
+      },
+    ]);
+    const [pai] = await listItens(pool, id);
+    await tx((c) =>
+      definirComposicaoGenerico(
+        c,
+        id,
+        pai.id,
+        [
+          { especieId: especie, recipienteId: tubete, quantidade: 1200 },
+          { especieId: especie, recipienteId: saco, quantidade: 300 },
+        ],
+        gerencia(),
+      ),
+    );
+    const filhos = (await listItens(pool, id)).filter((i) => i.itemPaiId === pai.id);
+    // Na lista montada o filho nasce sem preço: é a chefia quem o põe
+    expect(filhos.every((f) => f.precoCentavos === null)).toBe(true);
+
+    // O preço do genérico não existe: quem se negocia são os filhos
+    await tx((c) => concluirVerificacao(c, id, gerencia()));
+    await expect(tx((c) => negociarItens(c, id, [soPreco(pai.id, 100)], chefia()))).rejects.toThrow(/lista montada/i);
+
+    const [grande, pequeno] = porQuantidade(filhos);
+    const ficha = await fecharCom(id, [soPreco(grande.id, 250), soPreco(pequeno.id, 900)], false);
+    expect(totalPedido(ficha.itens)).toBe(1200 * 250 + 300 * 900);
+    const lista = await listPedidos(pool, { de: '2000-01-01', ate: '2999-12-31', clienteId: cliente, canal: null });
+    expect(lista.find((p) => p.id === id)!.totalCentavos).toBe(1200 * 250 + 300 * 900);
+  });
+
+  it('o genérico precisa dizer o que foi pedido', async () => {
     await expect(
-      tx((c) => definirPrecos(c, id, [{ itemId: itemAlheio.id, precoCentavos: 250 }], chefia())),
-    ).rejects.toThrow(/não encontrado/i);
+      novoPedido({
+        itens: [{ especieId: null, recipienteId: null, quantidade: null, precoCentavos: null, generico: true, especificacao: ' ' }],
+      }),
+    ).rejects.toThrow(/descreva/i);
+  });
+});
+
+describe('as restrições do banco para o item incompleto (20260924000001)', () => {
+  async function umItem(colunas: string, valores: unknown[]) {
+    const { id } = await novoPedido();
+    const lista = valores.map((_, indice) => `$${indice + 2}`).join(', ');
+    return pool.query(`INSERT INTO pedidos_itens (pedido_id, ${colunas}) VALUES ($1, ${lista})`, [id, ...valores]);
+  }
+
+  it('sem quantidade, a resposta é quantas tem, e "disponível" é só "tem alguma"', async () => {
+    const cols = 'especie_id, disponivel, quantidade_disponivel';
+    await expect(umItem(cols, [especie, true, 350])).resolves.toBeTruthy();
+    await expect(umItem(cols, [especie, false, 0])).resolves.toBeTruthy();
+    await expect(umItem(cols, [especie, true, null])).rejects.toThrow(/disponibilidade_coerente/);
+    await expect(umItem(cols, [especie, false, 350])).rejects.toThrow(/disponibilidade_coerente/);
+  });
+
+  it('com quantidade, as regras de antes continuam', async () => {
+    const cols = 'especie_id, quantidade, disponivel, quantidade_disponivel';
+    await expect(umItem(cols, [especie, 100, true, null])).resolves.toBeTruthy();
+    await expect(umItem(cols, [especie, 100, false, 30])).resolves.toBeTruthy();
+    await expect(umItem(cols, [especie, 100, false, 100])).rejects.toThrow(/disponibilidade_coerente/);
+  });
+
+  it('"tem tudo, em 17x22" cabe; recipiente conferido sem muda não', async () => {
+    const cols = 'especie_id, quantidade, disponivel, quantidade_disponivel, recipiente_disponivel_id';
+    await expect(umItem(cols, [especie, 100, true, null, saco])).resolves.toBeTruthy();
+    await expect(umItem(cols, [especie, 100, false, 0, saco])).rejects.toThrow(/recipiente_disponivel_com_muda/);
+  });
+
+  it('o genérico sem descrição é recusado', async () => {
+    await expect(umItem('generico', [true])).rejects.toThrow(/generico_com_especificacao/);
+  });
+
+  it('a migration roda sobre linhas antigas: genérico sem texto e resposta sobre item sem quantidade', async () => {
+    const sql = readFileSync(path.join(process.cwd(), 'migrations', '20260924000001_pedido_orcamento_incompleto.sql'), 'utf8');
+    const { id } = await novoPedido();
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      // O banco como estava antes: as constraints antigas, e linhas que elas aceitavam.
+      // NOT VALID porque os testes anteriores já gravaram linhas no formato novo
+      await client.query(`ALTER TABLE pedidos_itens
+        DROP CONSTRAINT pedidos_itens_disponibilidade_coerente,
+        DROP CONSTRAINT pedidos_itens_recipiente_disponivel_com_muda,
+        DROP CONSTRAINT pedidos_itens_generico_com_especificacao`);
+      await client.query(`ALTER TABLE pedidos_itens
+        ADD CONSTRAINT pedidos_itens_disponibilidade_coerente CHECK (
+          (disponivel IS DISTINCT FROM false AND quantidade_disponivel IS NULL)
+          OR (disponivel = false AND quantidade_disponivel BETWEEN 0 AND quantidade - 1)) NOT VALID,
+        ADD CONSTRAINT pedidos_itens_recipiente_disponivel_com_muda CHECK (
+          recipiente_disponivel_id IS NULL OR quantidade_disponivel > 0) NOT VALID`);
+      const generico = await client.query<{ id: string }>(
+        `INSERT INTO pedidos_itens (pedido_id, recipiente_id, quantidade, generico) VALUES ($1, $2, 10, true) RETURNING id`,
+        [id, tubete],
+      );
+      const respondido = await client.query<{ id: string }>(
+        `INSERT INTO pedidos_itens (pedido_id, especie_id, recipiente_id, disponivel) VALUES ($1, $2, $3, true) RETURNING id`,
+        [id, especie, tubete],
+      );
+
+      await client.query(sql);
+
+      const { rows } = await client.query<{ id: string; especificacao: string | null; disponivel: boolean | null }>(
+        'SELECT id, especificacao, disponivel FROM pedidos_itens WHERE id = ANY($1)',
+        [[generico.rows[0].id, respondido.rows[0].id]],
+      );
+      const porId = new Map(rows.map((row) => [row.id, row]));
+      expect(porId.get(generico.rows[0].id)!.especificacao).toBe('Mudas nativas');
+      expect(porId.get(respondido.rows[0].id)!.disponivel).toBeNull();
+    } finally {
+      await client.query('ROLLBACK');
+      client.release();
+    }
   });
 });
 

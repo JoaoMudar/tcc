@@ -15,6 +15,9 @@ export interface Linha {
   chave: number;
   generico: boolean;
   especieId: string;
+  /** O que o cliente pediu, no item genérico: "mudas nativas de 17x22". */
+  especificacao: string;
+  /** Vazio é "o cliente não disse o tamanho": a conferência responde. */
   recipienteId: string;
   /** Texto, porque o campo é controlado: a pessoa digita "120" e vê "1,20 m" ao sair do campo. */
   altura: string;
@@ -31,11 +34,18 @@ export interface Celula {
 }
 
 export function linhaVazia(chave: number): Linha {
-  return { chave, generico: false, especieId: '', recipienteId: '', altura: '', quantidade: '' };
+  return { chave, generico: false, especieId: '', especificacao: '', recipienteId: '', altura: '', quantidade: '' };
 }
 
 export function estaVazia(linha: Linha): boolean {
-  return !linha.generico && !linha.especieId && !linha.recipienteId && !linha.altura.trim() && !linha.quantidade.trim();
+  return (
+    !linha.generico &&
+    !linha.especieId &&
+    !linha.especificacao.trim() &&
+    !linha.recipienteId &&
+    !linha.altura.trim() &&
+    !linha.quantidade.trim()
+  );
 }
 
 export function proximaChave(atuais: readonly Linha[]): number {

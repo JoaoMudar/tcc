@@ -66,7 +66,7 @@ function respondeCom(linha: Record<string, unknown>) {
 
 /** O pedido em conferência, com um item de 500 que não é genérico. */
 function emConferencia() {
-  respondeCom({ id: PEDIDO, numero: 1, situacao: 'verificando', quantidade: 500, generico: false, preco: '2.00' });
+  respondeCom({ id: PEDIDO, numero: 1, situacao: 'verificando', quantidade: 500, recipienteId: RECIPIENTE, generico: false, preco: '2.00' });
 }
 
 function gravouEm(tabela: string) {
@@ -95,7 +95,7 @@ describe('permissão (D4 §3.2)', () => {
 
 describe('a resposta abre a conferência (T8.12)', () => {
   it('responder o primeiro item do pedido cadastrado abre a conferência e grava junto', async () => {
-    respondeCom({ id: PEDIDO, numero: 1, situacao: 'cadastrado', quantidade: 500, generico: false, preco: '2.00' });
+    respondeCom({ id: PEDIDO, numero: 1, situacao: 'cadastrado', quantidade: 500, recipienteId: RECIPIENTE, generico: false, preco: '2.00' });
     const dados = form({ pedido_id: PEDIDO, item_id: ITEM, estado: 'disponivel' });
 
     expect((await actions.marcarDisponibilidadeAction({}, dados)).error).toBeUndefined();
@@ -128,18 +128,42 @@ describe('validação antes do banco', () => {
     expectNoDatabase();
   });
 
-  it('parcial sem recipiente é recusada', async () => {
-    const dados = form({ pedido_id: PEDIDO, item_id: ITEM, estado: 'parcial', quantidade: '300' });
+  it('recipiente que não é identificador é recusado antes do banco', async () => {
+    const dados = form({ pedido_id: PEDIDO, item_id: ITEM, estado: 'parcial', quantidade: '300', recipiente_id: 'saco' });
     const state = await actions.marcarDisponibilidadeAction({}, dados);
     expect(state.error).toMatch(/recipiente/i);
     expectNoDatabase();
   });
 
-  it('parcial sem quantidade é recusada', async () => {
+  it('parcial sem quantidade é recusada, e o item não é gravado', async () => {
     const dados = form({ pedido_id: PEDIDO, item_id: ITEM, estado: 'parcial', recipiente_id: RECIPIENTE });
     const state = await actions.marcarDisponibilidadeAction({}, dados);
-    expect(state.error).toMatch(/quantidade/i);
-    expectNoDatabase();
+    expect(state.error).toMatch(/quantas mudas/i);
+    expect(gravouEm('UPDATE pedidos_itens')).toEqual([]);
+  });
+
+  it('parcial no recipiente pedido não precisa repeti-lo', async () => {
+    const dados = form({ pedido_id: PEDIDO, item_id: ITEM, estado: 'parcial', quantidade: '300' });
+    expect((await actions.marcarDisponibilidadeAction({}, dados)).error).toBeUndefined();
+    const [[, valores]] = gravouEm('UPDATE pedidos_itens');
+    expect(valores).toEqual([PEDIDO, ITEM, false, 300, null, null]);
+  });
+
+  it('o item que veio sem quantidade responde "tem 350 em 17x22"', async () => {
+    const SACO = '4f7b3a5c-2d9e-4a6f-9b4c-6d0e1f2a3b4c';
+    respondeCom({ id: PEDIDO, numero: 1, situacao: 'verificando', quantidade: null, recipienteId: null, generico: false });
+    const dados = form({ pedido_id: PEDIDO, item_id: ITEM, estado: 'disponivel', quantidade: '350', recipiente_id: SACO });
+    expect((await actions.marcarDisponibilidadeAction({}, dados)).error).toBeUndefined();
+    const [[, valores]] = gravouEm('UPDATE pedidos_itens');
+    expect(valores).toEqual([PEDIDO, ITEM, true, 350, SACO, null]);
+  });
+
+  it('o item que veio sem recipiente não aceita "tem" sem dizer em qual', async () => {
+    respondeCom({ id: PEDIDO, numero: 1, situacao: 'verificando', quantidade: 200, recipienteId: null, generico: false });
+    const dados = form({ pedido_id: PEDIDO, item_id: ITEM, estado: 'disponivel' });
+    const state = await actions.marcarDisponibilidadeAction({}, dados);
+    expect(state.error).toMatch(/em que a muda está/i);
+    expect(gravouEm('UPDATE pedidos_itens')).toEqual([]);
   });
 
   it('parcial completa chega ao banco', async () => {
@@ -148,12 +172,13 @@ describe('validação antes do banco', () => {
       item_id: ITEM,
       estado: 'parcial',
       quantidade: '300',
-      recipiente_id: RECIPIENTE,
+      recipiente_id: ESPECIE,
     });
     expect((await actions.marcarDisponibilidadeAction({}, dados)).error).toBeUndefined();
     const [, valores] = gravouEm('UPDATE pedidos_itens')[0];
+    // Achou em outro recipiente: o conferido vai junto
     expect(valores).toContain(300);
-    expect(valores).toContain(RECIPIENTE);
+    expect(valores).toContain(ESPECIE);
   });
 
   it('item que não é identificador não chega ao SQL', async () => {

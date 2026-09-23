@@ -51,24 +51,38 @@ export function ItemEmFoco({
     <Modal titulo={`Item ${indice + 1}`} onFechar={onFechar}>
       {linha.generico ? (
         <>
-          <p className="text-base font-semibold text-blue-900">Espécie a definir na conferência</p>
+          {/* O genérico se descreve: é o texto que a gerência lê para montar o item */}
+          <TextField
+            label="O que o cliente pediu"
+            autoComplete="off"
+            placeholder="Ex.: mudas nativas, o que tiver"
+            value={linha.especificacao}
+            onChange={(evento) => onAlterar(linha.chave, 'especificacao', evento.target.value)}
+          />
           <Button variant="secondary" onClick={() => onAlterar(linha.chave, 'generico', false)}>
             Escolher a espécie agora
           </Button>
         </>
       ) : (
-        <ComboboxField
-          label="Espécie"
-          options={opcoesEspecie}
-          value={linha.especieId}
-          onChange={(valor) => onAlterar(linha.chave, 'especieId', valor)}
-          onCriarNova={(nome) => onCriarEspecie(linha.chave, nome)}
-          rotuloCriar={(nome) => `+ Cadastrar "${nome}" como espécie nova`}
-        />
+        <>
+          <ComboboxField
+            label="Espécie"
+            options={opcoesEspecie}
+            value={linha.especieId}
+            onChange={(valor) => onAlterar(linha.chave, 'especieId', valor)}
+            onCriarNova={(nome) => onCriarEspecie(linha.chave, nome)}
+            rotuloCriar={(nome) => `+ Cadastrar "${nome}" como espécie nova`}
+          />
+          {!linha.especieId && (
+            <Button variant="secondary" onClick={() => onAlterar(linha.chave, 'generico', true)}>
+              O cliente não escolheu a espécie
+            </Button>
+          )}
+        </>
       )}
 
       <ComboboxField
-        label="Recipiente"
+        label="Recipiente (opcional)"
         options={recipientes}
         value={linha.recipienteId}
         onChange={(valor) => onAlterar(linha.chave, 'recipienteId', valor)}

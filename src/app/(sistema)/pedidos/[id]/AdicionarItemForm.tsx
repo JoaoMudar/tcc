@@ -17,7 +17,7 @@ interface AdicionarItemFormProps {
 }
 
 /**
- * RF-54: um item a mais no pedido em rascunho. Os campos têm os mesmos nomes da
+ * RF-54: um item a mais no pedido em orçamento. Os campos têm os mesmos nomes da
  * tela de pedido novo (`item_*`), e é por isso que a mesma leitura no servidor
  * atende as duas.
  */
@@ -31,13 +31,13 @@ export function AdicionarItemForm({ pedidoId, especies, recipientes }: Adicionar
       <h2 className="text-sm font-bold tracking-widest text-muted uppercase">Acrescentar item</h2>
       <input type="hidden" name="pedido_id" value={pedidoId} />
       <ComboboxField label="Espécie" name="item_especie" options={especies} value={especieId} onChange={setEspecieId} required />
+      {/* Opcional: "tem ipê?" não diz o tamanho, e a conferência responde em qual existe */}
       <ComboboxField
-        label="Recipiente"
+        label="Recipiente (opcional)"
         name="item_recipiente"
         options={recipientes}
         value={recipienteId}
         onChange={setRecipienteId}
-        required
       />
       <TextField
         label="Altura em metros (opcional)"
@@ -49,7 +49,7 @@ export function AdicionarItemForm({ pedidoId, especies, recipientes }: Adicionar
           evento.currentTarget.value = normalizaCampoAltura(evento.currentTarget.value);
         }}
       />
-      <TextField label="Quantidade" name="item_quantidade" inputMode="numeric" autoComplete="off" required />
+      <TextField label="Quantidade (opcional)" name="item_quantidade" inputMode="numeric" autoComplete="off" />
       {state.error && <Notice tone="error">{state.error}</Notice>}
       {state.success && <Notice tone="success">{state.success}</Notice>}
       <Button type="submit" variant="outline" pending={pending}>

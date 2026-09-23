@@ -32,7 +32,7 @@ export function isCanalVenda(value: string): value is CanalVenda {
  * que descreviam um comercial sem conferência nem separação.
  */
 export const SITUACOES_PEDIDO = {
-  cadastrado: 'Cadastrado',
+  cadastrado: 'Orçamento',
   verificando: 'Verificando',
   verificado: 'Verificado',
   pendente_alteracao: 'Pendente de alteração',
@@ -236,12 +236,36 @@ export function chaveSaldo(especieId: string, recipienteId: string): string {
 }
 
 export interface ItemCalculavel {
-  /** Nula só no rascunho, e preço só existe depois da conferência, que a exige. */
+  /** Só é preciso para achar o pai do filho de um item genérico. */
+  id?: string;
+  /** Nula até o cliente dizer quantas; a aprovação a exige no item vendável. */
   quantidade: number | null;
   /** Nulo até alguém precificar, o que só acontece depois da conferência. */
   precoCentavos: number | null;
   /** Preenchido só no filho de um item genérico. */
   itemPaiId?: string | null;
+  generico?: boolean;
+  disponivel?: boolean | null;
+  quantidadeDisponivel?: number | null;
+}
+
+/**
+ * **O item que é vendido**, e que por isso tem preço, entra no total e é
+ * cobrado na aprovação. É a mesma condição de `ITEM_VENDAVEL`, no SQL.
+ *
+ * - o item de topo com espécie;
+ * - o genérico **com** quantidade ("500 mudas nativas"): os filhos dizem quais
+ *   espécies o compõem, e herdam o preço dele;
+ * - o filho do genérico **sem** quantidade ("manda o que tiver"): o genérico é
+ *   uma lista montada pela gerência, e cada espécie dela é uma venda.
+ *
+ * O que a gerência disse que não tem nenhuma não é vendido: a aprovação o tira.
+ */
+export function itemVendavel(item: ItemCalculavel, itens: readonly ItemCalculavel[]): boolean {
+  if (item.disponivel === false && item.quantidadeDisponivel === 0) return false;
+  if (!item.itemPaiId) return !item.generico || item.quantidade !== null;
+  const pai = itens.find((outro) => outro.id === item.itemPaiId);
+  return pai !== undefined && pai.quantidade === null;
 }
 
 /** RF-55: o total do item é quantidade por preço, em centavos. Sem preço, nulo. */
@@ -250,20 +274,37 @@ export function totalItem(item: ItemCalculavel): number | null {
 }
 
 /**
- * RF-55: o total do pedido é a soma dos itens, e nada mais entra nele.
+ * RF-55: o total do pedido é a soma dos itens vendáveis (`itemVendavel`), e
+ * nada mais entra nele. O filho do genérico com quantidade herda o preço do pai,
+ * e contar os dois dobraria a venda.
  *
- * **Só os itens de topo somam.** O filho de um item genérico herda o preço do
- * pai e existe para dizer qual espécie compõe aquelas 500 mudas, não para
- * cobrá-las de novo: contar os dois dobraria a venda.
- *
- * **Falta um preço, falta o total**: devolver a soma parcial anunciaria um
- * valor de venda menor que o verdadeiro, e é justamente o número que a chefia
- * olha para aprovar. Enquanto houver item sem preço, a tela diz "a definir".
+ * **Falta um preço ou uma quantidade, falta o total**: devolver a soma parcial
+ * anunciaria um valor de venda menor que o verdadeiro, e é justamente o número
+ * que a chefia olha para aprovar. O genérico sem quantidade e ainda sem
+ * composição também deixa o total "a definir": a venda dele ainda não existe.
  */
 export function totalPedido(itens: readonly ItemCalculavel[]): number | null {
-  const topo = itens.filter((item) => !item.itemPaiId);
-  if (topo.some((item) => item.precoCentavos === null || item.quantidade === null)) return null;
-  return topo.reduce((soma, item) => soma + item.quantidade! * item.precoCentavos!, 0);
+  const listaVazia = itens.some(
+    (item) => item.generico && !item.itemPaiId && item.quantidade === null && !itens.some((f) => f.itemPaiId === item.id),
+  );
+  if (listaVazia) return null;
+  const vendaveis = itens.filter((item) => itemVendavel(item, itens));
+  if (vendaveis.some((item) => item.precoCentavos === null || item.quantidade === null)) return null;
+  return vendaveis.reduce((soma, item) => soma + item.quantidade! * item.precoCentavos!, 0);
+}
+
+/**
+ * Quantas mudas a conferência confirmou: o que a gerência contou, ou a
+ * quantidade pedida quando ela respondeu "tem tudo". É o teto da negociação,
+ * e pedir mais do que isso é voltar à conferência.
+ */
+export function quantidadeConfirmada(item: {
+  quantidade: number | null;
+  disponivel: boolean | null;
+  quantidadeDisponivel: number | null;
+}): number {
+  if (item.disponivel === null) return item.quantidade ?? 0;
+  return item.quantidadeDisponivel ?? item.quantidade ?? 0;
 }
 
 /** O total que a tela imprime: "R$ 1.250,00" ou "a definir" enquanto faltar preço. */
@@ -285,38 +326,58 @@ export interface Disponibilidade {
   recipienteDisponivelId: string | null;
 }
 
+/** O que a conferência precisa saber do item para interpretar a resposta. */
+export interface ItemParaResponder {
+  /** Nula quando o cliente não disse quantas: a resposta é "quantas tem". */
+  quantidade: number | null;
+  /** Nulo quando o cliente não disse o tamanho: a resposta diz em qual está. */
+  recipienteId: string | null;
+}
+
 /**
  * Três botões viram três colunas. **Parcial e indisponível compartilham
  * `disponivel = false`**, e quem os distingue é a quantidade: zero é "não tem
  * nenhuma", maior que zero é "tem só isto". É a mesma forma do CHECK
  * `pedidos_itens_disponibilidade_coerente`, e esta função existe para a tela e
  * o servidor chegarem nela pelo mesmo caminho.
+ *
+ * **O item que chegou incompleto muda a pergunta.** Sem quantidade, não há
+ * "tem tudo" nem "tem parte": a gerência diz quantas tem ("tenho 350"), e
+ * `disponivel` é só "tem alguma". Sem recipiente, toda resposta com muda diz em
+ * qual recipiente ela está, porque é a única informação de tamanho que o pedido
+ * vai ter. No item completo o recipiente conferido é opcional no "tem tudo":
+ * "tem, mas em 17x22".
  */
 export function resolveDisponibilidade(
   estado: EstadoDisponibilidade,
-  total: number,
+  item: ItemParaResponder,
   extras: { quantidade?: number | null; recipienteId?: string | null } = {},
 ): { error: string } | { value: Disponibilidade } {
-  if (estado === 'disponivel') {
-    return { value: { disponivel: true, quantidadeDisponivel: null, recipienteDisponivelId: null } };
-  }
   if (estado === 'indisponivel') {
     return { value: { disponivel: false, quantidadeDisponivel: 0, recipienteDisponivelId: null } };
   }
 
-  const quantidade = extras.quantidade ?? null;
-  if (quantidade === null || !Number.isInteger(quantidade) || quantidade < 1) {
-    return { error: 'Informe quantas mudas existem, um número inteiro maior que zero.' };
-  }
-  if (quantidade >= total) {
-    return { error: 'Na parcial a quantidade precisa ser menor que a pedida. Se tem tudo, use "Disponível".' };
-  }
-  if (!extras.recipienteId) {
+  // Conferido igual ao pedido não é informação: grava nulo, como "tem tudo" sempre gravou
+  const conferido = extras.recipienteId && extras.recipienteId !== item.recipienteId ? extras.recipienteId : null;
+  if (!item.recipienteId && !conferido) {
     return { error: 'Escolha o recipiente em que a muda está.' };
   }
-  return {
-    value: { disponivel: false, quantidadeDisponivel: quantidade, recipienteDisponivelId: extras.recipienteId },
-  };
+
+  if (item.quantidade === null || estado === 'parcial') {
+    const quantidade = extras.quantidade ?? null;
+    if (quantidade === null || !Number.isInteger(quantidade) || quantidade < 1) {
+      return { error: 'Informe quantas mudas existem, um número inteiro maior que zero.' };
+    }
+    if (item.quantidade === null) {
+      return { value: { disponivel: true, quantidadeDisponivel: quantidade, recipienteDisponivelId: conferido } };
+    }
+    if (quantidade >= item.quantidade) {
+      return { error: 'Na parcial a quantidade precisa ser menor que a pedida. Se tem tudo, use "Tem tudo".' };
+    }
+    return { value: { disponivel: false, quantidadeDisponivel: quantidade, recipienteDisponivelId: conferido } };
+  }
+
+  return { value: { disponivel: true, quantidadeDisponivel: null, recipienteDisponivelId: conferido } };
 }
 
 /** Uma espécie escolhida para compor um item genérico. */
@@ -329,13 +390,16 @@ export interface LinhaComposicao {
 /**
  * A composição do item genérico: quais espécies atendem "500 mudas nativas".
  *
- * **A soma tem de fechar exatamente.** Menos que o pedido entregaria menos do
+ * **Com quantidade no pai, a soma tem de fechar exatamente.** Menos que o pedido entregaria menos do
  * que foi vendido; mais entregaria muda que ninguém comprou. E o escopo, quando
  * o cliente deu um, é **bloqueio rígido**: a compensação ambiental que exige
  * cinco espécies do bioma não aceita a sexta, por mais que o viveiro a tenha.
+ *
+ * **Sem quantidade no pai não há soma a fechar**: "manda o que tiver" é a
+ * gerência montando a lista, e cada linha é uma venda própria.
  */
 export function validarComposicaoGenerico(
-  quantidadePai: number,
+  quantidadePai: number | null,
   linhas: readonly LinhaComposicao[],
   permitidas: readonly string[] = [],
 ): { error: string } | { value: readonly LinhaComposicao[] } {
@@ -353,6 +417,7 @@ export function validarComposicaoGenerico(
     }
   }
 
+  if (quantidadePai === null) return { value: linhas };
   const soma = linhas.reduce((total, linha) => total + linha.quantidade, 0);
   if (soma < quantidadePai) return { error: `Faltam ${quantidadePai - soma} mudas para fechar o item.` };
   if (soma > quantidadePai) return { error: `Passou ${soma - quantidadePai} mudas do que o item pede.` };

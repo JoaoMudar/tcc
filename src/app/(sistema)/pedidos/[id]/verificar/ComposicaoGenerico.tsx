@@ -12,9 +12,10 @@ import { definirComposicaoAction } from './actions';
 
 export interface GenericoParaCompor {
   id: string;
-  quantidade: number;
-  recipiente: string;
-  recipienteId: string;
+  /** Nula é a lista montada ("manda o que tiver"): não há soma a fechar. */
+  quantidade: number | null;
+  recipiente: string | null;
+  recipienteId: string | null;
   especificacao: string | null;
   disponivel: boolean | null;
   /** Vazio é "qualquer espécie serve". */
@@ -50,6 +51,10 @@ interface Linha {
  * **O contador ao vivo é o que faz a tela funcionar**: a soma tem de fechar
  * exatamente, e descobrir isso só no envio faria a pessoa recomeçar a conta.
  * O botão de concluir só aparece quando fecha.
+ *
+ * **Sem quantidade no pedido, é a gerência montando a lista** ("manda o que
+ * tiver de 17x22"): não há soma a fechar, o contador só diz quantas mudas a
+ * lista tem, e cada espécie vira uma venda que a chefia precifica.
  */
 export function ComposicaoGenerico({ pedidoId, item, especies, recipientes }: ComposicaoGenericoProps) {
   const [state, formAction, pending] = useActionState(definirComposicaoAction, EMPTY_FORM_STATE);
@@ -63,15 +68,17 @@ export function ComposicaoGenerico({ pedidoId, item, especies, recipientes }: Co
         recipienteId: filho.recipienteId,
         quantidade: String(filho.quantidade),
       }))
-    : [{ chave: 1, especieId: '', recipienteId: item.recipienteId, quantidade: '' }];
+    : [{ chave: 1, especieId: '', recipienteId: item.recipienteId ?? '', quantidade: '' }];
   const [linhas, setLinhas] = useState<Linha[]>(iniciais);
 
   const alterar = (chave: number, campo: keyof Omit<Linha, 'chave'>, valor: string) =>
     setLinhas((atuais) => atuais.map((linha) => (linha.chave === chave ? { ...linha, [campo]: valor } : linha)));
 
   const soma = linhas.reduce((total, linha) => total + (lerQuantidade(linha.quantidade) ?? 0), 0);
-  const restante = item.quantidade - soma;
-  const completo = restante === 0;
+  const listaMontada = item.quantidade === null;
+  const restante = (item.quantidade ?? 0) - soma;
+  const preenchidas = linhas.every((linha) => linha.especieId && linha.recipienteId && lerQuantidade(linha.quantidade));
+  const completo = listaMontada ? preenchidas : restante === 0;
 
   // Escopo do cliente: sem lista, qualquer espécie serve (T8.7)
   const oferecidas =
@@ -83,8 +90,10 @@ export function ComposicaoGenerico({ pedidoId, item, especies, recipientes }: Co
     <li className={`flex flex-col gap-3 rounded-xl border-2 p-4 ${item.disponivel ? 'border-green-600 bg-green-50' : 'border-line bg-white'}`}>
       <div>
         <p className="text-sm font-bold tracking-widest text-muted uppercase">Item sem espécie definida</p>
-        <p className="text-base font-bold text-ink">{formatQuantidade(item.quantidade)} mudas</p>
-        <p className="text-sm text-muted">Recipiente mínimo: {item.recipiente}</p>
+        <p className="text-base font-bold text-ink">
+          {listaMontada ? 'Lista a montar: quantas tiver' : `${formatQuantidade(item.quantidade!)} mudas`}
+        </p>
+        {item.recipiente && <p className="text-sm text-muted">Recipiente mínimo: {item.recipiente}</p>}
         {item.especificacao && <p className="mt-1 text-sm text-muted">Pedido do cliente: {item.especificacao}</p>}
         {item.especiesPermitidas.length > 0 && (
           <p className="mt-1 text-sm font-semibold text-amber-900">
@@ -142,7 +151,7 @@ export function ComposicaoGenerico({ pedidoId, item, especies, recipientes }: Co
               {
                 chave: Math.max(...atuais.map((l) => l.chave)) + 1,
                 especieId: '',
-                recipienteId: item.recipienteId,
+                recipienteId: item.recipienteId ?? '',
                 quantidade: '',
               },
             ])
@@ -152,9 +161,11 @@ export function ComposicaoGenerico({ pedidoId, item, especies, recipientes }: Co
         </Button>
 
         <p
-          className={`text-base font-bold ${completo ? 'text-green-800' : restante < 0 ? 'text-red-700' : 'text-amber-900'}`}
+          className={`text-base font-bold ${completo ? 'text-green-800' : !listaMontada && restante < 0 ? 'text-red-700' : 'text-amber-900'}`}
         >
-          {completo
+          {listaMontada
+            ? `${formatQuantidade(soma)} mudas na lista`
+            : completo
             ? 'Completo!'
             : restante > 0
               ? `Faltam ${formatQuantidade(restante)}`

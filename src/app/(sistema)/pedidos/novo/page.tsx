@@ -35,7 +35,9 @@ export default async function NovoPedidoPage() {
     saldos[chave] = { pronto: saldos[chave]?.pronto ?? 0, producao: linha.quantidade };
   }
 
-  const faltaCadastro = especies.length === 0 || recipientes.filter((r) => r.ativo).length === 0;
+  // Sem espécie cadastrada não há o que pedir. Recipiente não trava: o item pode
+  // nascer sem ele, e a conferência responde em qual a muda está
+  const faltaCadastro = especies.length === 0;
 
   return (
     <main>
@@ -46,7 +48,7 @@ export default async function NovoPedidoPage() {
         </Link>
         {faltaCadastro ? (
           <Notice tone="info">
-            O item do pedido precisa de espécie e recipiente cadastrados.{' '}
+            O item do pedido precisa de espécie cadastrada.{' '}
             <Link href="/cadastros" className="font-semibold underline">
               Abrir os cadastros
             </Link>
