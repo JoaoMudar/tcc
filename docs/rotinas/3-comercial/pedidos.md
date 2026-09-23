@@ -23,9 +23,9 @@ fluxo antigo de três situações não sabia dizer:
 
 | Situação | Quem trabalha nela | O que acontece |
 |---|---|---|
-| `cadastrado` | Gerência | A chefia registrou; falta conferir no viveiro |
+| `cadastrado` | Gerência | A chefia registrou; falta conferir no viveiro. A tela mostra **Orçamento** |
 | `verificando` | Gerência | A conferência está aberta, item a item |
-| `verificado` | Chefia | A gerência respondeu tudo e devolveu; é aqui que a chefia fecha o preço |
+| `verificado` | Chefia | A gerência respondeu tudo e devolveu; é aqui que a chefia negocia preço e quantidade |
 | `pendente_alteracao` | Chefia | A chefia pediu mudança antes de aprovar |
 | `aprovado` | Gerência | Vendido, e o item não muda mais. Falta organizar as viagens |
 | `separando` | Gerência | As cargas existem, e estão sendo contadas |
@@ -66,8 +66,14 @@ e elas viram quatro colunas de `pedidos_itens`:
 |---|---|---|---|
 | ainda não olhou | nulo | nulo | nulo |
 | tem tudo | verdadeiro | nulo | nulo |
-| tem parte | falso | de 1 a total menos 1 | obrigatório |
+| tem parte | falso | de 1 a total menos 1 | quando é outro que o pedido |
 | não tem | falso | 0 | nulo |
+| tem N (item sem quantidade) | verdadeiro | N | quando é outro que o pedido |
+
+**O item que chegou incompleto muda a pergunta.** Sem quantidade ("tem ipê?"), a resposta é "não
+tem" ou "tem N", e `disponivel` é só "tem alguma". Sem recipiente, toda resposta com muda diz em
+qual recipiente ela está, porque é a única informação de tamanho que o pedido vai ter. No "tem
+tudo" do item completo o recipiente conferido é opcional: "tem, mas em 17x22".
 
 **Parcial e indisponível compartilham `disponivel = false`**, e quem os distingue é a quantidade.
 O recipiente da parcial **pode ser outro** que o pedido: achou as 300 em saco 17x22 quando o pedido
@@ -100,12 +106,20 @@ o carregamento sem ninguém entender por quê.
 O preço vem no item do pedido, digitado por quem registra (RF-55, RN-50). O sistema guarda por
 quanto se vendeu, e não calcula custo, margem nem piso.
 
-**O cadastro não pede preço.** Quem registra o pedido está no meio de uma conversa de WhatsApp e
-anota espécie, recipiente e quantidade. O valor se fecha com o pedido em `verificado`, quando a
-conferência já disse quantas mudas existem e em que recipiente: é aí que a ficha mostra o
-formulário de preços, e é a chefia quem o preenche. **A aprovação exige todos os preços**, e é essa
-recusa que impede uma venda de ser registrada sem valor. Enquanto faltar um, a tela diz "a definir"
-no lugar do total, em vez de anunciar uma soma parcial.
+**O cadastro não pede preço, e nem recipiente ou quantidade.** Quem registra o pedido está no meio
+de uma conversa de WhatsApp e anota o que o cliente disse: a espécie, ou a descrição do item sem
+espécie, e o resto quando ele disser. Os sete jeitos de o pedido chegar estão em
+[`pedidos-como-chegam.md`](pedidos-como-chegam.md).
+
+**O valor se fecha na negociação**, com o pedido em `verificado`, quando a conferência já disse
+quantas mudas existem e em que recipiente. A ficha mostra então um formulário por item vendido,
+com preço, quantidade (preenchida com a confirmada) e, quando a gerência achou a muda em outro
+recipiente, a escolha entre os dois. A chefia baixa a quantidade ou zera o item sem devolver o
+pedido à conferência; pedir mais do que existe, ou outro recipiente, é "Salvar e reenviar".
+
+**A aprovação exige o item completo**: todo item vendido com recipiente, quantidade e preço, e todo
+item sem espécie já composto. A recusa conta o que falta por motivo. Enquanto faltar preço ou
+quantidade, a tela diz "a definir" no lugar do total, em vez de anunciar uma soma parcial.
 
 ### Colar a lista do cliente
 
@@ -178,13 +192,19 @@ Quando o cliente restringe ("só estas cinco do bioma"), as espécies aceitas fi
 fora, e não apenas deixa de oferecê-la na busca. **Sem nenhuma linha, qualquer espécie serve**, que
 é o caso comum.
 
-O filho herda o preço do pai, e **o total do pedido soma só os itens de topo**: o filho diz qual
-espécie compõe as 500 mudas, não quanto elas custam. Somar os dois dobraria a venda.
+O filho herda o preço do pai, e **o total do pedido soma o pai**: o filho diz qual espécie compõe
+as 500 mudas, não quanto elas custam. Somar os dois dobraria a venda.
+
+**Sem quantidade, o item genérico é uma lista montada** ("recompor 2 ha de mata ciliar", "o que
+tiver de nativas"). A gerência escolhe espécies e quantidades sem soma a fechar, e cada filho é uma
+venda: nasce sem preço, e a chefia o precifica como qualquer item. O que entra no total é o **item
+vendável**, a mesma condição no código (`itemVendavel`) e no SQL (`itemVendavelSql`): o item de
+topo com espécie, o genérico com quantidade e o filho do genérico sem quantidade.
 
 ### A aprovação consome a conferência
 
-Ao aprovar, o pedido perde os itens indisponíveis e os parciais passam a valer pela quantidade e
-pelo recipiente que existem de verdade. É o que faz a etapa seguinte ser simples: quem separa a
+Ao aprovar, o pedido perde os itens indisponíveis, os parciais passam a valer pela quantidade que
+existe de verdade, e o recipiente conferido substitui o pedido em toda resposta com muda. É o que faz a etapa seguinte ser simples: quem separa a
 carga nunca vê "tem 300 das 500", vê 300, que é o que vai no caminhão.
 
 ## Modelo de dados
@@ -192,7 +212,8 @@ carga nunca vê "tem 300 das 500", vê 300, que é o que vai no caminhão.
 `pedidos`, `pedidos_itens`, `pedidos_historico`, `pedidos_itens_especies_permitidas`,
 `pedidos_cargas` e `pedidos_cargas_itens`, com o cliente em `cadastro.pessoas` pelo papel `cliente`
 (RN-45). Declaradas em `migrations/20260901000006_comercial_pedidos.sql`,
-`20260921000001_pedidos_fluxo_situacao.sql` e `20260921000002_pedidos_verificacao_e_cargas.sql`, e
+`20260921000001_pedidos_fluxo_situacao.sql`, `20260921000002_pedidos_verificacao_e_cargas.sql` e
+`20260924000001_pedido_orcamento_incompleto.sql`, e
 descritas em [`C8`](../../engenharia/C-modelagem/C8-dicionario-de-dados.md).
 
 **Não há entrega, roteiro nem motorista.** A carga termina quando o pedido fica pronto para envio,

@@ -469,13 +469,13 @@ não dependa de abrir outro arquivo. **Não editar aqui**: a fonte é o `B2`.
 | RF-51 | O sistema deve apresentar, no lote, as etapas do protocolo com a data da última execução, o próximo vencimento e a situação de cada uma | D | EN |
 | RF-52 | O sistema deve apresentar a etapa em atenção dentro da janela de aviso e em atraso depois do vencimento, e sem indicação de situação quando o alerta da etapa estiver desligado | D | OP |
 | RF-53 | O sistema deve encerrar o protocolo do lote quando ele se encerra por saldo zero, por expedição total ou por divisão, deixando de sugerir etapas dele e cancelando as tarefas ainda não confirmadas sem removê-las | D | ORG |
-| RF-54 | O sistema deve permitir registrar pedido com cliente, canal de venda e itens compostos por espécie e recipiente, com quantidade e altura opcionais no cadastro (a quantidade é exigida antes da conferência), montando os itens um a um ou a partir da lista de texto que o cliente enviou, sempre com revisão de quem registra | D | OP |
-| RF-55 | O sistema deve registrar o preço unitário informado em cada item do pedido depois da conferência de disponibilidade, e apresentar o total do item e o do pedido | D | EN |
+| RF-54 | O sistema deve permitir registrar pedido com cliente, canal de venda e itens identificados pela espécie ou, no item sem espécie escolhida, pela descrição do que o cliente pediu, com recipiente, quantidade e altura opcionais no cadastro (exigidos na aprovação), montando os itens um a um ou a partir da lista de texto que o cliente enviou, sempre com revisão de quem registra | D | OP |
+| RF-55 | O sistema deve registrar, depois da conferência de disponibilidade, o preço unitário de cada item vendido e a quantidade combinada, limitada à que a conferência confirmou, e apresentar o total do item e o do pedido | D | EN |
 | RF-56 | O sistema deve apresentar, ao lado de cada item do pedido, a quantidade de muda pronta que a produção tem daquela espécie e recipiente | D | OP |
 | RF-57 | O sistema deve controlar a situação do pedido ao longo das oito situações que vão do cadastro ao pronto para envio, impedindo alteração de item depois da aprovação | D | ORG |
 | RF-58 | O sistema deve listar os pedidos com filtro por cliente, canal e período | D | OP |
-| RF-59 | O sistema deve registrar, para cada item do pedido, a disponibilidade conferida no viveiro, que pode ser total, parcial com a quantidade encontrada e o recipiente em que ela está, ou nenhuma | D | OP |
-| RF-60 | O sistema deve permitir compor em espécies o item que o cliente pediu sem escolher espécie, respeitando as espécies que ele aceita | D | OP |
+| RF-59 | O sistema deve registrar, para cada item do pedido, a disponibilidade conferida no viveiro, que pode ser total, parcial com a quantidade encontrada e o recipiente em que ela está, ou nenhuma; no item cadastrado sem quantidade ou sem recipiente, a conferência registra quantas mudas existem e em que recipiente | D | OP |
+| RF-60 | O sistema deve permitir compor em espécies o item que o cliente pediu sem escolher espécie, respeitando as espécies que ele aceita; sem quantidade no item, a composição é uma lista montada, e cada espécie dela é vendida com preço próprio | D | OP |
 | RF-61 | O sistema deve permitir organizar o pedido aprovado em cargas e registrar a separação de cada item em cada carga | D | OP |
 | RF-62 | O sistema deve apresentar o dia de carregamento de cada pedido e o calendário de entregas e carregamentos do mês | D | OP |
 

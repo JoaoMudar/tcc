@@ -46,8 +46,8 @@ Notação dos fluxos: **FP** fluxo principal, **FA** fluxo alternativo, **FE** f
 | **Objetivo** | Registrar no sistema um pedido já negociado por WhatsApp, antes que o detalhe se perca |
 | **Requisitos** | RF-54, RF-55, RF-15 *(de UC-10)* |
 | **Frequência** | Diária |
-| **Pré-condições** | Existe ao menos uma espécie e um recipiente cadastrados |
-| **Pós-condições** | Pedido criado no estado *cadastrado*, com ao menos um item e o preço unitário de cada um |
+| **Pré-condições** | Existe ao menos uma espécie cadastrada |
+| **Pós-condições** | Pedido criado no estado *cadastrado*, apresentado como orçamento, com ao menos um item identificado pela espécie ou pela descrição do que o cliente pediu |
 
 ### FP: Fluxo principal
 
@@ -56,12 +56,17 @@ Notação dos fluxos: **FP** fluxo principal, **FA** fluxo alternativo, **FE** f
 3. A chefia seleciona um cliente existente.
 4. O sistema solicita o canal de venda e apresenta *atacado* como opção padrão.
 5. A chefia confirma ou altera o canal.
-6. A chefia adiciona um item informando espécie, recipiente, quantidade e **preço unitário**.
-7. O sistema valida que a quantidade e o preço são positivos, apresenta ao lado do item o saldo de muda pronta daquela espécie e recipiente (UC-32) e acrescenta o item ao pedido.
+6. A chefia adiciona um item informando a espécie e, quando o cliente os disse, o recipiente, a altura e a quantidade.
+7. O sistema valida que a quantidade, quando existe, é positiva, apresenta ao lado do item o saldo de muda pronta daquela espécie e recipiente (UC-32) e acrescenta o item ao pedido.
 8. A chefia repete os passos 6 e 7 para os demais itens.
 9. A chefia informa, opcionalmente, a data prevista de entrega e observações.
 10. A chefia conclui o cadastro.
-11. O sistema registra o pedido no estado *cadastrado*, atribui-lhe número sequencial e apresenta o total do pedido.
+11. O sistema registra o pedido no estado *cadastrado*, apresentado como orçamento, e atribui-lhe número sequencial.
+
+> **O cadastro exige só o que identifica o item.** O cliente que pergunta "tem ipê e aroeira?" não
+> disse tamanho nem quantidade, e inventar os dois para passar do cadastro seria registrar uma venda
+> que ninguém fez. O que falta é respondido pela conferência (UC-35) e combinado na aprovação
+> (UC-33), que é o único passo que exige o item completo.
 
 ### FA-1: Cliente ainda não cadastrado
 
@@ -87,10 +92,16 @@ No passo 7, o saldo de muda pronta é menor do que a quantidade que o cliente pe
 > venda normal em erro de sistema. O saldo existe para que a chefia decida sabendo, e é essa a
 > diferença entre informar e barrar.
 
-### FE-1: Quantidade ou preço inválido
+### FA-3: Item sem espécie escolhida
 
-No passo 7, a quantidade ou o preço informado é zero ou negativo. O sistema recusa o item, informa o
-motivo e mantém o pedido em edição, sem perder os itens já lançados.
+No passo 6, o cliente não nomeia espécie ("quinhentas mudas nativas", "recompor dois hectares de
+mata ciliar"). A chefia marca o item como sem espécie e escreve o que o cliente pediu. O sistema
+recusa o item sem essa descrição, porque é ela que a gerência lê para compor o item (UC-36).
+
+### FE-1: Quantidade inválida
+
+No passo 7, a quantidade informada é zero ou negativa. O sistema recusa o item, informa o motivo e
+mantém o pedido em edição, sem perder os itens já lançados.
 
 ---
 
@@ -140,7 +151,7 @@ informação comercial legítima.
 |---|---|
 | **Ator principal** | Chefia |
 | **Objetivo** | Decidir sobre o pedido já conferido, fixando o que vai ser vendido |
-| **Requisitos** | RF-57 |
+| **Requisitos** | RF-57, RF-55 |
 | **Frequência** | Diária |
 | **Pré-condições** | Pedido no estado *verificado*, com ao menos um item |
 | **Pós-condições** | Pedido *aprovado*; itens não admitem mais alteração |
@@ -149,7 +160,7 @@ informação comercial legítima.
 
 1. A chefia abre um pedido verificado.
 2. O sistema apresenta os itens com espécie, recipiente, quantidade, preço unitário e total, indicando o que a gerência encontrou em cada um.
-3. O sistema apresenta o total do pedido.
+3. A chefia informa o preço de cada item vendido e, quando o cliente leva menos do que a conferência confirmou, a quantidade combinada, e o sistema apresenta o total do pedido.
 4. A chefia responde se o pedido sai com nota fiscal e aprova o pedido.
 5. O sistema retira os itens que a conferência deu por indisponíveis.
 6. O sistema ajusta os itens encontrados em parte para a quantidade e o recipiente que existem.
@@ -174,6 +185,18 @@ No passo 4, o pedido não tem nenhum item. O sistema recusa a aprovação e info
 A chefia tenta alterar um item de pedido já aprovado. O sistema recusa a operação. A alteração
 existe por outro caminho, que devolve o pedido ao começo da conferência, porque o que a gerência
 apurou valia para os itens de antes.
+
+### FA-3: Negociação que não volta à conferência
+
+No passo 3, o cliente leva menos do que existe, desiste de um item ou prefere o recipiente em que a
+gerência achou a muda. A chefia baixa a quantidade, zera o item ou escolhe entre o recipiente
+pedido e o conferido, e o pedido continua *verificado*. Pedir mais do que a conferência confirmou,
+ou outro recipiente, devolve o pedido à conferência, pelo caminho de FE-2.
+
+### FE-4: Item incompleto
+
+No passo 4, algum item vendido está sem preço, sem quantidade ou sem recipiente, ou há item sem
+espécie ainda não composto. O sistema recusa a aprovação e informa quantos itens faltam por motivo.
 
 ### FE-3: Nada sobrou disponível
 
@@ -216,6 +239,15 @@ No passo 3, o viveiro tem menos mudas do que o item pede.
 2. O sistema recusa quantidade igual ou maior que a pedida, porque esse caso é o disponível por inteiro.
 3. O sistema grava a resposta, que fica visível à chefia na aprovação.
 
+### FA-3: Item cadastrado incompleto
+
+No passo 3, o item foi cadastrado sem quantidade ou sem recipiente, porque o cliente não os disse.
+
+1. Sem quantidade, a gerência responde que não tem ou informa quantas mudas existem.
+2. Sem recipiente, a resposta com muda informa em que recipiente ela está, e o sistema a recusa sem
+   ele.
+3. O sistema grava a resposta, que a chefia usa para combinar o item com o cliente (UC-33).
+
 > O recipiente encontrado **pode ser outro** que o pedido, e isso não é erro. Achar as trezentas em
 > saco de dezessete por vinte e dois quando o pedido dizia dez por dezoito é o caso comum, e o que
 > o sistema faz é mostrar a troca a quem vai aprovar.
@@ -246,7 +278,7 @@ faltam e mantém o pedido em *verificando*.
 | **Requisitos** | RF-60 |
 | **Frequência** | Semanal, dentro de UC-35 |
 | **Pré-condições** | Pedido em *verificando*, com item sem espécie |
-| **Pós-condições** | Item composto por espécies cuja soma é a quantidade dele, e dado por respondido |
+| **Pós-condições** | Item composto por espécies, cuja soma é a quantidade dele quando ela existe, e dado por respondido |
 
 ### FP: Fluxo principal
 
@@ -262,6 +294,12 @@ faltam e mantém o pedido em *verificando*.
 No passo 5, a gerência muda de ideia sobre uma espécie já gravada. O sistema apaga as espécies
 anteriores e grava as novas, porque recompor é decidir de novo, e somar as duas listas passaria da
 quantidade pedida.
+
+### FA-2: Lista montada
+
+No passo 1, o item não tem quantidade ("o que tiver de nativas", "recompor dois hectares"). A
+gerência monta a lista com as espécies e quantidades que o viveiro tem, sem soma a fechar, e cada
+espécie da lista passa a ser um item vendido, com preço próprio na aprovação (UC-33).
 
 ### FE-1: Soma que não fecha
 

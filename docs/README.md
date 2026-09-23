@@ -84,6 +84,7 @@ O mapa traz também o **diagrama de como as três áreas se relacionam** e um di
 | **2 · Produção** | Protocolo de atividades por lote | [`rotinas/2-producao/06-protocolo-de-atividades.md`](rotinas/2-producao/06-protocolo-de-atividades.md) |
 | **3 · Comercial** | Comercial (visão geral) | [`rotinas/3-comercial/00-visao-geral.md`](rotinas/3-comercial/00-visao-geral.md) |
 | **3 · Comercial** | Pedidos | [`rotinas/3-comercial/pedidos.md`](rotinas/3-comercial/pedidos.md) |
+| **3 · Comercial** | Como os pedidos chegam (leitura rápida) | [`rotinas/3-comercial/pedidos-como-chegam.md`](rotinas/3-comercial/pedidos-como-chegam.md) |
 
 ### Planos de implementação (`plans/`)
 
