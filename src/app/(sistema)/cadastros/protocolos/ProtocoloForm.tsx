@@ -25,7 +25,7 @@ export function ProtocoloForm({ protocolo, podeEditar }: ProtocoloFormProps) {
       <fieldset disabled={!podeEditar} className="flex flex-col gap-3">
         <TextField label="Nome" name="nome" defaultValue={protocolo.nome} required />
         <TextField
-          label="Observação (opcional)"
+          label="Observação"
           name="observacoes"
           maxLength={500}
           defaultValue={protocolo.observacoes ?? ''}

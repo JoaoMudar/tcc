@@ -67,8 +67,8 @@ recipiente. Na negociação, vocês propõem as quantidades.
 
 Desde 24/09/2026 (plano P11, migration `20260924000001`):
 
-1. **Recipiente e quantidade são opcionais no cadastro.** Só a aprovação os exige. O item sem
-   espécie exige a descrição do que o cliente pediu.
+1. **Recipiente e quantidade são opcionais no cadastro.** Só a aprovação os exige. O item genérico
+   leva uma observação opcional do que o cliente pediu (migration `20260924000002`).
 2. **A conferência abre sem quantidade.** No item que veio sem ela, a gerência responde "não tem"
    ou "tem N", e diz em qual recipiente.
 3. **Sem recipiente, a resposta com muda diz em qual está.** No item completo, o "tem tudo" aceita

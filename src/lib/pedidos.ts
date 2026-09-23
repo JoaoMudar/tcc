@@ -129,7 +129,7 @@ export interface NovoItem {
    */
   alturaM?: number | null;
   generico?: boolean;
-  /** O que o cliente pediu, em texto. Só no genérico, e nele obrigatória. */
+  /** Observação do genérico: o que o cliente pediu, em texto. Só no genérico, e opcional. */
   especificacao?: string | null;
   /** Espécies que o cliente aceita no genérico. Vazio é "qualquer uma". */
   especiesPermitidas?: readonly string[];
@@ -356,8 +356,6 @@ async function inserirItens(client: Client, pedidoId: string, itens: readonly No
     const generico = item.generico ?? false;
     if (generico && item.especieId) throw new UserError('O item genérico é o que não tem espécie escolhida.');
     if (!generico && !item.especieId) throw new UserError('Escolha a espécie do item.');
-    // Sem o texto, a gerência compõe um item que ninguém sabe o que era
-    if (generico && !item.especificacao?.trim()) throw new UserError('Descreva o que o cliente pediu no item genérico.');
 
     const { rows } = await client.query<{ id: string }>(
       `INSERT INTO pedidos_itens (pedido_id, especie_id, recipiente_id, quantidade, preco_unitario, generico, especificacao, altura_m)
@@ -370,7 +368,7 @@ async function inserirItens(client: Client, pedidoId: string, itens: readonly No
         item.quantidade,
         item.precoCentavos === null ? null : centavosParaSql(item.precoCentavos),
         generico,
-        generico ? item.especificacao!.trim() : null,
+        generico ? item.especificacao?.trim() || null : null,
         item.alturaM ?? null,
       ],
     );

@@ -27,7 +27,7 @@ export function PerdaForm({ loteId, saldo }: { loteId: string; saldo: number }) 
         required
       />
       <CausaPicker defaultValue={fields?.causa} />
-      <TextField label="Observação (opcional)" name="observacoes" maxLength={500} defaultValue={fields?.observacoes} />
+      <TextField label="Observação" name="observacoes" maxLength={500} defaultValue={fields?.observacoes} />
       {state.error && <Notice tone="error">{state.error}</Notice>}
       {state.success && <Notice tone="success">{state.success}</Notice>}
       <Button type="submit" pending={pending}>

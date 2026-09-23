@@ -57,7 +57,7 @@ describe('planilha de itens do pedido (T8.1, RF-54)', () => {
     expect(enviados(container, 'item_generico')).toEqual(['1']);
   });
 
-  it('o genérico manda o que o cliente pediu, e o item com espécie não manda descrição', () => {
+  it('o genérico manda a observação, e o item com espécie não manda', () => {
     const { container } = montar([
       preenchida({ generico: true, especificacao: 'mudas nativas, o que tiver' }),
       preenchida({ chave: 2, especificacao: 'sobra de antes' }),
@@ -77,12 +77,24 @@ describe('planilha de itens do pedido (T8.1, RF-54)', () => {
   it('o genérico fica no campo da espécie, em azul, com a descrição embaixo', () => {
     const { container } = montar([preenchida({ generico: true }), preenchida({ chave: 2 })]);
     expect(screen.getByLabelText('Espécie do item 1')).toHaveValue('Genérico');
-    expect(screen.getByLabelText('O que o cliente pediu no item 1')).toBeInTheDocument();
-    expect(screen.queryByLabelText('O que o cliente pediu no item 2')).toBeNull();
+    expect(screen.getByLabelText('Observação do item 1')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Observação do item 2')).toBeNull();
     expect(screen.queryByText(/Escolher a espécie/)).toBeNull();
     const [generica, comEspecie] = container.querySelectorAll('tbody tr');
     expect(generica).toHaveClass('bg-blue-50');
     expect(comEspecie).not.toHaveClass('bg-blue-50');
+  });
+
+  it('as células não dizem "a definir" nem "opcional", e a espécie leva a marca de obrigatório', () => {
+    montar([linhaVazia(1)]);
+    expect(screen.queryByPlaceholderText(/a definir|opcional/i)).toBeNull();
+    expect(screen.getByRole('columnheader', { name: 'Espécie' }).className).toContain("after:content-['*']");
+    expect(screen.getByRole('columnheader', { name: 'Recipiente' }).className).not.toContain('after:content');
+  });
+
+  it('no celular, o genérico sem observação aparece só como "Genérico"', () => {
+    montar([preenchida({ generico: true, especieId: '', especificacao: '' })]);
+    expect(screen.getByText('Genérico', { selector: 'li span' })).toBeInTheDocument();
   });
 
   it('escolher uma espécie no genérico desfaz o genérico', () => {

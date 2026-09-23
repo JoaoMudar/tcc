@@ -3,6 +3,16 @@
 Uma entrada por migration nova, como pede o `CLAUDE.md`. As migrations até `20260901000008` são o
 schema inicial em português e estão descritas no `C8`.
 
+## 24/09/2026 · `20260924000002_generico_observacao_opcional.sql`
+
+- **O texto do item genérico passa a ser opcional.** Sai o CHECK
+  `pedidos_itens_generico_com_especificacao`, posto pela `20260924000001`. Na tela o campo se chama
+  **Observação**; a coluna continua `especificacao`, e só no genérico
+  (`pedidos_itens_especificacao_so_no_generico` não muda).
+- Compatível: nada é migrado, e todo item gravado continua válido.
+- Na mesma alteração, fora do banco: os rótulos deixam de dizer "(opcional)" e o campo obrigatório
+  ganha um asterisco vermelho depois do rótulo.
+
 ## 24/09/2026 · `20260924000001_pedido_orcamento_incompleto.sql`
 
 - **O item do pedido pode nascer sem recipiente.** `pedidos_itens.recipiente_id` perde o

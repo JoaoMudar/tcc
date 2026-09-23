@@ -39,14 +39,14 @@ export function ItemDoPedido({ pedidoId, itemId, quantidade, alturaM, recipiente
         <input type="hidden" name="pedido_id" value={pedidoId} />
         <input type="hidden" name="item_id" value={itemId} />
         <ComboboxField
-          label="Recipiente (opcional)"
+          label="Recipiente"
           name="recipiente"
           options={recipientes}
           value={recipiente}
           onChange={setRecipiente}
         />
         <TextField
-          label="Quantidade (opcional)"
+          label="Quantidade"
           name="quantidade"
           inputMode="numeric"
           autoComplete="off"
@@ -54,7 +54,7 @@ export function ItemDoPedido({ pedidoId, itemId, quantidade, alturaM, recipiente
           hint="Em branco, a conferência diz quantas tem"
         />
         <TextField
-          label="Altura em metros (opcional)"
+          label="Altura em metros"
           name="altura"
           inputMode="decimal"
           autoComplete="off"

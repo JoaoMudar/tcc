@@ -19,7 +19,7 @@ export function NovaAreaForm() {
     >
       <div className="grid grid-cols-[1fr_3fr] gap-3">
         <TextField label="Letra" name="letra" maxLength={1} autoCapitalize="characters" defaultValue={fields?.letra} required />
-        <TextField label="Nome (opcional)" name="nome" defaultValue={fields?.nome} hint="Exemplo: Sombrite" />
+        <TextField label="Nome" name="nome" defaultValue={fields?.nome} hint="Exemplo: Sombrite" />
       </div>
       {state.error && <Notice tone="error">{state.error}</Notice>}
       {state.success && <Notice tone="success">{state.success}</Notice>}

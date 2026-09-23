@@ -70,7 +70,7 @@ export function ItensDoPedido({ itens }: ItensDoPedidoProps) {
                   {item.especie ?? 'a definir na conferência'}
                 </span>
                 {item.especificacao && (
-                  <span className="text-sm text-muted">Pedido do cliente: {item.especificacao}</span>
+                  <span className="text-sm text-muted">Observação: {item.especificacao}</span>
                 )}
                 {/* RF-56: somado dos lotes prontos agora, e não gravado no item */}
                 {item.pronto !== null && item.pronto !== undefined && (

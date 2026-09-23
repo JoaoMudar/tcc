@@ -94,7 +94,7 @@ export function ComposicaoGenerico({ pedidoId, item, especies, recipientes }: Co
           {listaMontada ? 'Lista a montar: quantas tiver' : `${formatQuantidade(item.quantidade!)} mudas`}
         </p>
         {item.recipiente && <p className="text-sm text-muted">Recipiente mínimo: {item.recipiente}</p>}
-        {item.especificacao && <p className="mt-1 text-sm text-muted">Pedido do cliente: {item.especificacao}</p>}
+        {item.especificacao && <p className="mt-1 text-sm text-muted">Observação: {item.especificacao}</p>}
         {item.especiesPermitidas.length > 0 && (
           <p className="mt-1 text-sm font-semibold text-amber-900">
             O cliente aceita {item.especiesPermitidas.length} espécie(s), e só elas aparecem na busca.
@@ -115,6 +115,7 @@ export function ComposicaoGenerico({ pedidoId, item, especies, recipientes }: Co
               options={oferecidas}
               value={linha.especieId}
               onChange={(valor) => alterar(linha.chave, 'especieId', valor)}
+              required
             />
             {/* O recipiente pode ser outro que o mínimo, e a troca fica visível à chefia */}
             <SelectField
@@ -123,6 +124,7 @@ export function ComposicaoGenerico({ pedidoId, item, especies, recipientes }: Co
               options={recipientes}
               value={linha.recipienteId}
               onChange={(event) => alterar(linha.chave, 'recipienteId', event.target.value)}
+              required
             />
             <TextField
               label="Quantidade"
@@ -131,6 +133,7 @@ export function ComposicaoGenerico({ pedidoId, item, especies, recipientes }: Co
               autoComplete="off"
               value={linha.quantidade}
               onChange={(event) => alterar(linha.chave, 'quantidade', event.target.value)}
+              required
             />
             {linhas.length > 1 && (
               <Button

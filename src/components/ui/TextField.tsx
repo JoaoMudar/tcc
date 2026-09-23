@@ -1,4 +1,5 @@
 import { useId, type InputHTMLAttributes } from 'react';
+import { classeRotulo } from './marcaObrigatorio';
 
 interface TextFieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'id'> {
   label: string;
@@ -20,7 +21,7 @@ export function TextField({ label, hint, error, compacto = false, className = ''
 
   return (
     <div className={`${compacto ? '' : 'flex flex-col gap-1'} ${className}`}>
-      <label htmlFor={id} className={compacto ? 'sr-only' : 'text-sm font-semibold text-gray-700'}>
+      <label htmlFor={id} className={compacto ? 'sr-only' : classeRotulo(rest.required)}>
         {label}
       </label>
       <input

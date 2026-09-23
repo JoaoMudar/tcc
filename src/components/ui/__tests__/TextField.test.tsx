@@ -16,4 +16,15 @@ describe('TextField', () => {
     expect(input).toHaveAttribute('aria-invalid', 'true');
     expect(input).toHaveAccessibleDescription('Maior que o saldo do lote.');
   });
+
+  it('o obrigatório leva o asterisco no rótulo, sem mudar o nome do campo', () => {
+    render(<TextField label="Nome" name="nome" required />);
+    expect(screen.getByLabelText('Nome')).toBeRequired();
+    expect(screen.getByText('Nome').className).toContain("after:content-['*']");
+  });
+
+  it('o opcional não leva marca nenhuma', () => {
+    render(<TextField label="Observação" name="observacoes" />);
+    expect(screen.getByText('Observação').className).not.toContain('after:content');
+  });
 });

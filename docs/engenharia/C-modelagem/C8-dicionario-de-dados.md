@@ -948,10 +948,10 @@ histórico, e entraria só para poluir a ficha.
 | `observacoes_disponibilidade` | text | ○ | | Observação da gerência sobre o item |
 | `generico` | boolean | ● | | Item pedido sem escolha de espécie (RF-60) |
 | `item_pai_id` | uuid | ○ | FK → `pedidos_itens` | Item genérico que este filho compõe. Nulo no item de topo |
-| `especificacao` | text | ○ | | O que o cliente pediu, em texto. Só no item genérico, e nele obrigatória |
+| `especificacao` | text | ○ | | Observação do item genérico: o que o cliente pediu, em texto. Só no item genérico, e opcional |
 
 **Restrições:** a altura, quando existe, vai de zero exclusive até 20 metros; item genérico não tem
-espécie, e item não genérico tem; item genérico tem `especificacao`; item genérico não tem pai, o
+espécie, e item não genérico tem; só o item genérico tem `especificacao`; item genérico não tem pai, o
 que mantém a composição em um nível só. A resposta da conferência tem três formas: nenhuma (as duas
 colunas nulas); no item com quantidade, `disponivel` verdadeiro sem número ou falso com
 `quantidade_disponivel` de zero até `quantidade` menos um; no item sem quantidade,

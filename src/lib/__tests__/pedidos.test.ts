@@ -12,6 +12,7 @@ import {
   formatAltura,
   formatMoeda,
   formatTotal,
+  rotuloGenerico,
   isCanalVenda,
   isSituacaoPedido,
   itemVendavel,
@@ -173,6 +174,14 @@ describe('totais (RF-55)', () => {
   it('formatTotal diz "a definir" enquanto falta preço', () => {
     expect(formatTotal(null)).toBe('a definir');
     expect(formatTotal(50_000)).toBe(formatMoeda(50_000));
+  });
+});
+
+describe('rotuloGenerico', () => {
+  it('sem observação o genérico é só "Genérico", e com ela leva o texto', () => {
+    expect(rotuloGenerico(null)).toBe('Genérico');
+    expect(rotuloGenerico('  ')).toBe('Genérico');
+    expect(rotuloGenerico(' mudas nativas ')).toBe('Genérico: mudas nativas');
   });
 });
 

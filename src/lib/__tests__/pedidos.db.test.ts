@@ -787,12 +787,12 @@ describe('os sete jeitos de o pedido chegar (pedidos-como-chegam.md)', () => {
     expect(lista.find((p) => p.id === id)!.totalCentavos).toBe(1200 * 250 + 300 * 900);
   });
 
-  it('o genérico precisa dizer o que foi pedido', async () => {
-    await expect(
-      novoPedido({
-        itens: [{ especieId: null, recipienteId: null, quantidade: null, precoCentavos: null, generico: true, especificacao: ' ' }],
-      }),
-    ).rejects.toThrow(/descreva/i);
+  it('o genérico sem observação é gravado, e o texto em branco vira nulo', async () => {
+    const { id } = await novoPedido({
+      itens: [{ especieId: null, recipienteId: null, quantidade: null, precoCentavos: null, generico: true, especificacao: ' ' }],
+    });
+    const [item] = await listItens(pool, id);
+    expect(item).toMatchObject({ generico: true, especificacao: null });
   });
 });
 
@@ -824,8 +824,8 @@ describe('as restrições do banco para o item incompleto (20260924000001)', () 
     await expect(umItem(cols, [especie, 100, false, 0, saco])).rejects.toThrow(/recipiente_disponivel_com_muda/);
   });
 
-  it('o genérico sem descrição é recusado', async () => {
-    await expect(umItem('generico', [true])).rejects.toThrow(/generico_com_especificacao/);
+  it('o genérico sem observação é aceito (20260924000002)', async () => {
+    await expect(umItem('generico', [true])).resolves.toBeTruthy();
   });
 
   it('a migration roda sobre linhas antigas: genérico sem texto e resposta sobre item sem quantidade', async () => {
@@ -839,7 +839,7 @@ describe('as restrições do banco para o item incompleto (20260924000001)', () 
       await client.query(`ALTER TABLE pedidos_itens
         DROP CONSTRAINT pedidos_itens_disponibilidade_coerente,
         DROP CONSTRAINT pedidos_itens_recipiente_disponivel_com_muda,
-        DROP CONSTRAINT pedidos_itens_generico_com_especificacao`);
+        DROP CONSTRAINT IF EXISTS pedidos_itens_generico_com_especificacao`);
       await client.query(`ALTER TABLE pedidos_itens
         ADD CONSTRAINT pedidos_itens_disponibilidade_coerente CHECK (
           (disponivel IS DISTINCT FROM false AND quantidade_disponivel IS NULL)

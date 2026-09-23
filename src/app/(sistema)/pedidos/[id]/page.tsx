@@ -12,7 +12,7 @@ import { nomeExibido, searchEspecies } from '@/lib/especies';
 import { saldoEmProducao, saldoPronto } from '@/lib/estoque';
 import { formatDateTime } from '@/lib/format';
 import { CANAIS_VENDA, SITUACOES_PEDIDO, type SituacaoPedido, findPedido } from '@/lib/pedidos';
-import { chaveSaldo, itemVendavel, quantidadeConfirmada } from '@/lib/pedidos-rotulos';
+import { chaveSaldo, itemVendavel, quantidadeConfirmada, rotuloGenerico } from '@/lib/pedidos-rotulos';
 import { can } from '@/lib/permissions';
 import { formatVolume, listRecipientes } from '@/lib/recipientes';
 import { isUuid } from '@/lib/uuid';
@@ -174,7 +174,7 @@ export default async function PedidoPage({ params, searchParams }: PedidoPagePro
             pedidoId={pedido.id}
             itens={negociaveis.map((item) => ({
               id: item.id,
-              especie: item.especie ?? `Genérico: ${item.especificacao ?? 'mudas nativas'}`,
+              especie: item.especie ?? rotuloGenerico(item.especificacao),
               generico: item.generico,
               confirmada: quantidadeConfirmada(item),
               precoCentavos: item.precoCentavos,
@@ -200,7 +200,7 @@ export default async function PedidoPage({ params, searchParams }: PedidoPagePro
                 {pedido.itens.map((item) => (
                   <li key={item.id} className="flex flex-col gap-1">
                     <span className="text-base font-semibold text-ink">
-                      {item.especie ?? `Genérico: ${item.especificacao ?? ''}`}
+                      {item.especie ?? rotuloGenerico(item.especificacao)}
                     </span>
                     <ItemDoPedido
                       pedidoId={pedido.id}

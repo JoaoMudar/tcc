@@ -62,7 +62,7 @@ export function AtribuicaoForm({ semana, opcoes, inicial, atribuicaoId }: Atribu
       {/* RF-47: a etapa que originou a sugestão viaja junto; o vencimento dela o servidor lê */}
       {valores.lote_etapa_id && <input type="hidden" name="lote_etapa_id" value={valores.lote_etapa_id} />}
 
-      <EscolhaMultipla legenda="Quem vai fazer" name="participantes" opcoes={opcoes.funcionarios} marcados={lista('participantes')} />
+      <EscolhaMultipla legenda="Quem vai fazer" obrigatorio name="participantes" opcoes={opcoes.funcionarios} marcados={lista('participantes')} />
       <SelectField
         label="Tarefa"
         name="tipo_tarefa_id"
@@ -74,12 +74,13 @@ export function AtribuicaoForm({ semana, opcoes, inicial, atribuicaoId }: Atribu
       <EscolhaMultipla
         legenda={editando ? 'Dia' : 'Dias'}
         name="dias"
+        obrigatorio
         tipo={editando ? 'radio' : 'checkbox'}
         colunas={3}
         opcoes={opcoes.dias}
         marcados={lista('dias')}
       />
-      <EscolhaMultipla legenda="Turno" name="turno_id" tipo="radio" opcoes={opcoes.turnos} marcados={lista('turno_id')} />
+      <EscolhaMultipla legenda="Turno" obrigatorio name="turno_id" tipo="radio" opcoes={opcoes.turnos} marcados={lista('turno_id')} />
 
       {tipo?.exigeLote && (
         <SelectField
@@ -109,7 +110,7 @@ export function AtribuicaoForm({ semana, opcoes, inicial, atribuicaoId }: Atribu
       )}
       {tipo?.eQuantitativa && (
         <TextField
-          label={`Quantidade prevista em ${tipo.unidadeMedida} (opcional)`}
+          label={`Quantidade prevista em ${tipo.unidadeMedida}`}
           name="quantidade_planejada"
           inputMode={tipo.unidadeMedida === 'un' ? 'numeric' : 'decimal'}
           autoComplete="off"
@@ -134,11 +135,11 @@ export function AtribuicaoForm({ semana, opcoes, inicial, atribuicaoId }: Atribu
           {temHora && (
             <div className="grid grid-cols-2 gap-3">
               <TextField label="Início" name="hora_inicio" type="time" defaultValue={valores.hora_inicio} required />
-              <TextField label="Fim (opcional)" name="hora_fim" type="time" defaultValue={valores.hora_fim} />
+              <TextField label="Fim" name="hora_fim" type="time" defaultValue={valores.hora_fim} />
             </div>
           )}
           <Interruptor name="recorrente" label="Repete toda semana" defaultChecked={valores.recorrente === 'on'} />
-          <TextField label="Observação (opcional)" name="observacoes" maxLength={500} defaultValue={valores.observacoes} />
+          <TextField label="Observação" name="observacoes" maxLength={500} defaultValue={valores.observacoes} />
         </div>
       </details>
 

@@ -20,7 +20,7 @@ function enviados(container: HTMLElement, nome: string): string[] {
 describe('NovoPedidoForm (T8.1)', () => {
   it('pede observação, e não mostra o aviso de que o preço vem depois', () => {
     const { container } = montar();
-    expect(screen.getByLabelText('Observação (opcional)')).toBeTruthy();
+    expect(screen.getByLabelText('Observação')).toBeTruthy();
     expect(enviados(container, 'observacoes')).toEqual(['']);
     expect(screen.queryByText(/preço de cada item/)).toBeNull();
   });
@@ -36,7 +36,7 @@ describe('NovoPedidoForm (T8.1)', () => {
 
   it('a observação vem antes da grade de itens', () => {
     montar();
-    const observacao = screen.getByLabelText('Observação (opcional)');
+    const observacao = screen.getByLabelText('Observação');
     const itens = screen.getByText('Itens');
     expect(observacao.compareDocumentPosition(itens) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
@@ -64,7 +64,7 @@ describe('NovoPedidoForm (T8.1)', () => {
 
   it('a observação é caixa de texto, que aceita quebra de linha', () => {
     montar();
-    expect(screen.getByLabelText('Observação (opcional)').tagName).toBe('TEXTAREA');
+    expect(screen.getByLabelText('Observação').tagName).toBe('TEXTAREA');
   });
 
   it('a lixeira da única linha limpa a linha, em vez de não fazer nada', () => {

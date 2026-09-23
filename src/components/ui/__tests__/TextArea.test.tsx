@@ -24,4 +24,11 @@ describe('TextArea', () => {
     fireEvent.input(campo, { target: { value: 'a\nb' } });
     expect(campo.style.height).toBe('');
   });
+
+  it('o obrigatório leva o asterisco no rótulo, o opcional não', () => {
+    render(<TextArea label="Motivo" name="motivo" required />);
+    render(<TextArea label="Observação" name="observacoes" />);
+    expect(screen.getByText('Motivo').className).toContain("after:content-['*']");
+    expect(screen.getByText('Observação').className).not.toContain('after:content');
+  });
 });

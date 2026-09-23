@@ -52,7 +52,7 @@ function Campos({ loteId, saldo, state, formAction, pending }: CamposProps) {
           {diferenca > 0 ? 'a mais' : 'a menos'}. A contagem passa a valer e a diferença fica registrada.
         </Notice>
       )}
-      <TextField label="Observação (opcional)" name="observacoes" maxLength={500} defaultValue={fields?.observacoes} />
+      <TextField label="Observação" name="observacoes" maxLength={500} defaultValue={fields?.observacoes} />
       {state.error && <Notice tone="error">{state.error}</Notice>}
       {state.success && <Notice tone="success">{state.success}</Notice>}
       <Button type="submit" pending={pending}>

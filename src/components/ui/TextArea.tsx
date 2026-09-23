@@ -1,6 +1,7 @@
 'use client';
 
 import { type InputEvent, type TextareaHTMLAttributes, useEffect, useId, useRef } from 'react';
+import { classeRotulo } from './marcaObrigatorio';
 
 interface TextAreaProps extends Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'id'> {
   label: string;
@@ -37,7 +38,7 @@ export function TextArea({ label, hint, className = '', rows = 3, ajustaAltura =
 
   return (
     <div className={`flex flex-col gap-1 ${className}`}>
-      <label htmlFor={id} className="text-sm font-semibold text-gray-700">
+      <label htmlFor={id} className={classeRotulo(rest.required)}>
         {label}
       </label>
       <textarea

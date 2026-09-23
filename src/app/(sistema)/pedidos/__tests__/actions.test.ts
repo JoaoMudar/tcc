@@ -221,10 +221,13 @@ describe('validação antes do banco (UC-31 FE-1)', () => {
     expectNoDatabase();
   });
 
-  it('o genérico sem descrição é recusado: a gerência precisa saber o que foi pedido', async () => {
-    const state = await actions.criarPedidoAction({}, pedidoValido({ item_especie: '', item_generico: '1', item_especificacao: ' ' }));
-    expect(state.error).toMatch(/descreva o que o cliente pediu/i);
-    expectNoDatabase();
+  it('o genérico sem observação é aceito, e o texto em branco vai nulo', async () => {
+    await expect(
+      actions.criarPedidoAction({}, pedidoValido({ item_especie: '', item_generico: '1', item_especificacao: ' ' })),
+    ).rejects.toThrow(/^redirect:/);
+    const [, valores] = client.query.mock.calls.find(([sql]) => String(sql).includes('INSERT INTO pedidos_itens'))!;
+    // generico, especificacao
+    expect((valores as unknown[]).slice(5, 7)).toEqual([true, null]);
   });
 
   it('altura inválida na alteração é recusada, e o campo digitado volta para a tela', async () => {

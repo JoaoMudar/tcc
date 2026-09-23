@@ -25,7 +25,7 @@ export function AreaCanteiroOpcional({ areas, defaultAreaId, defaultCanteiroId }
   return (
     <div className="grid grid-cols-2 gap-3">
       <SelectField
-        label="Área (opcional)"
+        label="Área"
         name="area_id"
         options={[{ value: NENHUM, label: 'Nenhuma' }, ...areas.map((area) => ({ value: area.id, label: `Área ${area.letra}` }))]}
         defaultValue={inicialArea}
@@ -33,7 +33,7 @@ export function AreaCanteiroOpcional({ areas, defaultAreaId, defaultCanteiroId }
       />
       <SelectField
         key={areaId}
-        label="Canteiro (opcional)"
+        label="Canteiro"
         name="canteiro_id"
         options={[{ value: NENHUM, label: 'A área toda' }, ...canteiros.map((c) => ({ value: c.id, label: String(c.numero) }))]}
         defaultValue={areaId === inicialArea && defaultCanteiroId ? defaultCanteiroId : NENHUM}

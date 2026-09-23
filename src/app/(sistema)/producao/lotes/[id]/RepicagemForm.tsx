@@ -53,7 +53,7 @@ export function RepicagemForm({ loteId, codigo, saldo, recipientes, canteiros, a
         sufixo=" de destino"
       />
       <TextField
-        label="Morreram na repicagem (opcional)"
+        label="Morreram na repicagem"
         name="perdidas"
         inputMode="numeric"
         autoComplete="off"

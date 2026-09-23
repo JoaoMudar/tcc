@@ -55,8 +55,7 @@ function lerItens(formData: FormData): { error: string } | { value: pedidos.Novo
     const altura = pedidos.parseAltura(alturas[i] ?? '');
     if ('error' in altura) return { error: `No ${posicao}: ${altura.error.toLowerCase()}` };
     const especificacao = pedidos.parseObservacoesPedido(especificacoes[i] ?? '');
-    if ('error' in especificacao) return { error: `No ${posicao}: a especificação é longa demais.` };
-    if (generico && !especificacao.value) return { error: `Descreva o que o cliente pediu no ${posicao}.` };
+    if ('error' in especificacao) return { error: `No ${posicao}: a observação é longa demais.` };
     itens.push({
       especieId: generico ? null : especies[i],
       recipienteId,

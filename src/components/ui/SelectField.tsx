@@ -1,4 +1,5 @@
 import { useId, type SelectHTMLAttributes } from 'react';
+import { classeRotulo } from './marcaObrigatorio';
 
 export interface SelectOption {
   value: string;
@@ -31,7 +32,7 @@ export function SelectField({
 
   return (
     <div className={`flex flex-col gap-1 ${className}`}>
-      <label htmlFor={id} className="text-sm font-semibold text-gray-700">
+      <label htmlFor={id} className={classeRotulo(rest.required)}>
         {label}
       </label>
       <select

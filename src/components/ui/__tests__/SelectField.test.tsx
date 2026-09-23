@@ -30,4 +30,11 @@ describe('SelectField', () => {
     render(<SelectField label="Causa" name="causa" options={CAUSAS} error="Escolha a causa." />);
     expect(screen.getByLabelText('Causa')).toHaveAccessibleDescription('Escolha a causa.');
   });
+
+  it('o obrigatório leva o asterisco no rótulo, o opcional não', () => {
+    render(<SelectField label="Causa" name="causa" options={CAUSAS} required />);
+    render(<SelectField label="Canal" name="canal" options={CAUSAS} />);
+    expect(screen.getByText('Causa').className).toContain("after:content-['*']");
+    expect(screen.getByText('Canal').className).not.toContain('after:content');
+  });
 });

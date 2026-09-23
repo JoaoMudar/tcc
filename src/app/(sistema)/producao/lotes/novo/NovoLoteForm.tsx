@@ -43,7 +43,7 @@ export function NovoLoteForm({ especies, recipientes, canteiros, hoje }: NovoLot
         defaultCanteiroId={fields?.canteiro_id}
       />
       <TextField label="Data de criação" name="data_criacao" type="date" max={hoje} defaultValue={fields?.data_criacao ?? hoje} />
-      <TextField label="Observação (opcional)" name="observacoes" maxLength={500} defaultValue={fields?.observacoes} />
+      <TextField label="Observação" name="observacoes" maxLength={500} defaultValue={fields?.observacoes} />
       {state.error && <Notice tone="error">{state.error}</Notice>}
       <Button type="submit" pending={pending}>
         Criar lote

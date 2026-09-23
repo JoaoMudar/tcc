@@ -3,10 +3,11 @@
 import { type ClipboardEvent, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { ComboboxField } from '@/components/ui/ComboboxField';
+import { MARCA_OBRIGATORIO } from '@/components/ui/marcaObrigatorio';
 import type { SelectOption } from '@/components/ui/SelectField';
 import { TextField } from '@/components/ui/TextField';
 import { formatQuantidade, lerQuantidade } from '@/lib/lotes-rotulos';
-import { chaveSaldo, normalizaCampoAltura } from '@/lib/pedidos-rotulos';
+import { chaveSaldo, normalizaCampoAltura, rotuloGenerico } from '@/lib/pedidos-rotulos';
 import type { Celula, Linha } from './linhas-pedido';
 import type { SaldosPorChave } from './NovoPedidoForm';
 
@@ -146,7 +147,8 @@ export function GradeItens({
           </colgroup>
           <thead>
             <tr className="bg-surface text-left text-xs font-bold tracking-wide text-muted uppercase">
-              <th scope="col" className="rounded-tl-xl px-3 py-2">
+              {/* A célula tem o rótulo só para leitor de tela: a marca de obrigatório fica no cabeçalho */}
+              <th scope="col" className={`rounded-tl-xl px-3 py-2 ${MARCA_OBRIGATORIO}`}>
                 Espécie
               </th>
               <th scope="col" className="border-l border-line px-3 py-2">
@@ -182,13 +184,13 @@ export function GradeItens({
                       opcaoFixa={opcaoGenerico(linha)}
                       placeholder="Digite o nome…"
                     />
-                    {/* O genérico se descreve: é o texto que a gerência lê para montar o item */}
+                    {/* O genérico pode levar uma observação: é o texto que a gerência lê para montar o item */}
                     {linha.generico && (
                       <TextField
-                        label={`O que o cliente pediu no item ${indice + 1}`}
+                        label={`Observação do item ${indice + 1}`}
                         compacto
                         autoComplete="off"
-                        placeholder="O que o cliente pediu? Ex.: mudas nativas"
+                        placeholder="Observação"
                         value={linha.especificacao}
                         onChange={(evento) => onAlterar(linha.chave, 'especificacao', evento.target.value)}
                       />
@@ -209,7 +211,7 @@ export function GradeItens({
                       options={recipientes}
                       value={linha.recipienteId}
                       onChange={(valor) => onAlterar(linha.chave, 'recipienteId', valor)}
-                      placeholder="a definir"
+                      placeholder=""
                     />
                   </td>
                   <td className="border-l border-line p-0">
@@ -218,7 +220,6 @@ export function GradeItens({
                       compacto
                       inputMode="decimal"
                       autoComplete="off"
-                      placeholder="opcional"
                       value={linha.altura}
                       onFocus={() => setFoco({ linha: indice, coluna: 2 })}
                       onChange={(evento) => onAlterar(linha.chave, 'altura', evento.target.value)}
@@ -232,7 +233,6 @@ export function GradeItens({
                       className="[&_input]:text-right"
                       inputMode="numeric"
                       autoComplete="off"
-                      placeholder="opcional"
                       value={linha.quantidade}
                       onFocus={() => setFoco({ linha: indice, coluna: 3 })}
                       onChange={(evento) => onAlterar(linha.chave, 'quantidade', evento.target.value)}
@@ -271,7 +271,7 @@ export function GradeItens({
             const { falta, quantidade } = saldoDa(linha);
             const opcaoEspecie = linha.generico ? undefined : opcoesEspecie.find((opcao) => opcao.value === linha.especieId);
             const especie = linha.generico
-              ? `Genérico: ${linha.especificacao.trim() || 'descreva o pedido'}`
+              ? rotuloGenerico(linha.especificacao)
               : (opcaoEspecie?.label ?? null);
             const recipiente = rotulo(recipientes, linha.recipienteId);
             return (

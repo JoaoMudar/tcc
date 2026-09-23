@@ -307,6 +307,12 @@ export function quantidadeConfirmada(item: {
   return item.quantidadeDisponivel ?? item.quantidade ?? 0;
 }
 
+/** O item genérico na tela: "Genérico", ou "Genérico: mudas nativas" quando tem observação. */
+export function rotuloGenerico(observacao: string | null | undefined): string {
+  const texto = observacao?.trim();
+  return texto ? `Genérico: ${texto}` : 'Genérico';
+}
+
 /** O total que a tela imprime: "R$ 1.250,00" ou "a definir" enquanto faltar preço. */
 export function formatTotal(centavos: number | null): string {
   return centavos === null ? 'a definir' : formatMoeda(centavos);

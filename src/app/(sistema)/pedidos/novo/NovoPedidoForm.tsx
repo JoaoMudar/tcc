@@ -226,11 +226,12 @@ export function NovoPedidoForm({ clientes, especies, recipientes, saldos, verFis
             options={CANAL_OPCOES}
             value={canal}
             onChange={(evento) => setCanal(evento.target.value)}
+            required
           />
-          <TextField label="Entrega prevista (opcional)" name="data_entrega" type="date" defaultValue={fields?.data_entrega} />
+          <TextField label="Entrega prevista" name="data_entrega" type="date" defaultValue={fields?.data_entrega} />
         </div>
         <TextArea
-          label="Observação (opcional)"
+          label="Observação"
           name="observacoes"
           rows={1}
           ajustaAltura

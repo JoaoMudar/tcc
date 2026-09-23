@@ -47,7 +47,7 @@ Notação dos fluxos: **FP** fluxo principal, **FA** fluxo alternativo, **FE** f
 | **Requisitos** | RF-54, RF-55, RF-15 *(de UC-10)* |
 | **Frequência** | Diária |
 | **Pré-condições** | Existe ao menos uma espécie cadastrada |
-| **Pós-condições** | Pedido criado no estado *cadastrado*, apresentado como orçamento, com ao menos um item identificado pela espécie ou pela descrição do que o cliente pediu |
+| **Pós-condições** | Pedido criado no estado *cadastrado*, apresentado como orçamento, com ao menos um item identificado pela espécie ou marcado como genérico |
 
 ### FP: Fluxo principal
 
@@ -95,8 +95,9 @@ No passo 7, o saldo de muda pronta é menor do que a quantidade que o cliente pe
 ### FA-3: Item sem espécie escolhida
 
 No passo 6, o cliente não nomeia espécie ("quinhentas mudas nativas", "recompor dois hectares de
-mata ciliar"). A chefia marca o item como sem espécie e escreve o que o cliente pediu. O sistema
-recusa o item sem essa descrição, porque é ela que a gerência lê para compor o item (UC-36).
+mata ciliar"). A chefia marca o item como genérico e, se quiser, anota na observação o que o cliente pediu. A
+observação é opcional: quem decide as espécies é a gerência, ao compor o item (UC-36), e o texto é
+só um apoio a ela.
 
 ### FE-1: Quantidade inválida
 

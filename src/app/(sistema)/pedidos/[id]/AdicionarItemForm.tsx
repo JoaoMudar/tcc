@@ -33,14 +33,14 @@ export function AdicionarItemForm({ pedidoId, especies, recipientes }: Adicionar
       <ComboboxField label="Espécie" name="item_especie" options={especies} value={especieId} onChange={setEspecieId} required />
       {/* Opcional: "tem ipê?" não diz o tamanho, e a conferência responde em qual existe */}
       <ComboboxField
-        label="Recipiente (opcional)"
+        label="Recipiente"
         name="item_recipiente"
         options={recipientes}
         value={recipienteId}
         onChange={setRecipienteId}
       />
       <TextField
-        label="Altura em metros (opcional)"
+        label="Altura em metros"
         name="item_altura"
         inputMode="decimal"
         autoComplete="off"
@@ -49,7 +49,7 @@ export function AdicionarItemForm({ pedidoId, especies, recipientes }: Adicionar
           evento.currentTarget.value = normalizaCampoAltura(evento.currentTarget.value);
         }}
       />
-      <TextField label="Quantidade (opcional)" name="item_quantidade" inputMode="numeric" autoComplete="off" />
+      <TextField label="Quantidade" name="item_quantidade" inputMode="numeric" autoComplete="off" />
       {state.error && <Notice tone="error">{state.error}</Notice>}
       {state.success && <Notice tone="success">{state.success}</Notice>}
       <Button type="submit" variant="outline" pending={pending}>
