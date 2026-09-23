@@ -1,7 +1,6 @@
 'use client';
 
-import { useActionState, useState } from 'react';
-import { Button } from '@/components/ui/Button';
+import { startTransition, useActionState, useRef, useState } from 'react';
 import { Notice } from '@/components/ui/Notice';
 import { TextField } from '@/components/ui/TextField';
 import { EMPTY_FORM_STATE } from '@/lib/form-state';
@@ -28,6 +27,10 @@ interface PrecosFormProps {
  * É aqui que a chefia fecha o valor, sabendo o que a gerência achou no pátio.
  * O total aparece ao vivo enquanto se digita, e diz "a definir" enquanto faltar
  * preço em algum item, que é exatamente o que a aprovação vai recusar.
+ *
+ * **Não há botão de salvar**: o preço grava ao sair do campo, se mudou. O
+ * formulário vai inteiro, porque a action lê as listas paralelas, e campo em
+ * branco é item ainda sem preço, que ela pula.
  */
 export function PrecosForm({ pedidoId, itens }: PrecosFormProps) {
   const [state, formAction, pending] = useActionState(definirPrecosAction, EMPTY_FORM_STATE);
@@ -35,13 +38,26 @@ export function PrecosForm({ pedidoId, itens }: PrecosFormProps) {
     Object.fromEntries(itens.map((item) => [item.id, item.precoCentavos === null ? '' : precoParaCampo(item.precoCentavos)])),
   );
 
+  const formRef = useRef<HTMLFormElement>(null);
+  const gravados = useRef<Record<string, string>>({ ...valores });
+
+  function gravarSeMudou(itemId: string) {
+    const form = formRef.current;
+    const valor = (valores[itemId] ?? '').trim();
+    if (!form || (valor === (gravados.current[itemId] ?? '').trim() && !state.error)) return;
+    // Tudo em branco não tem o que gravar, e a action recusaria
+    if (Object.values(valores).every((texto) => texto.trim() === '')) return;
+    gravados.current = { ...valores };
+    startTransition(() => formAction(new FormData(form)));
+  }
+
   const calculaveis = itens.map((item) => {
     const preco = parsePreco(valores[item.id] ?? '');
     return { quantidade: item.quantidade, precoCentavos: 'value' in preco ? preco.value : null };
   });
 
   return (
-    <form action={formAction} className="flex flex-col gap-3 rounded-xl border border-line bg-white p-4">
+    <form ref={formRef} action={formAction} className="flex flex-col gap-3 rounded-xl border border-line bg-white p-4">
       <h2 className="text-sm font-bold tracking-widest text-muted uppercase">Preço da venda</h2>
       <p className="text-sm text-muted">
         A conferência já disse o que existe. Informe por quanto cada muda foi vendida.
@@ -61,6 +77,7 @@ export function PrecosForm({ pedidoId, itens }: PrecosFormProps) {
               hint={`${item.recipiente} · ${formatQuantidade(item.quantidade)}`}
               value={valores[item.id] ?? ''}
               onChange={(event) => setValores((atuais) => ({ ...atuais, [item.id]: event.target.value }))}
+              onBlur={() => gravarSeMudou(item.id)}
             />
           </li>
         ))}
@@ -72,10 +89,13 @@ export function PrecosForm({ pedidoId, itens }: PrecosFormProps) {
       </div>
 
       {state.error && <Notice tone="error">{state.error}</Notice>}
-      {state.success && <Notice tone="success">{state.success}</Notice>}
-      <Button type="submit" pending={pending}>
-        Salvar preços
-      </Button>
+      {pending ? (
+        <p className="text-sm text-muted" aria-live="polite">
+          Salvando…
+        </p>
+      ) : (
+        state.success && <Notice tone="success">{state.success}</Notice>
+      )}
     </form>
   );
 }

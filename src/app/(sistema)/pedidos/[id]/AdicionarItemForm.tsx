@@ -29,13 +29,14 @@ export function AdicionarItemForm({ pedidoId, especies, recipientes }: Adicionar
     <form action={formAction} className="flex flex-col gap-3 rounded-xl border border-line bg-white p-4">
       <h2 className="text-sm font-bold tracking-widest text-muted uppercase">Acrescentar item</h2>
       <input type="hidden" name="pedido_id" value={pedidoId} />
-      <ComboboxField label="Espécie" name="item_especie" options={especies} value={especieId} onChange={setEspecieId} />
+      <ComboboxField label="Espécie" name="item_especie" options={especies} value={especieId} onChange={setEspecieId} required />
       <ComboboxField
         label="Recipiente"
         name="item_recipiente"
         options={recipientes}
         value={recipienteId}
         onChange={setRecipienteId}
+        required
       />
       <TextField
         label="Altura em metros (opcional)"

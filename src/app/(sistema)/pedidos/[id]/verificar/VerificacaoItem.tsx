@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { startTransition, useActionState, useRef, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Notice } from '@/components/ui/Notice';
 import { type SelectOption, SelectField } from '@/components/ui/SelectField';
@@ -52,12 +52,34 @@ function estadoDe(item: ItemParaConferir): Estado | 'pendente' {
  * botão a mais por item é um item que fica sem resposta.
  *
  * O parcial é o único que pede mais: quanto tem e em que recipiente está. Os
- * dois campos aparecem só quando ele é escolhido, e é o envio deles que grava.
+ * dois campos aparecem só quando ele é escolhido, e **gravam sozinhos**: a
+ * quantidade ao sair do campo, o recipiente ao ser trocado. Botão de gravar ali
+ * seria o passo que se esquece antes de ir ao próximo item.
  */
 export function VerificacaoItem({ pedidoId, item, recipientes }: VerificacaoItemProps) {
   const [state, formAction, pending] = useActionState(marcarDisponibilidadeAction, EMPTY_FORM_STATE);
   const atual = estadoDe(item);
   const [abrirParcial, setAbrirParcial] = useState(atual === 'parcial');
+  const formRef = useRef<HTMLFormElement>(null);
+  const [quantidade, setQuantidade] = useState(item.quantidadeDisponivel ? String(item.quantidadeDisponivel) : '');
+  const [recipienteId, setRecipienteId] = useState(item.recipienteDisponivelId ?? item.recipienteId);
+  // O que já está no banco, para sair do campo sem mudar nada não regravar
+  const gravado = useRef(atual === 'parcial' ? `${quantidade}|${recipienteId}` : null);
+
+  function gravarParcial(proximaQuantidade: string, proximoRecipiente: string) {
+    const form = formRef.current;
+    const chave = `${proximaQuantidade.trim()}|${proximoRecipiente}`;
+    if (!form || proximaQuantidade.trim() === '') return;
+    // Repetir só vale se o banco já tem exatamente isto: depois de erro ou de
+    // outra resposta ("Não tem"), o mesmo valor precisa ir de novo
+    if (chave === gravado.current && atual === 'parcial' && !state.error) return;
+    gravado.current = chave;
+    const dados = new FormData(form);
+    dados.set('estado', 'parcial');
+    dados.set('quantidade', proximaQuantidade);
+    dados.set('recipiente_id', proximoRecipiente);
+    startTransition(() => formAction(dados));
+  }
 
   return (
     <li className={`flex flex-col gap-3 rounded-xl border-2 p-4 ${COR[atual]}`}>
@@ -77,7 +99,7 @@ export function VerificacaoItem({ pedidoId, item, recipientes }: VerificacaoItem
       {atual === 'indisponivel' && <p className="text-sm font-semibold text-red-800">Não tem no viveiro</p>}
       {atual === 'disponivel' && <p className="text-sm font-semibold text-green-800">Tem tudo</p>}
 
-      <form action={formAction} className="flex flex-col gap-3">
+      <form ref={formRef} action={formAction} className="flex flex-col gap-3">
         <input type="hidden" name="pedido_id" value={pedidoId} />
         <input type="hidden" name="item_id" value={item.id} />
 
@@ -116,7 +138,9 @@ export function VerificacaoItem({ pedidoId, item, recipientes }: VerificacaoItem
               name="quantidade"
               inputMode="numeric"
               autoComplete="off"
-              defaultValue={item.quantidadeDisponivel ? String(item.quantidadeDisponivel) : ''}
+              value={quantidade}
+              onChange={(evento) => setQuantidade(evento.target.value)}
+              onBlur={() => gravarParcial(quantidade, recipienteId)}
               hint={`Menos que ${formatQuantidade(item.quantidade)}`}
             />
             {/* Pode ser outro recipiente: achou em saco o que foi pedido em tubete */}
@@ -124,11 +148,15 @@ export function VerificacaoItem({ pedidoId, item, recipientes }: VerificacaoItem
               label="Em que recipiente está"
               name="recipiente_id"
               options={recipientes}
-              defaultValue={item.recipienteDisponivelId ?? item.recipienteId}
+              value={recipienteId}
+              onChange={(evento) => {
+                setRecipienteId(evento.target.value);
+                gravarParcial(quantidade, evento.target.value);
+              }}
             />
-            <Button type="submit" name="estado" value="parcial" pending={pending}>
-              Gravar o que tem
-            </Button>
+            <p className="text-sm text-muted" aria-live="polite">
+              {pending ? 'Gravando…' : atual === 'parcial' && !state.error ? 'Gravado.' : 'Grava ao sair do campo.'}
+            </p>
           </div>
         )}
 

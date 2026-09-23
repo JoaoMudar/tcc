@@ -469,4 +469,34 @@ describe('pessoas (RF-14 a RF-17)', () => {
     const state = await pessoas.createClienteRapido({}, form({ nome: 'Marlene', telefone: '47997330987', usar_pessoa_id: ID }));
     expect(state).toEqual({ success: 'Marlene Cardoso agora também é cliente.', cliente: { id: ID, nome: 'Marlene Cardoso' } });
   });
+
+  describe('cadastro completo aberto do pedido (UC-31 FA-1)', () => {
+    const DO_PEDIDO = { tipo: 'pf', nome: 'Sítio Boa Vista', telefone: '47996124408', ativa: 'on', para_pedido: '1', papel_cliente: 'on' };
+
+    it('exige o telefone, sem tocar o banco', async () => {
+      loggedAs('chefia');
+      expect(await pessoas.savePessoaAction({}, form({ ...DO_PEDIDO, telefone: '' }))).toMatchObject({
+        error: 'Informe o telefone do cliente.',
+      });
+      expectNoDatabase();
+    });
+
+    it('só nome e telefone bastam, e volta com o cliente em vez de ir para a ficha', async () => {
+      loggedAs('chefia');
+      client.query.mockImplementation(async (sql: string) =>
+        sql.includes('INSERT INTO cadastro.pessoas ') ? { rows: [{ id: ID }] } : { rows: [], rowCount: 1 },
+      );
+      const state = await pessoas.savePessoaAction({}, form({ ...DO_PEDIDO, confirmar_novo: '1' }));
+      expect(state).toEqual({ success: 'Cliente Sítio Boa Vista cadastrado.', cliente: { id: ID, nome: 'Sítio Boa Vista' } });
+      const papel = client.query.mock.calls.find((call) => String(call[0]).includes('INSERT INTO cadastro.pessoas_papeis'));
+      expect(JSON.stringify(papel?.[1])).toContain('cliente');
+    });
+
+    it('telefone repetido pode reaproveitar quem já existe como cliente', async () => {
+      loggedAs('chefia');
+      vi.mocked(pool.query).mockResolvedValue({ rows: [{ nome: 'Marlene Cardoso' }] } as never);
+      const state = await pessoas.savePessoaAction({}, form({ ...DO_PEDIDO, usar_pessoa_id: ID }));
+      expect(state).toEqual({ success: 'Marlene Cardoso agora também é cliente.', cliente: { id: ID, nome: 'Marlene Cardoso' } });
+    });
+  });
 });

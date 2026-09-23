@@ -10,7 +10,15 @@ const ESPECIES = [
 ];
 
 /** O componente é controlado: quem testa precisa segurar o valor, como a tela faz. */
-function Campo({ inicial = '', aoMudar }: { inicial?: string; aoMudar?: (valor: string) => void }) {
+function Campo({
+  inicial = '',
+  aoMudar,
+  required = false,
+}: {
+  inicial?: string;
+  aoMudar?: (valor: string) => void;
+  required?: boolean;
+}) {
   const [value, setValue] = useState(inicial);
   return (
     <ComboboxField
@@ -18,6 +26,7 @@ function Campo({ inicial = '', aoMudar }: { inicial?: string; aoMudar?: (valor: 
       name="item_especie"
       options={ESPECIES}
       value={value}
+      required={required}
       onChange={(valor) => {
         setValue(valor);
         aoMudar?.(valor);
@@ -80,5 +89,29 @@ describe('ComboboxField', () => {
       <ComboboxField label="Cliente" name="cliente_id" options={ESPECIES} value="" onChange={() => {}} error="Escolha o cliente." />,
     );
     expect(screen.getByLabelText('Cliente')).toHaveAccessibleDescription('Escolha o cliente.');
+  });
+
+  it('não escreve "Escolhido" embaixo do campo depois da escolha', () => {
+    render(<Campo />);
+    fireEvent.change(screen.getByLabelText('Espécie'), { target: { value: 'ipe' } });
+    fireEvent.click(screen.getByText('Ipê-roxo'));
+    expect(screen.queryByText(/Escolhido/)).toBeNull();
+  });
+
+  it('obrigatório e vazio, o campo visível barra o envio', () => {
+    render(<Campo required />);
+    const campo = screen.getByLabelText('Espécie') as HTMLInputElement;
+    expect(campo).toBeRequired();
+    expect(campo.validity.valid).toBe(false);
+  });
+
+  it('obrigatório, o texto digitado sem tocar na lista também barra o envio', () => {
+    render(<Campo required />);
+    const campo = screen.getByLabelText('Espécie') as HTMLInputElement;
+    fireEvent.change(campo, { target: { value: 'ipe' } });
+    expect(campo.validity.customError).toBe(true);
+
+    fireEvent.click(screen.getByText('Ipê-roxo'));
+    expect(campo.validity.valid).toBe(true);
   });
 });

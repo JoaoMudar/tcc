@@ -30,12 +30,12 @@ export function AcoesVerificacao({ pedidoId, pendentes }: AcoesVerificacaoProps)
       {pendentes > 0 ? (
         <Notice tone="info">
           {pendentes === 1
-            ? 'Falta um item para responder antes de enviar à chefia.'
-            : `Faltam ${pendentes} itens para responder antes de enviar à chefia.`}
+            ? 'Falta um item para responder antes de enviar.'
+            : `Faltam ${pendentes} itens para responder antes de enviar.`}
         </Notice>
       ) : (
         <Button type="submit" pending={concluindo} pendingLabel="Enviando…">
-          Enviar para a chefia
+          Enviar
         </Button>
       )}
     </form>

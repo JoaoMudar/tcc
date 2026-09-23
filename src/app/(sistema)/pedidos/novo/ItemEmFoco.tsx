@@ -73,7 +73,6 @@ export function ItemEmFoco({
         inputMode="decimal"
         autoComplete="off"
         placeholder="1,20"
-        hint="O tamanho da muda combinado com o cliente. Em branco é sem altura combinada."
         value={linha.altura}
         onChange={(evento) => onAlterar(linha.chave, 'altura', evento.target.value)}
       />
