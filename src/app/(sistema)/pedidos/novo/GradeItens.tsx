@@ -23,7 +23,11 @@ interface GradeItensProps {
   onEditar: (chave: number) => void;
   onColar: (texto: string, foco: Celula | null) => void;
   onColarLista: () => void;
+  /** O nome digitado que não está no catálogo, para cadastrar e voltar escolhido na linha. */
+  onCriarEspecie: (chave: number, nome: string) => void;
 }
+
+const rotuloCriarEspecie = (nome: string) => `+ Cadastrar "${nome}" como espécie nova`;
 
 function IconeLixeira() {
   return (
@@ -63,6 +67,7 @@ export function GradeItens({
   onEditar,
   onColar,
   onColarLista,
+  onCriarEspecie,
 }: GradeItensProps) {
   const [foco, setFoco] = useState<Celula | null>(null);
 
@@ -162,6 +167,8 @@ export function GradeItens({
                         options={opcoesEspecie}
                         value={linha.especieId}
                         onChange={(valor) => onAlterar(linha.chave, 'especieId', valor)}
+                        onCriarNova={(nome) => onCriarEspecie(linha.chave, nome)}
+                        rotuloCriar={rotuloCriarEspecie}
                         placeholder="Digite o nome…"
                       />
                     )}
@@ -203,6 +210,7 @@ export function GradeItens({
                       className="[&_input]:text-right"
                       inputMode="numeric"
                       autoComplete="off"
+                      placeholder="opcional"
                       value={linha.quantidade}
                       onFocus={() => setFoco({ linha: indice, coluna: 3 })}
                       onChange={(evento) => onAlterar(linha.chave, 'quantidade', evento.target.value)}
@@ -239,7 +247,8 @@ export function GradeItens({
         <ul className="flex flex-col divide-y divide-line">
           {linhas.map((linha, indice) => {
             const { falta, quantidade } = saldoDa(linha);
-            const especie = linha.generico ? 'Espécie a definir na conferência' : rotulo(opcoesEspecie, linha.especieId);
+            const opcaoEspecie = linha.generico ? undefined : opcoesEspecie.find((opcao) => opcao.value === linha.especieId);
+            const especie = linha.generico ? 'Espécie a definir na conferência' : (opcaoEspecie?.label ?? null);
             const recipiente = rotulo(recipientes, linha.recipienteId);
             return (
               <li key={linha.chave}>
@@ -250,6 +259,7 @@ export function GradeItens({
                 >
                   <span className="flex min-w-0 flex-col gap-0.5">
                     <span className="text-base font-semibold text-ink">{especie ?? `Item ${indice + 1}, sem espécie`}</span>
+                    {opcaoEspecie?.detalhe && <span className="text-xs text-muted italic">{opcaoEspecie.detalhe}</span>}
                     <span className="text-sm text-muted">
                       {[recipiente, linha.altura && `${linha.altura} m`].filter(Boolean).join(' · ') || 'Toque para preencher'}
                     </span>

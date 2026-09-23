@@ -25,6 +25,7 @@ function montar(linhas: readonly Linha[], acoes: Partial<Parameters<typeof Grade
     onEditar: vi.fn(),
     onColar: vi.fn(),
     onColarLista: vi.fn(),
+    onCriarEspecie: vi.fn(),
     ...acoes,
   };
   return { ...render(<GradeItens {...props} />), props };
@@ -104,5 +105,18 @@ describe('planilha de itens do pedido (T8.1, RF-54)', () => {
       clipboardData: { getData: () => '500' },
     });
     expect(onColar).not.toHaveBeenCalled();
+  });
+
+  it('no celular o científico vai miúdo embaixo do nome popular', () => {
+    montar([preenchida()], { opcoesEspecie: [{ value: 'ipe', label: 'Ipê-amarelo', detalhe: 'Handroanthus albus' }] });
+    expect(screen.getAllByText('Handroanthus albus').length).toBeGreaterThan(0);
+  });
+
+  it('a espécie que não está no catálogo se cadastra dali mesmo, pela linha', () => {
+    const onCriarEspecie = vi.fn();
+    montar([preenchida({ chave: 7, especieId: '' })], { onCriarEspecie });
+    fireEvent.change(screen.getByLabelText('Espécie do item 1'), { target: { value: 'Guapuruvu' } });
+    fireEvent.click(screen.getByText('+ Cadastrar "Guapuruvu" como espécie nova'));
+    expect(onCriarEspecie).toHaveBeenCalledWith(7, 'Guapuruvu');
   });
 });

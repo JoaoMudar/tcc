@@ -45,7 +45,7 @@ function lerItens(formData: FormData): { error: string } | { value: pedidos.Novo
     const posicao = `item ${i + 1}`;
     if (!generico && !isUuid(especies[i])) return { error: `Escolha a espécie do ${posicao}.` };
     if (!isUuid(recipientes[i])) return { error: `Escolha o recipiente do ${posicao}.` };
-    const quantidade = pedidos.parseQuantidadeItem(quantidades[i] ?? '');
+    const quantidade = pedidos.parseQuantidadeOpcional(quantidades[i] ?? '');
     if ('error' in quantidade) return { error: `No ${posicao}: ${quantidade.error.toLowerCase()}` };
     const altura = pedidos.parseAltura(alturas[i] ?? '');
     if ('error' in altura) return { error: `No ${posicao}: ${altura.error.toLowerCase()}` };
@@ -132,7 +132,7 @@ export async function atualizarItemAction(_previous: FormState, formData: FormDa
   const itemId = formText(formData, 'item_id');
   if (!isUuid(pedidoId) || !isUuid(itemId)) return { error: 'Item inválido.' };
   const fields = { quantidade: formText(formData, 'quantidade'), altura: formText(formData, 'altura') };
-  const quantidade = pedidos.parseQuantidadeItem(fields.quantidade);
+  const quantidade = pedidos.parseQuantidadeOpcional(fields.quantidade);
   if ('error' in quantidade) return { error: quantidade.error, fields };
   const altura = pedidos.parseAltura(fields.altura);
   if ('error' in altura) return { error: altura.error, fields };

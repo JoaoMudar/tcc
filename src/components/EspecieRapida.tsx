@@ -36,7 +36,7 @@ export function EspecieRapida({ nomeSugerido = '', onCriada, onFechar }: Especie
   }, [state.especie, onCriada]);
 
   return (
-    <Modal titulo="Espécie nova" onFechar={onFechar}>
+    <Modal titulo="Espécie nova" posicao="centro" onFechar={onFechar}>
       <form action={formAction} className="flex flex-col gap-3">
         <TextField
           label="Nome popular"
@@ -52,12 +52,10 @@ export function EspecieRapida({ nomeSugerido = '', onCriada, onFechar }: Especie
           autoComplete="off"
           placeholder="Cedrela fissilis"
           defaultValue={state.fields?.nome_cientifico}
-          hint="É ele que identifica a espécie no catálogo"
           required
         />
         {state.error && <Notice tone="error">{state.error}</Notice>}
         {state.existente && <Notice tone="info">{state.existente.nome} já estava cadastrada, e foi escolhida.</Notice>}
-        <Notice tone="info">Foto, características e protocolo podem ser completados depois, no cadastro.</Notice>
         <Button type="submit" pending={pending}>
           Salvar e voltar
         </Button>

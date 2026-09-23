@@ -71,4 +71,11 @@ describe('ItensDoPedido (T8.1)', () => {
     expect(screen.getByText(/Pronto para venda/)).toBeInTheDocument();
     expect(screen.getByText(/faltam 200/)).toBeInTheDocument();
   });
+
+  it('o item sem quantidade diz que ela está a definir, e não mostra zero', () => {
+    render(<ItensDoPedido itens={[item({ quantidade: null })]} />);
+    expect(screen.queryByText('0')).toBeNull();
+    // Um "a definir" na quantidade e outro no total
+    expect(screen.getAllByText('a definir')).toHaveLength(2);
+  });
 });

@@ -114,4 +114,64 @@ describe('ComboboxField', () => {
     fireEvent.click(screen.getByText('Ipê-roxo'));
     expect(campo.validity.valid).toBe(true);
   });
+
+  it('mostra o detalhe miúdo na lista e embaixo da escolha', () => {
+    const opcoes = [{ value: 'p', label: 'Pitanga', detalhe: 'Eugenia uniflora' }];
+    function ComDetalhe() {
+      const [value, setValue] = useState('');
+      return <ComboboxField label="Espécie" options={opcoes} value={value} onChange={setValue} />;
+    }
+    render(<ComDetalhe />);
+    fireEvent.focus(screen.getByLabelText('Espécie'));
+    expect(screen.getByText('Eugenia uniflora')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Pitanga'));
+    expect(screen.getByText('Eugenia uniflora')).toBeInTheDocument();
+    // Digitar por cima desfaz a escolha, e o científico sai junto
+    fireEvent.change(screen.getByLabelText('Espécie'), { target: { value: 'x' } });
+    expect(screen.queryByText('Eugenia uniflora')).toBeNull();
+  });
+
+  describe('cadastro a partir do texto digitado', () => {
+    function comCriar(onCriarNova?: (texto: string) => void) {
+      render(
+        <ComboboxField
+          label="Espécie"
+          options={ESPECIES}
+          value=""
+          onChange={vi.fn()}
+          onCriarNova={onCriarNova}
+          rotuloCriar={(texto) => `+ Cadastrar "${texto}" como espécie nova`}
+        />,
+      );
+    }
+
+    it('o nome que não está na lista vira botão de cadastrar, que entrega o texto', () => {
+      const onCriarNova = vi.fn();
+      comCriar(onCriarNova);
+      fireEvent.change(screen.getByLabelText('Espécie'), { target: { value: ' Guapuruvu ' } });
+      expect(screen.getByText('Nada encontrado com esse texto.')).toBeInTheDocument();
+      fireEvent.click(screen.getByText('+ Cadastrar "Guapuruvu" como espécie nova'));
+      expect(onCriarNova).toHaveBeenCalledWith('Guapuruvu');
+    });
+
+    it('aparece também quando o texto acha nomes parecidos', () => {
+      comCriar(vi.fn());
+      fireEvent.change(screen.getByLabelText('Espécie'), { target: { value: 'ipe' } });
+      expect(screen.getByText('Ipê-amarelo')).toBeInTheDocument();
+      expect(screen.getByText('+ Cadastrar "ipe" como espécie nova')).toBeInTheDocument();
+    });
+
+    it('o nome igual ao de uma opção não oferece cadastro, nem sem acento', () => {
+      comCriar(vi.fn());
+      fireEvent.change(screen.getByLabelText('Espécie'), { target: { value: 'araca' } });
+      expect(screen.queryByText(/Cadastrar/)).toBeNull();
+    });
+
+    it('sem a prop, o campo não oferece cadastro', () => {
+      comCriar(undefined);
+      fireEvent.change(screen.getByLabelText('Espécie'), { target: { value: 'Guapuruvu' } });
+      expect(screen.queryByText(/Cadastrar/)).toBeNull();
+    });
+  });
 });

@@ -7,7 +7,8 @@ export interface ItemExibido {
   recipiente: string;
   /** Altura pedida, em metros. Nula é "o cliente não pediu altura". */
   alturaM?: number | null;
-  quantidade: number;
+  /** Nula no rascunho: o cliente ainda não disse quantas. */
+  quantidade: number | null;
   precoCentavos: number | null;
   itemPaiId: string | null;
   especificacao: string | null;
@@ -52,7 +53,8 @@ export function ItensDoPedido({ itens }: ItensDoPedidoProps) {
       <ul className="flex flex-col divide-y divide-line">
         {itens.map((item) => {
           const filho = item.itemPaiId !== null;
-          const falta = item.pronto !== null && item.pronto !== undefined && item.quantidade > item.pronto;
+          const falta =
+            item.pronto !== null && item.pronto !== undefined && item.quantidade !== null && item.quantidade > item.pronto;
           return (
             <li key={item.id} className={`grid ${colunas} gap-x-3 px-4 py-3 ${filho ? 'bg-gray-50' : ''}`}>
               <span className={`flex min-w-0 flex-col gap-0.5 ${filho ? 'pl-4' : ''}`}>
@@ -68,7 +70,7 @@ export function ItensDoPedido({ itens }: ItensDoPedidoProps) {
                   <span className={`text-sm ${falta ? 'text-amber-800' : 'text-muted'}`}>
                     Pronto para venda: <strong>{formatQuantidade(item.pronto)}</strong>
                     {!!item.emProducao && ` · ${formatQuantidade(item.emProducao)} em produção`}
-                    {falta && ` · faltam ${formatQuantidade(item.quantidade - item.pronto)}`}
+                    {falta && ` · faltam ${formatQuantidade(item.quantidade! - item.pronto)}`}
                   </span>
                 )}
               </span>
@@ -79,7 +81,7 @@ export function ItensDoPedido({ itens }: ItensDoPedidoProps) {
                 {item.recipiente}
                 {item.alturaM ? <span className="block text-sm">{formatAltura(item.alturaM)}</span> : null}
               </span>
-              <span className="text-right text-base font-semibold text-ink">{formatQuantidade(item.quantidade)}</span>
+              <span className="text-right text-base font-semibold text-ink">{item.quantidade === null ? 'a definir' : formatQuantidade(item.quantidade)}</span>
               {comPreco && (
                 <span className="text-right text-base font-bold text-ink">
                   {/* O filho herda o preço do pai, e não é cobrado de novo (totalPedido) */}

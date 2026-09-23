@@ -3,6 +3,8 @@ import { useId, type SelectHTMLAttributes } from 'react';
 export interface SelectOption {
   value: string;
   label: string;
+  /** Linha miúda embaixo do rótulo, no `ComboboxField`: o nome científico da espécie. */
+  detalhe?: string;
 }
 
 interface SelectFieldProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'id' | 'children'> {

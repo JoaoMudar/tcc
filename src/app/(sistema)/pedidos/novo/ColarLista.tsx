@@ -6,7 +6,6 @@ import { EspecieRapida } from '@/components/EspecieRapida';
 import { Button } from '@/components/ui/Button';
 import { ComboboxField } from '@/components/ui/ComboboxField';
 import { Notice } from '@/components/ui/Notice';
-import { Pill, type PillTone } from '@/components/ui/Pill';
 import { type SelectOption, SelectField } from '@/components/ui/SelectField';
 import { TextArea } from '@/components/ui/TextArea';
 import { TextField } from '@/components/ui/TextField';
@@ -49,9 +48,6 @@ interface LinhaRevisao {
   recipienteId: string;
   quantidade: string;
 }
-
-const TOM: Record<SituacaoCasamento, PillTone> = { exata: 'green', provavel: 'amber', nenhuma: 'red' };
-const ROTULO: Record<SituacaoCasamento, string> = { exata: '✓ exata', provavel: '⚠ provável', nenhuma: '✗ resolver' };
 
 const EXEMPLO = 'Cole aqui, uma espécie por linha. Ex:\nIpê amarelo 500\n200 araucária\npitanga - 100';
 
@@ -117,7 +113,11 @@ export function ColarLista({
     );
   }
 
-  const opcoesEspecie: SelectOption[] = catalogo.map((especie) => ({ value: especie.id, label: especie.nome }));
+  const opcoesEspecie: SelectOption[] = catalogo.map((especie) => ({
+    value: especie.id,
+    label: especie.nome,
+    detalhe: especie.nomeCientifico && especie.nomeCientifico !== especie.nome ? especie.nomeCientifico : undefined,
+  }));
 
   function reconhecer() {
     if (!recipientePadrao) {
@@ -198,8 +198,12 @@ export function ColarLista({
     setCriandoPara(null);
   }
 
+  // Quantidade em branco não trava: no cadastro ela é opcional, e é cobrada antes da conferência
   const pendentes = (linhas ?? []).filter(
-    (linha) => (!linha.generico && !linha.especieId) || !linha.recipienteId || !/^\d+$/.test(linha.quantidade.trim()),
+    (linha) =>
+      (!linha.generico && !linha.especieId) ||
+      !linha.recipienteId ||
+      (linha.quantidade.trim() !== '' && !/^\d+$/.test(linha.quantidade.trim())),
   ).length;
 
   if (linhas === null) {
@@ -234,124 +238,175 @@ export function ColarLista({
   }
 
   return (
-    <section className="flex flex-col gap-3 rounded-xl border-2 border-brand bg-white p-4">
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="text-base font-bold text-ink">Conferir o que foi lido</h3>
-        <Button variant="secondary" onClick={onFechar}>
+    <section className="flex flex-col gap-3 rounded-xl border-2 border-brand bg-white p-3 sm:p-4">
+      {/* O recipiente padrão fica no cabeçalho: ele vale para a grade inteira */}
+      <div className="flex flex-wrap items-end gap-3">
+        <h3 className="w-full text-base font-bold text-ink sm:w-auto sm:flex-1">Conferir o que foi lido</h3>
+        <div className="min-w-0 flex-1 sm:max-w-xs sm:flex-none">
+          <SelectField
+            label="Recipiente padrão (vale para todas)"
+            name="colagem_recipiente"
+            options={recipientes}
+            value={recipientePadrao}
+            onChange={(event) => trocarRecipientePadrao(event.target.value)}
+          />
+        </div>
+        <Button variant="secondary" className="w-auto!" onClick={onFechar}>
           Fechar
         </Button>
       </div>
 
-      <SelectField
-        label="Recipiente padrão (vale para todas)"
-        name="colagem_recipiente"
-        options={recipientes}
-        value={recipientePadrao}
-        onChange={(event) => trocarRecipientePadrao(event.target.value)}
-      />
+      {/* A mesma grade dos itens do pedido. A célula da espécie diz de longe o
+          que falta: verde achou, vermelho não achou, azul é o genérico. Sem
+          `overflow-hidden`, pela mesma razão da planilha: a lista de opções
+          passa por cima da borda de baixo */}
+      <div className="rounded-xl border border-line bg-white">
+        <table className="w-full table-fixed border-collapse text-base">
+          <colgroup>
+            <col />
+            <col className="w-20 sm:w-32" />
+            <col className="w-16 sm:w-24" />
+            <col className="w-10 sm:w-12" />
+          </colgroup>
+          <thead>
+            <tr className="bg-surface text-left text-xs font-bold tracking-wide text-muted uppercase">
+              <th scope="col" className="rounded-tl-xl px-3 py-2">
+                Espécie
+              </th>
+              <th scope="col" className="border-l border-line px-2 py-2 text-right sm:px-3">
+                Qtd
+              </th>
+              <th scope="col" className="border-l border-line px-1 py-2 text-center">
+                Genérico
+              </th>
+              <th scope="col" className="rounded-tr-xl border-l border-line">
+                <span className="sr-only">Excluir</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {linhas.map((linha, indice) => {
+              const achou = linha.generico || !!linha.especieId;
+              const especie = catalogo.find((candidata) => candidata.id === linha.especieId);
+              const podeAprender =
+                linha.resolvidaAMao && !!linha.especieId && !linha.nomeAprendido && !jaConhece(especie, linha.nomeColado);
 
-      <ul className="flex flex-col gap-3">
-        {linhas.map((linha) => {
-          const falta = !linha.generico && !linha.especieId;
-          const especie = catalogo.find((candidata) => candidata.id === linha.especieId);
-          const podeAprender =
-            linha.resolvidaAMao && !!linha.especieId && !linha.nomeAprendido && !jaConhece(especie, linha.nomeColado);
+              return (
+                <tr key={linha.chave} className="border-t border-line align-top">
+                  <td
+                    data-situacao={linha.generico ? 'generico' : achou ? 'encontrada' : 'nao-encontrada'}
+                    className={`border-l-4 p-0 ${
+                      linha.generico
+                        ? 'border-l-blue-500 bg-blue-50'
+                        : achou
+                          ? 'border-l-green-600 bg-green-50'
+                          : 'border-l-red-600 bg-red-50'
+                    }`}
+                  >
+                    {linha.generico ? (
+                      <p className="flex min-h-11 items-center px-3 font-semibold text-blue-900">
+                        Espécie a definir na conferência
+                      </p>
+                    ) : (
+                      <ComboboxField
+                        label={`Espécie da linha ${indice + 1}`}
+                        compacto
+                        options={opcoesEspecie}
+                        value={linha.especieId}
+                        onChange={(valor) => escolherEspecie(linha, valor)}
+                        placeholder="Digite o nome…"
+                      />
+                    )}
 
-          return (
-            <li
-              key={linha.chave}
-              className={`flex flex-col gap-2 rounded-xl border-2 p-3 ${
-                linha.generico ? 'border-blue-400 bg-blue-50' : falta ? 'border-red-400 bg-red-50' : 'border-line bg-white'
-              }`}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <p className="truncate text-sm text-muted" title={linha.bruta}>
-                  {linha.bruta}
-                </p>
-                <button
-                  type="button"
-                  aria-label={`Tirar a linha ${linha.bruta}`}
-                  onClick={() => setLinhas((atuais) => atuais?.filter((atual) => atual.chave !== linha.chave) ?? null)}
-                  className="min-h-touch px-2 text-base font-bold text-muted"
-                >
-                  ✕
-                </button>
-              </div>
+                    {/* O que veio colado fica à vista: é contra ele que se confere o reconhecimento */}
+                    <p className="truncate px-3 pb-1.5 text-xs text-muted" title={linha.bruta}>
+                      lido: &quot;{linha.bruta}&quot;
+                      {!linha.generico && linha.casouPor && ` · reconhecido por "${linha.casouPor}"`}
+                    </p>
 
-              <div className="flex flex-wrap items-center gap-2">
-                <Pill tone={falta ? 'red' : TOM[linha.situacao]}>{ROTULO[falta ? 'nenhuma' : linha.situacao]}</Pill>
-                <Button
-                  variant={linha.generico ? 'primary' : 'secondary'}
-                  onClick={() =>
-                    alterar(linha.chave, {
-                      generico: !linha.generico,
-                      especieId: '',
-                      especie: '',
-                      resolvidaAMao: false,
-                    })
-                  }
-                >
-                  {linha.generico ? 'GENÉRICO' : 'tornar genérico'}
-                </Button>
-              </div>
+                    {!linha.generico && !linha.especieId && (
+                      <button
+                        type="button"
+                        onClick={() => setCriandoPara(linha)}
+                        className="px-3 pb-2 text-left text-sm font-bold text-brand underline"
+                      >
+                        + Cadastrar &quot;{linha.nomeColado}&quot; como espécie nova
+                      </button>
+                    )}
 
-              {linha.generico ? (
-                <p className="text-sm font-semibold text-blue-900">A gerência escolhe a espécie na conferência.</p>
-              ) : (
-                <ComboboxField
-                  label="Espécie"
-                  name={`colagem_especie_${linha.chave}`}
-                  options={opcoesEspecie}
-                  value={linha.especieId}
-                  onChange={(valor) => escolherEspecie(linha, valor)}
-                />
-              )}
-
-              {!linha.generico && linha.casouPor && (
-                <p className="text-sm text-muted">reconhecido por &quot;{linha.casouPor}&quot;</p>
-              )}
-
-              {!linha.generico && !linha.especieId && (
-                <Button variant="outline" onClick={() => setCriandoPara(linha)}>
-                  + Cadastrar &quot;{linha.nomeColado}&quot; como espécie nova
-                </Button>
-              )}
-
-              {podeAprender && (
-                <form action={aprender}>
-                  <input type="hidden" name="especie_id" value={linha.especieId} />
-                  <input type="hidden" name="nome" value={linha.nomeColado} />
-                  <Button type="submit" variant="outline" pending={aprendendo}>
-                    + Salvar &quot;{linha.nomeColado}&quot; como outro nome de {linha.especie}
-                  </Button>
-                </form>
-              )}
-              {linha.nomeAprendido && (
-                <p className="text-sm font-semibold text-green-800">
-                  ✓ &quot;{linha.nomeColado}&quot; salvo como outro nome
-                </p>
-              )}
-
-              <TextField
-                label="Quantidade"
-                name={`colagem_quantidade_${linha.chave}`}
-                inputMode="numeric"
-                autoComplete="off"
-                value={linha.quantidade}
-                onChange={(event) => alterar(linha.chave, { quantidade: event.target.value })}
-              />
-            </li>
-          );
-        })}
-      </ul>
+                    {podeAprender && (
+                      <form action={aprender} className="px-3 pb-2">
+                        <input type="hidden" name="especie_id" value={linha.especieId} />
+                        <input type="hidden" name="nome" value={linha.nomeColado} />
+                        <button
+                          type="submit"
+                          disabled={aprendendo}
+                          className="text-left text-sm font-bold text-brand underline disabled:opacity-60"
+                        >
+                          + Salvar &quot;{linha.nomeColado}&quot; como outro nome de {linha.especie}
+                        </button>
+                      </form>
+                    )}
+                    {linha.nomeAprendido && (
+                      <p className="px-3 pb-2 text-sm font-semibold text-green-800">
+                        ✓ &quot;{linha.nomeColado}&quot; salvo como outro nome
+                      </p>
+                    )}
+                  </td>
+                  <td className="border-l border-line p-0">
+                    <TextField
+                      label={`Quantidade da linha ${indice + 1}`}
+                      compacto
+                      className="[&_input]:text-right"
+                      inputMode="numeric"
+                      autoComplete="off"
+                      value={linha.quantidade}
+                      onChange={(event) => alterar(linha.chave, { quantidade: event.target.value })}
+                    />
+                  </td>
+                  <td className="border-l border-line p-0">
+                    <label className="flex h-11 w-full cursor-pointer items-center justify-center">
+                      <span className="sr-only">Tornar genérico o item da linha {indice + 1}</span>
+                      <input
+                        type="checkbox"
+                        className="size-5 accent-blue-700"
+                        checked={linha.generico}
+                        onChange={(event) =>
+                          alterar(linha.chave, {
+                            generico: event.target.checked,
+                            especieId: '',
+                            especie: '',
+                            resolvidaAMao: false,
+                          })
+                        }
+                      />
+                    </label>
+                  </td>
+                  <td className="border-l border-line p-0">
+                    <button
+                      type="button"
+                      aria-label={`Tirar a linha ${linha.bruta}`}
+                      title="Tirar linha"
+                      onClick={() => setLinhas((atuais) => atuais?.filter((atual) => atual.chave !== linha.chave) ?? null)}
+                      className="flex h-11 w-full items-center justify-center font-bold text-muted hover:bg-red-50 hover:text-red-700"
+                    >
+                      ✕
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
 
       {aprendizado.error && <Notice tone="error">{aprendizado.error}</Notice>}
 
       {pendentes > 0 ? (
         <Notice tone="warning">
           {pendentes === 1
-            ? 'Uma linha a resolver: falta a espécie ou a quantidade.'
-            : `${pendentes} linhas a resolver: falta a espécie ou a quantidade.`}
+            ? 'Uma linha a resolver: falta a espécie, ou a quantidade não é um número.'
+            : `${pendentes} linhas a resolver: falta a espécie, ou a quantidade não é um número.`}
         </Notice>
       ) : (
         <Button

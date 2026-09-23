@@ -19,6 +19,8 @@ interface ItemEmFocoProps {
   onAlterar: (chave: number, campo: keyof Omit<Linha, 'chave'>, valor: string | boolean) => void;
   onRemover: (chave: number) => void;
   onFechar: () => void;
+  /** O nome digitado que não está no catálogo, para cadastrar e voltar escolhido aqui. */
+  onCriarEspecie: (chave: number, nome: string) => void;
 }
 
 /**
@@ -38,6 +40,7 @@ export function ItemEmFoco({
   onAlterar,
   onRemover,
   onFechar,
+  onCriarEspecie,
 }: ItemEmFocoProps) {
   const saldo = saldos[chaveSaldo(linha.especieId, linha.recipienteId)];
   const pronto = saldo?.pronto ?? 0;
@@ -59,6 +62,8 @@ export function ItemEmFoco({
           options={opcoesEspecie}
           value={linha.especieId}
           onChange={(valor) => onAlterar(linha.chave, 'especieId', valor)}
+          onCriarNova={(nome) => onCriarEspecie(linha.chave, nome)}
+          rotuloCriar={(nome) => `+ Cadastrar "${nome}" como espécie nova`}
         />
       )}
 
@@ -77,7 +82,7 @@ export function ItemEmFoco({
         onChange={(evento) => onAlterar(linha.chave, 'altura', evento.target.value)}
       />
       <TextField
-        label="Quantidade"
+        label="Quantidade (opcional)"
         inputMode="numeric"
         autoComplete="off"
         value={linha.quantidade}

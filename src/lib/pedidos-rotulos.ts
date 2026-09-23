@@ -213,7 +213,8 @@ export function chaveSaldo(especieId: string, recipienteId: string): string {
 }
 
 export interface ItemCalculavel {
-  quantidade: number;
+  /** Nula só no rascunho, e preço só existe depois da conferência, que a exige. */
+  quantidade: number | null;
   /** Nulo até alguém precificar, o que só acontece depois da conferência. */
   precoCentavos: number | null;
   /** Preenchido só no filho de um item genérico. */
@@ -222,7 +223,7 @@ export interface ItemCalculavel {
 
 /** RF-55: o total do item é quantidade por preço, em centavos. Sem preço, nulo. */
 export function totalItem(item: ItemCalculavel): number | null {
-  return item.precoCentavos === null ? null : item.quantidade * item.precoCentavos;
+  return item.precoCentavos === null || item.quantidade === null ? null : item.quantidade * item.precoCentavos;
 }
 
 /**
@@ -238,8 +239,8 @@ export function totalItem(item: ItemCalculavel): number | null {
  */
 export function totalPedido(itens: readonly ItemCalculavel[]): number | null {
   const topo = itens.filter((item) => !item.itemPaiId);
-  if (topo.some((item) => item.precoCentavos === null)) return null;
-  return topo.reduce((soma, item) => soma + item.quantidade * item.precoCentavos!, 0);
+  if (topo.some((item) => item.precoCentavos === null || item.quantidade === null)) return null;
+  return topo.reduce((soma, item) => soma + item.quantidade! * item.precoCentavos!, 0);
 }
 
 /** O total que a tela imprime: "R$ 1.250,00" ou "a definir" enquanto faltar preço. */

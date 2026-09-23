@@ -15,6 +15,7 @@ describe('item do pedido em tela cheia (T8.1)', () => {
         onAlterar={vi.fn()}
         onRemover={vi.fn()}
         onFechar={vi.fn()}
+        onCriarEspecie={vi.fn()}
       />,
     );
     expect(screen.getByLabelText('Altura em metros (opcional)')).not.toHaveAccessibleDescription();

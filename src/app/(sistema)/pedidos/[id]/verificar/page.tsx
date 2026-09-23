@@ -94,6 +94,7 @@ export default async function VerificarPage({ params }: VerificarPageProps) {
         {topo.length === 0 && <Notice tone="warning">Este pedido não tem item nenhum para conferir.</Notice>}
 
         <ul className="flex flex-col gap-3">
+          {/* O `?? 0` é só para o tipo: a conferência não abre com item sem quantidade (mudarSituacao) */}
           {especificos.map((item) => (
             <VerificacaoItem
               key={item.id}
@@ -104,7 +105,7 @@ export default async function VerificarPage({ params }: VerificarPageProps) {
                 recipiente: item.recipiente,
                 recipienteId: item.recipienteId,
                 alturaM: item.alturaM,
-                quantidade: item.quantidade,
+                quantidade: item.quantidade ?? 0,
                 disponivel: item.disponivel,
                 quantidadeDisponivel: item.quantidadeDisponivel,
                 recipienteDisponivelId: item.recipienteDisponivelId,
@@ -120,7 +121,7 @@ export default async function VerificarPage({ params }: VerificarPageProps) {
               pedidoId={pedido.id}
               item={{
                 id: item.id,
-                quantidade: item.quantidade,
+                quantidade: item.quantidade ?? 0,
                 recipiente: item.recipiente,
                 recipienteId: item.recipienteId,
                 especificacao: item.especificacao,
@@ -134,7 +135,7 @@ export default async function VerificarPage({ params }: VerificarPageProps) {
                     especie: filho.especie ?? '',
                     recipienteId: filho.recipienteId,
                     recipiente: filho.recipiente,
-                    quantidade: filho.quantidade,
+                    quantidade: filho.quantidade ?? 0,
                   })),
               }}
               especies={opcoesEspecie}

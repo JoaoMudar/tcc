@@ -169,7 +169,7 @@ export default async function PedidoPage({ params, searchParams }: PedidoPagePro
                 id: item.id,
                 especie: item.especie ?? 'Espécie a definir',
                 recipiente: item.recipiente,
-                quantidade: item.quantidade,
+                quantidade: item.quantidade ?? 0,
                 precoCentavos: item.precoCentavos,
               }))}
           />

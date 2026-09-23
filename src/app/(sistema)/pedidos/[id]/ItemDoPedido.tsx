@@ -11,7 +11,8 @@ import { atualizarItemAction, removerItemAction } from '../actions';
 interface ItemDoPedidoProps {
   pedidoId: string;
   itemId: string;
-  quantidade: number;
+  /** Nula enquanto o cliente não disse quantas. */
+  quantidade: number | null;
   alturaM: number | null;
 }
 
@@ -35,8 +36,8 @@ export function ItemDoPedido({ pedidoId, itemId, quantidade, alturaM }: ItemDoPe
           name="quantidade"
           inputMode="numeric"
           autoComplete="off"
-          defaultValue={fields?.quantidade ?? String(quantidade)}
-          required
+          defaultValue={fields?.quantidade ?? (quantidade === null ? '' : String(quantidade))}
+          hint="Pode ficar em branco até o cliente dizer; é exigida antes da conferência"
         />
         <TextField
           label="Altura em metros (opcional)"
