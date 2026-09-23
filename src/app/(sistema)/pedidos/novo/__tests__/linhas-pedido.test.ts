@@ -33,7 +33,7 @@ describe('linhas da planilha de itens (T8.1)', () => {
 describe('colagem de planilha nas células (T8.16)', () => {
   it('as quatro colunas caem na ordem da tela, a partir da primeira célula', () => {
     const [linha] = colar([linhaVazia(1)], [['Ipê-amarelo', 'Tubete', '1,20', '500']]);
-    expect(linha).toMatchObject({ especieId: 'ipe', recipienteId: 'tub', altura: '1,20', quantidade: '500' });
+    expect(linha).toMatchObject({ especieId: 'ipe', recipienteId: 'tub', altura: '1,20 m', quantidade: '500' });
   });
 
   it('o que passa do fim da tabela vira linha nova', () => {
@@ -45,7 +45,7 @@ describe('colagem de planilha nas células (T8.16)', () => {
   it('colando no meio da tabela, as colunas andam com o foco', () => {
     const [linha] = colar([{ ...linhaVazia(1), especieId: 'pit' }], [['0,80', '300']], { linha: 0, coluna: 2 });
     // A espécie que já estava não é apagada: a colagem começou na altura
-    expect(linha).toMatchObject({ especieId: 'pit', altura: '0,80', quantidade: '300' });
+    expect(linha).toMatchObject({ especieId: 'pit', altura: '0,80 m', quantidade: '300' });
   });
 
   it('a espécie que o catálogo não reconhece fica em branco, e não é chutada', () => {
@@ -54,9 +54,9 @@ describe('colagem de planilha nas células (T8.16)', () => {
     expect(linha.recipienteId).toBe('tub');
   });
 
-  it('o milhar da planilha vira número limpo, e a altura vira "1,20"', () => {
+  it('o milhar da planilha vira número limpo, e a altura vira "1,20 m"', () => {
     const [linha] = colar([linhaVazia(1)], [['Pitanga', 'Saco 17x22 · 3 L', '1.2', '1.000']]);
-    expect(linha).toMatchObject({ altura: '1,20', quantidade: '1000' });
+    expect(linha).toMatchObject({ altura: '1,20 m', quantidade: '1000' });
   });
 
   it('o que não dá para entender fica na célula como veio, para a pessoa corrigir', () => {

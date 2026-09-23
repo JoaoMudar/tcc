@@ -110,9 +110,38 @@ no lugar do total, em vez de anunciar uma soma parcial.
 ### Colar a lista do cliente
 
 A lista chega pelo WhatsApp como texto solto: "- Ipê amarelo 500", "200 araucária", "2x pitanga".
-No cadastro do pedido, **Colar lista** lê esse texto, uma espécie por linha, e propõe o casamento
-com o catálogo: a linha reconhecida com certeza sai marcada como exata, a parecida como provável,
-já com a espécie escolhida, e a desconhecida fica em vermelho segurando a importação.
+No cadastro do pedido, **Colar lista** lê esse texto e propõe o casamento com o catálogo. A linha
+reconhecida com certeza sai marcada como exata, a parecida como provável, já com a espécie
+escolhida, e a desconhecida fica em vermelho segurando a importação.
+
+**A leitura aceita a lista do jeito que o cliente a escreve.** Os itens vêm um por linha ou em
+lista corrida separada por "|" ou ";", e cada item pode trazer, em qualquer ordem, tamanho ("80
+cm", "1,20 m"), faixa de tamanho ("80–100 cm"), preço ("R$ 12,00"), recipiente ("tubete", "17x22")
+e quantidade. A lista agrupada também é lida, porque o cabeçalho "60 cm:" ou "R$ 10,00:" vale para
+o item da mesma linha e, sozinho na linha, para os de baixo até o próximo. A lista só de tamanhos
+ou só de preços vira linhas sem espécie, que se escolhe na revisão. A vírgula não separa item,
+porque é o decimal de "12,00" e de "1,20 m".
+
+**O preço lido não entra no pedido** (RN-50). Ele é reconhecido para não virar nome nem
+quantidade, e a revisão mostra que foi visto e deixado de lado. Da faixa de tamanho fica o menor
+valor, e o valor original continua à vista no texto lido de cada linha.
+
+**O número solto depois do tamanho é a única leitura ambígua.** Em "Ipê 80cm 12" o 12 é preço, e
+em "Ipê 80cm 300" o 300 é quantidade. Abaixo de 100 o número é tomado como preço e a quantidade
+fica em branco, que é pergunta visível na revisão. Com "un", "mudas" ou "x" junto, ele é sempre
+quantidade.
+
+A revisão tem as mesmas colunas da planilha de itens (espécie, recipiente, altura e quantidade). O
+recipiente escrito na lista vai para a linha, e o recipiente padrão do cabeçalho preenche só as
+linhas que vieram sem ele. Trocar o padrão muda essas linhas e deixa como estão as que trouxeram o
+recipiente escrito ou foram escolhidas à mão.
+
+### Altura do item
+
+A altura é opcional e gravada em metros (RF-54), e o campo aceita os dois jeitos de medir a muda.
+"1,20" e "1,20 m" são metros, "80 cm" é centímetro, e **o número inteiro sem unidade a partir de 10
+é lido em centímetros**, de modo que "120" vira 1,20 m. Abaixo de 10 o inteiro continua metro. Ao
+sair do campo, o valor aparece como o sistema o entendeu ("1,20 m").
 
 **Nada entra sem revisão** (RF-54). A linha que ninguém reconheceu se resolve de três maneiras:
 escolhendo uma espécie da lista, cadastrando a espécie ali mesmo (nome popular e científico) ou

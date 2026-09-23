@@ -143,7 +143,7 @@ export function NovoPedidoForm({ clientes, especies, recipientes, saldos, verFis
         generico: item.generico,
         especieId: item.especieId,
         recipienteId: item.recipienteId,
-        altura: '',
+        altura: item.altura,
         quantidade: item.quantidade,
       }));
       return [...base, ...novas];

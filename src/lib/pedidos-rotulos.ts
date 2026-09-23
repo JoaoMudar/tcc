@@ -172,15 +172,28 @@ const ALTURA_MINIMA_M = 0.05;
  * **Vazio é nulo, e não erro** (RF-54): a altura é opcional, porque o
  * recipiente já determina o porte na maior parte das vendas. Quem digita
  * ponto no lugar da vírgula é entendido do mesmo jeito.
+ *
+ * **Centímetro também é entendido**, porque é como a muda se mede na trena:
+ * "80 cm" é 0,80 m, e o número inteiro sem unidade a partir de 10 é lido em
+ * centímetros ("120" é 1,20 m). Abaixo de 10 o inteiro é metro ("2" é 2,00 m):
+ * muda de menos de 10 cm não se vende, e árvore de mais de 10 m não cabe no
+ * caminhão.
  */
 export function parseAltura(text: string): { error: string } | { value: number | null } {
-  const limpo = text.trim().replace(/\s*m$/i, '').replace(/\s/g, '');
+  const texto = text.trim();
+  const emCentimetros = /cm$/i.test(texto);
+  const limpo = texto.replace(/\s*c?m$/i, '').replace(/\s/g, '');
   if (limpo === '') return { value: null };
   const normalizado = limpo.replace(',', '.');
   if (!/^\d+(\.\d{1,2})?$/.test(normalizado)) {
-    return { error: 'A altura precisa ser um valor em metros, como 1,20.' };
+    return {
+      error: 'A altura precisa ser um valor em metros, como 1,20, ou em centímetros, como 120.',
+    };
   }
-  const metros = Math.round(Number(normalizado) * 100) / 100;
+  const semUnidade = !/m$/i.test(texto);
+  const inteiroEmCentimetros = semUnidade && /^\d+$/.test(normalizado) && Number(normalizado) >= 10;
+  const valor = Number(normalizado);
+  const metros = Math.round((emCentimetros || inteiroEmCentimetros ? valor / 100 : valor) * 100) / 100;
   if (metros < ALTURA_MINIMA_M) return { error: 'A altura precisa ser de ao menos 0,05 m.' };
   if (metros > ALTURA_MAXIMA_M) return { error: 'A altura precisa ser de até 20 m.' };
   return { value: metros };
@@ -196,6 +209,16 @@ export function formatAltura(metros: number | null | undefined): string {
 export function alturaParaCampo(metros: number | null | undefined): string {
   if (metros === null || metros === undefined) return '';
   return metros.toFixed(2).replace('.', ',');
+}
+
+/**
+ * O campo de altura ao perder o foco: "120" vira "1,20 m", para a pessoa ver
+ * na hora como o sistema entendeu. O que não dá para entender fica como veio,
+ * e o erro aparece no envio.
+ */
+export function normalizaCampoAltura(texto: string): string {
+  const lida = parseAltura(texto);
+  return 'error' in lida ? texto : formatAltura(lida.value);
 }
 
 /** O campo volta para a tela como a pessoa espera lê-lo, e não como "1250". */

@@ -3,7 +3,7 @@
  * elas. Puro, sem React e sem SQL: é a parte que o teste consegue olhar sem
  * montar tela nenhuma.
  */
-import { alturaParaCampo, parseAltura } from '@/lib/pedidos-rotulos';
+import { normalizaCampoAltura } from '@/lib/pedidos-rotulos';
 import {
   type EspecieParaColagem,
   type RecipienteParaColagem,
@@ -16,7 +16,7 @@ export interface Linha {
   generico: boolean;
   especieId: string;
   recipienteId: string;
-  /** Texto, porque o campo é controlado: "1,20" é o que a pessoa vê e digita. */
+  /** Texto, porque o campo é controlado: a pessoa digita "120" e vê "1,20 m" ao sair do campo. */
   altura: string;
   quantidade: string;
 }
@@ -46,12 +46,6 @@ export function proximaChave(atuais: readonly Linha[]): number {
 function lerQuantidadeCelula(texto: string): string {
   const digitos = texto.replace(/[.,\s]/g, '');
   return /^\d+$/.test(digitos) ? digitos : texto;
-}
-
-/** O que a planilha escreveu na altura, guardado como "1,20" quando dá para entender. */
-function lerAlturaCelula(texto: string): string {
-  const lida = parseAltura(texto);
-  return 'error' in lida ? texto : alturaParaCampo(lida.value);
 }
 
 /**
@@ -89,7 +83,7 @@ export function aplicarColagemTabular(
       } else if (coluna === 'recipiente') {
         linha.recipienteId = casaRecipiente(texto, recipientes) ?? '';
       } else if (coluna === 'altura') {
-        linha.altura = lerAlturaCelula(texto);
+        linha.altura = normalizaCampoAltura(texto);
       } else {
         linha.quantidade = lerQuantidadeCelula(texto);
       }

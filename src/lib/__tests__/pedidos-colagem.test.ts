@@ -217,3 +217,164 @@ describe('linha longa (SEC-004)', () => {
     expect(lida.bruta).toHaveLength(200);
   });
 });
+
+/** O que interessa de cada item lido: nome, altura, preço e quantidade. */
+function resumo(texto: string) {
+  return parseLinhasPedido(texto).map(({ nome, alturaM, precoCentavos, quantidade }) => [
+    nome,
+    alturaM,
+    precoCentavos,
+    quantidade,
+  ]);
+}
+
+describe('os formatos de lista que os clientes mandam', () => {
+  const TRES = ['Ipê-amarelo', 'Guabiroba', 'Ingá'];
+
+  it('1. completa: nome, tamanho e preço', () => {
+    expect(resumo('Ipê-amarelo — 80 cm — R$ 12,00\nGuabiroba — 60 cm — R$ 10,00\nIngá — 70 cm — R$ 9,00')).toEqual([
+      ['Ipê-amarelo', 0.8, 1200, null],
+      ['Guabiroba', 0.6, 1000, null],
+      ['Ingá', 0.7, 900, null],
+    ]);
+  });
+
+  it('2. nome e tamanho', () => {
+    expect(resumo('Ipê-amarelo — 80 cm\nGuabiroba — 60 cm\nIngá — 70 cm')).toEqual([
+      ['Ipê-amarelo', 0.8, null, null],
+      ['Guabiroba', 0.6, null, null],
+      ['Ingá', 0.7, null, null],
+    ]);
+  });
+
+  it('3. nome e preço', () => {
+    expect(resumo('Ipê-amarelo — R$ 12,00\nGuabiroba — R$ 10,00\nIngá — R$ 9,00')).toEqual([
+      ['Ipê-amarelo', null, 1200, null],
+      ['Guabiroba', null, 1000, null],
+      ['Ingá', null, 900, null],
+    ]);
+  });
+
+  it('4. faixa de tamanho: fica o menor valor', () => {
+    expect(
+      resumo('Ipê-amarelo — 80–100 cm — R$ 12,00\nGuabiroba — 50–70 cm — R$ 10,00\nIngá — 60-80cm — R$ 9,00'),
+    ).toEqual([
+      ['Ipê-amarelo', 0.8, 1200, null],
+      ['Guabiroba', 0.5, 1000, null],
+      ['Ingá', 0.6, 900, null],
+    ]);
+    expect(resumo('Ipê 1,00 a 1,50 m')).toEqual([['Ipê', 1, null, null]]);
+  });
+
+  it('5. só nomes', () => {
+    expect(resumo('Ipê-amarelo\nGuabiroba\nIngá').map(([nome]) => nome)).toEqual(TRES);
+  });
+
+  it('6. só tamanhos: linhas sem espécie, para escolher na revisão', () => {
+    expect(resumo('80 cm\n60 cm\n70 cm')).toEqual([
+      ['', 0.8, null, null],
+      ['', 0.6, null, null],
+      ['', 0.7, null, null],
+    ]);
+  });
+
+  it('7. só preços: linhas sem espécie também', () => {
+    expect(resumo('R$ 12,00\nR$ 10,00\nR$ 9,00')).toEqual([
+      ['', null, 1200, null],
+      ['', null, 1000, null],
+      ['', null, 900, null],
+    ]);
+  });
+
+  it('8. lista corrida completa', () => {
+    expect(resumo('Ipê-amarelo — 80 cm — R$ 12,00 | Guabiroba — 60 cm — R$ 10,00 | Ingá — 70 cm — R$ 9,00')).toEqual([
+      ['Ipê-amarelo', 0.8, 1200, null],
+      ['Guabiroba', 0.6, 1000, null],
+      ['Ingá', 0.7, 900, null],
+    ]);
+  });
+
+  it('9. lista corrida só com nomes, e cada trecho guarda o seu "lido"', () => {
+    const lidas = parseLinhasPedido('Ipê-amarelo | Guabiroba | Ingá');
+    expect(lidas.map((linha) => linha.nome)).toEqual(TRES);
+    expect(lidas.map((linha) => linha.bruta)).toEqual(TRES);
+  });
+
+  it('10. agrupada por tamanho', () => {
+    expect(resumo('60 cm: Guabiroba — R$ 10,00\n70 cm: Ingá — R$ 9,00\n80 cm: Ipê-amarelo — R$ 12,00')).toEqual([
+      ['Guabiroba', 0.6, 1000, null],
+      ['Ingá', 0.7, 900, null],
+      ['Ipê-amarelo', 0.8, 1200, null],
+    ]);
+  });
+
+  it('11. agrupada por preço', () => {
+    expect(resumo('R$ 9,00: Ingá\nR$ 10,00: Guabiroba\nR$ 12,00: Ipê-amarelo')).toEqual([
+      ['Ingá', null, 900, null],
+      ['Guabiroba', null, 1000, null],
+      ['Ipê-amarelo', null, 1200, null],
+    ]);
+  });
+
+  it('12. ultraenxuto: depois do tamanho, o número solto pequeno é preço', () => {
+    expect(resumo('Ipê 80cm 12 | Guabiroba 60cm 10 | Ingá 70cm 9')).toEqual([
+      ['Ipê', 0.8, 1200, null],
+      ['Guabiroba', 0.6, 1000, null],
+      ['Ingá', 0.7, 900, null],
+    ]);
+  });
+
+  it('depois do tamanho, número grande ou com unidade continua quantidade', () => {
+    expect(resumo('Ipê 80cm 300')).toEqual([['Ipê', 0.8, null, 300]]);
+    expect(resumo('Ipê 80cm 50 mudas')).toEqual([['Ipê', 0.8, null, 50]]);
+    expect(resumo('Ipê 80 cm x 20')).toEqual([['Ipê', 0.8, null, 20]]);
+  });
+
+  it('tudo junto: quantidade, tamanho e preço na mesma linha', () => {
+    expect(resumo('Ipê amarelo 500 un 1,20 m R$ 15,00')).toEqual([['Ipê amarelo', 1.2, 1500, 500]]);
+  });
+
+  it('o cabeçalho sozinho na linha vale para as de baixo, até o próximo', () => {
+    expect(resumo('60 cm:\nGuabiroba 100\nIngá\n80 cm:\nIpê')).toEqual([
+      ['Guabiroba', 0.6, null, 100],
+      ['Ingá', 0.6, null, null],
+      ['Ipê', 0.8, null, null],
+    ]);
+  });
+
+  it('o recipiente escrito na lista é lido, e o "17x22" não vira quantidade', () => {
+    const [lida] = parseLinhasPedido('Ipê saco 17x22 80cm 300');
+    expect(lida).toMatchObject({
+      nome: 'Ipê',
+      recipiente: 'saco 17x22',
+      alturaM: 0.8,
+      quantidade: 300,
+    });
+    expect(parseLinhasPedido('Pitanga tubete 200')[0]).toMatchObject({
+      nome: 'Pitanga',
+      recipiente: 'tubete',
+      quantidade: 200,
+    });
+  });
+
+  it('"mudas" não é lido como metro', () => {
+    expect(resumo('Pitanga 500 mudas')).toEqual([['Pitanga', null, null, 500]]);
+  });
+
+  it('para no teto de itens de um envio', () => {
+    expect(parseLinhasPedido(Array.from({ length: 500 }, () => 'ipê').join(' | '))).toHaveLength(200);
+  });
+});
+
+describe('recipiente da lista casado com o cadastro', () => {
+  const RECIPIENTES = [
+    { id: 'tub', nome: 'Tubete · 0,29 L' },
+    { id: 's1722', nome: 'Saco 17x22 · 3 L' },
+    { id: 's2026', nome: 'Saco 20x26 · 5 L' },
+  ];
+
+  it('reconhece o recipiente escrito e deixa em branco o que não veio', () => {
+    const linhas = montaLinhasColadas('Ipê 17x22 300\nPitanga tubete 100\nAroeira 50', CATALOGO, RECIPIENTES);
+    expect(linhas.map((linha) => linha.recipienteId)).toEqual(['s1722', 'tub', null]);
+  });
+});

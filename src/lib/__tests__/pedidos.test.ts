@@ -14,6 +14,7 @@ import {
   formatTotal,
   isCanalVenda,
   isSituacaoPedido,
+  normalizaCampoAltura,
   parseAltura,
   parsePreco,
   podeTransicionar,
@@ -414,7 +415,28 @@ describe('altura da muda pedida (RF-54)', () => {
   });
 
   it('recusa o que só pode ser a quantidade digitada no campo errado', () => {
-    expect(parseAltura('500')).toHaveProperty('error');
+    expect(parseAltura('5000')).toHaveProperty('error');
+  });
+
+  it('lê centímetros: com a unidade, ou o inteiro sem unidade a partir de 10', () => {
+    expect(parseAltura('120')).toEqual({ value: 1.2 });
+    expect(parseAltura('80')).toEqual({ value: 0.8 });
+    expect(parseAltura('80 cm')).toEqual({ value: 0.8 });
+    expect(parseAltura('80cm')).toEqual({ value: 0.8 });
+    expect(parseAltura('1.20m')).toEqual({ value: 1.2 });
+  });
+
+  it('o inteiro abaixo de 10 continua sendo metro', () => {
+    expect(parseAltura('2')).toEqual({ value: 2 });
+    expect(parseAltura('4 m')).toEqual({ value: 4 });
+  });
+
+  it('o campo que perde o foco mostra como o sistema entendeu', () => {
+    expect(normalizaCampoAltura('120')).toBe('1,20 m');
+    expect(normalizaCampoAltura('0,8')).toBe('0,80 m');
+    expect(normalizaCampoAltura('1,20 m')).toBe('1,20 m');
+    expect(normalizaCampoAltura('')).toBe('');
+    expect(normalizaCampoAltura('grande')).toBe('grande');
   });
 
   it('não guarda mais que dois decimais, que é o que a trena mede', () => {
