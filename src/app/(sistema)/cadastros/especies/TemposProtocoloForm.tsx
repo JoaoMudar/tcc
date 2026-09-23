@@ -67,7 +67,7 @@ export function TempoProtocoloForm({ especieId, tempo, podeEditar }: TempoProps)
       {podeEditar && (
         <>
           <TextField
-            label="Por que difere (opcional)"
+            label="Por que difere"
             name="observacoes"
             maxLength={500}
             defaultValue={tempo.observacoes ?? ''}

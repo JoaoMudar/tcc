@@ -69,26 +69,26 @@ export function ItemEmFoco({
             onAlterar(linha.chave, 'generico', true);
           },
         }}
+        required
       />
-      {/* O genérico se descreve: é o texto que a gerência lê para montar o item */}
+      {/* O genérico pode levar uma observação: é o texto que a gerência lê para montar o item */}
       {linha.generico && (
         <TextField
-          label="O que o cliente pediu"
+          label="Observação"
           autoComplete="off"
-          placeholder="Ex.: mudas nativas, o que tiver"
           value={linha.especificacao}
           onChange={(evento) => onAlterar(linha.chave, 'especificacao', evento.target.value)}
         />
       )}
 
       <ComboboxField
-        label="Recipiente (opcional)"
+        label="Recipiente"
         options={recipientes}
         value={linha.recipienteId}
         onChange={(valor) => onAlterar(linha.chave, 'recipienteId', valor)}
       />
       <TextField
-        label="Altura em metros (opcional)"
+        label="Altura em metros"
         inputMode="decimal"
         autoComplete="off"
         placeholder="1,20 ou 120"
@@ -97,7 +97,7 @@ export function ItemEmFoco({
         onBlur={(evento) => onAlterar(linha.chave, 'altura', normalizaCampoAltura(evento.target.value))}
       />
       <TextField
-        label="Quantidade (opcional)"
+        label="Quantidade"
         inputMode="numeric"
         autoComplete="off"
         value={linha.quantidade}

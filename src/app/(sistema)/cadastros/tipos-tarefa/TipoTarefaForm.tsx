@@ -64,6 +64,7 @@ export function TipoTarefaForm({ tipo, categorias, podeEditar }: TipoTarefaFormP
             options={UNIDADES}
             defaultValue={fields?.unidade_medida ?? tipo?.unidadeMedida ?? 'un'}
             disabled={!quantitativa}
+            required={quantitativa}
             className="w-24"
           />
         </div>

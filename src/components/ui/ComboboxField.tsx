@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from 'react';
 import { filtraOpcoes, normalizeTexto } from '@/lib/busca-opcoes';
+import { classeRotulo } from './marcaObrigatorio';
 import type { SelectOption } from './SelectField';
 
 /** Mais do que isto vira rolagem dentro de rolagem na tela do celular. */
@@ -138,7 +139,7 @@ export function ComboboxField({
         if (!event.currentTarget.contains(event.relatedTarget)) setAberta(false);
       }}
     >
-      <label htmlFor={id} className={compacto ? 'sr-only' : 'text-sm font-semibold text-gray-700'}>
+      <label htmlFor={id} className={compacto ? 'sr-only' : classeRotulo(required)}>
         {label}
       </label>
       {name && <input type="hidden" name={name} value={value} />}

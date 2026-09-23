@@ -137,7 +137,7 @@ export function EtapaForm({ protocoloId, etapa, opcoes, podeEditar }: EtapaFormP
 
         {!recorrente && (
           <SelectField
-            label="Fase que a conclusão grava (opcional)"
+            label="Fase que a conclusão grava"
             name="fase_resultante"
             options={opcoes.fases}
             placeholder="Não altera a fase"

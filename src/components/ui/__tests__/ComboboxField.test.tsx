@@ -217,4 +217,12 @@ describe('ComboboxField', () => {
     expect(onChange).toHaveBeenCalledWith('');
     expect(campo).toHaveValue('ip');
   });
+
+  it('o obrigatório leva o asterisco no rótulo; na célula compacta, não', () => {
+    render(<ComboboxField label="Cliente" options={[]} value="" onChange={() => {}} required />);
+    render(<ComboboxField label="Espécie do item 1" compacto options={[]} value="" onChange={() => {}} required />);
+    expect(screen.getByText('Cliente').className).toContain("after:content-['*']");
+    expect(screen.getByLabelText('Cliente')).toBeRequired();
+    expect(screen.getByText('Espécie do item 1').className).toBe('sr-only');
+  });
 });

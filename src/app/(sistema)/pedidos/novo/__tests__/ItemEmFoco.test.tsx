@@ -18,7 +18,7 @@ describe('item do pedido em tela cheia (T8.1)', () => {
         onCriarEspecie={vi.fn()}
       />,
     );
-    expect(screen.getByLabelText('Altura em metros (opcional)')).not.toHaveAccessibleDescription();
+    expect(screen.getByLabelText('Altura em metros')).not.toHaveAccessibleDescription();
     expect(screen.queryByText(/tamanho da muda combinado/)).toBeNull();
   });
 
@@ -37,7 +37,7 @@ describe('item do pedido em tela cheia (T8.1)', () => {
         onCriarEspecie={vi.fn()}
       />,
     );
-    fireEvent.blur(screen.getByLabelText('Altura em metros (opcional)'), {
+    fireEvent.blur(screen.getByLabelText('Altura em metros'), {
       target: { value: '80' },
     });
     expect(onAlterar).toHaveBeenLastCalledWith(3, 'altura', '0,80 m');
@@ -81,7 +81,7 @@ describe('item do pedido em tela cheia (T8.1)', () => {
       />,
     );
     expect(screen.getByLabelText('Espécie')).toHaveValue('Genérico');
-    expect(screen.getByLabelText('O que o cliente pediu')).toBeInTheDocument();
+    expect(screen.getByLabelText('Observação')).toBeInTheDocument();
     expect(screen.queryByText(/Escolher a espécie/)).toBeNull();
 
     fireEvent.change(screen.getByLabelText('Espécie'), { target: { value: 'ipe' } });

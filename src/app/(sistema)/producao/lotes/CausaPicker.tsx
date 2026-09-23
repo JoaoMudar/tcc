@@ -1,3 +1,4 @@
+import { MARCA_OBRIGATORIO } from '@/components/ui/marcaObrigatorio';
 import { CAUSAS_PERDA } from '@/lib/lotes-rotulos';
 
 interface CausaPickerProps {
@@ -10,7 +11,7 @@ interface CausaPickerProps {
 export function CausaPicker({ legenda = 'Causa', defaultValue, required = true }: CausaPickerProps) {
   return (
     <fieldset className="flex flex-col gap-1">
-      <legend className="mb-1 text-sm font-semibold text-gray-700">{legenda}</legend>
+      <legend className={`mb-1 text-sm font-semibold text-gray-700 ${required ? MARCA_OBRIGATORIO : ''}`}>{legenda}</legend>
       <div className="grid grid-cols-2 gap-2">
         {Object.entries(CAUSAS_PERDA).map(([valor, rotulo]) => (
           <label

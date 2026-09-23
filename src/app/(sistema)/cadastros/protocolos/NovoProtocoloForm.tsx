@@ -28,7 +28,7 @@ export function NovoProtocoloForm({ recipientes }: { recipientes: readonly Selec
         hint="Exemplo: Protocolo do tubete"
         required
       />
-      <TextField label="Observação (opcional)" name="observacoes" maxLength={500} defaultValue={fields?.observacoes} />
+      <TextField label="Observação" name="observacoes" maxLength={500} defaultValue={fields?.observacoes} />
       {state.error && <Notice tone="error">{state.error}</Notice>}
       <Button type="submit" variant="outline" pending={pending}>
         + Criar protocolo

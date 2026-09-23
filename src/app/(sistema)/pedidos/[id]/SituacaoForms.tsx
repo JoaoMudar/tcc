@@ -68,7 +68,7 @@ export function SituacaoForms({ pedidoId, situacao, perfil }: SituacaoFormsProps
               <input type="hidden" name="pedido_id" value={pedidoId} />
               <input type="hidden" name="para" value={para} />
               <TextArea
-                label="Motivo (opcional)"
+                label="Motivo"
                 name="motivo"
                 rows={2}
                 maxLength={500}

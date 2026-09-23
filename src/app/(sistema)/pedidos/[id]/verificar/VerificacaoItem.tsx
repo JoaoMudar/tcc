@@ -221,7 +221,7 @@ export function VerificacaoItem({ pedidoId, item, recipientes }: VerificacaoItem
         )}
 
         <TextField
-          label="Observação (opcional)"
+          label="Observação"
           name="observacoes"
           maxLength={500}
           defaultValue={item.observacoesDisponibilidade ?? ''}
