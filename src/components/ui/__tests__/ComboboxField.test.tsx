@@ -194,4 +194,27 @@ describe('ComboboxField', () => {
     expect(onEscolher).toHaveBeenCalledOnce();
     expect(screen.queryByText('Genérico')).not.toBeInTheDocument();
   });
+
+  it('a opção fixa ativa aparece no campo, abre a lista inteira, e digitar desfaz a escolha', () => {
+    const onChange = vi.fn();
+    render(
+      <ComboboxField
+        label="Espécie"
+        options={ESPECIES}
+        value=""
+        onChange={onChange}
+        opcaoFixa={{ rotulo: 'Genérico', onEscolher: vi.fn(), ativa: true }}
+      />,
+    );
+    const campo = screen.getByLabelText('Espécie');
+    expect(campo).toHaveValue('Genérico');
+    expect(campo).toHaveClass('text-blue-800');
+
+    fireEvent.focus(campo);
+    expect(screen.getAllByRole('listitem')).toHaveLength(ESPECIES.length + 1);
+
+    fireEvent.change(campo, { target: { value: 'ip' } });
+    expect(onChange).toHaveBeenCalledWith('');
+    expect(campo).toHaveValue('ip');
+  });
 });
