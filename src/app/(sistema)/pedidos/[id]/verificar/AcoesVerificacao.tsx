@@ -27,13 +27,8 @@ export function AcoesVerificacao({ pedidoId, pendentes }: AcoesVerificacaoProps)
     <form action={concluir} className="flex flex-col gap-2">
       <input type="hidden" name="pedido_id" value={pedidoId} />
       {conclusao.error && <Notice tone="error">{conclusao.error}</Notice>}
-      {pendentes > 0 ? (
-        <Notice tone="info">
-          {pendentes === 1
-            ? 'Falta um item para responder antes de enviar.'
-            : `Faltam ${pendentes} itens para responder antes de enviar.`}
-        </Notice>
-      ) : (
+      {/* Com item pendente o rodapé fica vazio: a barra de progresso já mostra quanto falta */}
+      {pendentes === 0 && (
         <Button type="submit" pending={concluindo} pendingLabel="Enviando…">
           Enviar
         </Button>
