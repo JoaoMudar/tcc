@@ -144,6 +144,21 @@ describe('repicagem e fase', () => {
     expectNoDatabase();
   });
 
+  it('T6.10: a divisão pede os dois canteiros, e a quantidade é conferida antes de ir ao banco', async () => {
+    loggedAs('gerencia');
+    const base = { lote_id: LOTE, quantidade: '100', canteiro_a_id: OUTRO, canteiro_b_id: OUTRO };
+
+    expect((await actions.dividirLoteAction({}, form({ ...base, quantidade: '0' }))).error).toMatch(/maior que zero/);
+    expect((await actions.dividirLoteAction({}, form({ ...base, canteiro_a_id: '' }))).error).toBe(
+      'Escolha a área e o canteiro do primeiro lote.',
+    );
+    expect((await actions.dividirLoteAction({}, form({ ...base, canteiro_b_id: 'x' }))).error).toBe(
+      'Escolha a área e o canteiro do segundo lote.',
+    );
+    expect((await actions.dividirLoteAction({}, form({ ...base, lote_id: 'x' }))).error).toBe('Lote inválido.');
+    expectNoDatabase();
+  });
+
   it('fase encerrado não se escolhe à mão', async () => {
     loggedAs('gerencia');
     expect((await actions.alterarFaseAction({}, form({ lote_id: LOTE, fase: 'encerrado' }))).error).toBe('Escolha a fase na lista.');

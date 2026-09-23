@@ -1,4 +1,7 @@
 import type { PoolClient } from 'pg';
+import { UserError } from './errors';
+import { type NomeConhecido, achaConflitoDeNome } from './especies-nomes';
+import type { EspecieRef } from './especies-form';
 import { type TipoImagem, deleteFoto, fotoIdFromUrl, fotoUrl, insertFoto } from './fotos';
 import { type Db, escapeLike, violatedConstraint } from './sql';
 
@@ -186,4 +189,106 @@ export async function saveEspecie(
   if (fotoAntigaId && novaFotoUrl !== fotoAtual) await deleteFoto(client, fotoAntigaId);
 
   return { resultado: 'ok', id: especieId };
+}
+
+// ------------------------------------------------------------
+// Cadastro rápido e aprendizado de nomes (T8.16)
+// ------------------------------------------------------------
+
+/** O nome de tela da espécie, direto no SQL: o popular principal, ou o científico. */
+const nomeDaEspecieSql = `COALESCE(
+  (SELECT p.nome FROM especies_nomes_populares p
+    WHERE p.especie_id = e.id ORDER BY p.e_principal DESC, p.criado_em, p.nome LIMIT 1),
+  e.nome_cientifico)`;
+
+/**
+ * Todos os nomes por onde uma espécie é chamada, populares e científico, com a
+ * dona de cada um. É o que `achaConflitoDeNome` compara antes de gravar.
+ */
+export async function listNomesConhecidos(db: Db): Promise<NomeConhecido[]> {
+  const { rows } = await db.query<NomeConhecido>(
+    `SELECT n.especie_id AS "especieId", n.nome, ${nomeDaEspecieSql} AS especie
+       FROM especies_nomes_populares n
+       JOIN especies e ON e.id = n.especie_id
+      UNION ALL
+     SELECT e.id AS "especieId", e.nome_cientifico AS nome, ${nomeDaEspecieSql} AS especie
+       FROM especies e`,
+  );
+  return rows;
+}
+
+async function lerEspecieRef(client: PoolClient, id: string): Promise<EspecieRef> {
+  const especie = await findEspecie(client, id);
+  if (!especie) throw new Error('Espécie recém-lida não encontrada.');
+  return {
+    id: especie.id,
+    nome: nomeExibido(especie),
+    nomeCientifico: especie.nomeCientifico,
+    nomesPopulares: especie.nomesPopulares,
+  };
+}
+
+/**
+ * T8.16: a espécie que apareceu no meio de um pedido, cadastrada sem sair da
+ * tela. Nasce ativa, com o científico e um nome popular, e o resto (foto,
+ * características, protocolo) fica para o cadastro completo.
+ *
+ * **O científico é obrigatório porque a coluna é `NOT NULL UNIQUE`**, e é ela
+ * que impede a mesma espécie de entrar duas vezes com nomes populares
+ * diferentes. Quem cadastra pedido nem sempre o sabe, e por isso a alternativa
+ * na tela é o item genérico, que deixa a espécie para a conferência.
+ *
+ * Nome já conhecido devolve a espécie existente, e não um erro: reaproveitar é
+ * o que a pessoa queria, e duplicar catálogo é o estrago que se evita aqui.
+ */
+export async function criarEspecieRapida(
+  client: PoolClient,
+  input: { nomeCientifico: string; nomePopular: string },
+): Promise<{ criada: EspecieRef } | { existente: EspecieRef }> {
+  const parsed = parseEspecieFields({
+    nomeCientifico: input.nomeCientifico,
+    nomesPopulares: input.nomePopular,
+    caracteristicas: [],
+    observacoes: '',
+  });
+  if ('error' in parsed) throw new UserError(parsed.error);
+  if (parsed.value.nomesPopulares.length === 0) throw new UserError('Informe o nome popular da espécie.');
+
+  const conhecidos = await listNomesConhecidos(client);
+  for (const candidato of [parsed.value.nomeCientifico, ...parsed.value.nomesPopulares]) {
+    const conflito = achaConflitoDeNome(candidato, conhecidos);
+    if (conflito) return { existente: await lerEspecieRef(client, conflito.especieId) };
+  }
+
+  const salva = await saveEspecie(client, null, { ...parsed.value, ativa: true }, { nova: null, remover: false });
+  if (salva.resultado === 'nao_encontrado') throw new UserError('Não foi possível cadastrar a espécie.');
+  return { criada: await lerEspecieRef(client, salva.id) };
+}
+
+/**
+ * T8.16: o sistema aprende o nome que a pessoa corrigiu à mão. Da próxima vez
+ * que o mesmo texto for colado, ele é reconhecido sozinho.
+ *
+ * RN-01: **um nome popular pertence a uma espécie só**, e o nome de outra é
+ * recusado com o nome dela, para quem está cadastrando saber o que houve.
+ */
+export async function adicionarNomePopular(client: PoolClient, especieId: string, nome: string): Promise<string> {
+  const limpo = nome.trim().replace(/\s+/g, ' ');
+  if (!limpo) throw new UserError('Informe o nome a salvar.');
+  if (limpo.length > 60) throw new UserError('Cada nome popular pode ter até 60 caracteres.');
+
+  const conhecidos = await listNomesConhecidos(client);
+  const conflito = achaConflitoDeNome(limpo, conhecidos, especieId);
+  if (conflito) throw new UserError(`"${conflito.nome}" já é nome de ${conflito.especie}.`);
+
+  try {
+    await client.query(
+      'INSERT INTO especies_nomes_populares (especie_id, nome) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+      [especieId, limpo],
+    );
+  } catch (error) {
+    if (violatedConstraint(error, '23505')) throw new UserError('Esse nome já está cadastrado.');
+    throw error;
+  }
+  return limpo;
 }

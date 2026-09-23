@@ -11,6 +11,8 @@ import { UserError } from './errors';
 import { type CausaPerda, isCausaPerda, lerQuantidade } from './lotes-rotulos';
 import { nomeEspecieSql } from './lotes';
 import { type ResultadoMovimento, registrarMovimento, travarLote } from './movimentos';
+// Seta num sentido só: `protocolos.ts` não importa daqui.
+import { concluirEtapa } from './protocolos';
 import { diasDaSemana, isInicioDeSemana, rotuloSemana } from './semanas';
 import type { Db } from './sql';
 import type { Declaracoes } from './tipos-tarefa';
@@ -67,6 +69,8 @@ export interface AtribuicaoBruta {
   quantidadePlanejada: string;
   recorrente: boolean;
   observacoes: string;
+  /** Etapa cuja sugestão originou a tarefa (RF-47). Vazio na tarefa lançada à mão. */
+  loteEtapaId: string;
 }
 
 export interface AtribuicaoInput {
@@ -85,6 +89,13 @@ export interface AtribuicaoInput {
   quantidadePlanejada: number | null;
   recorrente: boolean;
   observacoes: string | null;
+  /**
+   * Etapa de origem, quando a tarefa nasceu de uma sugestão (RF-47). O
+   * vencimento **não** vem daqui: é lido no servidor, em `conferirReferencias`,
+   * porque data postada no formulário apagaria o atraso que a coluna existe para
+   * denunciar.
+   */
+  loteEtapaId: string | null;
 }
 
 /**
@@ -144,6 +155,7 @@ export function parseAtribuicao(
       quantidadePlanejada,
       recorrente: bruta.recorrente,
       observacoes: observacoes || null,
+      loteEtapaId: isUuid(bruta.loteEtapaId) ? bruta.loteEtapaId : null,
     },
   };
 }
@@ -444,6 +456,10 @@ interface AtribuicaoTravada {
   situacao: SituacaoAtribuicao;
   loteId: string | null;
   exigeLote: boolean;
+  /** Etapa de origem, quando a tarefa nasceu de sugestão (RF-47). */
+  loteEtapaId: string | null;
+  /** O dia em que a tarefa aconteceu: é a data real da execução (RN-32). */
+  dataTrabalho: string;
   semana: Semana;
 }
 
@@ -453,7 +469,8 @@ async function travarAtribuicao(client: Client, id: string): Promise<AtribuicaoT
   if (!rows[0]) throw new UserError('Tarefa não encontrada.');
   const semana = await travarSemana(client, 'id', rows[0].semanaId);
   const { rows: travada } = await client.query<Omit<AtribuicaoTravada, 'semana'>>(
-    `SELECT a.id, a.situacao, a.lote_id AS "loteId", tt.exige_lote AS "exigeLote"
+    `SELECT a.id, a.situacao, a.lote_id AS "loteId", tt.exige_lote AS "exigeLote",
+            a.lote_etapa_id AS "loteEtapaId", to_char(a.data_trabalho, 'YYYY-MM-DD') AS "dataTrabalho"
        FROM atribuicoes a
        JOIN tipos_tarefa tt ON tt.id = a.tipo_tarefa_id
       WHERE a.id = $1
@@ -484,13 +501,17 @@ interface DadosAtribuicao {
   quantidadePlanejada: number | null;
   recorrente: boolean;
   observacoes: string | null;
+  loteEtapaId?: string | null;
+  /** Congelado no aceite: o atraso é do vencimento da etapa, e não do dia escolhido. */
+  vencimentoProtocolo?: string | null;
 }
 
 async function inserirAtribuicao(client: Client, semanaId: string, dados: DadosAtribuicao, participantes: readonly string[]): Promise<string> {
   const { rows } = await client.query<{ id: string }>(
     `INSERT INTO atribuicoes (semana_id, data_trabalho, turno_id, tipo_tarefa_id, hora_inicio, hora_fim, lote_id, especie_id,
-                              recipiente_id, area_id, canteiro_id, quantidade_planejada, e_recorrente, observacoes)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+                              recipiente_id, area_id, canteiro_id, quantidade_planejada, e_recorrente, observacoes,
+                              lote_etapa_id, vencimento_protocolo)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
      RETURNING id`,
     [
       semanaId,
@@ -507,6 +528,8 @@ async function inserirAtribuicao(client: Client, semanaId: string, dados: DadosA
       dados.quantidadePlanejada,
       dados.recorrente,
       dados.observacoes,
+      dados.loteEtapaId ?? null,
+      dados.vencimentoProtocolo ?? null,
     ],
   );
   const id = rows[0].id;
@@ -515,6 +538,27 @@ async function inserirAtribuicao(client: Client, semanaId: string, dados: DadosA
     participantes,
   ]);
   return id;
+}
+
+/**
+ * RF-47: o vencimento da etapa, lido **no servidor**. Nunca vem do formulário:
+ * data postada apagaria o atraso que a coluna existe para denunciar. Confere de
+ * passagem que a etapa é daquele lote, e devolve a data a congelar no aceite.
+ */
+async function vencimentoDaSugestao(client: Client, loteEtapaId: string, loteId: string | null): Promise<string> {
+  if (!loteId) throw new UserError('A tarefa que nasce de uma sugestão precisa do lote que a originou.');
+  const { rows } = await client.query<{ vencimento: string | null; existe: boolean }>(
+    `SELECT to_char(v.proximo_vencimento, 'YYYY-MM-DD') AS vencimento,
+            EXISTS (SELECT 1 FROM lotes_etapas le
+                     WHERE le.lote_id = $2 AND le.protocolo_etapa_id = $1) AS existe
+       FROM (SELECT 1) AS _
+       LEFT JOIN lotes_etapas_vencimento v ON v.lote_id = $2 AND v.protocolo_etapa_id = $1`,
+    [loteEtapaId, loteId],
+  );
+  const ref = rows[0];
+  if (!ref?.existe) throw new UserError('Esta etapa não pertence ao lote escolhido.');
+  if (!ref.vencimento) throw new UserError('Esta etapa não vence nada: a âncora dela ainda não ocorreu.');
+  return ref.vencimento;
 }
 
 /** O que a validação pura não sabe: se o turno, o tipo, as pessoas e o lote existem e estão em uso. */
@@ -565,8 +609,14 @@ async function conferirReferencias(client: Client, input: AtribuicaoInput): Prom
 /**
  * RF-27, RN-29: traz as atribuições da semana `origemInicio` para a semana
  * `destinoId`, sete dias depois. Volta planejada e sem contagem; só com quem
- * ainda é funcionário, com o lote só se ele segue aberto, e sem as ordens do
- * protocolo, que o motor gera sozinho. A tarefa que ficou sem ninguém não é copiada.
+ * ainda é funcionário, e com o lote só se ele segue aberto. A tarefa que ficou
+ * sem ninguém não é copiada.
+ *
+ * **A tarefa que nasceu de sugestão não é copiada** (`lote_etapa_id IS NULL`), e
+ * a razão mudou com o RF-47: não é que o motor a gere sozinho, é que ela
+ * pertence a um vencimento específico do lote. Copiá-la para a semana seguinte
+ * carregaria um vencimento que não é o daquela semana. O protocolo torna a
+ * sugeri-la enquanto a etapa continuar vencida.
  */
 async function copiarDaSemana(client: Client, origemInicio: string, destinoId: string, recorrentes: boolean): Promise<number> {
   const { rows } = await client.query<DadosAtribuicao & { participantes: string[] }>(
@@ -668,8 +718,16 @@ export async function criarAtribuicoes(client: Client, input: AtribuicaoInput): 
   const semana = await travarSemana(client, 'id', aberta.id);
   recusarSeFechada(semana);
   await conferirReferencias(client, input);
+
+  // RF-47: a sugestão aceita congela o vencimento da etapa, lido do servidor
+  const vencimentoProtocolo = input.loteEtapaId
+    ? await vencimentoDaSugestao(client, input.loteEtapaId, input.loteId)
+    : null;
+
   const ids: string[] = [];
-  for (const data of input.dias) ids.push(await inserirAtribuicao(client, semana.id, { ...input, data }, input.participantes));
+  for (const data of input.dias) {
+    ids.push(await inserirAtribuicao(client, semana.id, { ...input, data, vencimentoProtocolo }, input.participantes));
+  }
   return ids;
 }
 
@@ -799,6 +857,13 @@ export async function confirmarAtribuicao(
           registradoPor,
         })
       : null;
+
+  // RF-48: a tarefa que nasceu de sugestão conclui a etapa que a originou. A
+  // data é a do trabalho, e não a de hoje: é quando a coisa foi feita (RN-32).
+  if (atribuicao.loteEtapaId && input.loteId) {
+    await concluirEtapa(client, input.loteId, atribuicao.loteEtapaId, atribuicao.dataTrabalho);
+  }
+
   return { loteId: input.loteId, perda };
 }
 

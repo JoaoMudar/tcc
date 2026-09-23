@@ -47,3 +47,20 @@ body {
   color: var(--color-ink);
   font-family: var(--font-sans);
 }
+
+/*
+ * Obrigatório que faltou fica com fundo vermelho, todos de uma vez. O
+ * `:user-invalid` só vale depois que alguém mexeu no campo ou tentou enviar o
+ * formulário: o `:invalid` pintaria de vermelho o formulário recém-aberto, com
+ * tudo ainda em branco. O `aria-invalid` é o campo que o servidor recusou.
+ * Fora de `@layer` de propósito, para vencer o `bg-white` dos componentes.
+ */
+input:user-invalid,
+select:user-invalid,
+textarea:user-invalid,
+input[aria-invalid="true"],
+select[aria-invalid="true"],
+textarea[aria-invalid="true"] {
+  background-color: var(--color-red-50, oklch(97.1% 0.013 17.38));
+  border-color: var(--color-red-600, oklch(57.7% 0.245 27.325));
+}

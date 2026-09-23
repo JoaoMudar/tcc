@@ -12,13 +12,16 @@ import {
 } from '@/lib/agenda';
 import { hojeNoViveiro, somaDias } from '@/lib/datas';
 import pool from '@/lib/db';
+import { horizonteProtocolo } from '@/lib/parametros';
 import { can } from '@/lib/permissions';
-import { diaMes, diasDaSemana, lerSemana, nomeDia, rotuloSemana } from '@/lib/semanas';
+import { listSugestoes, sugestoesDaSemana } from '@/lib/protocolos';
+import { diaMes, diasDaSemana, diasUteisDaSemana, lerSemana, nomeDia, rotuloSemana } from '@/lib/semanas';
 import { listTurnos } from '@/lib/turnos';
 import { requirePageAccess } from '@/lib/auth/guards';
 import { ProducaoAbas } from '../ProducaoAbas';
 import { AcaoSemana } from './AcaoSemana';
 import { AtribuicaoCartao } from './AtribuicaoCartao';
+import { SugestoesProtocolo } from './SugestoesProtocolo';
 import { EscalaAgenda } from './EscalaAgenda';
 import { GanttSemana } from './GanttSemana';
 import { carregarOpcoes } from './opcoes';
@@ -40,6 +43,8 @@ export default async function AgendaSemanaPage({ searchParams }: AgendaSemanaPag
   const hoje = hojeNoViveiro();
   const inicio = lerSemana(semanaPedida, hoje);
   const dias = diasDaSemana(inicio);
+  // A grade desenha só os dias úteis; o sábado continua na lista e no formulário
+  const diasNaGrade = diasUteisDaSemana(inicio);
 
   const [semana, funcionarios, turnos] = await Promise.all([
     findSemana(pool, inicio),
@@ -47,6 +52,18 @@ export default async function AgendaSemanaPage({ searchParams }: AgendaSemanaPag
     listTurnos(pool),
   ]);
   const atribuicoes = semana ? await listAgendaSemana(pool, semana.id) : [];
+  // RF-47: o protocolo sugere abaixo da semana, e não lança nada na grade.
+  // A busca precisa alcançar o fim da semana aberta, que pode estar além do
+  // horizonte; quem recorta para a semana é sugestoesDaSemana.
+  const horizonte = await horizonteProtocolo(pool);
+  // O domingo fecha a semana (é o mesmo fim que sugestoesDaSemana usa), e não o sábado da grade
+  const fimDaSemana = somaDias(inicio, 6);
+  const diasAteOFim = Math.round((Date.parse(`${fimDaSemana}T00:00:00Z`) - Date.parse(`${hoje}T00:00:00Z`)) / 86_400_000);
+  const sugestoes = sugestoesDaSemana(
+    await listSugestoes(pool, hoje, Math.max(horizonte, diasAteOFim, 0)),
+    inicio,
+    hoje,
+  );
   const grade = montarGrade(funcionarios, atribuicoes);
   const turnosEmUso = turnos.filter((turno) => turno.ativo);
 
@@ -56,6 +73,7 @@ export default async function AgendaSemanaPage({ searchParams }: AgendaSemanaPag
   const diaReferencia = dias.includes(hoje) ? hoje : inicio;
   // As listas do formulário só são buscadas para quem pode lançar clicando na grade
   const podeArrastar = can(user.perfil, 'agenda', 'A') && semana?.situacao !== 'fechada';
+  const foraDaGrade = atribuicoes.filter((a) => !diasNaGrade.includes(a.data));
   const opcoes = podeMontar ? await carregarOpcoes(inicio) : undefined;
 
   return (
@@ -123,7 +141,7 @@ export default async function AgendaSemanaPage({ searchParams }: AgendaSemanaPag
           <GanttSemana
             className="hidden md:block"
             grade={grade}
-            dias={dias}
+            dias={diasNaGrade}
             turnos={turnosEmUso}
             hoje={hoje}
             semana={inicio}
@@ -132,13 +150,31 @@ export default async function AgendaSemanaPage({ searchParams }: AgendaSemanaPag
           />
         )}
 
+        {foraDaGrade.length > 0 && (
+          <div className="hidden md:block">
+            <Notice tone="info">
+              {foraDaGrade.length === 1 ? '1 tarefa está' : `${foraDaGrade.length} tarefas estão`} no sábado, que a grade da
+              semana não desenha.{' '}
+              <Link href={`/producao?dia=${dias[5]}`} className="font-semibold underline underline-offset-2">
+                Ver o sábado
+              </Link>
+              .
+            </Notice>
+          </div>
+        )}
+
         {atribuicoes.length > 0 && (
           <div className="flex flex-col gap-5 md:hidden">
             {dias.map((dia) => {
               const doDia = atribuicoes.filter((a) => a.data === dia);
               return (
                 <section key={dia} className="flex flex-col gap-2">
-                  <h2 className="text-sm font-bold tracking-widest text-muted uppercase">
+                  {/* A divisória sob o nome fecha o dia: sem ela a lista lê como uma pilha só. */}
+                  <h2
+                    className={`border-b pb-1 text-sm font-bold tracking-widest uppercase ${
+                      dia === hoje ? 'border-brand-muted text-brand-dark' : 'border-line text-muted'
+                    }`}
+                  >
                     {nomeDia(dia)} · {diaMes(dia)}
                   </h2>
                   {doDia.length === 0 ? (
@@ -151,6 +187,9 @@ export default async function AgendaSemanaPage({ searchParams }: AgendaSemanaPag
             })}
           </div>
         )}
+
+        {/* Abaixo da semana, e nunca dentro da grade (RF-47) */}
+        <SugestoesProtocolo sugestoes={sugestoes} semana={inicio} podeLancar={podeMontar} />
       </div>
     </main>
   );

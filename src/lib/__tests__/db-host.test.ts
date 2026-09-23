@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isNeonHost } from '../db-host';
+import { isLocalHost, isNeonHost } from '../db-host';
 
 describe('isNeonHost', () => {
   it('reconhece o host do Neon, com e sem pooler', () => {
@@ -20,5 +20,24 @@ describe('isNeonHost', () => {
   it('URL inválida não é Neon', () => {
     expect(isNeonHost('não é url')).toBe(false);
     expect(isNeonHost('')).toBe(false);
+  });
+});
+
+describe('isLocalHost', () => {
+  it('reconhece o banco na própria máquina', () => {
+    expect(isLocalHost('postgresql://postgres:x@localhost:5432/viveiro')).toBe(true);
+    expect(isLocalHost('postgresql://postgres:x@127.0.0.1:5432/viveiro')).toBe(true);
+    expect(isLocalHost('postgresql://postgres:x@[::1]:5432/viveiro')).toBe(true);
+  });
+
+  it('host remoto não é local, nem com localhost no usuário ou no subdomínio', () => {
+    expect(isLocalHost('postgresql://u:p@10.0.0.5:5432/viveiro')).toBe(false);
+    expect(isLocalHost('postgresql://u:p@ep-abc.sa-east-1.aws.neon.tech/neondb')).toBe(false);
+    expect(isLocalHost('postgresql://localhost:p@banco.exemplo.com/db')).toBe(false);
+    expect(isLocalHost('postgresql://u:p@localhost.exemplo.com/db')).toBe(false);
+  });
+
+  it('URL inválida não é local', () => {
+    expect(isLocalHost('não é url')).toBe(false);
   });
 });

@@ -17,11 +17,13 @@ const { requireUser } = await import('@/lib/auth/dal');
 const { default: pool } = await import('@/lib/db');
 const { FORBIDDEN_MESSAGE } = await import('@/lib/auth/guards');
 const especies = await import('../especies/actions');
+const rapidas = await import('../especies/acoes-rapidas');
 const recipientes = await import('../recipientes/actions');
 const insumos = await import('../insumos/actions');
 const areas = await import('../areas/actions');
 const tipos = await import('../tipos-tarefa/actions');
 const pessoas = await import('../pessoas/actions');
+const protocolos = await import('../protocolos/actions');
 
 const ID = '0b9f3f3e-8a5b-4c1a-9d0e-2f6a7b8c9d0e';
 
@@ -117,6 +119,155 @@ describe('áreas e canteiros (RF-13)', () => {
   });
 });
 
+describe('protocolo de atividades (RF-22 a RF-24, UC-17)', () => {
+  const ETAPA = '2d7c1b0a-4e5f-4a6b-8c9d-1e2f3a4b5c6d';
+  const OUTRA = '3e8d2c1b-5f6a-4b7c-9d0e-2f3a4b5c6d7e';
+
+  /** Campos de uma etapa válida, para cada caso mexer só no que testa. */
+  const etapa = (extra: Record<string, string> = {}) => ({
+    protocolo_id: ID,
+    tipo_tarefa_id: ETAPA,
+    rotulo: 'Classificar pós-germinação',
+    tipo_agendamento: 'sequencial',
+    tipo_ancora: 'criacao_do_lote',
+    dias: '40',
+    turno_id: OUTRA,
+    ...extra,
+  });
+
+  /**
+   * A coluna do admin no D4 é `L`, e ainda assim ele passa: `can` devolve `true`
+   * para o admin antes de consultar a matriz (D4 §1.1), e é o único ponto do
+   * código que decide isso. A coluna registra a intenção, e o acesso irrestrito
+   * é a exceção declarada, coberta por `permissions.test.ts`.
+   */
+  it('D4 §1.1: o admin atravessa a própria coluna e monta protocolo', async () => {
+    loggedAs('admin');
+    vi.mocked(pool.query).mockResolvedValue({ rows: [{ id: ID }] } as never);
+    await expect(
+      protocolos.saveProtocolo({}, form({ recipiente_id: ID, nome: 'Protocolo do tubete', observacoes: '' })),
+    ).rejects.toThrow(`redirect:/cadastros/protocolos/${ID}?salvo=1`);
+  });
+
+  it('a chefia e a gerência montam o protocolo (D4: as duas CLA)', async () => {
+    for (const perfil of ['chefia', 'gerencia'] as const) {
+      vi.clearAllMocks();
+      loggedAs(perfil);
+      vi.mocked(pool.query).mockResolvedValue({ rows: [{ id: ID }] } as never);
+      await expect(
+        protocolos.saveProtocolo({}, form({ recipiente_id: ID, nome: 'Protocolo do tubete', observacoes: '' })),
+      ).rejects.toThrow(`redirect:/cadastros/protocolos/${ID}?salvo=1`);
+      expect(vi.mocked(pool.query).mock.calls[0][1]).toEqual([ID, 'Protocolo do tubete', null, 'u1']);
+    }
+  });
+
+  it('FE-3: segundo protocolo vigente para o mesmo recipiente volta com a mensagem, e não com o erro do Postgres', async () => {
+    loggedAs('gerencia');
+    vi.mocked(pool.query).mockRejectedValueOnce({ code: '23505', constraint: 'protocolos_um_vigente_por_recipiente' });
+    const state = await protocolos.saveProtocolo({}, form({ recipiente_id: ID, nome: 'Outro do tubete', observacoes: '' }));
+    expect(state.error).toBe('Este recipiente já tem um protocolo vigente. Edite o que existe, em vez de criar outro.');
+  });
+
+  it('FE-1 e TA-36: a âncora circular é recusada, e nada é gravado', async () => {
+    loggedAs('gerencia');
+    // listEtapas: o plantio já conta da classificação, então classificar não pode contar do plantio
+    vi.mocked(pool.query).mockResolvedValueOnce({
+      rows: [
+        { id: ETAPA, rotulo: 'Plantar no tubete', etapaAncoraId: OUTRA },
+        { id: OUTRA, rotulo: 'Classificar pós-germinação', etapaAncoraId: null },
+      ],
+    } as never);
+
+    const state = await protocolos.saveEtapa(
+      {},
+      form(etapa({ etapa_id: OUTRA, tipo_ancora: 'conclusao_de_etapa', etapa_ancora_id: ETAPA })),
+    );
+
+    expect(state.error).toMatch(/forma um ciclo/);
+    expect(state.error).toMatch(/Plantar no tubete/);
+    // A consulta das etapas aconteceu; a escrita, não
+    expect(vi.mocked(pool.query)).toHaveBeenCalledTimes(1);
+  });
+
+  it('FE-2: recorrente sem intervalo não chega ao banco', async () => {
+    loggedAs('gerencia');
+    const state = await protocolos.saveEtapa({}, form(etapa({ tipo_agendamento: 'recorrente' })));
+    expect(state.error).toMatch(/intervalo/);
+    expectNoDatabase();
+  });
+
+  it('RN-34: etapa que repete não avança fase, e a recusa é anterior ao banco', async () => {
+    loggedAs('gerencia');
+    const state = await protocolos.saveEtapa(
+      {},
+      form(etapa({ tipo_agendamento: 'recorrente', intervalo_dias: '90', fase_resultante: 'germinado' })),
+    );
+    expect(state.error).toBe('Etapa que repete não avança a fase do lote. Deixe a fase em branco.');
+    expectNoDatabase();
+  });
+
+  it('a etapa válida é gravada com a âncora resolvida e o alerta declarado', async () => {
+    loggedAs('gerencia');
+    vi.mocked(pool.query)
+      .mockResolvedValueOnce({ rows: [] } as never) // listEtapas: protocolo ainda sem etapas
+      .mockResolvedValueOnce({ rows: [{ id: ETAPA }] } as never);
+
+    const state = await protocolos.saveEtapa({}, form(etapa({ alerta_ligado: 'on' })));
+
+    expect(state).toEqual({ success: 'Etapa Classificar pós-germinação acrescentada.' });
+    expect(vi.mocked(pool.query).mock.calls[1][1]).toEqual([
+      ID,
+      ETAPA,
+      'Classificar pós-germinação',
+      'sequencial',
+      'criacao_do_lote',
+      null,
+      40,
+      null,
+      OUTRA,
+      true,
+      null,
+      null,
+    ]);
+  });
+});
+
+describe('tempo de etapa por espécie (RF-25, UC-18)', () => {
+  const ETAPA = '2d7c1b0a-4e5f-4a6b-8c9d-1e2f3a4b5c6d';
+
+  it('o guard é do protocolo, e não da espécie: a gerência grava o tempo', async () => {
+    loggedAs('gerencia');
+    vi.mocked(pool.query).mockResolvedValue({ rows: [] } as never);
+    const state = await protocolos.saveTempoEspecie(
+      {},
+      form({ especie_id: ID, protocolo_etapa_id: ETAPA, dias: '70', intervalo_dias: '', observacoes: '' }),
+    );
+    expect(state).toEqual({ success: 'Tempo da espécie salvo.' });
+    expect(vi.mocked(pool.query).mock.calls[0][1]).toEqual([ID, ETAPA, 70, null, null]);
+  });
+
+  it('FA-1: os dois campos em branco apagam a linha, em vez de gravar zero', async () => {
+    loggedAs('chefia');
+    vi.mocked(pool.query).mockResolvedValue({ rows: [] } as never);
+    const state = await protocolos.saveTempoEspecie(
+      {},
+      form({ especie_id: ID, protocolo_etapa_id: ETAPA, dias: '', intervalo_dias: '', observacoes: '' }),
+    );
+    expect(state).toEqual({ success: 'Tempo próprio removido: volta a valer o do protocolo.' });
+    expect(String(vi.mocked(pool.query).mock.calls[0][0])).toMatch(/DELETE FROM especies_protocolos_tempos/);
+  });
+
+  it('zero não chega ao banco', async () => {
+    loggedAs('gerencia');
+    const state = await protocolos.saveTempoEspecie(
+      {},
+      form({ especie_id: ID, protocolo_etapa_id: ETAPA, dias: '0', intervalo_dias: '', observacoes: '' }),
+    );
+    expect(state.error).toMatch(/deixe em branco/i);
+    expectNoDatabase();
+  });
+});
+
 describe('tipos de tarefa (RF-21)', () => {
   it('gerência cria e vai para a ficha; com lote exigido, espécie e área não são gravadas', async () => {
     loggedAs('gerencia');
@@ -175,6 +326,98 @@ describe('espécies (RF-10)', () => {
   });
 });
 
+describe('espécie rápida e aprendizado de nomes (T8.16)', () => {
+  const OUTRA = '1c8e2d4f-9a6b-4d2c-8e1f-3a7b8c9d0e1f';
+
+  /** Os nomes que o banco já conhece, que é a única consulta de leitura das duas actions. */
+  function jaCadastradas(nomes: { especieId: string; nome: string; especie: string }[]) {
+    client.query.mockImplementation(async (sql: string) => {
+      if (sql.includes('UNION ALL')) return { rows: nomes, rowCount: nomes.length };
+      if (sql.includes('INSERT INTO especies ')) return { rows: [{ id: ID }] };
+      if (sql.includes('SELECT e.id, e.nome_cientifico')) {
+        return { rows: [{ id: ID, nomeCientifico: 'Cedrela fissilis', nomesPopulares: ['Cedro-rosa'], caracteristicas: [] }] };
+      }
+      return { rows: [], rowCount: 1 };
+    });
+  }
+
+  it('a gerência não cadastra espécie, nem pelo atalho do pedido', async () => {
+    loggedAs('gerencia');
+    await expect(
+      rapidas.criarEspecieRapidaAction({}, form({ nome_popular: 'Cedro-rosa', nome_cientifico: 'Cedrela fissilis' })),
+    ).rejects.toThrow(FORBIDDEN_MESSAGE);
+    expectNoDatabase();
+  });
+
+  it('a espécie nova entra ativa, com o nome popular como principal', async () => {
+    loggedAs('chefia');
+    jaCadastradas([]);
+    const state = await rapidas.criarEspecieRapidaAction(
+      {},
+      form({ nome_popular: 'Cedro-rosa', nome_cientifico: 'Cedrela fissilis' }),
+    );
+    expect(state.error).toBeUndefined();
+    expect(state.especie).toMatchObject({ id: ID, nome: 'Cedro-rosa' });
+    expect(client.query).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO especies_nomes_populares'), [
+      ID,
+      ['Cedro-rosa'],
+    ]);
+  });
+
+  it('nome que já existe reaproveita a espécie, e não duplica o catálogo', async () => {
+    loggedAs('chefia');
+    jaCadastradas([{ especieId: ID, nome: 'cedro rosa', especie: 'Cedro-rosa' }]);
+    const state = await rapidas.criarEspecieRapidaAction(
+      {},
+      form({ nome_popular: 'Cedro-Rosa', nome_cientifico: 'Cedrela fissilis' }),
+    );
+    expect(state.existente).toMatchObject({ id: ID });
+    const inseriu = client.query.mock.calls.filter(([sql]) => String(sql).includes('INSERT INTO especies '));
+    expect(inseriu).toEqual([]);
+  });
+
+  it('sem o nome científico a espécie não é cadastrada', async () => {
+    loggedAs('chefia');
+    jaCadastradas([]);
+    const state = await rapidas.criarEspecieRapidaAction({}, form({ nome_popular: 'Cedro-rosa', nome_cientifico: '' }));
+    expect(state.error).toMatch(/nome científico/i);
+  });
+
+  it('o nome corrigido à mão vira outro nome da espécie', async () => {
+    loggedAs('chefia');
+    jaCadastradas([]);
+    const state = await rapidas.adicionarNomePopularAction({}, form({ especie_id: ID, nome: 'cedro vermelho' }));
+    expect(state.nomeSalvo).toEqual({ especieId: ID, nome: 'cedro vermelho' });
+    expect(client.query).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO especies_nomes_populares'), [
+      ID,
+      'cedro vermelho',
+    ]);
+  });
+
+  it('nome que é de outra espécie é recusado, dizendo de quem ele é (RN-01)', async () => {
+    loggedAs('chefia');
+    jaCadastradas([{ especieId: OUTRA, nome: 'Cedro-vermelho', especie: 'Cedro-rosa' }]);
+    const state = await rapidas.adicionarNomePopularAction({}, form({ especie_id: ID, nome: 'cedro vermelho' }));
+    expect(state.error).toMatch(/já é nome de Cedro-rosa/i);
+    const inseriu = client.query.mock.calls.filter(([sql]) => String(sql).includes('INSERT INTO especies_nomes_populares'));
+    expect(inseriu).toEqual([]);
+  });
+
+  it('o nome que a própria espécie já tem não é conflito dela mesma', async () => {
+    loggedAs('chefia');
+    jaCadastradas([{ especieId: ID, nome: 'Cedro-vermelho', especie: 'Cedro-rosa' }]);
+    const state = await rapidas.adicionarNomePopularAction({}, form({ especie_id: ID, nome: 'cedro vermelho' }));
+    expect(state.error).toBeUndefined();
+  });
+
+  it('espécie que não é identificador é recusada antes do SQL', async () => {
+    loggedAs('chefia');
+    const state = await rapidas.adicionarNomePopularAction({}, form({ especie_id: 'x', nome: 'cedro' }));
+    expect(state.error).toMatch(/espécie inválida/i);
+    expectNoDatabase();
+  });
+});
+
 describe('pessoas (RF-14 a RF-17)', () => {
   it('TA-50: CPF inválido volta com a mensagem e os campos preenchidos, sem tocar o banco', async () => {
     loggedAs('chefia');
@@ -225,5 +468,35 @@ describe('pessoas (RF-14 a RF-17)', () => {
     vi.mocked(pool.query).mockResolvedValue({ rows: [{ nome: 'Marlene Cardoso' }] } as never);
     const state = await pessoas.createClienteRapido({}, form({ nome: 'Marlene', telefone: '47997330987', usar_pessoa_id: ID }));
     expect(state).toEqual({ success: 'Marlene Cardoso agora também é cliente.', cliente: { id: ID, nome: 'Marlene Cardoso' } });
+  });
+
+  describe('cadastro completo aberto do pedido (UC-31 FA-1)', () => {
+    const DO_PEDIDO = { tipo: 'pf', nome: 'Sítio Boa Vista', telefone: '47996124408', ativa: 'on', para_pedido: '1', papel_cliente: 'on' };
+
+    it('exige o telefone, sem tocar o banco', async () => {
+      loggedAs('chefia');
+      expect(await pessoas.savePessoaAction({}, form({ ...DO_PEDIDO, telefone: '' }))).toMatchObject({
+        error: 'Informe o telefone do cliente.',
+      });
+      expectNoDatabase();
+    });
+
+    it('só nome e telefone bastam, e volta com o cliente em vez de ir para a ficha', async () => {
+      loggedAs('chefia');
+      client.query.mockImplementation(async (sql: string) =>
+        sql.includes('INSERT INTO cadastro.pessoas ') ? { rows: [{ id: ID }] } : { rows: [], rowCount: 1 },
+      );
+      const state = await pessoas.savePessoaAction({}, form({ ...DO_PEDIDO, confirmar_novo: '1' }));
+      expect(state).toEqual({ success: 'Cliente Sítio Boa Vista cadastrado.', cliente: { id: ID, nome: 'Sítio Boa Vista' } });
+      const papel = client.query.mock.calls.find((call) => String(call[0]).includes('INSERT INTO cadastro.pessoas_papeis'));
+      expect(JSON.stringify(papel?.[1])).toContain('cliente');
+    });
+
+    it('telefone repetido pode reaproveitar quem já existe como cliente', async () => {
+      loggedAs('chefia');
+      vi.mocked(pool.query).mockResolvedValue({ rows: [{ nome: 'Marlene Cardoso' }] } as never);
+      const state = await pessoas.savePessoaAction({}, form({ ...DO_PEDIDO, usar_pessoa_id: ID }));
+      expect(state).toEqual({ success: 'Marlene Cardoso agora também é cliente.', cliente: { id: ID, nome: 'Marlene Cardoso' } });
+    });
   });
 });

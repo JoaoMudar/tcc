@@ -1,7 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { type PointerEvent as ReactPointerEvent, startTransition, useCallback, useOptimistic, useRef, useState } from 'react';
+import {
+  type PointerEvent as ReactPointerEvent,
+  startTransition,
+  useCallback,
+  useEffect,
+  useOptimistic,
+  useRef,
+  useState,
+} from 'react';
 import { Notice } from '@/components/ui/Notice';
 import type { AtribuicaoResumo, LinhaGrade } from '@/lib/agenda';
 import {
@@ -19,7 +27,10 @@ import {
   faixaDaBarra,
   formatMinuto,
   janelaDoDia,
+  marcasDeHora,
+  percentualDoMinuto,
   posicaoPercentual,
+  turnoDoMinuto,
   turnoParaMinuto,
 } from '@/lib/agenda-grade';
 import { diaMes, nomeDia, siglaDia } from '@/lib/semanas';
@@ -58,7 +69,7 @@ const BARRA: Record<EstadoTarefa, string> = {
 const NA_LEGENDA: EstadoTarefa[] = ['feita', 'parcial', 'presumida', 'nao_feita'];
 
 /** Altura de cada sub-linha da pessoa, em pixels: a barra precisa caber no toque. */
-const ALTURA_LINHA = 30;
+const ALTURA_LINHA = 40;
 
 /**
  * T5.1, F1 UC-19: a semana como linha do tempo, uma faixa por pessoa. Em tela
@@ -79,6 +90,8 @@ export function GanttSemana({
   const janela = janelaDoDia(turnos);
   const [erro, setErro] = useState<string | null>(null);
   const [ponto, setPonto] = useState<PontoDaAgenda | null>(null);
+  /** O que o arrasto está produzindo, para quem não vê a etiqueta (RNF-03). */
+  const [anuncio, setAnuncio] = useState('');
 
   const lancarEm = useCallback(
     (dia: string, minuto: number) => {
@@ -98,9 +111,12 @@ export function GanttSemana({
         {/* Cabeçalho: o dia abrange o seu eixo, e cada turno diz o seu nome e o seu início. */}
         <div className="flex items-end gap-2">
           <span className="w-36 shrink-0 text-xs font-bold tracking-widest text-muted uppercase">Pessoa</span>
-          <div className="grid flex-1 gap-[2px]" style={{ gridTemplateColumns: `repeat(${dias.length}, minmax(0, 1fr))` }}>
+          <div className="grid flex-1 gap-0" style={{ gridTemplateColumns: `repeat(${dias.length}, minmax(0, 1fr))` }}>
             {dias.map((dia) => (
-              <div key={dia}>
+              <div
+                key={dia}
+                className={`border-r border-line last:border-r-0 ${dia === hoje ? 'bg-brand-light/25' : ''}`}
+              >
                 <Link
                   href={`/producao?dia=${dia}`}
                   className={`block text-xs font-bold tracking-widest uppercase underline-offset-2 hover:underline ${
@@ -112,6 +128,7 @@ export function GanttSemana({
                 <div className="relative mt-0.5 h-4">
                   <FundoTurnos turnos={turnos} janela={janela} rotulado />
                 </div>
+                <ReguaDeHoras janela={janela} />
               </div>
             ))}
           </div>
@@ -122,12 +139,14 @@ export function GanttSemana({
             key={linha.pessoa?.id ?? 'sem-ninguem'}
             linha={linha}
             dias={dias}
+            hoje={hoje}
             turnos={turnos}
             janela={janela}
             podeArrastar={podeArrastar}
             podeLancar={Boolean(opcoes)}
             onLancar={lancarEm}
             onErro={setErro}
+            onHorario={setAnuncio}
           />
         ))}
       </div>
@@ -145,8 +164,14 @@ export function GanttSemana({
           </li>
         ))}
         <li className="text-muted">Presumida: a semana fechou sem alguém confirmar.</li>
-        {podeArrastar && <li className="text-muted">Arraste a barra para remarcar, ou a borda para mudar a duração.</li>}
+        {podeArrastar && (
+          <li className="text-muted">Arraste a barra para remarcar, ou a borda para mudar a duração, de quinze em quinze minutos.</li>
+        )}
       </ul>
+
+      <p className="sr-only" role="status" aria-live="polite">
+        {anuncio}
+      </p>
 
       {ponto && opcoes && (
         <NovaTarefaModal semana={semana} opcoes={opcoes} ponto={ponto} onFechar={() => setPonto(null)} />
@@ -180,18 +205,78 @@ function FundoTurnos({ turnos, janela, rotulado = false }: { turnos: readonly Tu
   );
 }
 
+/**
+ * Os números das horas no cabeçalho do dia. A primeira e a última ficam
+ * ancoradas na borda da coluna, e as do meio centradas na própria linha.
+ */
+function ReguaDeHoras({ janela }: { janela: Janela }) {
+  const marcas = marcasDeHora(janela);
+  return (
+    <div className="relative mt-0.5 h-3 text-[10px] leading-3 text-muted">
+      {marcas.map((minuto, indice) => {
+        const primeira = indice === 0;
+        const ultima = indice === marcas.length - 1;
+        return (
+          <span
+            key={minuto}
+            aria-hidden
+            style={{ left: `${percentualDoMinuto(minuto, janela)}%` }}
+            className={`absolute tabular-nums ${primeira ? '' : ultima ? '-translate-x-full' : '-translate-x-1/2'}`}
+          >
+            {Math.floor(minuto / 60)}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+/** As linhas de hora em hora, atrás das barras: dentro do turno mais firmes, fora mais fracas. */
+function MarcasDeHora({ janela, turnos }: { janela: Janela; turnos: readonly Turno[] }) {
+  return (
+    <>
+      {marcasDeHora(janela).map((minuto) => {
+        const esquerda = percentualDoMinuto(minuto, janela);
+        // A marca da ponta cairia em cima da régua do dia, e somaria 2px sujos na borda.
+        if (esquerda === 0 || esquerda === 100) return null;
+        return (
+          <div
+            key={minuto}
+            aria-hidden
+            style={{ left: `${esquerda}%` }}
+            className={`absolute inset-y-0 w-px ${turnoDoMinuto(minuto, turnos) ? 'bg-line' : 'bg-line/40'}`}
+          />
+        );
+      })}
+    </>
+  );
+}
+
 interface FaixaPessoaProps {
   linha: LinhaGrade;
   dias: string[];
+  hoje: string;
   turnos: Turno[];
   janela: Janela;
   podeArrastar: boolean;
   podeLancar: boolean;
   onLancar: (dia: string, minuto: number) => void;
   onErro: (mensagem: string | null) => void;
+  onHorario: (texto: string) => void;
 }
 
-function FaixaPessoa({ linha, dias, turnos, janela, podeArrastar, podeLancar, onLancar, onErro }: FaixaPessoaProps) {
+function FaixaPessoa({
+  linha,
+  dias,
+  hoje,
+  turnos,
+  janela,
+  podeArrastar,
+  podeLancar,
+  onLancar,
+  onErro,
+  onHorario,
+}: FaixaPessoaProps) {
   const areaRef = useRef<HTMLDivElement>(null);
   const [porDia, aplicarOtimista] = useOptimistic(
     linha.porDia,
@@ -222,6 +307,7 @@ function FaixaPessoa({ linha, dias, turnos, janela, podeArrastar, podeLancar, on
     (resultado: Reagendamento) => {
       const turno = turnoParaMinuto(resultado.faixa.inicio, turnos);
       if (!turno) return;
+      onHorario(intervalo(resultado.faixa));
       startTransition(async () => {
         aplicarOtimista({ ...resultado, turnoId: turno.id });
         const dados = new FormData();
@@ -234,10 +320,15 @@ function FaixaPessoa({ linha, dias, turnos, janela, podeArrastar, podeLancar, on
         onErro(estado.error ?? null);
       });
     },
-    [turnos, aplicarOtimista, onErro],
+    [turnos, aplicarOtimista, onErro, onHorario],
   );
 
   const { sessao, iniciar, aoTeclar } = useArrasteBarra({ dias, janela, areaRef, onSoltar: reagendar });
+
+  // Fora do render: avisar de dentro do arrasto derrubaria o estado otimista
+  useEffect(() => {
+    if (sessao) onHorario(intervalo(sessao.faixa));
+  }, [sessao, onHorario]);
 
   /** A barra em arrasto desenha onde o ponteiro está, e não onde o banco a guarda. */
   const barrasDoDia = (dia: string) => {
@@ -256,13 +347,14 @@ function FaixaPessoa({ linha, dias, turnos, janela, podeArrastar, podeLancar, on
       </span>
       <div
         ref={areaRef}
-        className="grid flex-1 gap-[2px]"
+        className="grid flex-1 gap-0"
         style={{ gridTemplateColumns: `repeat(${dias.length}, minmax(0, 1fr))`, height: linhas * ALTURA_LINHA }}
       >
         {dias.map((dia) => (
           <ColunaDia
             key={dia}
             dia={dia}
+            eHoje={dia === hoje}
             barras={barrasDoDia(dia)}
             linhas={linhas}
             turnos={turnos}
@@ -270,6 +362,7 @@ function FaixaPessoa({ linha, dias, turnos, janela, podeArrastar, podeLancar, on
             podeArrastar={podeArrastar}
             podeLancar={podeLancar}
             onLancar={onLancar}
+            emArrasto={sessao?.id ?? null}
             iniciar={iniciar}
             aoTeclar={aoTeclar}
           />
@@ -277,6 +370,11 @@ function FaixaPessoa({ linha, dias, turnos, janela, podeArrastar, podeLancar, on
       </div>
     </div>
   );
+}
+
+/** "07:30–08:30": o que a etiqueta mostra e o leitor de tela anuncia. */
+function intervalo(faixa: Faixa): string {
+  return `${formatMinuto(faixa.inicio)}–${formatMinuto(faixa.fim)}`;
 }
 
 function acharTarefa(porDia: Record<string, AtribuicaoResumo[]>, id: string): AtribuicaoResumo[] {
@@ -289,6 +387,8 @@ function acharTarefa(porDia: Record<string, AtribuicaoResumo[]>, id: string): At
 
 interface ColunaDiaProps {
   dia: string;
+  /** Hoje tinge a coluna inteira: a régua precisa de um dia para onde apontar. */
+  eHoje: boolean;
   barras: ReturnType<typeof empilhar<AtribuicaoResumo>>;
   linhas: number;
   turnos: Turno[];
@@ -296,12 +396,15 @@ interface ColunaDiaProps {
   podeArrastar: boolean;
   podeLancar: boolean;
   onLancar: (dia: string, minuto: number) => void;
+  /** A tarefa em arrasto, que desenha a etiqueta do horário. */
+  emArrasto: string | null;
   iniciar: (evento: ReactPointerEvent<HTMLElement>, alvo: AlvoArrasto, modo: 'mover' | 'inicio' | 'fim') => void;
   aoTeclar: (evento: React.KeyboardEvent<HTMLElement>, alvo: AlvoArrasto) => void;
 }
 
 function ColunaDia({
   dia,
+  eHoje,
   barras,
   linhas,
   turnos,
@@ -309,6 +412,7 @@ function ColunaDia({
   podeArrastar,
   podeLancar,
   onLancar,
+  emArrasto,
   iniciar,
   aoTeclar,
 }: ColunaDiaProps) {
@@ -321,8 +425,12 @@ function ColunaDia({
   };
 
   return (
-    <div className="relative rounded" aria-label={nomeDia(dia)}>
+    <div
+      className={`relative border-r border-line last:border-r-0 ${eHoje ? 'bg-brand-light/25' : ''}`}
+      aria-label={nomeDia(dia)}
+    >
       <FundoTurnos turnos={turnos} janela={janela} />
+      <MarcasDeHora turnos={turnos} janela={janela} />
       {podeLancar && (
         <button
           type="button"
@@ -341,6 +449,7 @@ function ColunaDia({
           topo={(linha * 100) / linhas}
           altura={100 / linhas}
           arrastavel={podeArrastar && item.situacao === 'planejada'}
+          emArrasto={emArrasto === item.id}
           iniciar={iniciar}
           aoTeclar={aoTeclar}
         />
@@ -357,11 +466,12 @@ interface BarraProps {
   topo: number;
   altura: number;
   arrastavel: boolean;
+  emArrasto: boolean;
   iniciar: ColunaDiaProps['iniciar'];
   aoTeclar: ColunaDiaProps['aoTeclar'];
 }
 
-function Barra({ atribuicao: a, dia, faixa, janela, topo, altura, arrastavel, iniciar, aoTeclar }: BarraProps) {
+function Barra({ atribuicao: a, dia, faixa, janela, topo, altura, arrastavel, emArrasto, iniciar, aoTeclar }: BarraProps) {
   const estado = estadoTarefa(a);
   const hora = formatHoraTarefa(a.horaInicio, a.horaFim);
   const { left, width } = posicaoPercentual(faixa, janela);
@@ -373,6 +483,16 @@ function Barra({ atribuicao: a, dia, faixa, janela, topo, altura, arrastavel, in
       style={{ left: `${left}%`, width: `${width}%`, top: `${topo}%`, height: `${altura}%` }}
       className="absolute flex items-stretch p-[1px]"
     >
+      {emArrasto && (
+        <span
+          aria-hidden
+          className={`pointer-events-none absolute left-0 z-10 rounded bg-ink px-1 py-0.5 text-[11px] font-semibold whitespace-nowrap text-white shadow ${
+            topo === 0 ? 'top-full mt-0.5' : 'bottom-full mb-0.5'
+          }`}
+        >
+          {intervalo(faixa)}
+        </span>
+      )}
       <Link
         href={`/producao/agenda/${a.id}`}
         aria-label={`${a.tipo}, ${nomeDia(dia)}, ${turnoLabel(a.turno)}, ${ESTADOS_TAREFA[estado]}`}

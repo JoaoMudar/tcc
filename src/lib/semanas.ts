@@ -34,6 +34,14 @@ export function diasDaSemana(inicio: string): string[] {
   return Array.from({ length: 6 }, (_, i) => somaDias(inicio, i));
 }
 
+/**
+ * Segunda a sexta: é o que a grade de tela larga desenha (RNF-14). O sábado
+ * continua existindo no modelo, na lista do celular e no formulário.
+ */
+export function diasUteisDaSemana(inicio: string): string[] {
+  return Array.from({ length: 5 }, (_, i) => somaDias(inicio, i));
+}
+
 export function nomeDia(iso: string): string {
   return NOMES_DIA[diaDaSemana(iso)];
 }

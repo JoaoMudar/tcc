@@ -75,6 +75,8 @@ export interface PessoaFormState extends FormState {
   candidatas?: PessoaRef[];
   /** Dona do documento digitado. */
   existente?: PessoaRef;
+  /** Cadastro aberto de dentro do pedido: o cliente pronto para ele usar. */
+  cliente?: PessoaRef;
 }
 
 export interface ClienteRapidoState extends FormState {

@@ -1,6 +1,6 @@
 'use client';
 
-import { type PointerEvent as ReactPointerEvent, type RefObject, useCallback, useEffect, useState } from 'react';
+import { type PointerEvent as ReactPointerEvent, type RefObject, useCallback, useEffect, useRef, useState } from 'react';
 import {
   type Borda,
   type Faixa,
@@ -74,6 +74,17 @@ function minutoNaColunaDe(area: HTMLElement, dias: readonly string[], janela: Ja
  */
 export function useArrasteBarra({ dias, janela, areaRef, onSoltar }: Opcoes) {
   const [sessao, setSessao] = useState<Sessao | null>(null);
+  /**
+   * Espelho do estado, para o soltar ler o arrasto corrente sem esperar render.
+   * O atualizador do `setSessao` fica puro: quem calcula a proxima sessao e o
+   * `guardar`, aqui, e nao uma funcao que React possa reexecutar no render.
+   */
+  const sessaoRef = useRef<Sessao | null>(null);
+  const guardar = useCallback((proxima: Sessao | null | ((atual: Sessao | null) => Sessao | null)) => {
+    const valor = typeof proxima === 'function' ? proxima(sessaoRef.current) : proxima;
+    sessaoRef.current = valor;
+    setSessao(valor);
+  }, []);
 
   const iniciar = useCallback(
     (evento: ReactPointerEvent<HTMLElement>, alvo: AlvoArrasto, modo: ModoArrasto) => {
@@ -82,9 +93,9 @@ export function useArrasteBarra({ dias, janela, areaRef, onSoltar }: Opcoes) {
       evento.preventDefault();
       evento.currentTarget.setPointerCapture?.(evento.pointerId);
       const { minuto } = medir(area, dias, janela, evento.clientX);
-      setSessao({ ...alvo, modo, diaOriginal: alvo.dia, faixaOriginal: alvo.faixa, offsetMinutos: minuto - alvo.faixa.inicio });
+      guardar({ ...alvo, modo, diaOriginal: alvo.dia, faixaOriginal: alvo.faixa, offsetMinutos: minuto - alvo.faixa.inicio });
     },
-    [areaRef, dias, janela],
+    [areaRef, dias, janela, guardar],
   );
 
   useEffect(() => {
@@ -98,14 +109,14 @@ export function useArrasteBarra({ dias, janela, areaRef, onSoltar }: Opcoes) {
       if (sessao.modo === 'mover') {
         const { dia, minuto } = medir(area, dias, janela, evento.clientX);
         const desejado = minuto - sessao.offsetMinutos;
-        setSessao((atual) =>
+        guardar((atual) =>
           atual && { ...atual, dia, faixa: moverFaixa(atual.faixaOriginal, desejado - atual.faixaOriginal.inicio, janela) },
         );
         return;
       }
 
       const minuto = minutoNaColunaDe(area, dias, janela, evento.clientX, indiceOriginal);
-      setSessao((atual) => {
+      guardar((atual) => {
         if (!atual) return atual;
         const borda = atual.modo as Borda;
         const delta = minuto - (borda === 'inicio' ? atual.faixaOriginal.inicio : atual.faixaOriginal.fim);
@@ -113,30 +124,40 @@ export function useArrasteBarra({ dias, janela, areaRef, onSoltar }: Opcoes) {
       });
     };
 
+    /**
+     * O aviso sai daqui, e nunca de dentro do atualizador do `setSessao`: React
+     * pode reexecutar o atualizador durante a renderizacao, e avisar dali
+     * derruba o estado otimista de quem escuta ("Cannot update optimistic state
+     * while rendering"). O `sessaoRef` guarda o ultimo arrasto para o soltar ler
+     * sem depender de um render ter acontecido antes.
+     */
     const aoSoltar = () => {
-      setSessao((atual) => {
-        if (atual && (atual.dia !== atual.diaOriginal || atual.faixa.inicio !== atual.faixaOriginal.inicio || atual.faixa.fim !== atual.faixaOriginal.fim)) {
-          onSoltar({ id: atual.id, dia: atual.dia, faixa: atual.faixa, diaOriginal: atual.diaOriginal });
-        }
-        return null;
-      });
+      const atual = sessaoRef.current;
+      guardar(null);
+      if (!atual) return;
+      if (atual.dia !== atual.diaOriginal || atual.faixa.inicio !== atual.faixaOriginal.inicio || atual.faixa.fim !== atual.faixaOriginal.fim) {
+        onSoltar({ id: atual.id, dia: atual.dia, faixa: atual.faixa, diaOriginal: atual.diaOriginal });
+      }
     };
+
+    const aoCancelar = () => guardar(null);
 
     /** Escape desiste, e a barra volta para onde estava. */
     const aoTeclar = (evento: KeyboardEvent) => {
-      if (evento.key === 'Escape') setSessao(null);
+      if (evento.key === 'Escape') guardar(null);
     };
 
     window.addEventListener('pointermove', aoMover);
     window.addEventListener('pointerup', aoSoltar);
-    window.addEventListener('pointercancel', () => setSessao(null));
+    window.addEventListener('pointercancel', aoCancelar);
     window.addEventListener('keydown', aoTeclar);
     return () => {
       window.removeEventListener('pointermove', aoMover);
       window.removeEventListener('pointerup', aoSoltar);
+      window.removeEventListener('pointercancel', aoCancelar);
       window.removeEventListener('keydown', aoTeclar);
     };
-  }, [sessao, dias, janela, areaRef, onSoltar]);
+  }, [sessao, dias, janela, areaRef, onSoltar, guardar]);
 
   /**
    * RNF-03: o mesmo resultado sem ponteiro. Shift com as setas remarca, Alt com

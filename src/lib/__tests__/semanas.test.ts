@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { diaMes, diasDaSemana, inicioDaSemana, isInicioDeSemana, lerSemana, nomeDia, rotuloSemana, siglaDia } from '../semanas';
+import {
+  diaMes,
+  diasDaSemana,
+  diasUteisDaSemana,
+  inicioDaSemana,
+  isInicioDeSemana,
+  lerSemana,
+  nomeDia,
+  rotuloSemana,
+  siglaDia,
+} from '../semanas';
 
 describe('semana da agenda', () => {
   it('começa na segunda, e o domingo é da semana que termina nele', () => {
@@ -11,6 +21,12 @@ describe('semana da agenda', () => {
 
   it('vai de segunda a sábado', () => {
     expect(diasDaSemana('2026-09-14')).toEqual(['2026-09-14', '2026-09-15', '2026-09-16', '2026-09-17', '2026-09-18', '2026-09-19']);
+  });
+
+  it('a grade de tela larga desenha só de segunda a sexta (RNF-14)', () => {
+    expect(diasUteisDaSemana('2026-09-14')).toEqual(['2026-09-14', '2026-09-15', '2026-09-16', '2026-09-17', '2026-09-18']);
+    // O sábado continua na semana, só não na grade
+    expect(diasDaSemana('2026-09-14')).toHaveLength(6);
   });
 
   it('lê a semana da URL, e cai na de hoje quando não vale', () => {

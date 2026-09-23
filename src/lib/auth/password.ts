@@ -38,6 +38,25 @@ export async function verifyPassword(password: string, stored: string): Promise<
   return timingSafeEqual(key, expected);
 }
 
+/** Verificações de senha rodando ao mesmo tempo nesta instância (SEC-009). */
+export const MAX_VERIFICACOES_SIMULTANEAS = 8;
+let emCurso = 0;
+
+/**
+ * Roda a verificação se houver vaga; `null` quando a instância já está no limite.
+ * O contador por origem barra o ataque em série, mas uma rajada simultânea lê a
+ * contagem antes de qualquer falha ser gravada: o teto limita o scrypt em curso.
+ */
+export async function comVagaDeVerificacao<T>(verificar: () => Promise<T>): Promise<T | null> {
+  if (emCurso >= MAX_VERIFICACOES_SIMULTANEAS) return null;
+  emCurso++;
+  try {
+    return await verificar();
+  } finally {
+    emCurso--;
+  }
+}
+
 let dummyHash: Promise<string> | undefined;
 
 /** Gasta o mesmo tempo de uma verificação real, para o login inexistente não se denunciar pela demora. */

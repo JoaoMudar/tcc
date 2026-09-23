@@ -14,6 +14,9 @@ interface CanteiroPickerProps {
   /** O canteiro em que o lote já está, fora da lista na transferência. */
   excluirCanteiroId?: string | null;
   sufixo?: string;
+  /** A divisão põe dois pares na mesma página, e cada um precisa do seu nome. */
+  nomeArea?: string;
+  nomeCanteiro?: string;
 }
 
 /** Área e canteiro, com a lotação de cada um à vista e o aviso que não impede (RN-28). */
@@ -24,6 +27,8 @@ export function CanteiroPicker({
   defaultCanteiroId = '',
   excluirCanteiroId = null,
   sufixo = '',
+  nomeArea = 'area_id',
+  nomeCanteiro = 'canteiro_id',
 }: CanteiroPickerProps) {
   const [areaId, setAreaId] = useState(defaultAreaId);
   const [canteiroId, setCanteiroId] = useState(defaultCanteiroId);
@@ -38,7 +43,7 @@ export function CanteiroPicker({
       <div className="grid grid-cols-2 gap-3">
         <SelectField
           label={`Área${sufixo}`}
-          name="area_id"
+          name={nomeArea}
           options={areas}
           defaultValue={defaultAreaId}
           onChange={(event) => {
@@ -50,7 +55,7 @@ export function CanteiroPicker({
         <SelectField
           key={areaId}
           label={`Canteiro${sufixo}`}
-          name="canteiro_id"
+          name={nomeCanteiro}
           options={daArea.map((c) => ({
             value: c.id,
             label: c.lotes === 0 ? `${c.numero} · livre` : `${c.numero} · ${c.lotes} ${c.lotes === 1 ? 'lote' : 'lotes'}`,

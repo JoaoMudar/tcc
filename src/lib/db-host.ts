@@ -9,3 +9,13 @@ export function isNeonHost(connectionString: string): boolean {
     return false;
   }
 }
+
+/** Banco na própria máquina: é o único caso em que a conexão sem TLS não expõe nada na rede. */
+export function isLocalHost(connectionString: string): boolean {
+  try {
+    const { hostname } = new URL(connectionString);
+    return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]';
+  } catch {
+    return false;
+  }
+}

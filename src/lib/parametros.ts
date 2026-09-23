@@ -24,6 +24,8 @@ interface ParametroInfo {
 export const ATENCAO = 'producao.atraso_atencao_dias';
 export const CRITICO = 'producao.atraso_critico_dias';
 export const MORTALIDADE = 'producao.mortalidade_limite_pct';
+export const JANELA_AVISO = 'producao.protocolo_janela_aviso_pct';
+export const HORIZONTE = 'producao.protocolo_horizonte_dias';
 
 /** Como a tela chama cada chave (textos do F1 UC-06). Chave sem entrada aparece com a `descricao` do banco. */
 export const PARAMETRO_INFO: Record<string, ParametroInfo> = {
@@ -46,6 +48,20 @@ export const PARAMETRO_INFO: Record<string, ParametroInfo> = {
     unidade: 'dias',
     dica: 'A partir de quantos dias o lote fica vermelho',
     min: 0,
+    max: 365,
+  },
+  [JANELA_AVISO]: {
+    label: 'Protocolo: janela de aviso',
+    unidade: '%',
+    dica: 'Quanto antes do vencimento a etapa fica amarela, em percentual do prazo dela',
+    min: 0,
+    max: 100,
+  },
+  [HORIZONTE]: {
+    label: 'Protocolo: horizonte de sugestão',
+    unidade: 'dias',
+    dica: 'Até quantos dias à frente as etapas aparecem como sugestão na agenda',
+    min: 1,
     max: 365,
   },
 };
@@ -120,6 +136,17 @@ export function validateParametros(
     return { error: 'O atraso crítico precisa ser maior que o atraso de atenção.' };
   }
   return { value };
+}
+
+/**
+ * Até quantos dias à frente o protocolo sugere (RF-47). É parâmetro, e não
+ * constante: sugerir um ano de limpezas trimestrais encheria a lista de avisos
+ * que ninguém olha por nove meses. A migration garante a linha.
+ */
+export async function horizonteProtocolo(db: Db): Promise<number> {
+  const { rows } = await db.query<{ valor: string }>('SELECT valor FROM parametros WHERE chave = $1', [HORIZONTE]);
+  if (!rows[0]) throw new Error(`Parâmetro ${HORIZONTE} ausente`);
+  return Number(rows[0].valor);
 }
 
 export async function listParametros(db: Db): Promise<Parametro[]> {

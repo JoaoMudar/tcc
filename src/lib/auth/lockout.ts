@@ -2,6 +2,14 @@
 export const MAX_FAILURES = 5;
 export const LOCK_MINUTES = 15;
 
+/**
+ * Falhas vindas da mesma origem, somadas entre todos os logins (SEC-003). Barra
+ * quem testa uma senha contra vários usuários sem errar cinco vezes em nenhum, e
+ * poupa o scrypt de cada tentativa.
+ */
+export const MAX_FAILURES_POR_IP = 20;
+export const JANELA_IP_MINUTOS = 15;
+
 export function isLocked(bloqueadoAte: Date | null, now: Date): boolean {
   return bloqueadoAte !== null && bloqueadoAte.getTime() > now.getTime();
 }

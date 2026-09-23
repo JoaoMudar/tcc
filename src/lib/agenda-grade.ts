@@ -90,14 +90,29 @@ export function limitaNaJanela(faixa: Faixa, janela: Janela): Faixa {
   return { ...faixa, inicio, fim };
 }
 
+/** Onde o minuto cai no eixo do dia, de 0 a 100. */
+export function percentualDoMinuto(minuto: number, janela: Janela): number {
+  const total = Math.max(1, janela.fim - janela.inicio);
+  return ((minuto - janela.inicio) / total) * 100;
+}
+
 /** Em porcentagem, porque a coluna do dia muda de largura com a janela do navegador. */
 export function posicaoPercentual(faixa: Faixa, janela: Janela): { left: number; width: number } {
-  const total = Math.max(1, janela.fim - janela.inicio);
   const recortada = limitaNaJanela(faixa, janela);
-  return {
-    left: ((recortada.inicio - janela.inicio) / total) * 100,
-    width: ((recortada.fim - recortada.inicio) / total) * 100,
-  };
+  const left = percentualDoMinuto(recortada.inicio, janela);
+  return { left, width: percentualDoMinuto(recortada.fim, janela) - left };
+}
+
+/**
+ * As horas cheias dentro da janela, que a grade desenha como linha e o
+ * cabeçalho numera: sem elas o eixo tem só as listras de turno, e a barra não
+ * diz a olho se começa às oito ou às nove.
+ */
+export function marcasDeHora(janela: Janela): number[] {
+  const primeira = Math.ceil(janela.inicio / 60) * 60;
+  const marcas: number[] = [];
+  for (let minuto = primeira; minuto <= janela.fim; minuto += 60) marcas.push(minuto);
+  return marcas;
 }
 
 /** A fração horizontal da coluna vira minuto do dia. */

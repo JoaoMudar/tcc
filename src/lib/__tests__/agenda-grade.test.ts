@@ -9,7 +9,9 @@ import {
   formatMinuto,
   janelaDoDia,
   limitaNaJanela,
+  marcasDeHora,
   minutoNaPosicao,
+  percentualDoMinuto,
   moverFaixa,
   posicaoPercentual,
   redimensionarFaixa,
@@ -86,6 +88,28 @@ describe('posição e minuto', () => {
   it('formata o minuto como o Postgres espera', () => {
     expect(formatMinuto(450)).toBe('07:30');
     expect(formatMinuto(0)).toBe('00:00');
+  });
+});
+
+describe('marcas de hora', () => {
+  it('dá cada hora cheia da janela, das sete às cinco', () => {
+    expect(marcasDeHora(JANELA)).toEqual([420, 480, 540, 600, 660, 720, 780, 840, 900, 960, 1020]);
+  });
+
+  it('começa na primeira hora cheia e para na última, quando a janela quebra', () => {
+    const marcas = marcasDeHora({ inicio: 7 * 60 + 30, fim: 16 * 60 + 45 });
+    expect(marcas[0]).toBe(8 * 60);
+    expect(marcas[marcas.length - 1]).toBe(16 * 60);
+  });
+
+  it('janela mais curta que uma hora pode não ter marca nenhuma', () => {
+    expect(marcasDeHora({ inicio: 7 * 60 + 10, fim: 7 * 60 + 50 })).toEqual([]);
+  });
+
+  it('o percentual do minuto vai de zero a cem dentro da janela', () => {
+    expect(percentualDoMinuto(JANELA.inicio, JANELA)).toBe(0);
+    expect(percentualDoMinuto(JANELA.fim, JANELA)).toBe(100);
+    expect(percentualDoMinuto(12 * 60, JANELA)).toBe(50);
   });
 });
 

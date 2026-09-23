@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { PageHeader } from '@/components/PageHeader';
-import { Notice } from '@/components/ui/Notice';
 import { Pill } from '@/components/ui/Pill';
 import { type AtribuicaoResumo, SITUACOES_SEMANA, TOM_SEMANA, findSemana, listAgendaDia } from '@/lib/agenda';
 import { formatData, hojeNoViveiro, isDataIso, somaDias } from '@/lib/datas';
@@ -9,6 +8,7 @@ import { type Recurso, can } from '@/lib/permissions';
 import { inicioDaSemana, nomeDia } from '@/lib/semanas';
 import { formatDuracao, jornadaDiaria, listTurnos, turnoLabel } from '@/lib/turnos';
 import { requirePageAccess } from '@/lib/auth/guards';
+import { MapaProducao } from './MapaProducao';
 import { ProducaoAbas } from './ProducaoAbas';
 import { AtribuicaoCartao } from './agenda/AtribuicaoCartao';
 import { EscalaAgenda } from './agenda/EscalaAgenda';
@@ -30,25 +30,21 @@ interface ProducaoPageProps {
 
 /** T5.7, 2 · Produção: a agenda do dia e o mapa, em abas, e as demais rotinas abaixo. */
 export default async function ProducaoPage({ searchParams }: ProducaoPageProps) {
-  const user = await requirePageAccess('agenda');
   const { dia: diaPedido, aba } = await searchParams;
+  const mapa = aba === 'mapa';
+  // Cada aba tem o seu recurso na matriz do D4: o mapa é leitura dos três perfis
+  const user = await requirePageAccess(mapa ? 'mapa_lotes' : 'agenda');
   const hoje = hojeNoViveiro();
   const dia = diaPedido && isDataIso(diaPedido) ? diaPedido : hoje;
-  const mapa = aba === 'mapa';
 
   return (
     <main>
       <PageHeader area="2 · Produção" title={mapa ? 'Mapa de produção' : 'Agenda do dia'} />
       <ProducaoAbas aba={mapa ? 'mapa' : 'agenda'} />
-      <div className="mx-auto flex max-w-5xl flex-col gap-4 p-4 md:p-8">
+      {/* O mapa pede a largura da tela: é a exceção declarada de RNF-14 */}
+      <div className={`mx-auto flex ${mapa ? 'max-w-7xl' : 'max-w-5xl'} flex-col gap-4 p-4 md:p-8`}>
         {mapa ? (
-          <Notice tone="info">
-            O mapa de produção ainda não está pronto. Enquanto isso, o que tem em cada canteiro está em{' '}
-            <Link href="/producao/lotes" className="font-semibold underline">
-              Lotes
-            </Link>
-            .
-          </Notice>
+          <MapaProducao />
         ) : (
           <AgendaDoDia dia={dia} hoje={hoje} podeLancar={can(user.perfil, 'agenda', 'C')} />
         )}
