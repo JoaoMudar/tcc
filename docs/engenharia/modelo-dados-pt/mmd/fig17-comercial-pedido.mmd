@@ -48,7 +48,7 @@ erDiagram
   pessoas ||--o{ pedidos       : "faz como cliente"
   usuarios||--o{ pedidos       : "registra"
   especies    ||--o{ pedidos_itens : "e vendida em"
-  recipientes ||--o{ pedidos_itens : "define porte de"
+  recipientes |o--o{ pedidos_itens : "define porte de"
   lotes       ||--o{ pedidos_itens : "da saldo a"
   pedidos ||--o{ pedidos_historico : "percorre"
   usuarios ||--o{ pedidos_historico : "assina"

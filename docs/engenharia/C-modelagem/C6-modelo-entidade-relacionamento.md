@@ -406,7 +406,7 @@ erDiagram
   pessoas    ||--o{ atribuicoes_participantes : "executa"
   protocolos_etapas ||--o{ lotes_etapas : "materializa-se em"
   especies    ||--o{ pedidos_itens  : "é vendida em"
-  recipientes ||--o{ pedidos_itens  : "define porte de"
+  recipientes |o--o{ pedidos_itens  : "define porte de"
 ```
 
 **`insumos` não tem aresta neste diagrama, e é informação.** O insumo é catálogo: o sistema registra
@@ -734,7 +734,7 @@ erDiagram
   pessoas ||--o{ pedidos      : "faz"
   usuarios   ||--o{ pedidos      : "registra"
   especies    ||--o{ pedidos_itens : "é vendida em"
-  recipientes ||--o{ pedidos_itens : "define porte de"
+  recipientes |o--o{ pedidos_itens : "define porte de"
   pedidos ||--o{ pedidos_historico : "percorre"
   usuarios ||--o{ pedidos_historico : "assina"
   pedidos_itens ||--o{ pedidos_itens : "é composto por"
@@ -773,8 +773,14 @@ se grava; leitura de estoque se recalcula.
 **`pedidos_itens` aponta para si mesma, e é a composição do item pedido sem espécie.** O cliente que
 pede quinhentas mudas nativas sem nomear espécie gera um item de topo com `generico`, e a gerência
 cria um filho por espécie escolhida (RF-60). A composição tem um nível só, garantido por restrição:
-item genérico não tem pai. O filho herda o preço do pai, e o total do pedido soma apenas os itens de
-topo, porque o filho diz qual espécie compõe a venda e não quanto ela custa.
+item genérico não tem pai. Quando o genérico tem quantidade, o filho herda o preço do pai, e o
+total soma o pai, porque o filho diz qual espécie compõe a venda e não quanto ela custa. Quando o
+genérico não tem quantidade ("manda o que tiver"), ele é uma lista montada: os filhos são os itens
+de venda, cada um com seu preço, e é deles que o total sai.
+
+**O item pode nascer sem recipiente**, e a aresta com `recipientes` é por isso de zero ou um. O
+cliente que pergunta "tem ipê?" não disse o tamanho; a conferência responde em qual recipiente a
+muda existe (`recipiente_disponivel_id`), e a aprovação exige que o item vendável tenha um.
 
 **`recipiente_disponivel_id` é a segunda aresta entre item e recipiente**, e não a repetição da
 primeira. `recipiente_id` é o que o cliente pediu, e o outro é o que a gerência encontrou. Os dois

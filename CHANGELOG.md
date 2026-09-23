@@ -3,6 +3,25 @@
 Uma entrada por migration nova, como pede o `CLAUDE.md`. As migrations até `20260901000008` são o
 schema inicial em português e estão descritas no `C8`.
 
+## 24/09/2026 · `20260924000001_pedido_orcamento_incompleto.sql`
+
+- **O item do pedido pode nascer sem recipiente.** `pedidos_itens.recipiente_id` perde o
+  `NOT NULL`: nulo é "o cliente não disse o tamanho". A aprovação exige o recipiente em todo item
+  vendável, e a trava é do código (`confirmarPedido`).
+- **A conferência responde sobre o item sem quantidade.** `pedidos_itens_disponibilidade_coerente`
+  é trocada por uma que aceita, no item sem quantidade, `quantidade_disponivel` de zero em diante
+  com `disponivel` verdadeiro exatamente quando ela passa de zero ("tenho 350"). O item com
+  quantidade segue as regras de antes, e o genérico composto fica verdadeiro e sem número.
+- `pedidos_itens_recipiente_disponivel_com_muda` passa a ser
+  `recipiente_disponivel_id IS NULL OR quantidade_disponivel IS DISTINCT FROM 0`, o que admite
+  "tem tudo, em 17x22" sem mudar o sentido de "não tem nenhuma".
+- Novo CHECK `pedidos_itens_generico_com_especificacao`: o genérico precisa dizer o que foi pedido.
+- **Deixou de valer**: a exigência de quantidade para abrir a conferência (`mudarSituacao`), que a
+  migration `20260923000001` tinha posto no código.
+- Migração de linhas, antes das constraints novas: genérico sem `especificacao` recebe
+  `'Mudas nativas'`; item não genérico sem quantidade e com resposta gravada volta a "por conferir".
+- Compatível: todo item já gravado tem recipiente, e continua como estava.
+
 ## 23/09/2026 · `20260923000001_pedido_item_quantidade_opcional.sql`
 
 - **A quantidade do item do pedido passa a ser opcional no cadastro.** `pedidos_itens.quantidade`

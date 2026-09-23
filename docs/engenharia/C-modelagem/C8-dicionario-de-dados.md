@@ -938,35 +938,40 @@ histórico, e entraria só para poluir a ficha.
 | `id` | uuid | ● | PK | Identificador |
 | `pedido_id` | uuid | ● | FK → `pedidos` | Pedido |
 | `especie_id` | uuid | ○ | FK → `especies` | Espécie. **Nula apenas no item genérico**, que é o pedido sem escolha de espécie |
-| `recipiente_id` | uuid | ● | FK → `recipientes` | Recipiente solicitado. No genérico, o recipiente mínimo aceito |
-| `quantidade` | integer | ○ | | Quantidade pedida. **Nula é "o cliente ainda não disse quantas"**: opcional no cadastro e exigida antes da conferência, trava que é do código (`mudarSituacao`). Restrição: maior que zero quando existe |
+| `recipiente_id` | uuid | ○ | FK → `recipientes` | Recipiente solicitado. No genérico, o recipiente mínimo aceito. **Nulo é "o cliente não disse o tamanho"**: a conferência responde em qual existe, e a aprovação o exige |
+| `quantidade` | integer | ○ | | Quantidade pedida. **Nula é "o cliente ainda não disse quantas"**: a conferência responde quantas existem, a chefia a preenche na negociação e a aprovação a exige, trava que é do código (`confirmarPedido`). No genérico, nula faz dele uma lista montada: os filhos passam a ser itens de venda, cada um com seu preço. Restrição: maior que zero quando existe |
 | `altura_m` | numeric(4,2) | ○ | | Altura da muda pedida, em metros (RF-54). Nula é "o cliente não pediu altura". Restrição: maior que zero e até 20 |
 | `preco_unitario` | numeric(10,2) | ○ | | **Preço unitário informado por quem registra, depois da conferência** (RF-55, RN-50). Nulo é "ainda não precificado". Restrição: maior que zero quando existe |
 | `disponivel` | boolean | ○ | | O que a conferência respondeu. **Nulo é "ninguém conferiu ainda"** (RF-59) |
-| `quantidade_disponivel` | integer | ○ | | Quantas existem, quando `disponivel` é falso. Zero significa indisponível (RN-54) |
-| `recipiente_disponivel_id` | uuid | ○ | FK → `recipientes` | Recipiente em que a muda foi encontrada, que pode diferir do pedido |
+| `quantidade_disponivel` | integer | ○ | | Quantas existem: quando `disponivel` é falso no item com quantidade, ou sempre que o item veio sem quantidade. Zero significa indisponível (RN-54) |
+| `recipiente_disponivel_id` | uuid | ○ | FK → `recipientes` | Recipiente em que a muda foi encontrada, que pode diferir do pedido. Obrigatório, pelo código, quando o item veio sem recipiente e a resposta tem muda |
 | `observacoes_disponibilidade` | text | ○ | | Observação da gerência sobre o item |
 | `generico` | boolean | ● | | Item pedido sem escolha de espécie (RF-60) |
 | `item_pai_id` | uuid | ○ | FK → `pedidos_itens` | Item genérico que este filho compõe. Nulo no item de topo |
-| `especificacao` | text | ○ | | O que o cliente pediu, em texto. Só no item genérico |
+| `especificacao` | text | ○ | | O que o cliente pediu, em texto. Só no item genérico, e nele obrigatória |
 
 **Restrições:** a altura, quando existe, vai de zero exclusive até 20 metros; item genérico não tem
-espécie, e item não genérico tem; item genérico não tem pai, o
-que mantém a composição em um nível só; `quantidade_disponivel` vai de zero até `quantidade` menos
-um, e só existe quando `disponivel` é falso; `recipiente_disponivel_id` só existe com
-`quantidade_disponivel` maior que zero.
+espécie, e item não genérico tem; item genérico tem `especificacao`; item genérico não tem pai, o
+que mantém a composição em um nível só. A resposta da conferência tem três formas: nenhuma (as duas
+colunas nulas); no item com quantidade, `disponivel` verdadeiro sem número ou falso com
+`quantidade_disponivel` de zero até `quantidade` menos um; no item sem quantidade,
+`quantidade_disponivel` de zero em diante, com `disponivel` verdadeiro exatamente quando ela passa de
+zero. O genérico composto fica verdadeiro e sem número, com ou sem quantidade.
+`recipiente_disponivel_id` não existe quando `quantidade_disponivel` é zero.
 
 > **O preço é digitado, e o sistema não o calcula.** Não há referência a tabela de preço, piso
 > mínimo nem margem: o valor é o que foi negociado na conversa com o cliente, e ao sistema cabe
 > guardá-lo. O total do item e o do pedido são derivados de `quantidade` por `preco_unitario`, e não
-> materializados. **O total soma apenas os itens de topo**, porque o filho do genérico herda o preço
-> do pai e contá-los juntos dobraria a venda.
+> materializados. **O total soma os itens vendáveis**: o item de topo com espécie, o genérico com
+> quantidade e o filho do genérico sem quantidade. O filho do genérico com quantidade herda o preço
+> do pai e contá-los juntos dobraria a venda; o genérico sem quantidade é uma lista montada pela
+> gerência, e são os filhos dele que têm preço.
 
 > **O preço entra depois da conferência, e por isso a coluna é opcional.** Quem registra o pedido
 > está no meio de uma conversa e anota espécie, recipiente e quantidade; o valor se fecha quando a
 > gerência já disse o que existe no pátio, porque é a conferência que determina quantas mudas serão
 > vendidas e em que recipiente. Nulo é "ainda não precificado", e não "de graça": a aprovação do
-> pedido recusa item de topo sem preço, e é essa recusa que impede uma venda de ser registrada sem
+> pedido recusa item vendável sem preço, quantidade ou recipiente, e é essa recusa que impede uma venda de ser registrada sem
 > valor. Enquanto faltar preço em algum item, o total do pedido também não existe: uma soma parcial
 > anunciaria uma venda menor que a verdadeira, e é justamente esse número que a chefia olha para
 > aprovar.
