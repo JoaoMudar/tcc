@@ -65,7 +65,7 @@ describe('colagem de planilha nas células (T8.16)', () => {
   });
 
   it('célula vazia não apaga o que já estava na linha', () => {
-    const antes: Linha = { chave: 1, generico: false, especieId: 'ipe', recipienteId: 'tub', altura: '1,20', quantidade: '50' };
+    const antes: Linha = { ...linhaVazia(1), especieId: 'ipe', recipienteId: 'tub', altura: '1,20', quantidade: '50' };
     const [linha] = colar([antes], [['', '', '', '80']]);
     expect(linha).toMatchObject({ especieId: 'ipe', recipienteId: 'tub', altura: '1,20', quantidade: '80' });
   });

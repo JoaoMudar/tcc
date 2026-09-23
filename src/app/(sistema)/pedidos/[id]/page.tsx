@@ -12,7 +12,7 @@ import { nomeExibido, searchEspecies } from '@/lib/especies';
 import { saldoEmProducao, saldoPronto } from '@/lib/estoque';
 import { formatDateTime } from '@/lib/format';
 import { CANAIS_VENDA, SITUACOES_PEDIDO, type SituacaoPedido, findPedido } from '@/lib/pedidos';
-import { chaveSaldo } from '@/lib/pedidos-rotulos';
+import { chaveSaldo, itemVendavel, quantidadeConfirmada } from '@/lib/pedidos-rotulos';
 import { can } from '@/lib/permissions';
 import { formatVolume, listRecipientes } from '@/lib/recipientes';
 import { isUuid } from '@/lib/uuid';
@@ -70,8 +70,12 @@ export default async function PedidoPage({ params, searchParams }: PedidoPagePro
     podeEditarItem ? searchEspecies(pool) : [],
     podeEditarItem ? listRecipientes(pool) : [],
   ]);
+  const negociaveis = pedido.itens.filter((item) => itemVendavel(item, pedido.itens));
   const porChave = new Map(prontos.map((linha) => [chaveSaldo(linha.especieId, linha.recipienteId), linha.quantidade]));
   const emProducao = new Map(producao.map((linha) => [chaveSaldo(linha.especieId, linha.recipienteId), linha.quantidade]));
+  const opcoesRecipiente = recipientes
+    .filter((r) => r.ativo)
+    .map((r) => ({ value: r.id, label: r.volumeLitros === null ? r.nome : `${r.nome} · ${formatVolume(r.volumeLitros)}` }));
 
   return (
     <main>
@@ -91,7 +95,7 @@ export default async function PedidoPage({ params, searchParams }: PedidoPagePro
             href={`/pedidos/${pedido.id}/verificar`}
             className="min-h-touch flex items-center justify-center rounded-xl bg-brand px-5 text-base font-bold text-white"
           >
-            {emCadastro ? 'Começar a conferência no viveiro' : 'Continuar a conferência'}
+            {emCadastro ? 'Começar conferência' : 'Continuar a conferência'}
           </Link>
         )}
 
@@ -143,8 +147,8 @@ export default async function PedidoPage({ params, searchParams }: PedidoPagePro
         <h2 className="mt-2 text-sm font-bold tracking-widest text-muted uppercase">Itens</h2>
         <ItensDoPedido
           itens={pedido.itens.map((item) => {
-            // O genérico ainda não tem espécie, e por isso não tem saldo para ler
-            const chave = item.especieId ? chaveSaldo(item.especieId, item.recipienteId) : null;
+            // Sem espécie (genérico) ou sem recipiente não há par para ler o saldo
+            const chave = item.especieId && item.recipienteId ? chaveSaldo(item.especieId, item.recipienteId) : null;
             return {
               id: item.id,
               especie: item.especie,
@@ -154,6 +158,9 @@ export default async function PedidoPage({ params, searchParams }: PedidoPagePro
               precoCentavos: item.precoCentavos,
               itemPaiId: item.itemPaiId,
               especificacao: item.especificacao,
+              generico: item.generico,
+              disponivel: item.disponivel,
+              quantidadeDisponivel: item.quantidadeDisponivel,
               pronto: chave ? (porChave.get(chave) ?? 0) : null,
               emProducao: chave ? (emProducao.get(chave) ?? 0) : null,
             };
@@ -162,16 +169,24 @@ export default async function PedidoPage({ params, searchParams }: PedidoPagePro
 
         {podePrecificar && (
           <PrecosForm
+            // Item tirado na negociação some da lista: o formulário recomeça do banco
+            key={negociaveis.map((item) => item.id).join()}
             pedidoId={pedido.id}
-            itens={pedido.itens
-              .filter((item) => item.itemPaiId === null)
-              .map((item) => ({
-                id: item.id,
-                especie: item.especie ?? 'Espécie a definir',
-                recipiente: item.recipiente,
-                quantidade: item.quantidade ?? 0,
-                precoCentavos: item.precoCentavos,
-              }))}
+            itens={negociaveis.map((item) => ({
+              id: item.id,
+              especie: item.especie ?? `Genérico: ${item.especificacao ?? 'mudas nativas'}`,
+              generico: item.generico,
+              confirmada: quantidadeConfirmada(item),
+              precoCentavos: item.precoCentavos,
+              // O pedido e o conferido: a chefia escolhe entre os dois sem reenviar
+              recipientes: [
+                ...(item.recipienteId && item.recipiente ? [{ value: item.recipienteId, label: item.recipiente }] : []),
+                ...(item.recipienteDisponivelId && item.recipienteDisponivel
+                  ? [{ value: item.recipienteDisponivelId, label: `${item.recipienteDisponivel} (conferido)` }]
+                  : []),
+              ],
+              recipienteId: item.recipienteDisponivelId ?? item.recipienteId ?? '',
+            }))}
           />
         )}
 
@@ -184,13 +199,16 @@ export default async function PedidoPage({ params, searchParams }: PedidoPagePro
               <ul className="flex flex-col gap-4">
                 {pedido.itens.map((item) => (
                   <li key={item.id} className="flex flex-col gap-1">
-                    <span className="text-base font-semibold text-ink">{item.especie}</span>
-                    <span className="text-sm text-muted">{item.recipiente}</span>
+                    <span className="text-base font-semibold text-ink">
+                      {item.especie ?? `Genérico: ${item.especificacao ?? ''}`}
+                    </span>
                     <ItemDoPedido
                       pedidoId={pedido.id}
                       itemId={item.id}
                       quantidade={item.quantidade}
                       alturaM={item.alturaM}
+                      recipienteId={item.recipienteId}
+                      recipientes={opcoesRecipiente}
                     />
                   </li>
                 ))}
@@ -198,12 +216,7 @@ export default async function PedidoPage({ params, searchParams }: PedidoPagePro
               <AdicionarItemForm
                 pedidoId={pedido.id}
                 especies={especies.filter((e) => e.ativa).map((e) => ({ value: e.id, label: nomeExibido(e) }))}
-                recipientes={recipientes
-                  .filter((r) => r.ativo)
-                  .map((r) => ({
-                    value: r.id,
-                    label: r.volumeLitros === null ? r.nome : `${r.nome} · ${formatVolume(r.volumeLitros)}`,
-                  }))}
+                recipientes={opcoesRecipiente}
               />
             </div>
           </AcaoRecolhivel>

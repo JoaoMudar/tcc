@@ -51,7 +51,25 @@ describe('ItensDoPedido (T8.1)', () => {
     );
     // Um total de item só: o do pai. O filho herda o preço e não soma.
     expect(screen.getAllByText('R$ 1.000,00')).toHaveLength(2);
-    expect(screen.getByText('—')).toBeInTheDocument();
+    expect(screen.getByText('·')).toBeInTheDocument();
+  });
+
+  it('na lista montada o filho é cobrado, e o genérico não', () => {
+    render(
+      <ItensDoPedido
+        itens={[
+          item({ id: 'pai', especie: null, generico: true, quantidade: null, especificacao: 'o que tiver' }),
+          item({ id: 'filho', especie: 'Araucária', quantidade: 100, precoCentavos: 300, itemPaiId: 'pai' }),
+        ]}
+      />,
+    );
+    expect(screen.getAllByText('R$ 300,00')).toHaveLength(2);
+    expect(screen.getByText(/R\$ 3,00 cada/)).toBeInTheDocument();
+  });
+
+  it('o recipiente que o cliente não disse fica a definir', () => {
+    render(<ItensDoPedido itens={[item({ recipiente: null })]} />);
+    expect(screen.getAllByText('a definir').length).toBeGreaterThanOrEqual(2);
   });
 
   it('a altura pedida sai junto do recipiente, e só quando existe', () => {

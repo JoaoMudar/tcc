@@ -18,6 +18,9 @@ export interface ItemImportado {
   generico: boolean;
   especieId: string;
   especie: string;
+  /** No genérico, a linha colada: é o que o cliente pediu, nas palavras dele. */
+  especificacao: string;
+  /** Vazio é "o cliente não disse o tamanho". */
   recipienteId: string;
   /** Texto: o formulário do pedido trabalha com campos controlados. */
   altura: string;
@@ -137,11 +140,6 @@ export function ColarLista({
       setErro('Nada reconhecido. Cole uma linha por espécie, ex: "Ipê amarelo 500".');
       return;
     }
-    // O recipiente escrito na lista dispensa o padrão; só a linha sem ele precisa
-    if (!recipientePadrao && lidas.some((linha) => !linha.recipienteId)) {
-      setErro('Escolha o recipiente padrão antes de reconhecer.');
-      return;
-    }
     setErro(null);
     setLinhas(
       lidas.map((linha, indice) => ({
@@ -217,11 +215,11 @@ export function ColarLista({
     setCriandoPara(null);
   }
 
-  // Quantidade em branco não trava: no cadastro ela é opcional, e é cobrada antes da conferência
+  // Recipiente e quantidade em branco não travam: no cadastro são opcionais, e a
+  // conferência responde o que o cliente não disse
   const pendentes = (linhas ?? []).filter(
     (linha) =>
       (!linha.generico && !linha.especieId) ||
-      !linha.recipienteId ||
       'error' in parseAltura(linha.altura) ||
       (linha.quantidade.trim() !== '' && !/^\d+$/.test(linha.quantidade.trim())),
   ).length;
@@ -239,7 +237,7 @@ export function ColarLista({
           label="Recipiente padrão (vale para todas)"
           name="colagem_recipiente"
           options={recipientes}
-          placeholder="Escolha"
+          placeholder="a definir"
           value={recipientePadrao}
           onChange={(event) => setRecipientePadrao(event.target.value)}
         />
@@ -472,8 +470,8 @@ export function ColarLista({
       {pendentes > 0 ? (
         <Notice tone="warning">
           {pendentes === 1
-            ? 'Uma linha a resolver: falta a espécie ou o recipiente, ou a altura ou a quantidade não se entende.'
-            : `${pendentes} linhas a resolver: falta a espécie ou o recipiente, ou a altura ou a quantidade não se entende.`}
+            ? 'Uma linha a resolver: falta a espécie, ou a altura ou a quantidade não se entende.'
+            : `${pendentes} linhas a resolver: falta a espécie, ou a altura ou a quantidade não se entende.`}
         </Notice>
       ) : (
         <Button
@@ -483,6 +481,7 @@ export function ColarLista({
                 generico: linha.generico,
                 especieId: linha.especieId,
                 especie: linha.especie,
+                especificacao: linha.generico ? linha.bruta.trim() : '',
                 recipienteId: linha.recipienteId,
                 altura: normalizaCampoAltura(linha.altura.trim()),
                 quantidade: linha.quantidade.trim(),

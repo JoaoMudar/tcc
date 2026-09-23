@@ -7,12 +7,14 @@ import type { Perfil } from './perfis';
 import {
   type CanalVenda,
   type EstadoDisponibilidade,
+  type ItemParaResponder,
   type LinhaComposicao,
   SITUACOES_PEDIDO,
   type SituacaoPedido,
   centavosParaSql,
   isCanalVenda,
   podeTransicionar,
+  quantidadeConfirmada,
   resolveDisponibilidade,
   validarComposicaoGenerico,
 } from './pedidos-rotulos';
@@ -32,10 +34,12 @@ export {
   formatTotal,
   isCanalVenda,
   isSituacaoPedido,
+  itemVendavel,
   normalizaCampoAltura,
   parseAltura,
   parsePreco,
   podeTransicionar,
+  quantidadeConfirmada,
   resolveDisponibilidade,
   totalItem,
   totalPedido,
@@ -45,6 +49,7 @@ export {
   validarDivisaoCargas,
   type CanalVenda,
   type EstadoDisponibilidade,
+  type ItemParaResponder,
   type LinhaComposicao,
   type SituacaoPedido,
   type Transicao,
@@ -112,8 +117,9 @@ export function parseFiltroPedidos(
 export interface NovoItem {
   /** Nulo só no item genérico, que é o único que chega sem espécie escolhida. */
   especieId: string | null;
-  recipienteId: string;
-  /** Nula enquanto o cliente não disse quantas; exigida antes da conferência. */
+  /** Nulo quando o cliente não disse o tamanho: a conferência responde, a aprovação exige. */
+  recipienteId: string | null;
+  /** Nula enquanto o cliente não disse quantas: a conferência responde, a aprovação exige. */
   quantidade: number | null;
   /** Nulo no cadastro: o preço é digitado depois da conferência (RN-50). */
   precoCentavos: number | null;
@@ -123,7 +129,7 @@ export interface NovoItem {
    */
   alturaM?: number | null;
   generico?: boolean;
-  /** O que o cliente pediu, em texto. Só no genérico. */
+  /** O que o cliente pediu, em texto. Só no genérico, e nele obrigatória. */
   especificacao?: string | null;
   /** Espécies que o cliente aceita no genérico. Vazio é "qualquer uma". */
   especiesPermitidas?: readonly string[];
@@ -133,7 +139,7 @@ export interface ItemPedido extends NovoItem {
   id: string;
   especie: string | null;
   nomeCientifico: string | null;
-  recipiente: string;
+  recipiente: string | null;
   alturaM: number | null;
 
   /** Verificação (T8.10). `disponivel` nulo é "a gerência ainda não conferiu". */
@@ -158,7 +164,7 @@ export interface PedidoResumo {
   criadoEm: Date;
   dataEntrega: string | null;
   itens: number;
-  /** Nulo enquanto algum item de topo não tiver preço. */
+  /** Nulo enquanto algum item vendável não tiver preço ou quantidade. */
   totalCentavos: number | null;
 }
 
@@ -170,21 +176,42 @@ export interface FichaPedido extends Omit<PedidoResumo, 'itens' | 'totalCentavos
 }
 
 /**
+ * O item vendido, em SQL: a mesma condição de `itemVendavel`, e a única. É ela
+ * que o total soma, que a negociação precifica e que a aprovação cobra.
+ *
+ * O item de topo com espécie; o genérico com quantidade, cujos filhos herdam o
+ * preço dele; e o filho do genérico sem quantidade, que é a lista montada pela
+ * gerência. O que a conferência disse que não tem nenhuma fica de fora: a
+ * aprovação o tira do pedido.
+ */
+export function itemVendavelSql(i: string): string {
+  return `(NOT (${i}.disponivel IS NOT DISTINCT FROM false AND ${i}.quantidade_disponivel IS NOT DISTINCT FROM 0)
+    AND CASE WHEN ${i}.item_pai_id IS NULL THEN (NOT ${i}.generico OR ${i}.quantidade IS NOT NULL)
+             ELSE EXISTS (SELECT 1 FROM pedidos_itens pai WHERE pai.id = ${i}.item_pai_id AND pai.quantidade IS NULL)
+        END)`;
+}
+
+/**
  * O total vem somado no SQL, em centavos: a lista mostra dezenas de pedidos, e
  * carregar os itens de cada um só para somar seria uma consulta por linha.
  *
- * **Só os itens de topo somam**, como em `totalPedido`: o filho do genérico
- * herda o preço do pai e contar os dois dobraria a venda.
+ * **Só os itens vendáveis somam**, como em `totalPedido`: o filho do genérico
+ * com quantidade herda o preço do pai, e contar os dois dobraria a venda.
  *
- * **Falta um preço, o total é nulo.** Somar só os precificados anunciaria na
- * carteira uma venda menor que a verdadeira; a tela diz "a definir" no lugar.
+ * **Falta um preço ou uma quantidade, o total é nulo.** Somar só os
+ * precificados anunciaria na carteira uma venda menor que a verdadeira; a tela
+ * diz "a definir" no lugar. A lista montada ainda sem composição também.
  */
 const TOTAL_SQL = `CASE
   WHEN EXISTS (SELECT 1 FROM pedidos_itens i
-                WHERE i.pedido_id = p.id AND i.item_pai_id IS NULL AND i.preco_unitario IS NULL)
+                WHERE i.pedido_id = p.id AND ${itemVendavelSql('i')}
+                  AND (i.preco_unitario IS NULL OR i.quantidade IS NULL))
+    OR EXISTS (SELECT 1 FROM pedidos_itens g
+                WHERE g.pedido_id = p.id AND g.generico AND g.quantidade IS NULL
+                  AND NOT EXISTS (SELECT 1 FROM pedidos_itens f WHERE f.item_pai_id = g.id))
   THEN NULL
   ELSE COALESCE((SELECT SUM(ROUND(i.preco_unitario * 100) * i.quantidade)
-                   FROM pedidos_itens i WHERE i.pedido_id = p.id AND i.item_pai_id IS NULL), 0)
+                   FROM pedidos_itens i WHERE i.pedido_id = p.id AND ${itemVendavelSql('i')}), 0)
 END::bigint`;
 
 /**
@@ -241,7 +268,8 @@ export async function listItens(db: Db, pedidoId: string): Promise<ItemPedido[]>
        FROM pedidos_itens i
        -- LEFT: o item genérico não tem espécie até a gerência compor
        LEFT JOIN especies e ON e.id = i.especie_id
-       JOIN recipientes r ON r.id = i.recipiente_id
+       -- LEFT: o cliente pode não ter dito o tamanho (RF-54)
+       LEFT JOIN recipientes r ON r.id = i.recipiente_id
        LEFT JOIN recipientes rd ON rd.id = i.recipiente_disponivel_id
        -- O pai só existe para ordenar: o filho precisa sair logo abaixo dele
        LEFT JOIN pedidos_itens pai ON pai.id = i.item_pai_id
@@ -262,7 +290,7 @@ export async function listItens(db: Db, pedidoId: string): Promise<ItemPedido[]>
                (CASE WHEN i.item_pai_id IS NULL THEN r.nome ELSE pr.nome END) NULLS LAST,
                COALESCE(i.item_pai_id, i.id),
                (i.item_pai_id IS NOT NULL),
-               especie NULLS LAST, r.nome, i.criado_em, i.id`,
+               especie NULLS LAST, r.nome NULLS LAST, i.criado_em, i.id`,
     [pedidoId],
   );
   return rows;
@@ -328,6 +356,8 @@ async function inserirItens(client: Client, pedidoId: string, itens: readonly No
     const generico = item.generico ?? false;
     if (generico && item.especieId) throw new UserError('O item genérico é o que não tem espécie escolhida.');
     if (!generico && !item.especieId) throw new UserError('Escolha a espécie do item.');
+    // Sem o texto, a gerência compõe um item que ninguém sabe o que era
+    if (generico && !item.especificacao?.trim()) throw new UserError('Descreva o que o cliente pediu no item genérico.');
 
     const { rows } = await client.query<{ id: string }>(
       `INSERT INTO pedidos_itens (pedido_id, especie_id, recipiente_id, quantidade, preco_unitario, generico, especificacao, altura_m)
@@ -340,7 +370,7 @@ async function inserirItens(client: Client, pedidoId: string, itens: readonly No
         item.quantidade,
         item.precoCentavos === null ? null : centavosParaSql(item.precoCentavos),
         generico,
-        generico ? (item.especificacao ?? null) : null,
+        generico ? item.especificacao!.trim() : null,
         item.alturaM ?? null,
       ],
     );
@@ -396,23 +426,41 @@ export async function adicionarItem(client: Client, pedidoId: string, item: Novo
 }
 
 /**
- * RF-57: a quantidade e a altura do item, enquanto o pedido é rascunho. **O
+ * RF-57: recipiente, quantidade e altura do item, enquanto o pedido é
+ * orçamento. É por aqui que a chefia completa o que o cliente disse depois. **O
  * preço não passa por aqui**: ele é digitado depois da conferência, por
- * `definirPrecos`.
+ * `negociarItens`.
  *
  * A altura chega sempre, e vazia é nula: quem apaga o campo está dizendo que a
  * altura deixou de fazer parte do combinado, e não que quer manter a anterior.
+ * O recipiente, quando não vem (`undefined`), fica como está.
+ *
+ * **Mudou quantidade ou recipiente, a resposta da conferência cai.** Ela foi
+ * dada sobre o item de antes (o pedido volta ao orçamento quando a chefia
+ * reenvia), e mantê-la faria a gerência parecer ter respondido o que ninguém
+ * perguntou. O genérico fica de fora: a resposta dele é a composição.
  */
 export async function atualizarItem(
   client: Client,
   pedidoId: string,
   itemId: string,
-  valores: { quantidade: number | null; alturaM: number | null },
+  valores: { quantidade: number | null; alturaM: number | null; recipienteId?: string | null },
 ): Promise<void> {
   exigirCadastrado(await travarPedido(client, pedidoId));
+  const trocaRecipiente = valores.recipienteId !== undefined;
   const { rowCount } = await client.query(
-    'UPDATE pedidos_itens SET quantidade = $3, altura_m = $4 WHERE id = $2 AND pedido_id = $1',
-    [pedidoId, itemId, valores.quantidade, valores.alturaM],
+    `UPDATE pedidos_itens i
+        SET quantidade = $3, altura_m = $4,
+            recipiente_id = CASE WHEN $5::boolean THEN $6::uuid ELSE i.recipiente_id END,
+            disponivel = CASE WHEN x.mudou THEN NULL ELSE i.disponivel END,
+            quantidade_disponivel = CASE WHEN x.mudou THEN NULL ELSE i.quantidade_disponivel END,
+            recipiente_disponivel_id = CASE WHEN x.mudou THEN NULL ELSE i.recipiente_disponivel_id END
+       FROM (SELECT id, NOT generico
+                    AND (quantidade IS DISTINCT FROM $3::int
+                         OR ($5::boolean AND recipiente_id IS DISTINCT FROM $6::uuid)) AS mudou
+               FROM pedidos_itens WHERE id = $2 AND pedido_id = $1) x
+      WHERE i.id = x.id`,
+    [pedidoId, itemId, valores.quantidade, valores.alturaM, trocaRecipiente, valores.recipienteId ?? null],
   );
   if (!rowCount) throw new UserError('Item não encontrado neste pedido.');
 }
@@ -451,22 +499,6 @@ export async function mudarSituacao(
         `e não pode passar a ${SITUACOES_PEDIDO[para].toLowerCase()}.`,
     );
   }
-  // A quantidade é opcional no cadastro, e não na conferência: sem o número a
-  // gerência não tem como dizer se o pátio tem a muda
-  if (para === 'verificando') {
-    const { rows } = await client.query<{ faltam: number }>(
-      'SELECT COUNT(*)::int AS faltam FROM pedidos_itens WHERE pedido_id = $1 AND quantidade IS NULL',
-      [pedidoId],
-    );
-    const faltam = rows[0]?.faltam ?? 0;
-    if (faltam > 0) {
-      throw new UserError(
-        faltam === 1
-          ? `O pedido ${pedido.numero} tem um item sem quantidade. Preencha antes de conferir.`
-          : `O pedido ${pedido.numero} tem ${faltam} itens sem quantidade. Preencha antes de conferir.`,
-      );
-    }
-  }
   await client.query('UPDATE pedidos SET situacao = $2 WHERE id = $1', [pedidoId, para]);
   await client.query(
     `INSERT INTO pedidos_historico (pedido_id, situacao_anterior, situacao_nova, alterado_por, observacoes)
@@ -501,30 +533,61 @@ export async function listHistorico(db: Db, pedidoId: string): Promise<LinhaHist
   return rows;
 }
 
-/** As situações em que o preço pode ser digitado: depois da conferência, antes da aprovação. */
-const PRECIFICAVEIS: readonly SituacaoPedido[] = ['verificado', 'pendente_alteracao'];
+/** As situações em que se negocia: depois da conferência, antes da aprovação. */
+const NEGOCIAVEIS: readonly SituacaoPedido[] = ['verificado', 'pendente_alteracao'];
+
+/** Uma linha da negociação. Campo nulo é "não mexe"; quantidade zero tira o item. */
+export interface LinhaNegociacao {
+  itemId: string;
+  precoCentavos: number | null;
+  quantidade: number | null;
+  recipienteId: string | null;
+}
+
+interface ItemParaNegociar {
+  quantidade: number | null;
+  generico: boolean;
+  itemPaiId: string | null;
+  quantidadePai: number | null;
+  disponivel: boolean | null;
+  quantidadeDisponivel: number | null;
+  recipienteId: string | null;
+  recipienteDisponivelId: string | null;
+}
 
 /**
- * RF-55, RN-50: **o preço é digitado depois da conferência**, e não no cadastro.
+ * RF-55, RN-50: **a negociação acontece depois da conferência**, e é onde a
+ * chefia fecha a venda com o cliente: por quanto, quantas e em que recipiente.
  *
- * Quem registra o pedido está no meio de uma conversa e anota espécie,
- * recipiente e quantidade; o valor se fecha quando a gerência já disse o que
- * existe no pátio, porque é a conferência que diz quantas mudas serão vendidas
- * e em que recipiente. Fora dessas duas situações a porta é fechada pela mesma
- * razão de `exigirCadastrado`: o aprovado é o registro do que foi vendido.
+ * Quem registra o pedido está no meio de uma conversa e anota o que o cliente
+ * disse; o valor e o número se fecham quando a gerência já disse o que existe no
+ * pátio. Fora dessas duas situações a porta é fechada pela mesma razão de
+ * `exigirCadastrado`: o aprovado é o registro do que foi vendido.
  *
- * **O filho do item genérico recebe o preço do pai**, e não um seu: as 500 mudas
+ * **O que a conferência confirmou é o teto.** A chefia baixa a quantidade, tira
+ * o item (zero) ou escolhe entre o recipiente pedido e o conferido sem devolver
+ * o pedido à gerência, porque nada disso pede que alguém olhe o pátio de novo.
+ * Pedir mais do que existe, ou outro recipiente, pede: é o "Salvar e reenviar
+ * para verificação".
+ *
+ * **Gravar a quantidade encerra a conferência do item**: `disponivel` passa a
+ * verdadeiro e `quantidade_disponivel` a nulo, porque o pedido agora pede
+ * exatamente o que existe. É o que a aprovação já fazia com o parcial, e é o
+ * que mantém o CHECK de coerência verdadeiro.
+ *
+ * **O genérico com quantidade recebe preço e o passa aos filhos**: as 500 mudas
  * foram vendidas por aquele preço, e a composição só diz quais espécies as
- * atendem. O total do pedido soma apenas os itens de topo (`totalPedido`).
+ * atendem. Na lista montada (genérico sem quantidade) é o contrário: cada filho
+ * é uma venda, com preço e quantidade próprios.
  */
-export async function definirPrecos(
+export async function negociarItens(
   client: Client,
   pedidoId: string,
-  linhas: readonly { itemId: string; precoCentavos: number }[],
+  linhas: readonly LinhaNegociacao[],
   autor: AutorDaMudanca,
-): Promise<void> {
+): Promise<{ removidos: number }> {
   const pedido = await travarPedido(client, pedidoId);
-  if (!PRECIFICAVEIS.includes(pedido.situacao)) {
+  if (!NEGOCIAVEIS.includes(pedido.situacao)) {
     throw new UserError(
       `O pedido ${pedido.numero} está em ${SITUACOES_PEDIDO[pedido.situacao].toLowerCase()}, ` +
         'e o preço se digita depois da conferência.',
@@ -536,21 +599,90 @@ export async function definirPrecos(
     throw new UserError('O preço do pedido é digitado pela chefia.');
   }
 
+  let removidos = 0;
   for (const linha of linhas) {
-    // Preço sem quantidade não fecha total nenhum. A conferência já exige o
-    // número, e esta trava não deixa a regra depender só da ordem das situações.
-    // O erro desfaz a transação, e o preço gravado junto sai com ele
-    const { rows, rowCount } = await client.query<{ quantidade: number | null }>(
-      `UPDATE pedidos_itens SET preco_unitario = $3
-        WHERE pedido_id = $1 AND (id = $2 OR item_pai_id = $2)
-        RETURNING quantidade`,
-      [pedidoId, linha.itemId, centavosParaSql(linha.precoCentavos)],
+    const { rows } = await client.query<ItemParaNegociar>(
+      `SELECT i.quantidade, i.generico, i.item_pai_id AS "itemPaiId", pai.quantidade AS "quantidadePai",
+              i.disponivel, i.quantidade_disponivel AS "quantidadeDisponivel",
+              i.recipiente_id AS "recipienteId", i.recipiente_disponivel_id AS "recipienteDisponivelId"
+         FROM pedidos_itens i
+         LEFT JOIN pedidos_itens pai ON pai.id = i.item_pai_id
+        WHERE i.id = $2 AND i.pedido_id = $1`,
+      [pedidoId, linha.itemId],
     );
-    if (rows.some((item) => item.quantidade === null)) {
-      throw new UserError('Preencha a quantidade do item antes do preço.');
+    const item = rows[0];
+    // Linha de item já tirado nesta mesma gravação (o filho de um pai removido) não é erro
+    if (!item) {
+      if (removidos > 0) continue;
+      throw new UserError('Item não encontrado neste pedido.');
     }
-    if (!rowCount) throw new UserError('Item não encontrado neste pedido.');
+
+    // O filho do genérico com quantidade não se negocia: preço e soma são do pai
+    if (item.itemPaiId && item.quantidadePai !== null) {
+      throw new UserError('Este item compõe um genérico, e se negocia pelo genérico.');
+    }
+    if (linha.quantidade === 0) {
+      await client.query('DELETE FROM pedidos_itens WHERE id = $2 AND pedido_id = $1', [pedidoId, linha.itemId]);
+      removidos++;
+      continue;
+    }
+    if (item.generico) {
+      if (item.quantidade === null) throw new UserError('A lista montada se negocia espécie por espécie.');
+      if (linha.precoCentavos !== null) {
+        await client.query(
+          'UPDATE pedidos_itens SET preco_unitario = $3 WHERE pedido_id = $1 AND (id = $2 OR item_pai_id = $2)',
+          [pedidoId, linha.itemId, centavosParaSql(linha.precoCentavos)],
+        );
+      }
+      continue;
+    }
+
+    const confirmada = quantidadeConfirmada(item);
+    if (linha.quantidade !== null && linha.quantidade > confirmada) {
+      throw new UserError(
+        `A conferência confirmou ${confirmada} muda(s) deste item. Para pedir mais, use "Salvar e reenviar para verificação".`,
+      );
+    }
+    const opcoes = [item.recipienteId, item.recipienteDisponivelId].filter((id): id is string => id !== null);
+    if (linha.recipienteId !== null && !opcoes.includes(linha.recipienteId)) {
+      throw new UserError('Escolha o recipiente pedido ou o que a conferência achou. Outro, só reenviando para verificação.');
+    }
+
+    const encerra = linha.quantidade !== null;
+    await client.query(
+      `UPDATE pedidos_itens
+          SET preco_unitario = COALESCE($3, preco_unitario),
+              quantidade = COALESCE($4, quantidade),
+              disponivel = CASE WHEN $5::boolean THEN true ELSE disponivel END,
+              quantidade_disponivel = CASE WHEN $5::boolean THEN NULL ELSE quantidade_disponivel END,
+              recipiente_id = COALESCE($6::uuid, recipiente_id),
+              recipiente_disponivel_id = CASE WHEN $6::uuid IS NULL THEN recipiente_disponivel_id END
+        WHERE id = $2 AND pedido_id = $1`,
+      [
+        pedidoId,
+        linha.itemId,
+        linha.precoCentavos === null ? null : centavosParaSql(linha.precoCentavos),
+        linha.quantidade,
+        encerra,
+        linha.recipienteId,
+      ],
+    );
   }
+  return { removidos };
+}
+
+/** Quantos itens vendáveis ainda não fecham a venda, por motivo. */
+interface Faltas {
+  n: number;
+  semQuantidade: number;
+  semRecipiente: number;
+  semPreco: number;
+  semComposicao: number;
+}
+
+function contaItens(n: number, singular: string, plural: string): string | null {
+  if (n === 0) return null;
+  return n === 1 ? `um item ${singular}` : `${n} itens ${plural}`;
 }
 
 /**
@@ -558,11 +690,14 @@ export async function definirPrecos(
  * porque pedido sem item não registra venda nenhuma.
  *
  * **A aprovação consome o que a gerência apurou**, e é o que faz a etapa
- * seguinte ser simples: o item indisponível sai do pedido, e o parcial passa a
- * valer pela quantidade e pelo recipiente que existem de verdade. Quem for
- * separar a carga nunca vê "tem 300 das 500": vê 300, que é o que vai no
- * caminhão. A alternativa seria arrastar a apuração até o galpão e pedir que
- * quem está contando faça a conta de novo.
+ * seguinte ser simples: o item indisponível sai do pedido, o parcial passa a
+ * valer pela quantidade que existe de verdade, e o recipiente conferido
+ * substitui o pedido. Quem for separar a carga nunca vê "tem 300 das 500": vê
+ * 300, que é o que vai no caminhão.
+ *
+ * **É aqui que o orçamento deixa de ser incompleto.** O cadastro aceita item sem
+ * recipiente, sem quantidade e sem preço (RF-54); a aprovação recusa item
+ * vendável a que falte qualquer um dos três, e genérico sem composição.
  */
 export async function confirmarPedido(
   client: Client,
@@ -577,34 +712,46 @@ export async function confirmarPedido(
   );
   const removidos = apagados.rowCount ?? 0;
 
-  // Parcial é `disponivel = false` com quantidade maior que zero, e o recipiente
-  // conferido pode ser outro: quem manda é o que a gerência achou no pátio.
+  // Parcial é `disponivel = false` com quantidade maior que zero.
   //
-  // **O item deixa de ser parcial ao ser consumido**, e por isso as três colunas
-  // da conferência são limpas na mesma linha. Não é arrumação: parcial quer
-  // dizer "tem menos do que o pedido pede", e depois da aprovação o pedido pede
+  // **O item deixa de ser parcial ao ser consumido**, e por isso as colunas da
+  // conferência são limpas na mesma linha. Não é arrumação: parcial quer dizer
+  // "tem menos do que o pedido pede", e depois da aprovação o pedido pede
   // exatamente o que existe. Manter `quantidade_disponivel` igual a `quantidade`
   // afirmaria uma falta que já não há, e é o que o CHECK
   // `pedidos_itens_disponibilidade_coerente` recusa gravar.
   const trocados = await client.query(
     `UPDATE pedidos_itens
         SET quantidade = quantidade_disponivel,
-            recipiente_id = COALESCE(recipiente_disponivel_id, recipiente_id),
             disponivel = true,
-            quantidade_disponivel = NULL,
-            recipiente_disponivel_id = NULL
+            quantidade_disponivel = NULL
       WHERE pedido_id = $1 AND disponivel = false AND quantidade_disponivel > 0`,
     [pedidoId],
   );
   const ajustados = trocados.rowCount ?? 0;
 
-  const { rows } = await client.query<{ n: number; semPreco: number }>(
-    `SELECT COUNT(*)::int AS n,
-            COUNT(*) FILTER (WHERE preco_unitario IS NULL)::int AS "semPreco"
-       FROM pedidos_itens WHERE pedido_id = $1 AND item_pai_id IS NULL`,
+  // O recipiente conferido pode ser outro, em qualquer resposta com muda: quem
+  // manda é o que a gerência achou no pátio
+  await client.query(
+    `UPDATE pedidos_itens
+        SET recipiente_id = recipiente_disponivel_id, recipiente_disponivel_id = NULL
+      WHERE pedido_id = $1 AND recipiente_disponivel_id IS NOT NULL`,
     [pedidoId],
   );
-  if (rows[0].n === 0) {
+
+  const vendavel = itemVendavelSql('i');
+  const { rows } = await client.query<Faltas>(
+    `SELECT COUNT(*) FILTER (WHERE i.item_pai_id IS NULL)::int AS n,
+            COUNT(*) FILTER (WHERE ${vendavel} AND i.quantidade IS NULL)::int AS "semQuantidade",
+            COUNT(*) FILTER (WHERE ${vendavel} AND NOT i.generico AND i.recipiente_id IS NULL)::int AS "semRecipiente",
+            COUNT(*) FILTER (WHERE ${vendavel} AND i.preco_unitario IS NULL)::int AS "semPreco",
+            COUNT(*) FILTER (WHERE i.generico AND NOT EXISTS
+              (SELECT 1 FROM pedidos_itens f WHERE f.item_pai_id = i.id))::int AS "semComposicao"
+       FROM pedidos_itens i WHERE i.pedido_id = $1`,
+    [pedidoId],
+  );
+  const faltas = rows[0];
+  if (faltas.n === 0) {
     throw new UserError(
       removidos > 0
         ? 'Não sobrou item disponível neste pedido. Cancele o pedido ou peça alteração à gerência.'
@@ -612,15 +759,18 @@ export async function confirmarPedido(
     );
   }
 
-  // Aprovar é registrar a venda, e venda sem valor não é registro nenhum. É
-  // esta checagem que sustenta o preço opcional na coluna (migration
-  // 20260922000001): nulo é "ainda não precificado", e não chega ao aprovado.
-  if (rows[0].semPreco > 0) {
-    throw new UserError(
-      rows[0].semPreco === 1
-        ? 'Falta o preço de um item. Informe os preços antes de aprovar o pedido.'
-        : `Faltam os preços de ${rows[0].semPreco} itens. Informe-os antes de aprovar o pedido.`,
-    );
+  // Aprovar é registrar a venda, e venda sem valor, sem número ou sem tamanho
+  // não é registro nenhum. É esta checagem que sustenta as colunas opcionais
+  // (migrations 20260922000001, 20260923000001 e 20260924000001): nulo é
+  // "ainda não combinado", e não chega ao aprovado.
+  const motivos = [
+    contaItens(faltas.semQuantidade, 'sem quantidade', 'sem quantidade'),
+    contaItens(faltas.semRecipiente, 'sem recipiente', 'sem recipiente'),
+    contaItens(faltas.semPreco, 'sem preço', 'sem preço'),
+    contaItens(faltas.semComposicao, 'genérico sem espécies', 'genéricos sem espécies'),
+  ].filter((motivo): motivo is string => motivo !== null);
+  if (motivos.length > 0) {
+    throw new UserError(`Ainda não dá para aprovar: ${motivos.join(', ')}. Complete na negociação.`);
   }
 
   // A pergunta da nota acontece na aprovação, e é só aqui que a coluna ganha
@@ -704,12 +854,15 @@ export async function iniciarVerificacao(
   return { numero, iniciada: true };
 }
 
-interface ItemParaVerificar {
-  quantidade: number;
+interface ItemParaVerificar extends ItemParaResponder {
   generico: boolean;
 }
 
-/** T8.10: a resposta da gerência sobre um item específico, gravada na hora. */
+/**
+ * T8.10: a resposta da gerência sobre um item específico, gravada na hora. O
+ * item que chegou sem quantidade ou sem recipiente é respondido com o que falta
+ * (`resolveDisponibilidade`): quantas tem e em que recipiente.
+ */
 export async function marcarDisponibilidade(
   client: Client,
   pedidoId: string,
@@ -723,7 +876,7 @@ export async function marcarDisponibilidade(
   // `AND pedido_id` em toda escrita de item: impede que o identificador de um
   // item de outro pedido, reenviado no formulário, escreva onde não devia.
   const { rows } = await client.query<ItemParaVerificar>(
-    'SELECT quantidade, generico FROM pedidos_itens WHERE id = $2 AND pedido_id = $1',
+    'SELECT quantidade, recipiente_id AS "recipienteId", generico FROM pedidos_itens WHERE id = $2 AND pedido_id = $1',
     [pedidoId, itemId],
   );
   if (!rows[0]) throw new UserError('Item não encontrado neste pedido.');
@@ -731,7 +884,7 @@ export async function marcarDisponibilidade(
     throw new UserError('O item genérico se resolve escolhendo as espécies, e não por disponível ou indisponível.');
   }
 
-  const resolvida = resolveDisponibilidade(estado, rows[0].quantidade, extras);
+  const resolvida = resolveDisponibilidade(estado, rows[0], extras);
   if ('error' in resolvida) throw new UserError(resolvida.error);
   const { disponivel, quantidadeDisponivel, recipienteDisponivelId } = resolvida.value;
 
@@ -772,6 +925,10 @@ export async function salvarObservacoesVerificacao(
  *
  * **O escopo é conferido aqui, e não só na busca da tela**: a lista de espécies
  * oferecidas é conveniência, a recusa é a regra.
+ *
+ * **O genérico sem quantidade é uma lista montada** ("manda o que tiver"): não
+ * há soma a fechar, e os filhos nascem sem preço, porque cada um é uma venda
+ * que a chefia precifica na negociação.
  */
 export async function definirComposicaoGenerico(
   client: Client,
@@ -782,7 +939,7 @@ export async function definirComposicaoGenerico(
 ): Promise<void> {
   await abrirOuExigirVerificacao(client, pedidoId, autor);
 
-  const { rows } = await client.query<{ quantidade: number; preco: string; generico: boolean; altura: string | null }>(
+  const { rows } = await client.query<{ quantidade: number | null; preco: string | null; generico: boolean; altura: string | null }>(
     'SELECT quantidade, preco_unitario AS preco, generico, altura_m AS altura FROM pedidos_itens WHERE id = $2 AND pedido_id = $1 FOR UPDATE',
     [pedidoId, itemPaiId],
   );
@@ -807,12 +964,21 @@ export async function definirComposicaoGenerico(
     // vendidas, e o filho não é uma venda nova. O total do pedido soma só os
     // itens de topo, e é o que impede a venda de contar duas vezes (`totalPedido`).
     // A altura vem junto pela mesma razão: ela é parte do que foi combinado no
-    // item genérico, e vale para as espécies que o compõem.
+    // item genérico, e vale para as espécies que o compõem. Na lista montada o
+    // filho é a venda, e nasce sem preço.
     await client.query(
       `INSERT INTO pedidos_itens
          (pedido_id, especie_id, recipiente_id, quantidade, preco_unitario, generico, item_pai_id, disponivel, altura_m)
        VALUES ($1, $2, $3, $4, $5, false, $6, true, $7)`,
-      [pedidoId, linha.especieId, linha.recipienteId, linha.quantidade, rows[0].preco, itemPaiId, rows[0].altura],
+      [
+        pedidoId,
+        linha.especieId,
+        linha.recipienteId,
+        linha.quantidade,
+        rows[0].quantidade === null ? null : rows[0].preco,
+        itemPaiId,
+        rows[0].altura,
+      ],
     );
   }
 

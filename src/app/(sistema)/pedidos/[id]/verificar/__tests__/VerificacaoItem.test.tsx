@@ -22,6 +22,7 @@ const PENDENTE: ItemParaConferir = {
   disponivel: null,
   quantidadeDisponivel: null,
   recipienteDisponivelId: null,
+  recipienteDisponivel: null,
   observacoesDisponibilidade: null,
 };
 
@@ -67,5 +68,54 @@ describe('VerificacaoItem, parcial (T8.12)', () => {
     await waitFor(() => expect(acao).toHaveBeenCalledTimes(1));
     expect(ultimoEnvio().get('recipiente_id')).toBe('saco');
     expect(ultimoEnvio().get('quantidade')).toBe('300');
+  });
+});
+
+describe('VerificacaoItem, item que chegou incompleto', () => {
+  beforeEach(() => acao.mockClear());
+
+  it('sem quantidade, a pergunta é "tem ou não tem", e o "Tem" pede quantas e em que recipiente', async () => {
+    const semQuantidade = { ...PENDENTE, quantidade: null, recipiente: null, recipienteId: null };
+    render(<VerificacaoItem pedidoId="pedido-1" item={semQuantidade} recipientes={RECIPIENTES} />);
+    expect(screen.queryByText('Tem parte')).toBeNull();
+    expect(screen.getByText(/quantidade a definir/)).toBeTruthy();
+
+    fireEvent.click(screen.getByText('Tem'));
+    fireEvent.change(screen.getByLabelText('Quantas tem'), { target: { value: '350' } });
+    fireEvent.blur(screen.getByLabelText('Quantas tem'));
+    // Sem recipiente ainda não grava: ele é a única informação de tamanho que o pedido vai ter
+    expect(acao).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByLabelText('Em que recipiente está'), { target: { value: 'saco' } });
+    await waitFor(() => expect(acao).toHaveBeenCalledTimes(1));
+    expect(ultimoEnvio().get('estado')).toBe('disponivel');
+    expect(ultimoEnvio().get('quantidade')).toBe('350');
+    expect(ultimoEnvio().get('recipiente_id')).toBe('saco');
+  });
+
+  it('respondido, mostra quantas tem e onde', () => {
+    const respondido = {
+      ...PENDENTE,
+      quantidade: null,
+      disponivel: true,
+      quantidadeDisponivel: 350,
+      recipienteDisponivelId: 'saco',
+      recipienteDisponivel: 'Saco 10x18',
+    };
+    render(<VerificacaoItem pedidoId="pedido-1" item={respondido} recipientes={RECIPIENTES} />);
+    expect(screen.getByText('Tem 350, em Saco 10x18')).toBeTruthy();
+  });
+
+  it('com quantidade e sem recipiente, o "Tem tudo" pergunta em qual está', async () => {
+    const semRecipiente = { ...PENDENTE, recipiente: null, recipienteId: null };
+    render(<VerificacaoItem pedidoId="pedido-1" item={semRecipiente} recipientes={RECIPIENTES} />);
+    fireEvent.click(screen.getByText('Tem tudo'));
+    expect(acao).not.toHaveBeenCalled();
+    expect(screen.queryByLabelText('Quantas existem')).toBeNull();
+
+    fireEvent.change(screen.getByLabelText('Em que recipiente está'), { target: { value: 'tub' } });
+    await waitFor(() => expect(acao).toHaveBeenCalledTimes(1));
+    expect(ultimoEnvio().get('estado')).toBe('disponivel');
+    expect(ultimoEnvio().get('recipiente_id')).toBe('tub');
   });
 });

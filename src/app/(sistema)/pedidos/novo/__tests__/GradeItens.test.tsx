@@ -57,6 +57,22 @@ describe('planilha de itens do pedido (T8.1, RF-54)', () => {
     expect(enviados(container, 'item_generico')).toEqual(['1']);
   });
 
+  it('o genérico manda o que o cliente pediu, e o item com espécie não manda descrição', () => {
+    const { container } = montar([
+      preenchida({ generico: true, especificacao: 'mudas nativas, o que tiver' }),
+      preenchida({ chave: 2, especificacao: 'sobra de antes' }),
+    ]);
+    expect(enviados(container, 'item_especificacao')).toEqual(['mudas nativas, o que tiver', '']);
+  });
+
+  it('a linha sem espécie pode virar genérico, e o recipiente em branco vai vazio', () => {
+    const onAlterar = vi.fn();
+    const { container } = montar([{ ...linhaVazia(1), quantidade: '10' }], { onAlterar });
+    expect(enviados(container, 'item_recipiente')).toEqual(['']);
+    fireEvent.click(screen.getAllByText('Sem espécie definida')[0]);
+    expect(onAlterar).toHaveBeenCalledWith(1, 'generico', true);
+  });
+
   it('a lixeira tira a linha, e o "+" acrescenta outra', () => {
     const onRemover = vi.fn();
     const onAdicionar = vi.fn();

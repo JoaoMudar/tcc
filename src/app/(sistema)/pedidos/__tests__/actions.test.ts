@@ -189,12 +189,42 @@ describe('validação antes do banco (UC-31 FE-1)', () => {
     expectNoDatabase();
   });
 
-  it('alterar o item leva a altura junto da quantidade', async () => {
+  it('alterar o item leva a altura junto da quantidade, e sem o campo o recipiente fica', async () => {
     emSituacao('cadastrado');
     const state = await actions.atualizarItemAction({}, form({ pedido_id: PEDIDO, item_id: ITEM, quantidade: '300', altura: '0,80' }));
     expect(state.error).toBeUndefined();
-    const [, valores] = client.query.mock.calls.find(([sql]) => String(sql).includes('UPDATE pedidos_itens SET quantidade'))!;
-    expect(valores).toEqual([PEDIDO, ITEM, 300, 0.8]);
+    const [, valores] = client.query.mock.calls.find(([sql]) => String(sql).includes('UPDATE pedidos_itens i'))!;
+    expect(valores).toEqual([PEDIDO, ITEM, 300, 0.8, false, null]);
+  });
+
+  it('a chefia completa o recipiente que o cliente disse depois', async () => {
+    emSituacao('cadastrado');
+    const dados = form({ pedido_id: PEDIDO, item_id: ITEM, quantidade: '', altura: '', recipiente: RECIPIENTE });
+    const state = await actions.atualizarItemAction({}, dados);
+    expect(state.error).toBeUndefined();
+    const [, valores] = client.query.mock.calls.find(([sql]) => String(sql).includes('UPDATE pedidos_itens i'))!;
+    expect(valores).toEqual([PEDIDO, ITEM, null, null, true, RECIPIENTE]);
+  });
+
+  it('recipiente em branco é "o cliente não disse o tamanho", e não erro (RF-54)', async () => {
+    await expect(actions.criarPedidoAction({}, pedidoValido({ item_recipiente: '', item_quantidade: '' }))).rejects.toThrow(
+      /^redirect:/,
+    );
+    const [, valores] = client.query.mock.calls.find(([sql]) => String(sql).includes('INSERT INTO pedidos_itens'))!;
+    // pedido, espécie, recipiente, quantidade
+    expect((valores as unknown[]).slice(1, 4)).toEqual([ESPECIE, null, null]);
+  });
+
+  it('recipiente que não é identificador é recusado antes do banco', async () => {
+    const state = await actions.criarPedidoAction({}, pedidoValido({ item_recipiente: 'tubete' }));
+    expect(state.error).toMatch(/recipiente do item 1/i);
+    expectNoDatabase();
+  });
+
+  it('o genérico sem descrição é recusado: a gerência precisa saber o que foi pedido', async () => {
+    const state = await actions.criarPedidoAction({}, pedidoValido({ item_especie: '', item_generico: '1', item_especificacao: ' ' }));
+    expect(state.error).toMatch(/descreva o que o cliente pediu/i);
+    expectNoDatabase();
   });
 
   it('altura inválida na alteração é recusada, e o campo digitado volta para a tela', async () => {
@@ -237,38 +267,98 @@ describe('validação antes do banco (UC-31 FE-1)', () => {
   });
 });
 
-describe('preço depois da conferência (RF-55, RN-50)', () => {
-  it('chega ao SQL em reais, com duas casas, e não em centavos', async () => {
-    emSituacao('verificado');
-    const state = await actions.definirPrecosAction({}, form({ pedido_id: PEDIDO, preco_item_id: ITEM, preco_valor: '2,50' }));
+describe('negociação depois da conferência (RF-55, RN-50)', () => {
+  /** O pedido conferido e um item que a conferência confirmou com 300 mudas. */
+  function conferido(item: Record<string, unknown> = {}) {
+    client.query.mockImplementation(async (sql: string) => {
+      if (String(sql).includes('AS "quantidadePai"')) {
+        const linha = {
+          quantidade: 500,
+          generico: false,
+          itemPaiId: null,
+          quantidadePai: null,
+          disponivel: false,
+          quantidadeDisponivel: 300,
+          recipienteId: RECIPIENTE,
+          recipienteDisponivelId: null,
+          ...item,
+        };
+        return { rows: [linha], rowCount: 1 };
+      }
+      return { rows: [{ id: PEDIDO, numero: 1, situacao: 'verificado' }], rowCount: 1 };
+    });
+  }
+
+  const gravacoes = () => client.query.mock.calls.filter(([sql]) => String(sql).includes('SET preco_unitario'));
+
+  it('o preço chega ao SQL em reais, com duas casas, e não em centavos', async () => {
+    conferido();
+    const state = await actions.negociarItensAction({}, form({ pedido_id: PEDIDO, negociar_item_id: ITEM, negociar_preco: '2,50' }));
     expect(state.error).toBeUndefined();
-    const [, valores] = client.query.mock.calls.find(([sql]) => String(sql).includes('SET preco_unitario'))!;
-    expect(valores).toContain('2.50');
+    expect(gravacoes()[0][1]).toContain('2.50');
   });
 
   it('preço inválido é recusado dizendo qual item é, e nada é gravado', async () => {
-    emSituacao('verificado');
-    const state = await actions.definirPrecosAction({}, form({ pedido_id: PEDIDO, preco_item_id: ITEM, preco_valor: 'combinar' }));
+    conferido();
+    const state = await actions.negociarItensAction(
+      {},
+      form({ pedido_id: PEDIDO, negociar_item_id: ITEM, negociar_preco: 'combinar' }),
+    );
     expect(state.error).toMatch(/item 1/i);
-    const gravou = client.query.mock.calls.filter(([sql]) => String(sql).includes('SET preco_unitario'));
-    expect(gravou).toEqual([]);
+    expect(gravacoes()).toEqual([]);
   });
 
-  it('campo em branco é item que a chefia ainda não precificou, e não erro', async () => {
-    emSituacao('verificado');
-    const state = await actions.definirPrecosAction(
+  it('linha toda em branco é item que a chefia ainda não fechou, e não erro', async () => {
+    conferido();
+    const state = await actions.negociarItensAction(
       {},
-      form({ pedido_id: PEDIDO, preco_item_id: [ITEM, ESPECIE], preco_valor: ['2,50', ''] }),
+      form({ pedido_id: PEDIDO, negociar_item_id: [ITEM, ESPECIE], negociar_preco: ['2,50', ''], negociar_quantidade: ['', ''] }),
     );
     expect(state.error).toBeUndefined();
-    const gravou = client.query.mock.calls.filter(([sql]) => String(sql).includes('SET preco_unitario'));
-    expect(gravou).toHaveLength(1);
+    expect(gravacoes()).toHaveLength(1);
   });
 
-  it('a gerência não precifica: o valor da venda é da chefia', async () => {
+  it('baixar a quantidade até o confirmado grava sem reenviar à conferência', async () => {
+    conferido();
+    const state = await actions.negociarItensAction(
+      {},
+      form({ pedido_id: PEDIDO, negociar_item_id: ITEM, negociar_preco: '2,50', negociar_quantidade: '200' }),
+    );
+    expect(state.error).toBeUndefined();
+    // preço, quantidade, encerra a conferência, recipiente
+    expect(gravacoes()[0][1]).toEqual([PEDIDO, ITEM, '2.50', 200, true, null]);
+  });
+
+  it('mais do que a conferência confirmou manda reenviar para verificação', async () => {
+    conferido();
+    const state = await actions.negociarItensAction(
+      {},
+      form({ pedido_id: PEDIDO, negociar_item_id: ITEM, negociar_quantidade: '400' }),
+    );
+    expect(state.error).toMatch(/confirmou 300.*reenviar/i);
+  });
+
+  it('quantidade zero tira o item do pedido', async () => {
+    conferido();
+    const state = await actions.negociarItensAction({}, form({ pedido_id: PEDIDO, negociar_item_id: ITEM, negociar_quantidade: '0' }));
+    expect(state.success).toMatch(/tirado/i);
+    expect(client.query.mock.calls.some(([sql]) => String(sql).startsWith('DELETE FROM pedidos_itens'))).toBe(true);
+  });
+
+  it('recipiente que não é o pedido nem o conferido é recusado', async () => {
+    conferido();
+    const state = await actions.negociarItensAction(
+      {},
+      form({ pedido_id: PEDIDO, negociar_item_id: ITEM, negociar_recipiente: ESPECIE }),
+    );
+    expect(state.error).toMatch(/recipiente pedido ou o que a conferência achou/i);
+    expect(gravacoes()).toEqual([]);
+  });
+
+  it('a gerência não negocia: o valor da venda é da chefia', async () => {
     loggedAs('gerencia');
-    emSituacao('verificado');
-    const state = await actions.definirPrecosAction({}, form({ pedido_id: PEDIDO, preco_item_id: ITEM, preco_valor: '2,50' }));
+    conferido();
+    const state = await actions.negociarItensAction({}, form({ pedido_id: PEDIDO, negociar_item_id: ITEM, negociar_preco: '2,50' }));
     expect(state.error).toMatch(/chefia/i);
   });
 });

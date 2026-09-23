@@ -88,7 +88,8 @@ export default async function SepararPage({ params }: SepararPageProps) {
               itens={itensReais.map((item) => ({
                 id: item.id,
                 especie: item.especie ?? 'Espécie não definida',
-                recipiente: item.recipiente,
+                // A aprovação exige recipiente e quantidade: os fallbacks são só para o tipo
+                recipiente: item.recipiente ?? '',
                 quantidade: item.quantidade ?? 0,
               }))}
             />

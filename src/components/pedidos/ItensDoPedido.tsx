@@ -1,17 +1,21 @@
 import { formatQuantidade } from '@/lib/lotes-rotulos';
-import { formatAltura, formatMoeda, formatTotal, totalItem, totalPedido } from '@/lib/pedidos-rotulos';
+import { formatAltura, formatMoeda, formatTotal, itemVendavel, totalItem, totalPedido } from '@/lib/pedidos-rotulos';
 
 export interface ItemExibido {
   id: string;
   especie: string | null;
-  recipiente: string;
+  /** Nulo quando o cliente não disse o tamanho: a conferência responde. */
+  recipiente: string | null;
   /** Altura pedida, em metros. Nula é "o cliente não pediu altura". */
   alturaM?: number | null;
-  /** Nula no rascunho: o cliente ainda não disse quantas. */
+  /** Nula no orçamento: o cliente ainda não disse quantas. */
   quantidade: number | null;
   precoCentavos: number | null;
   itemPaiId: string | null;
   especificacao: string | null;
+  generico?: boolean;
+  disponivel?: boolean | null;
+  quantidadeDisponivel?: number | null;
   /** RF-56: saldo lido dos lotes agora, quando a tela o carrega. */
   pronto?: number | null;
   emProducao?: number | null;
@@ -53,6 +57,9 @@ export function ItensDoPedido({ itens }: ItensDoPedidoProps) {
       <ul className="flex flex-col divide-y divide-line">
         {itens.map((item) => {
           const filho = item.itemPaiId !== null;
+          // O filho do genérico com quantidade herda o preço do pai, e não é
+          // cobrado de novo; o da lista montada é venda própria (itemVendavel)
+          const cobrado = itemVendavel(item, itens);
           const falta =
             item.pronto !== null && item.pronto !== undefined && item.quantidade !== null && item.quantidade > item.pronto;
           return (
@@ -78,15 +85,14 @@ export function ItensDoPedido({ itens }: ItensDoPedidoProps) {
                   duas dizem o tamanho da muda, e uma coluna a mais estouraria os
                   360px do celular */}
               <span className="text-base text-muted">
-                {item.recipiente}
+                {item.recipiente ?? 'a definir'}
                 {item.alturaM ? <span className="block text-sm">{formatAltura(item.alturaM)}</span> : null}
               </span>
               <span className="text-right text-base font-semibold text-ink">{item.quantidade === null ? 'a definir' : formatQuantidade(item.quantidade)}</span>
               {comPreco && (
                 <span className="text-right text-base font-bold text-ink">
-                  {/* O filho herda o preço do pai, e não é cobrado de novo (totalPedido) */}
-                  {filho ? '—' : formatTotal(totalItem(item))}
-                  {!filho && item.precoCentavos !== null && (
+                  {cobrado ? formatTotal(totalItem(item)) : '·'}
+                  {cobrado && item.precoCentavos !== null && (
                     <span className="block text-sm font-normal text-muted">
                       {formatMoeda(item.precoCentavos)} cada
                     </span>

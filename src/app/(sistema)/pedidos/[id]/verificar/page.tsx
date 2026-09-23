@@ -56,8 +56,6 @@ export default async function VerificarPage({ params }: VerificarPageProps) {
     .map((r) => ({ value: r.id, label: r.volumeLitros === null ? r.nome : `${r.nome} · ${formatVolume(r.volumeLitros)}` }));
   const opcoesEspecie = especies.filter((e) => e.ativa).map((e) => ({ value: e.id, label: nomeExibido(e) }));
 
-  const porAbrir = pedido.situacao === 'cadastrado';
-
   return (
     <main>
       <PageHeader area="3 · Comercial" title={`Conferir pedido ${pedido.numero}`} />
@@ -84,17 +82,9 @@ export default async function VerificarPage({ params }: VerificarPageProps) {
           )}
         </section>
 
-        {porAbrir && (
-          <Notice tone="info">
-            A conferência ainda não foi aberta. Ao responder o primeiro item, o pedido passa a constar como em
-            verificação.
-          </Notice>
-        )}
-
         {topo.length === 0 && <Notice tone="warning">Este pedido não tem item nenhum para conferir.</Notice>}
 
         <ul className="flex flex-col gap-3">
-          {/* O `?? 0` é só para o tipo: a conferência não abre com item sem quantidade (mudarSituacao) */}
           {especificos.map((item) => (
             <VerificacaoItem
               key={item.id}
@@ -105,10 +95,11 @@ export default async function VerificarPage({ params }: VerificarPageProps) {
                 recipiente: item.recipiente,
                 recipienteId: item.recipienteId,
                 alturaM: item.alturaM,
-                quantidade: item.quantidade ?? 0,
+                quantidade: item.quantidade,
                 disponivel: item.disponivel,
                 quantidadeDisponivel: item.quantidadeDisponivel,
                 recipienteDisponivelId: item.recipienteDisponivelId,
+                recipienteDisponivel: item.recipienteDisponivel,
                 observacoesDisponibilidade: item.observacoesDisponibilidade,
               }}
               recipientes={opcoesRecipiente}
@@ -121,7 +112,7 @@ export default async function VerificarPage({ params }: VerificarPageProps) {
               pedidoId={pedido.id}
               item={{
                 id: item.id,
-                quantidade: item.quantidade ?? 0,
+                quantidade: item.quantidade,
                 recipiente: item.recipiente,
                 recipienteId: item.recipienteId,
                 especificacao: item.especificacao,
@@ -133,8 +124,8 @@ export default async function VerificarPage({ params }: VerificarPageProps) {
                     id: filho.id,
                     especieId: filho.especieId ?? '',
                     especie: filho.especie ?? '',
-                    recipienteId: filho.recipienteId,
-                    recipiente: filho.recipiente,
+                    recipienteId: filho.recipienteId ?? '',
+                    recipiente: filho.recipiente ?? '',
                     quantidade: filho.quantidade ?? 0,
                   })),
               }}
