@@ -51,6 +51,30 @@ describe('createPool', () => {
     expect(neonConfig.webSocketConstructor).toBeDefined();
   });
 
+  it.each([
+    'postgresql://u:p@db.exemplo.com/v?sslmode=disable',
+    'postgresql://u:p@db.exemplo.com/v?sslmode=no-verify',
+    'postgresql://u:p@db.exemplo.com/v?sslmode=prefer',
+    'postgresql://u:p@db.exemplo.com/v?ssl=false',
+    'postgresql://u:p@ep-x-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=disable',
+  ])('recusa URL remota que desliga o TLS: %s (SEC-010)', (url) => {
+    expect(() => createPool(url)).toThrow('não pode desligar o TLS');
+    expect(pgPool).not.toHaveBeenCalled();
+    expect(neonPool).not.toHaveBeenCalled();
+  });
+
+  it('aceita sslmode=disable no banco local', () => {
+    const url = 'postgresql://postgres:x@localhost:5432/tcc?sslmode=disable';
+    createPool(url);
+    expect(pgPool).toHaveBeenCalledWith({ connectionString: url });
+  });
+
+  it('aceita sslmode=verify-full no banco remoto', () => {
+    const url = 'postgresql://u:p@db.exemplo.com/v?sslmode=verify-full';
+    createPool(url);
+    expect(pgPool).toHaveBeenCalledWith({ connectionString: url, ssl: { rejectUnauthorized: true } });
+  });
+
   it('falha ruidosamente sem DATABASE_URL', () => {
     expect(() => createPool(undefined)).toThrow('DATABASE_URL');
     expect(() => createPool('')).toThrow('DATABASE_URL');

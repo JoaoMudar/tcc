@@ -14,8 +14,8 @@ vi.mock('../session-store', () => ({ deleteExpiredSessions: vi.fn() }));
 
 const store = await import('../user-store');
 const sessions = await import('../session-store');
-const { hashPassword } = await import('../password');
-const { INVALID_CREDENTIALS, attemptLogin } = await import('../login');
+const { MAX_VERIFICACOES_SIMULTANEAS, comVagaDeVerificacao, hashPassword } = await import('../password');
+const { INVALID_CREDENTIALS, OCUPADO, attemptLogin } = await import('../login');
 
 const db = {} as Pick<Pool, 'query'>;
 const now = new Date('2026-09-14T10:00:00Z');
@@ -116,6 +116,38 @@ describe('attemptLogin', () => {
       vi.mocked(store.findUserForLogin).mockResolvedValue(user());
       await attemptLogin(db, { ...input('Canteiro-A3-tubete'), ip: null });
       expect(store.countRecentFailuresByIp).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('teto de verificações simultâneas (SEC-009)', () => {
+    async function comServidorCheio(teste: () => Promise<void>) {
+      let soltar!: () => void;
+      const bloqueio = new Promise<boolean>((resolve) => {
+        soltar = () => resolve(true);
+      });
+      const ocupadas = Array.from({ length: MAX_VERIFICACOES_SIMULTANEAS }, () => comVagaDeVerificacao(() => bloqueio));
+      try {
+        await teste();
+      } finally {
+        soltar();
+        await Promise.all(ocupadas);
+      }
+    }
+
+    it('sem vaga, recusa sem contar falha nem registrar evento', async () => {
+      vi.mocked(store.findUserForLogin).mockResolvedValue(user());
+      await comServidorCheio(async () => {
+        expect(await attemptLogin(db, input('Canteiro-A3-tubete'))).toEqual({ ok: false, message: OCUPADO });
+      });
+      expect(store.saveFailure).not.toHaveBeenCalled();
+      expect(store.recordLoginEvent).not.toHaveBeenCalled();
+    });
+
+    it('login inexistente também respeita o teto', async () => {
+      vi.mocked(store.findUserForLogin).mockResolvedValue(null);
+      await comServidorCheio(async () => {
+        expect(await attemptLogin(db, input('qualquer', 'ninguem'))).toEqual({ ok: false, message: OCUPADO });
+      });
     });
   });
 });

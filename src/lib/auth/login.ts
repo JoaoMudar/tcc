@@ -7,7 +7,7 @@ import {
   minutesLeft,
   registerFailure,
 } from './lockout';
-import { dummyVerify, verifyPassword } from './password';
+import { comVagaDeVerificacao, dummyVerify, verifyPassword } from './password';
 import { deleteExpiredSessions } from './session-store';
 import {
   countRecentFailuresByIp,
@@ -20,6 +20,7 @@ import {
 type Db = Pick<Pool, 'query'>;
 
 export const INVALID_CREDENTIALS = 'Usuário ou senha incorretos.';
+export const OCUPADO = 'O sistema está recebendo muitas entradas agora. Tente de novo em alguns segundos.';
 
 export type LoginResult =
   | { ok: true; usuarioId: string; deveTrocarSenha: boolean }
@@ -58,7 +59,8 @@ export async function attemptLogin(
 
   const user = await findUserForLogin(db, login);
   if (!user) {
-    await dummyVerify(input.senha);
+    // Sem vaga, a tentativa não chegou a ser feita: não conta como falha (SEC-009)
+    if ((await comVagaDeVerificacao(() => dummyVerify(input.senha))) === null) return { ok: false, message: OCUPADO };
     await record(null, false);
     return { ok: false, message: INVALID_CREDENTIALS };
   }
@@ -69,7 +71,8 @@ export async function attemptLogin(
     return { ok: false, message: `Muitas tentativas erradas. Tente de novo em ${minutes} minuto${minutes > 1 ? 's' : ''}.` };
   }
 
-  const valid = await verifyPassword(input.senha, user.senhaHash);
+  const valid = await comVagaDeVerificacao(() => verifyPassword(input.senha, user.senhaHash));
+  if (valid === null) return { ok: false, message: OCUPADO };
 
   if (!user.ativo) {
     // Usuário desativado não entra, e a mensagem não diz se a senha estava certa
