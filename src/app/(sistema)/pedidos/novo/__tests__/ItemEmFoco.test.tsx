@@ -42,4 +42,26 @@ describe('item do pedido em tela cheia (T8.1)', () => {
     });
     expect(onAlterar).toHaveBeenLastCalledWith(3, 'altura', '0,80 m');
   });
+
+  it('o genérico é a primeira opção da espécie', () => {
+    const onAlterar = vi.fn();
+    render(
+      <ItemEmFoco
+        linha={linhaVazia(2)}
+        indice={0}
+        opcoesEspecie={[{ value: 'ipe', label: 'Ipê-amarelo' }]}
+        recipientes={[{ value: 'tub', label: 'Tubete' }]}
+        saldos={{}}
+        onAlterar={onAlterar}
+        onRemover={vi.fn()}
+        onFechar={vi.fn()}
+        onCriarEspecie={vi.fn()}
+      />,
+    );
+    fireEvent.focus(screen.getByLabelText('Espécie'));
+    const opcoes = screen.getAllByRole('listitem').map((item) => item.textContent);
+    expect(opcoes[0]).toBe('Genérico');
+    fireEvent.click(screen.getByText('Genérico'));
+    expect(onAlterar).toHaveBeenCalledWith(2, 'generico', true);
+  });
 });

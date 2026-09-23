@@ -85,6 +85,12 @@ export function GradeItens({
     onColar(texto, foco);
   }
 
+  /** O genérico é a primeira opção da espécie: a escolha fica para a conferência. */
+  const opcaoGenerico = (chave: number) => ({
+    rotulo: 'Genérico',
+    onEscolher: () => onAlterar(chave, 'generico', true),
+  });
+
   function saldoDa(linha: Linha) {
     const saldo = saldos[chaveSaldo(linha.especieId, linha.recipienteId)];
     const pronto = saldo?.pronto ?? 0;
@@ -172,27 +178,17 @@ export function GradeItens({
                         </button>
                       </>
                     ) : (
-                      <>
-                        <ComboboxField
-                          label={`Espécie do item ${indice + 1}`}
-                          compacto
-                          options={opcoesEspecie}
-                          value={linha.especieId}
-                          onChange={(valor) => onAlterar(linha.chave, 'especieId', valor)}
-                          onCriarNova={(nome) => onCriarEspecie(linha.chave, nome)}
-                          rotuloCriar={rotuloCriarEspecie}
-                          placeholder="Digite o nome…"
-                        />
-                        {!linha.especieId && (
-                          <button
-                            type="button"
-                            onClick={() => onAlterar(linha.chave, 'generico', true)}
-                            className="px-3 pb-1.5 text-left text-xs font-semibold text-blue-900 underline"
-                          >
-                            Sem espécie definida
-                          </button>
-                        )}
-                      </>
+                      <ComboboxField
+                        label={`Espécie do item ${indice + 1}`}
+                        compacto
+                        options={opcoesEspecie}
+                        value={linha.especieId}
+                        onChange={(valor) => onAlterar(linha.chave, 'especieId', valor)}
+                        onCriarNova={(nome) => onCriarEspecie(linha.chave, nome)}
+                        rotuloCriar={rotuloCriarEspecie}
+                        opcaoFixa={opcaoGenerico(linha.chave)}
+                        placeholder="Digite o nome…"
+                      />
                     )}
                     {/* RF-56: o saldo não é coluna, é a linha miúda embaixo da espécie */}
                     {linha.especieId && linha.recipienteId && (

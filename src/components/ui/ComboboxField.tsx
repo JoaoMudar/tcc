@@ -39,6 +39,11 @@ interface ComboboxFieldProps {
   onCriarNova?: (texto: string) => void;
   /** O rótulo desse botão. */
   rotuloCriar?: (texto: string) => string;
+  /**
+   * Escolha que não é da lista e vem sempre primeiro, qualquer que seja o texto
+   * digitado: é o item genérico do pedido, cuja espécie se decide depois.
+   */
+  opcaoFixa?: { rotulo: string; onEscolher: () => void };
 }
 
 /**
@@ -63,6 +68,7 @@ export function ComboboxField({
   required = false,
   onCriarNova,
   rotuloCriar = (texto) => `+ Cadastrar "${texto}"`,
+  opcaoFixa,
 }: ComboboxFieldProps) {
   const id = useId();
   const hintId = hint ? `${id}-dica` : undefined;
@@ -158,6 +164,20 @@ export function ComboboxField({
             compacto ? 'absolute top-full left-0 z-30 w-max max-w-sm min-w-full shadow-lg' : ''
           }`}
         >
+          {opcaoFixa && (
+            <li>
+              <button
+                type="button"
+                onClick={() => {
+                  setAberta(false);
+                  opcaoFixa.onEscolher();
+                }}
+                className="min-h-touch w-full px-3 py-2 text-left text-base font-bold text-blue-800 active:bg-brand-light"
+              >
+                {opcaoFixa.rotulo}
+              </button>
+            </li>
+          )}
           {visiveis.length === 0 ? (
             <li className="px-3 py-3 text-base text-muted">Nada encontrado com esse texto.</li>
           ) : (
