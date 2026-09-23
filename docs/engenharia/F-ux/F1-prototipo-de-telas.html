@@ -986,7 +986,7 @@ S.push({
   </div>`
 });
 S.push({
-  id:'UC-27', mod:'producao', actors:['gerencia','chefia'], built:false, route:'', wide:true,
+  id:'UC-27', mod:'producao', actors:['gerencia','chefia'], built:true, route:'/producao?aba=mapa', wide:true,
   name:'Consultar o mapa de lotes', rf:'RF-33, RF-42, RF-44, RF-45',
   why:'A segunda aba da entrada do módulo. O viveiro desenhado como ele é: a área é o quadro, o canteiro é a faixa dentro dela e o lote é o quadradinho dentro do canteiro, porque um canteiro comporta várias levas. Reconhece-se o lote pelo lugar antes de ler o rótulo, e por isso a posição dentro do canteiro é guardada. A cor não é digitada por ninguém, vem das etapas do protocolo vencidas ou a vencer. É tela de computador (RNF-14) porque o mapa existe para mostrar o viveiro inteiro de uma vez; no celular ele vira lista de áreas, com os críticos primeiro.',
   ui:`<div class="mk-hd row"><div><div class="b">2 &middot; Produção</div><div class="t">Mapa de produção</div></div><div class="r" style="align-self:center">133 lotes abertos em 27 canteiros</div></div>

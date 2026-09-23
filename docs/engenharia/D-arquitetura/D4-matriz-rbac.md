@@ -97,8 +97,10 @@ para ler a matriz, não para decidir acesso.
 | **Mapa de lotes** | L | L | L |
 | **Estoque disponível** | L | L | L |
 | **3 · Comercial** | | | |
-| **Pedidos** | C L A E | - | C L A E |
-| **Confirmação de pedido** | **A** | - | A |
+| **Pedidos** | C L A E | L | C L A E |
+| **Confirmação de pedido** | **A** | **A** | A |
+| **Verificação de pedido** ⁴ | C L A | C L A | C L A |
+| **Cargas do pedido** ⁴ | C L A | C L A | C L A |
 
 ¹ **Ninguém cria e ninguém exclui parâmetro.** Ver §3.7.
 
@@ -110,9 +112,15 @@ papel sobre a mesma linha. Requisitos: **RF-15 a RF-18, RF-19, RF-20, RF-14**.
 **RF-22 a RF-24 e RF-25** para o protocolo, **RF-40** para a divisão de lote. As regras de
 acesso que não se leem direto da matriz estão em §3.8.
 
-**Vinte e cinco recursos.** A matriz encolheu com o escopo, e o que ela perdeu foi sobretudo
-coluna: a saída do perfil de campo eliminou a única regra que dependia do registro e não do
-perfil, e com ela a distinção entre "a tarefa que é sua" e "a tarefa dos outros".
+⁴ **As duas etapas de campo do pedido**, a conferência de disponibilidade item a item e a
+organização e contagem das cargas. São recursos próprios, e não operações de **Pedidos**, porque
+quem as executa não é quem mexe no pedido: a gerência grava disponibilidade e marca item separado
+sem nunca alterar quantidade, preço ou item, que continuam `L` para ela. Ver §3.2.
+
+**Vinte e sete recursos.** A matriz encolheu com o escopo e voltou a crescer com as etapas de
+campo do pedido, e o que ela perdeu foi sobretudo coluna: a saída do perfil de campo eliminou a
+única regra que dependia do registro e não do perfil, e com ela a distinção entre "a tarefa que é
+sua" e "a tarefa dos outros".
 
 ---
 
@@ -132,12 +140,36 @@ sensível sem contrapartida operacional.
 A gerência **lê a pessoa**: nome, telefone e papéis, que é o que ela precisa para escalar
 funcionário na agenda. O que ela não lê é a ficha fiscal.
 
-### 3.2 Confirmar pedido é privativo da chefia
+### 3.2 A gerência executa duas fases do pedido, e não cadastra nenhum
 
-Confirmar o pedido é o ato que trava itens, quantidades e preços (RF-57). É decisão comercial, e
-quem responde por preço é a chefia (RN-50). A gerência **não lê pedido**, e é deliberado: o que a
-produção precisa saber do comercial é quanto foi vendido de cada espécie, e isso ela lê pelo saldo
-disponível, sem precisar da carteira de pedidos.
+Cadastrar pedido é `C`, e é só da chefia: quem responde por preço é quem registra o que foi
+negociado (RN-50). Alterar item também é dela, e é por isso que a gerência tem `L` e não `A` em
+**Pedidos**: ela lê a carteira inteira, com preço e total, e não mexe em item nenhum.
+
+O que a gerência executa são **duas fases**, e é o que lhe dá `A` em **Confirmação de pedido**:
+conferir no viveiro o que o pedido pede, e separar a carga depois de aprovado. Aprovar, devolver
+para alteração e cancelar continuam privativos da chefia, que também executa as duas fases da
+gerência quando é ela quem faz o trabalho.
+
+**Qual perfil executa cada fase não se lê desta matriz.** A matriz diz quem pode mudar a situação
+do pedido; a tabela de transições diz de qual situação para qual, e por quem. As duas travas valem
+juntas, e as duas rodam no servidor (§4).
+
+**O trabalho de cada fase tem recurso próprio.** Mudar a situação é `Confirmação de pedido`; o que
+se registra dentro da fase é `Verificação de pedido` e `Cargas do pedido`, os dois com `C L A` para
+chefia e gerência. A separação existe porque as duas coisas respondem a perguntas diferentes: a
+primeira é "este perfil move o pedido adiante?", a segunda é "este perfil escreve o que foi
+conferido no pátio e contado no galpão?". Juntá-las na linha de **Pedidos** daria à gerência o `A`
+que ela não tem, e que é justamente o que a impede de mexer em quantidade e preço.
+
+**Não há perfil de colaborador, e a contagem no galpão é da gerência.** A rotina de campo poderia
+sugerir dar ao colaborador a marcação de item separado, e isso exigiria um quarto perfil: os seis
+colaboradores não abrem tela (§1), e a decisão continua valendo aqui.
+
+Versões anteriores deste documento davam `-` à gerência nas duas linhas, com o argumento de que a
+produção sabe o que foi vendido pelo saldo disponível. O argumento valia enquanto o pedido era só
+rascunho e confirmado, sem conferência nem separação. Com as fases, negar a leitura tornaria
+inalcançável o trabalho que é da gerência.
 
 ### 3.3 A chefia não monta a agenda
 
@@ -277,9 +309,9 @@ determina o que vê e faz, e **RN-52**, todo registro tem autor.
 A correspondência entre recurso e requisito está em
 [`B5`](../B-requisitos/B5-matriz-rastreabilidade.md).
 
-**A matriz não é verificada célula a célula, e é bom dizer.** São 25 recursos por 3 perfis, e
+**A matriz não é verificada célula a célula, e é bom dizer.** São 27 recursos por 3 perfis, e
 [`E2`](../E-qualidade/E2-casos-de-teste-de-aceite.md) traz quatro casos de acesso: TA-03, a
 operação restrita recusada quando acionada pelo endereço; TA-08, a leitura permitida onde a
 escrita não é; TA-60, a regra que roda no servidor e não no navegador; e TA-62, o perfil atribuído
-valendo no primeiro acesso. Eles verificam o **mecanismo**, e não as 75 células: testar cada uma
+valendo no primeiro acesso. Eles verificam o **mecanismo**, e não as 81 células: testar cada uma
 seria reescrever a matriz em forma de teste, e o que quebra na prática é o mecanismo, não a linha.

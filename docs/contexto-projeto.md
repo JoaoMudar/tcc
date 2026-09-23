@@ -35,6 +35,13 @@ protótipo entrega no prazo acadêmico. O corte foi aplicado a todos os artefato
 entregas e cargas, apontamento por relógio, estoque e gastos de insumo, indicadores financeiros,
 catálogo digital, site, Instagram, comércio eletrônico e integração automática com WhatsApp.
 
+**A carga voltou em 21/09/2026, e a entrega não.** A lista acima registra o que foi decidido em
+28/08/2026, e continua valendo como registro daquela data. O que mudou depois é que a conferência
+de disponibilidade e a contagem para carregar se mostraram parte da rotina que o sistema precisa
+cobrir, porque são o trabalho que a gerência faz entre a venda e a saída do caminhão. Entram a
+carga e a contagem; continuam fora a entrega, o roteiro de viagem e o motorista. O registro da
+volta está em [`auditoria-divergencias.md`](auditoria-divergencias.md).
+
 **Saiu também o perfil colaborador.** Os seis trabalhadores de campo deixaram de operar o sistema:
 o trabalho deles é planejado e confirmado pela gerência. Restaram três perfis, e três pessoas.
 

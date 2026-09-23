@@ -1,6 +1,13 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { dummyVerify, hashPassword, validateNewPassword, verifyPassword } from '../password';
+import {
+  MAX_VERIFICACOES_SIMULTANEAS,
+  comVagaDeVerificacao,
+  dummyVerify,
+  hashPassword,
+  validateNewPassword,
+  verifyPassword,
+} from '../password';
 
 describe('hashPassword e verifyPassword', () => {
   it('confere a senha certa e recusa a errada', async () => {
@@ -25,6 +32,39 @@ describe('hashPassword e verifyPassword', () => {
 
   it('a verificação fictícia não lança', async () => {
     await expect(dummyVerify('qualquer')).resolves.toBeUndefined();
+  });
+});
+
+describe('comVagaDeVerificacao (SEC-009)', () => {
+  function pendente() {
+    let soltar!: (valor: boolean) => void;
+    const promessa = new Promise<boolean>((resolve) => {
+      soltar = resolve;
+    });
+    return { promessa, soltar };
+  }
+
+  it('recusa acima do teto e devolve a vaga quando uma termina', async () => {
+    const abertas = Array.from({ length: MAX_VERIFICACOES_SIMULTANEAS }, () => pendente());
+    const emCurso = abertas.map((p) => comVagaDeVerificacao(() => p.promessa));
+    expect(await comVagaDeVerificacao(async () => true)).toBeNull();
+
+    abertas[0].soltar(true);
+    expect(await emCurso[0]).toBe(true);
+    expect(await comVagaDeVerificacao(async () => true)).toBe(true);
+
+    abertas.slice(1).forEach((p) => p.soltar(false));
+    await Promise.all(emCurso);
+  });
+
+  it('devolve a vaga mesmo quando a verificação lança', async () => {
+    const abertas = Array.from({ length: MAX_VERIFICACOES_SIMULTANEAS - 1 }, () => pendente());
+    const emCurso = abertas.map((p) => comVagaDeVerificacao(() => p.promessa));
+    await expect(comVagaDeVerificacao(async () => Promise.reject(new Error('falhou')))).rejects.toThrow('falhou');
+    expect(await comVagaDeVerificacao(async () => true)).toBe(true);
+
+    abertas.forEach((p) => p.soltar(false));
+    await Promise.all(emCurso);
   });
 });
 

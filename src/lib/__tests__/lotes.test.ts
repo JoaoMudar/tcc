@@ -6,7 +6,7 @@ import {
   avisoCapacidade,
   montarOcupacao,
   nextCodigo,
-  parseDataPlantio,
+  parseDataCriacao,
   parseFase,
   parseObservacoes,
   parseQuantidade,
@@ -40,13 +40,13 @@ describe('parseFase', () => {
   });
 });
 
-describe('parseDataPlantio', () => {
+describe('parseDataCriacao', () => {
   const hoje = '2026-09-14';
   it('vazia vale hoje; passada vale; futura e inválida não', () => {
-    expect(parseDataPlantio('', hoje)).toEqual({ value: hoje });
-    expect(parseDataPlantio('2026-08-01', hoje)).toEqual({ value: '2026-08-01' });
-    expect(parseDataPlantio('2026-09-15', hoje)).toEqual({ error: 'A data de plantio não pode ser depois de hoje.' });
-    expect(parseDataPlantio('2026-02-30', hoje)).toHaveProperty('error');
+    expect(parseDataCriacao('', hoje)).toEqual({ value: hoje });
+    expect(parseDataCriacao('2026-08-01', hoje)).toEqual({ value: '2026-08-01' });
+    expect(parseDataCriacao('2026-09-15', hoje)).toEqual({ error: 'A data de criação não pode ser depois de hoje.' });
+    expect(parseDataCriacao('2026-02-30', hoje)).toHaveProperty('error');
   });
 });
 

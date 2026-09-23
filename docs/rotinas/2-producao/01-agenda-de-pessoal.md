@@ -100,14 +100,15 @@ um rendimento que ninguém teve.
 ```
 Semana de 10/08 a 15/08   [ Dia | Semana ]   [Copiar semana passada] [Publicar]
 
-              SEG        TER        QUA        QUI        SEX        SÁB
-Rogério      Repicagem  Repicagem  Irrigação  Semeadura  Semeadura  Limpeza
-Amélia       Repicagem  Repicagem  Semeadura  Semeadura  Semeadura  --
+              SEG        TER        QUA        QUI        SEX
+              7  9  11 7  9  11 7  9  11 7  9  11 7  9  11
+Rogério      Repicagem  Repicagem  Irrigação  Semeadura  Semeadura
+Amélia       Repicagem  Repicagem  Semeadura  Semeadura  Semeadura
              Ipê-amar.  Ipê-amar.  Aroeira    Aroeira    Aroeira
              2026-0147  2026-0147  --         --         --
-             M+T        M          M 7h-8h    M+T        M          M
+             M+T        M          M 7h-8h    M+T        M
 
-Jaison       Separação  Entrega    Adubação   Adubação   Separação  --
+Jaison       Separação  Entrega    Adubação   Adubação   Separação
              Ped. #124  Blumenau   --         --         Ped. #131
              M          M+T        M          M          M+T
 ```
@@ -119,12 +120,20 @@ só o turno, porque é só isso que têm.
 Rogério e Amélia aparecem **na mesma célula** de segunda e terça: é uma tarefa com duas pessoas,
 não duas tarefas.
 
+**A grade mostra de segunda a sexta.** O sábado quase sempre fica vazio, e uma coluna vazia rouba
+largura das cinco que o viveiro usa de verdade. Ele não deixou de existir: continua no formulário,
+na lista do celular e na agenda do dia, e quando a semana tem tarefa nele a própria grade avisa, com
+o atalho para abrir aquele dia.
+
 **Na tela de computador a semana se monta com a mão, e não só pelo formulário.** O dia é uma linha
-do tempo de verdade, das sete às cinco, com os turnos marcados ao fundo. Arrastar a barra de uma
-tarefa planejada a remarca, e ela leva junto o dia, o turno e a hora; puxar a borda muda quando
-começa ou quando termina. Clicar num ponto vazio abre o lançamento já apontando para aquele dia e
-aquela hora, sem sair da semana. Quem prefere o teclado faz o mesmo com Shift e as setas para
-remarcar, e Alt e as setas para mudar a duração.
+do tempo de verdade, das sete às cinco, com os turnos marcados ao fundo e uma linha fina de hora em
+hora, numerada no cabeçalho: sem isso a barra não diz a olho se começa às oito ou às nove.
+Arrastar a barra de uma tarefa planejada a remarca, e ela leva junto o dia, o turno e a hora; puxar
+a borda muda quando começa ou quando termina. Clicar num ponto vazio abre o lançamento já apontando para aquele dia e
+aquela hora, sem sair da semana. Enquanto a barra anda, uma etiqueta colada nela mostra o horário
+que está sendo produzido, de quinze em quinze minutos, e o mesmo texto é anunciado a quem usa leitor
+de tela. Quem prefere o teclado faz o mesmo com Shift e as setas para remarcar, e Alt e as setas
+para mudar a duração.
 
 Três limites valem a pena dizer, porque são decisão e não falta. **Só a tarefa planejada se
 arrasta**: a que já foi confirmada aconteceu, e o que aconteceu não se remaneja. **A semana fechada

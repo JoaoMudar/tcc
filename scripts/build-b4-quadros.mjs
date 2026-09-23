@@ -75,6 +75,10 @@ const NOME = {
   'RF-56': 'Saldo disponível ao lado do item',
   'RF-57': 'Situação do pedido',
   'RF-58': 'Listagem de pedidos com filtro',
+  'RF-59': 'Disponibilidade conferida item a item',
+  'RF-60': 'Composição do item pedido sem espécie',
+  'RF-61': 'Cargas do pedido e separação dos itens',
+  'RF-62': 'Dia de carregar e calendário de entregas',
 };
 
 // ---------------------------------------------------------------- leitura

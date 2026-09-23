@@ -26,6 +26,28 @@ export function somaDias(iso: string, dias: number): string {
   return data.toISOString().slice(0, 10);
 }
 
+/** 0 domingo, 6 sábado. Lido em UTC, como `somaDias`, para o fuso não deslocar o dia. */
+function diaDaSemana(iso: string): number {
+  return new Date(`${iso}T00:00:00Z`).getUTCDay();
+}
+
+/**
+ * O dia de carregar é o dia útil anterior à entrega: entrega na segunda se
+ * carrega na sexta, porque ninguém vem no fim de semana para pôr muda no
+ * caminhão.
+ *
+ * **Feriado fica de fora de propósito.** Os municipais variam de cidade para
+ * cidade, e um calendário de feriados errado atrasaria o carregamento sem
+ * ninguém entender por quê. Enquanto não houver cadastro deles, é melhor o
+ * sistema marcar um dia útil que a pessoa corrige do que inventar um que ela
+ * não esperava.
+ */
+export function diaUtilAnterior(iso: string): string {
+  let dia = somaDias(iso, -1);
+  while (diaDaSemana(dia) === 0 || diaDaSemana(dia) === 6) dia = somaDias(dia, -1);
+  return dia;
+}
+
 /** 2026-09-14 → 14/09/2026. */
 export function formatData(iso: string): string {
   const [ano, mes, dia] = iso.split('-');

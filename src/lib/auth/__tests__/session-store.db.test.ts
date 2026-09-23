@@ -128,4 +128,25 @@ describe('login contra Postgres real', () => {
       { sucesso: true, ip: '10.0.0.2', agente_usuario: 'Chrome' },
     ]);
   });
+
+  it('SEC-003: 20 falhas da mesma origem, em logins diferentes, barram até a senha certa', async () => {
+    const ip = `203.0.113.${Math.floor(Math.random() * 250) + 1}-${login}`;
+    try {
+      for (let i = 0; i < 20; i++) {
+        await pool.query('INSERT INTO eventos_login (login_tentado, sucesso, ip) VALUES ($1, false, $2)', [`varredura${i}`, ip]);
+      }
+      const result = await attemptLogin(pool, { login, senha: SENHA, ip, agenteUsuario: 'Chrome', now: now() });
+      expect(result).toEqual({ ok: false, message: expect.stringContaining('Muitas tentativas deste aparelho') });
+
+      // Vencida a janela, a mesma origem volta a entrar
+      const depois = new Date(Date.now() + 16 * 60_000);
+      expect(await attemptLogin(pool, { login, senha: SENHA, ip, agenteUsuario: 'Chrome', now: depois })).toEqual({
+        ok: true,
+        usuarioId,
+        deveTrocarSenha: false,
+      });
+    } finally {
+      await pool.query('DELETE FROM eventos_login WHERE ip = $1', [ip]);
+    }
+  });
 });

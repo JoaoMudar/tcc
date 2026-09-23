@@ -98,6 +98,7 @@ function tarefa(over: Partial<AtribuicaoInput> = {}): AtribuicaoInput {
     quantidadePlanejada: null,
     recorrente: false,
     observacoes: null,
+    loteEtapaId: null,
     ...over,
   };
 }
@@ -144,7 +145,7 @@ beforeAll(async () => {
       recipienteId: tubete,
       canteiroId: canteiro1,
       quantidade: 1000,
-      dataPlantio: '2029-12-01',
+      dataCriacao: '2029-12-01',
       observacoes: null,
       registradoPor: usuario,
     }),

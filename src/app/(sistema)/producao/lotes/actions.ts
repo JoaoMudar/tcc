@@ -33,7 +33,7 @@ export async function criarLoteAction(_previous: FormState, formData: FormData):
     area_id: formText(formData, 'area_id'),
     canteiro_id: formText(formData, 'canteiro_id'),
     quantidade: formText(formData, 'quantidade'),
-    data_plantio: formText(formData, 'data_plantio'),
+    data_criacao: formText(formData, 'data_criacao'),
     observacoes: formText(formData, 'observacoes'),
   };
   if (!isUuid(fields.especie_id)) return { error: 'Escolha a espécie.', fields };
@@ -41,8 +41,8 @@ export async function criarLoteAction(_previous: FormState, formData: FormData):
   if (!isUuid(fields.canteiro_id)) return { error: 'Escolha a área e o canteiro.', fields };
   const quantidade = lotes.parseQuantidade(fields.quantidade);
   if ('error' in quantidade) return { error: quantidade.error, fields };
-  const dataPlantio = lotes.parseDataPlantio(fields.data_plantio, hojeNoViveiro());
-  if ('error' in dataPlantio) return { error: dataPlantio.error, fields };
+  const dataCriacao = lotes.parseDataCriacao(fields.data_criacao, hojeNoViveiro());
+  if ('error' in dataCriacao) return { error: dataCriacao.error, fields };
   const observacoes = lotes.parseObservacoes(fields.observacoes);
   if ('error' in observacoes) return { error: observacoes.error, fields };
 
@@ -54,7 +54,7 @@ export async function criarLoteAction(_previous: FormState, formData: FormData):
         recipienteId: fields.recipiente_id,
         canteiroId: fields.canteiro_id,
         quantidade: quantidade.value,
-        dataPlantio: dataPlantio.value,
+        dataCriacao: dataCriacao.value,
         observacoes: observacoes.value,
         registradoPor: user.usuarioId,
       }),
@@ -202,7 +202,56 @@ export async function repicarLoteAction(_previous: FormState, formData: FormData
   redirect(`/producao/lotes/${id}?feito=repicado`);
 }
 
-/** T4.9, provisório até o protocolo avançar a fase sozinho (T6.7). */
+/**
+ * T6.10, RF-40: a leva passa a ocupar dois lugares. Os dois resultantes herdam a
+ * fase e o acompanhamento do protocolo, e o original encerra como `dividido`.
+ */
+export async function dividirLoteAction(_previous: FormState, formData: FormData): Promise<FormState> {
+  const user = await requirePermission('movimentos_lote', 'C');
+  await requirePermission('lotes', 'C');
+  const loteId = formText(formData, 'lote_id');
+  if (!isUuid(loteId)) return { error: 'Lote inválido.' };
+  const fields = {
+    quantidade: formText(formData, 'quantidade'),
+    area_a_id: formText(formData, 'area_a_id'),
+    canteiro_a_id: formText(formData, 'canteiro_a_id'),
+    area_b_id: formText(formData, 'area_b_id'),
+    canteiro_b_id: formText(formData, 'canteiro_b_id'),
+    observacoes: formText(formData, 'observacoes'),
+  };
+  const quantidade = lotes.parseQuantidade(fields.quantidade);
+  if ('error' in quantidade) return { error: quantidade.error, fields };
+  if (!isUuid(fields.canteiro_a_id)) return { error: 'Escolha a área e o canteiro do primeiro lote.', fields };
+  if (!isUuid(fields.canteiro_b_id)) return { error: 'Escolha a área e o canteiro do segundo lote.', fields };
+  const observacoes = lotes.parseObservacoes(fields.observacoes);
+  if ('error' in observacoes) return { error: observacoes.error, fields };
+
+  let destino: string;
+  try {
+    const { a } = await withTransaction(pool, (client) =>
+      lotes.dividirLote(client, {
+        origemId: loteId,
+        quantidade: quantidade.value,
+        canteiroA: fields.canteiro_a_id,
+        canteiroB: fields.canteiro_b_id,
+        observacoes: observacoes.value,
+        registradoPor: user.usuarioId,
+      }),
+    );
+    destino = a.id;
+  } catch (error) {
+    return { error: toUserMessage(error), fields };
+  }
+
+  revalidarProducao();
+  redirect(`/producao/lotes/${destino}?feito=dividido`);
+}
+
+/**
+ * A fase trocada à mão. O protocolo a avança sozinho ao concluir etapa
+ * sequencial (RF-48); isto aqui é o caminho do lote sem protocolo e a correção
+ * de engano.
+ */
 export async function alterarFaseAction(_previous: FormState, formData: FormData): Promise<FormState> {
   await requirePermission('lotes', 'A');
   const loteId = formText(formData, 'lote_id');

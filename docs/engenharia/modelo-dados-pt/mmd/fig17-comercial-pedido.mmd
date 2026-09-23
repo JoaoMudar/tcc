@@ -7,6 +7,7 @@ erDiagram
     text   situacao
     date   data_entrega
     text   observacoes
+    boolean precisa_nota
     uuid   criado_por FK
   }
   pedidos_itens {
@@ -15,7 +16,27 @@ erDiagram
     uuid    especie_id FK
     uuid    recipiente_id FK
     int     quantidade
+    numeric altura_m
     numeric preco_unitario
+    boolean disponivel
+    int     quantidade_disponivel
+    uuid    recipiente_disponivel_id FK
+    text    observacoes_disponibilidade
+    boolean generico
+    uuid    item_pai_id FK
+    text    especificacao
+  }
+  pedidos_historico {
+    uuid id PK
+    uuid pedido_id FK
+    text situacao_anterior
+    text situacao_nova
+    uuid alterado_por FK
+    text observacoes
+  }
+  pedidos_itens_especies_permitidas {
+    uuid item_id PK
+    uuid especie_id PK
   }
   pessoas {}
   especies {}
@@ -29,3 +50,8 @@ erDiagram
   especies    ||--o{ pedidos_itens : "e vendida em"
   recipientes ||--o{ pedidos_itens : "define porte de"
   lotes       ||--o{ pedidos_itens : "da saldo a"
+  pedidos ||--o{ pedidos_historico : "percorre"
+  usuarios ||--o{ pedidos_historico : "assina"
+  pedidos_itens ||--o{ pedidos_itens : "e composto por"
+  pedidos_itens ||--o{ pedidos_itens_especies_permitidas : "admite"
+  especies ||--o{ pedidos_itens_especies_permitidas : "e admitida em"

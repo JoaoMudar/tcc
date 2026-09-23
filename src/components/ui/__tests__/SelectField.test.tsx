@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { SelectField } from '../SelectField';
 
 const CAUSAS = [
@@ -15,6 +15,15 @@ describe('SelectField', () => {
     expect(select.tagName).toBe('SELECT');
     expect(select.value).toBe('');
     expect([...select.options].map((o) => o.textContent)).toEqual(['Escolha…', 'Seca', 'Praga', 'Geada']);
+  });
+
+  it('aceita ser controlado sem virar controlado e não-controlado ao mesmo tempo', () => {
+    const erros = vi.spyOn(console, 'error').mockImplementation(() => {});
+    render(<SelectField label="Causa" name="causa" options={CAUSAS} value="praga" onChange={() => {}} />);
+    const select = screen.getByLabelText('Causa') as HTMLSelectElement;
+    expect(select.value).toBe('praga');
+    expect(erros).not.toHaveBeenCalled();
+    erros.mockRestore();
   });
 
   it('associa o erro', () => {

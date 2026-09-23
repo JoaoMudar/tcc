@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useActionState, useState } from 'react';
+import { useActionState, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Notice } from '@/components/ui/Notice';
 import { SelectField } from '@/components/ui/SelectField';
@@ -16,6 +16,7 @@ import {
   PAPEL_LABELS,
   type Papel,
   type PessoaFicha,
+  type PessoaRef,
   TIPO_PESSOA_LABELS,
   type TipoPessoa,
   VINCULO_LABELS,
@@ -28,12 +29,27 @@ interface PessoaFormProps {
   /** Mostra e envia documento e endereço de cobrança. A gerência não recebe nem o campo (D4 §3.1). */
   verFiscal: boolean;
   podeEditar: boolean;
+  /**
+   * Aberto de dentro do pedido (UC-31 FA-1): a pessoa entra como cliente, o
+   * telefone passa a ser exigido, e salvar devolve o cliente em vez de ir para
+   * a ficha, que tiraria quem cadastra do pedido pela metade.
+   */
+  paraPedido?: { onCriado: (cliente: PessoaRef) => void; onCancelar: () => void };
 }
 
 const VINCULO_OPTIONS = Object.entries(VINCULO_LABELS).map(([value, label]) => ({ value, label }));
 
-export function PessoaForm({ pessoa, verFiscal, podeEditar }: PessoaFormProps) {
+export function PessoaForm({ pessoa, verFiscal, podeEditar, paraPedido }: PessoaFormProps) {
   const [state, formAction, pending] = useActionState(savePessoaAction, EMPTY_PESSOA_STATE);
+  const avisado = useRef<string | null>(null);
+  const onCriado = paraPedido?.onCriado;
+  useEffect(() => {
+    if (onCriado && state.cliente && avisado.current !== state.cliente.id) {
+      avisado.current = state.cliente.id;
+      onCriado(state.cliente);
+    }
+  }, [state.cliente, onCriado]);
+
   const fields = state.error || state.candidatas ? state.fields : undefined;
   const temPapel = (papel: Papel) =>
     fields ? fields[`papel_${papel}`] === 'on' : Boolean(pessoa?.papeis.some((p) => p.papel === papel));
@@ -49,6 +65,12 @@ export function PessoaForm({ pessoa, verFiscal, podeEditar }: PessoaFormProps) {
       <fieldset disabled={!podeEditar} className="flex flex-col gap-4">
         {pessoa && <input type="hidden" name="pessoa_id" value={pessoa.id} />}
         {!pessoa && <input type="hidden" name="ativa" value="on" />}
+        {paraPedido && (
+          <>
+            <input type="hidden" name="para_pedido" value="1" />
+            <input type="hidden" name="papel_cliente" value="on" />
+          </>
+        )}
 
         <div role="radiogroup" aria-label="Tipo de pessoa" className="grid grid-cols-2 gap-1 rounded-xl bg-gray-100 p-1">
           {(Object.keys(TIPO_PESSOA_LABELS) as TipoPessoa[]).map((valor) => (
@@ -79,9 +101,13 @@ export function PessoaForm({ pessoa, verFiscal, podeEditar }: PessoaFormProps) {
           type="tel"
           inputMode="tel"
           defaultValue={fields?.telefone ?? formatTelefone(pessoa?.telefone ?? null)}
+          hint={paraPedido ? 'Com DDD' : undefined}
+          required={Boolean(paraPedido)}
         />
         <TextField label="E-mail" name="email" type="email" defaultValue={fields?.email ?? pessoa?.email ?? ''} />
 
+        {/* No pedido o papel é um só, e vai escondido lá em cima */}
+        {!paraPedido && (
         <fieldset className="flex flex-col gap-1">
           <legend className="text-sm font-semibold text-gray-700">Papéis</legend>
           {PAPEIS.map((papel) => (
@@ -97,7 +123,8 @@ export function PessoaForm({ pessoa, verFiscal, podeEditar }: PessoaFormProps) {
             </label>
           ))}
         </fieldset>
-        {funcionario && (
+        )}
+        {!paraPedido && funcionario && (
           <SelectField label="Vínculo do funcionário" name="tipo_vinculo" options={VINCULO_OPTIONS} defaultValue={vinculo} required />
         )}
 
@@ -121,7 +148,6 @@ export function PessoaForm({ pessoa, verFiscal, podeEditar }: PessoaFormProps) {
               }}
             />
             <EnderecoFields tipo={ENDERECO_FISCAL} endereco={endereco(ENDERECO_FISCAL)} fields={fields} />
-            <Notice tone="info">Razão social e inscrição estadual não ficam aqui: quem emite a nota é o sistema fiscal externo.</Notice>
           </section>
         )}
 
@@ -138,7 +164,12 @@ export function PessoaForm({ pessoa, verFiscal, podeEditar }: PessoaFormProps) {
       {state.error && (
         <Notice tone="error">
           {state.error}
-          {state.existente && (
+          {state.existente && paraPedido && (
+            <Button type="submit" name="usar_pessoa_id" value={state.existente.id} className="mt-2" pending={pending}>
+              Usar {state.existente.nome}
+            </Button>
+          )}
+          {state.existente && !paraPedido && (
             <>
               {' '}
               <Link href={`/cadastros/pessoas/${state.existente.id}`} className="font-bold underline">
@@ -148,7 +179,17 @@ export function PessoaForm({ pessoa, verFiscal, podeEditar }: PessoaFormProps) {
           )}
         </Notice>
       )}
-      {state.candidatas && (
+      {state.candidatas && paraPedido && (
+        <>
+          <Notice tone="warning">Já existe cadastro com esse telefone. É a mesma pessoa?</Notice>
+          {state.candidatas.map((candidata) => (
+            <Button key={candidata.id} type="submit" name="usar_pessoa_id" value={candidata.id} pending={pending}>
+              Sim, usar {candidata.nome}
+            </Button>
+          ))}
+        </>
+      )}
+      {state.candidatas && !paraPedido && (
         <Notice tone="warning">
           <p>Já existe cadastro com esse telefone:</p>
           <ul className="my-1">
@@ -171,9 +212,14 @@ export function PessoaForm({ pessoa, verFiscal, podeEditar }: PessoaFormProps) {
           </Button>
         ) : (
           <Button type="submit" pending={pending}>
-            Salvar
+            {paraPedido ? 'Salvar e voltar ao pedido' : 'Salvar'}
           </Button>
         ))}
+      {paraPedido && (
+        <Button variant="secondary" onClick={paraPedido.onCancelar}>
+          Cancelar
+        </Button>
+      )}
     </form>
   );
 }

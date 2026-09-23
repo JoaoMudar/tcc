@@ -37,6 +37,7 @@
 | [`fluxo-claude-code-git.md`](fluxo-claude-code-git.md) | Fluxo de branches/commits com Claude Code (referenciado pelo `CLAUDE.md`). |
 | [`banco-local-espelho.md`](banco-local-espelho.md) | Espelhar o Neon para um Postgres local descartável (`npm run db:refresh-local`) para testes seguros. |
 | [`EXECUTION-GUIDE.md`](EXECUTION-GUIDE.md) | Como conduzir as sessões de desenvolvimento e a ordem dos sprints. |
+| [`roteiro-teste-fase-6.md`](roteiro-teste-fase-6.md) | Roteiro manual das rotinas do protocolo de atividades (Fase 6), mapeado aos casos de aceite TA-35 a TA-46. |
 | [`plano-seguranca-commits.md`](plano-seguranca-commits.md) | Plano histórico de segurança de commits (hooks, gitignore). |
 | [`auditoria-divergencias.md`](auditoria-divergencias.md) | **Auditoria, catorze passadas entre 10/08 e 10/09/2026**: divergências entre docs, planos e código, a redução de escopo na oitava, a regra que afirmava um fato falso sobre o viveiro na décima, o modelo de dados em português na décima segunda e a redução das rotinas na décima quarta. É registro histórico: cita identificadores que já não existem, de propósito. |
 | [`divida-tecnica.md`](divida-tecnica.md) | **Trabalho futuro (11/08/2026)**: o que falta para a produção ser segura de operar: backup, teste contra banco real, drift de schema. Prontidão medida: ~85%. |

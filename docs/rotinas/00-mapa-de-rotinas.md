@@ -212,15 +212,24 @@ e está fora do escopo.
 ![Comercial](img/mapa-3-comercial.png)
 
 O pedido é negociado por WhatsApp e registrado depois. O sistema guarda o que foi vendido, por
-quanto e para quem, e mostra ao lado o que a produção tem pronto.
+quanto e para quem, mostra ao lado o que a produção tem pronto, e acompanha o pedido até a muda
+estar contada e no lugar de carregamento.
 
 | Etapa | Perfil |
 |-------|--------|
 | Cadastro de pedido, com cliente, canal e itens | Chefia |
 | Informar o preço unitário de cada item | Chefia |
 | Consultar o saldo de muda pronta ao lado do item | Chefia |
-| Confirmar o pedido, travando os itens | Chefia |
+| Conferir no viveiro, item a item, o que existe para entregar | Gerência |
+| Compor em espécies o item pedido sem espécie | Gerência |
+| Aprovar o pedido, travando os itens | Chefia |
+| Organizar o pedido em cargas, uma por viagem | Gerência |
+| Contar e separar os itens de cada carga | Gerência |
 | Acompanhar pedidos, com filtro por cliente, canal e período | Chefia |
+
+**É a única área em que os dois perfis trabalham no mesmo registro**, alternando-se. A chefia vende
+e decide; a gerência responde o que o viveiro tem e o que já foi separado. A entrega continua fora
+do escopo, e o pedido termina em pronto para envio.
 
 Área `/comercial`; as telas continuam em `/pedidos`.
 

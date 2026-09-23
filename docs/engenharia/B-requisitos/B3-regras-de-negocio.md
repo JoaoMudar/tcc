@@ -213,9 +213,9 @@ e já se diz "fiz tantos saquinhos hoje". Apague o sistema e os enunciados sobre
 | **RN-45** | Cada pessoa tem um cadastro único, mesmo sendo cliente, fornecedor e funcionário | Fato | `rotinas/1-cadastros` | RF-18, RF-19, RF-20, RF-14 | - |
 | **RN-46** | A venda para compensação ambiental exige o nome científico da espécie | Restrição | `A2` §3 | RF-54 | RNF-22 |
 | **RN-47** | Os dados pessoais de clientes e funcionários seguem a Lei nº 13.709/2018 | Restrição | `E5` | - | RNF-20 |
-| **RN-48** | O pedido pode estar em rascunho, confirmado ou cancelado, e o item confirmado não muda | Fato | `rotinas/3-comercial` | RF-57 | - |
+| **RN-48** | Aprovar o pedido trava o item, que depois disso não muda em espécie, quantidade nem preço | Fato | `rotinas/3-comercial` | RF-57 | - |
 | **RN-49** | Uma pessoa pode ter mais de um endereço | Fato | `rotinas/1-cadastros` | RF-16 | - |
-| **RN-50** | O preço é combinado com o cliente e registrado no pedido | Fato | `A1` §6 | RF-55 | - |
+| **RN-50** | O preço é combinado com o cliente e registrado no pedido depois da conferência de disponibilidade, e o pedido não é aprovado enquanto faltar o preço de algum item | Fato | `A1` §6 | RF-55 | - |
 
 ### 3.5 Área E: Acesso e responsabilidade
 
@@ -223,6 +223,29 @@ e já se diz "fiz tantos saquinhos hoje". Apague o sistema e os enunciados sobre
 |---|---|---|---|---|---|
 | **RN-51** | O perfil do usuário (chefia, gerência ou administrador) define o que ele pode ver e fazer | Fato | `D4` §1 | RF-05, RF-06 | RNF-11 |
 | **RN-52** | Todo registro guarda quem o fez | Fato | `D4` §5 | RF-04 | - |
+
+### Grupo F: Conferência e carga
+
+| ID | Regra | Tipo | Origem | Realiza | Restringe |
+|---|---|---|---|---|---|
+| **RN-53** | O pedido percorre oito situações, cadastrado, verificando, verificado, pendente de alteração, aprovado, separando, pronto para envio e cancelado, e cada uma delas espera por um perfil determinado | Fato | `rotinas/3-comercial` | RF-57 | - |
+| **RN-54** | O item conferido está disponível por inteiro, disponível em parte ou indisponível. A parte informada vai de uma muda até uma a menos que a pedida, e exige dizer em que recipiente ela está | Restrição | `rotinas/3-comercial` | RF-59 | - |
+| **RN-55** | A composição do item pedido sem espécie soma exatamente a quantidade dele, e só admite espécie que o cliente aceite | Restrição | `rotinas/3-comercial` | RF-60 | - |
+| **RN-56** | O item pedido sem espécie não vai na carga, e sim as espécies que o compõem. A soma de um item nas cargas reproduz a quantidade dele | Restrição | `rotinas/3-comercial` | RF-61 | - |
+| **RN-57** | A carga fica pronta quando todos os itens dela foram separados, e o pedido fica pronto para envio quando todas as cargas estão prontas | Fato | `rotinas/3-comercial` | RF-61 | - |
+| **RN-58** | O dia de carregar é o dia útil anterior à data de entrega, de segunda a sexta-feira | Fato | `rotinas/3-comercial` | RF-62 | - |
+
+**RN-54 é a regra que sustenta a diferença entre parcial e indisponível.** As duas respostas dizem
+que o pedido não será atendido por inteiro, e só a quantidade as separa. Zero significa que não há
+nenhuma muda, e qualquer número maior significa que há aquela quantidade e não mais. Sem o limite
+superior, o parcial igual ao total passaria a existir como terceira forma de dizer disponível, e a
+mesma situação teria duas escritas possíveis.
+
+**RN-58 ignora feriado de propósito.** Os feriados municipais variam de cidade para cidade, e um
+calendário incompleto marcaria como dia de carregar um dia em que não há ninguém no viveiro. Como a
+data de entrega é combinada com o cliente e o dia de carregar é apenas uma indicação, o erro por
+falta de feriado é corrigido por quem lê, enquanto o erro por feriado inventado atrasaria a carga
+sem que a causa aparecesse em tela nenhuma.
 
 ### 3.6 Síntese por área
 
@@ -233,6 +256,7 @@ e já se diz "fiz tantos saquinhos hoje". Apague o sistema e os enunciados sobre
 | C: Protocolo de atividades por lote | RN-30 a RN-41 | 12 |
 | D: Cliente e pedido | RN-42 a RN-50 | 9 |
 | E: Acesso e responsabilidade | RN-51 a RN-52 | 2 |
+| F: Conferência e carga | RN-53 a RN-58 | 6 |
 | **Total** | | **52** |
 
 | Tipo | Quantidade |
@@ -246,7 +270,7 @@ e já se diz "fiz tantos saquinhos hoje". Apague o sistema e os enunciados sobre
 
 ## 4. Rastreabilidade inversa: requisito funcional → regra que o origina
 
-Os 58 requisitos funcionais de `B2`. Quatro não decorrem de regra de
+Os 62 requisitos funcionais de `B2`. Quatro não decorrem de regra de
 negócio e estão justificados na seção 6.
 
 | RF | Regras que o originam |
@@ -307,8 +331,12 @@ negócio e estão justificados na seção 6.
 | RF-54 | RN-01, RN-04, RN-42, RN-46 |
 | RF-55 | RN-50 |
 | RF-56 | RN-06, RN-08 |
-| RF-57 | RN-48 |
+| RF-57 | RN-48, RN-53 |
 | RF-58 | RN-42 |
+| RF-59 | RN-54 |
+| RF-60 | RN-55 |
+| RF-61 | RN-56, RN-57 |
+| RF-62 | RN-58 |
 ## 5. Rastreabilidade inversa: requisito não funcional → origem
 
 Os requisitos não funcionais deste projeto **não decorrem de regra de negócio**, e sim das
@@ -441,11 +469,15 @@ não dependa de abrir outro arquivo. **Não editar aqui**: a fonte é o `B2`.
 | RF-51 | O sistema deve apresentar, no lote, as etapas do protocolo com a data da última execução, o próximo vencimento e a situação de cada uma | D | EN |
 | RF-52 | O sistema deve apresentar a etapa em atenção dentro da janela de aviso e em atraso depois do vencimento, e sem indicação de situação quando o alerta da etapa estiver desligado | D | OP |
 | RF-53 | O sistema deve encerrar o protocolo do lote quando ele se encerra por saldo zero, por expedição total ou por divisão, deixando de sugerir etapas dele e cancelando as tarefas ainda não confirmadas sem removê-las | D | ORG |
-| RF-54 | O sistema deve permitir registrar pedido com cliente, canal de venda e itens compostos por espécie, recipiente e quantidade | D | OP |
-| RF-55 | O sistema deve registrar o preço unitário informado em cada item do pedido, e apresentar o total do item e o do pedido | D | EN |
+| RF-54 | O sistema deve permitir registrar pedido com cliente, canal de venda e itens compostos por espécie e recipiente, com quantidade e altura opcionais no cadastro (a quantidade é exigida antes da conferência), montando os itens um a um ou a partir da lista de texto que o cliente enviou, sempre com revisão de quem registra | D | OP |
+| RF-55 | O sistema deve registrar o preço unitário informado em cada item do pedido depois da conferência de disponibilidade, e apresentar o total do item e o do pedido | D | EN |
 | RF-56 | O sistema deve apresentar, ao lado de cada item do pedido, a quantidade de muda pronta que a produção tem daquela espécie e recipiente | D | OP |
-| RF-57 | O sistema deve controlar a situação do pedido (rascunho, confirmado e cancelado), impedindo alteração de item depois da confirmação | D | ORG |
+| RF-57 | O sistema deve controlar a situação do pedido ao longo das oito situações que vão do cadastro ao pronto para envio, impedindo alteração de item depois da aprovação | D | ORG |
 | RF-58 | O sistema deve listar os pedidos com filtro por cliente, canal e período | D | OP |
+| RF-59 | O sistema deve registrar, para cada item do pedido, a disponibilidade conferida no viveiro, que pode ser total, parcial com a quantidade encontrada e o recipiente em que ela está, ou nenhuma | D | OP |
+| RF-60 | O sistema deve permitir compor em espécies o item que o cliente pediu sem escolher espécie, respeitando as espécies que ele aceita | D | OP |
+| RF-61 | O sistema deve permitir organizar o pedido aprovado em cargas e registrar a separação de cada item em cada carga | D | OP |
+| RF-62 | O sistema deve apresentar o dia de carregamento de cada pedido e o calendário de entregas e carregamentos do mês | D | OP |
 
 ### 7.2 Requisitos não funcionais
 

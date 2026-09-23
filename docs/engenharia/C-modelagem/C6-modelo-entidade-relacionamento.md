@@ -101,7 +101,7 @@ erDiagram
   USUARIO      ||--o{ MOVIMENTO_LOTE : "registra"
 ```
 
-O diagrama conceitual apresenta **dezenove entidades**, e não as vinte e sete do modelo
+O diagrama conceitual apresenta **dezenove entidades**, e não as trinta e uma do modelo
 completo. A redução é deliberada: Sommerville (2011) observa que a ausência de detalhe excessivo é
 característica central do modelo, cujo objetivo é destacar o mais relevante e não especificar por
 inteiro. Entidades associativas, de histórico e de auditoria aparecem apenas nos modelos lógicos por
@@ -140,25 +140,25 @@ Seis leituras que o modelo conceitual já entrega:
 
 ### 2.1 Recorte implementado
 
-O modelo descrito aqui é o **especificado**. Das 27 entidades, **23 existem no banco** (mais a
-visão `situacao_lote`) e **4 permanecem só especificadas**: as três do protocolo, mais o percurso do
-lote por ele e a visão que daí deriva.
+O modelo descrito aqui é o **especificado**, e desde 18/09/2026 ele é também o construído: as 27
+entidades existem no banco, mais as visões `situacao_lote` e `lotes_etapas_vencimento`.
 
-| Área | No banco | Só especificadas | Quais faltam |
-|---|---:|---:|---|
-| *(transversal)* Acesso e configurações | 4 | 0 | - |
-| 1 · Cadastro único | 12 | 3 | `protocolos`, `protocolos_etapas`, `especies_protocolos_tempos` |
-| 2 · Produção | 5 | 1 | `lotes_etapas`, mais a visão `lotes_etapas_vencimento` |
-| 3 · Comercial | 2 | 0 | - |
-| **Total** | **23** | **4** | |
+| Área | No banco | Só especificadas |
+|---|---:|---:|
+| *(transversal)* Acesso e configurações | 4 | 0 |
+| 1 · Cadastro único | 15 | 0 |
+| 2 · Produção | 6 | 0 |
+| 3 · Comercial | 2 | 0 |
+| **Total** | **27** | **0** |
 
 O [`C8`](C8-dicionario-de-dados.md) marca a condição entidade por entidade.
 
-**O que falta é o protocolo, e a razão é declarada.** Ele foi especificado inteiro **antes de
-qualquer migration**, porque envolve um motor de geração automática de ordens: modelar depois de
-construir, aqui, custaria reescrever a regra de contagem em três lugares. É também a parte do
-sistema em que o erro é mais caro, e é por isso que dois dos dez casos de uso detalhados em
-[`C2`](C2-especificacao-casos-de-uso.md) são dele.
+**O protocolo foi especificado inteiro antes de qualquer migration**, e a razão é declarada: ele
+envolve um motor que calcula vencimento, e modelar depois de construir custaria reescrever a regra
+de contagem em três lugares. É também a parte do sistema em que o erro é mais caro, e é por isso que
+dois dos dez casos de uso detalhados em [`C2`](C2-especificacao-casos-de-uso.md) são dele. A
+migration `20260918000001_protocolo_de_atividades.sql` o implementou seguindo esta especificação, e
+onde o desenho anterior discordava do [`C8`](C8-dicionario-de-dados.md), foi o `C8` que prevaleceu.
 
 ---
 
@@ -167,7 +167,7 @@ sistema em que o erro é mais caro, e é por isso que dois dos dez casos de uso 
 Convenção dos diagramas: entidade de **outra** área aparece como **caixa vazia**, apenas para que
 a aresta exista. Os atributos dela estão no diagrama da área a que pertence.
 
-Atributos comuns à maioria das entidades, omitidos dos diagramas para não repetir vinte e sete
+Atributos comuns à maioria das entidades, omitidos dos diagramas para não repetir trinta e uma
 vezes: `id` (chave primária), `criado_em` e `atualizado_em`. Onde `ativo` aparece, é a marca de
 inativação que substitui a exclusão. As exceções, tabelas sem `atualizado_em` porque nada nelas se
 altera, e as duas de ligação, sem `id` porque a chave é o par que as define, estão registradas uma
@@ -327,8 +327,10 @@ erDiagram
   protocolos {
     uuid    id PK
     uuid    recipiente_id FK
-    int     version
+    text    nome
     boolean ativo
+    text    observacoes
+    uuid    criado_por FK
   }
   protocolos_etapas {
     uuid    id PK
@@ -336,19 +338,23 @@ erDiagram
     uuid    tipo_tarefa_id FK
     text    rotulo
     int     posicao
-    enum    tipo_agendamento
+    text    tipo_agendamento
+    text    tipo_ancora
+    uuid    etapa_ancora_id FK
     int     dias
     int     intervalo_dias
-    uuid    etapa_ancora_id FK
+    uuid    turno_id FK
     boolean alerta_ligado
     numeric janela_aviso_pct
     text    fase_resultante
+    boolean ativo
   }
   especies_protocolos_tempos {
-    uuid id PK
-    uuid especie_id FK
-    uuid protocolo_etapa_id FK
+    uuid especie_id PK
+    uuid protocolo_etapa_id PK
     int  dias
+    int  intervalo_dias
+    text observacoes
   }
   pessoas {
     uuid    id PK
@@ -438,10 +444,12 @@ viveiro faz em voz alta.
 
 - **`tipo_agendamento`** separa a etapa **sequencial**, que ocorre uma vez e pode avançar a fase do
   lote, da **recorrente**, que repete indefinidamente e não avança fase nenhuma (RN-34).
-- **`etapa_ancora_id`** é a âncora, e é reflexiva: a etapa conta o prazo a partir da conclusão de
-  **outra etapa declarada**, e não da anterior na lista (RN-31). Classificar pós-germinação conta
-  do plantio, e não da criação do lote, porque a semente pode ficar dias esperando plantio.
-  Âncora nula significa contar da criação do lote.
+- **`tipo_ancora` e `etapa_ancora_id`** são a âncora, e a segunda é reflexiva: a etapa conta o prazo
+  da criação do lote, ou da conclusão de **outra etapa declarada**, e nunca da anterior na lista
+  (RN-31). Classificar pós-germinação conta do plantio, e não da criação do lote, porque a semente
+  pode ficar dias esperando plantio. O evento de referência é **campo**, e não ausência de campo: a
+  restrição `protocolos_etapas_ancora_coerente` exige a etapa âncora quando o tipo é
+  `conclusao_de_etapa`, e a proíbe quando é `criacao_do_lote`.
 - **`dias` e `intervalo_dias`** são o prazo e, na recorrente, o intervalo entre ocorrências.
 - **`janela_aviso_pct`** é a janela de aviso **em percentual do intervalo**, e não em dias fixos
   (RN-35): três dias de antecedência não servem à etapa trimestral e à diária ao mesmo tempo.
@@ -505,6 +513,7 @@ erDiagram
     int         quantidade_inicial
     int         quantidade_atual
     text        fase
+    date        data_criacao
     date        data_plantio
     int         posicao
     timestamptz encerrado_em
@@ -525,12 +534,13 @@ erDiagram
     text observacoes
   }
   lotes_etapas {
-    uuid id PK
-    uuid lote_id FK
-    uuid protocolo_etapa_id FK
-    date last_done_at
-    date vence_em
-    enum situacao
+    uuid        lote_id PK
+    uuid        protocolo_etapa_id PK
+    date        data_ancora
+    date        ultima_execucao_em
+    int         ocorrencias
+    timestamptz concluido_em
+    uuid        herdado_do_lote_id FK
   }
   especies {}
   recipientes {}
@@ -633,12 +643,18 @@ nenhuma por trás.
 
 #### O percurso do lote pelo protocolo
 
-`lotes_etapas` é a única entidade de movimento do protocolo, e guarda três datas por etapa
-e por lote: a última execução, o próximo vencimento e a situação.
+`lotes_etapas` é a única entidade de movimento do protocolo, e **guarda fatos, nunca o vencimento**:
+a data da âncora já resolvida, a data real da última execução e quantas ocorrências se concluíram.
 
-**`vence_em` é derivado, nunca digitado** (RN-40): sai da âncora, da última execução e do tempo
+**O vencimento é derivado, e nunca digitado** (RN-40): sai da âncora, da última execução e do tempo
 declarado, com a customização por espécie sobrescrevendo o tempo do protocolo quando existir
 (RN-36). É o que a visão `lotes_etapas_vencimento` calcula, e é dela que sai a cor do lote no mapa.
+Gravá-lo criaria um número que depende do dia de hoje e envelhece sozinho, pela mesma razão de
+`situacao_lote` não ser tabela.
+
+**`data_ancora` nula é informação, e não dado faltando.** É o estado da etapa cuja âncora ainda não
+ocorreu: ela existe, está acompanhada, e não vence nada. Representa "ainda não germinou", que é
+diferente de "germinou hoje" e diferente de "ninguém preencheu".
 
 **Uma etapa tem no máximo uma ocorrência em aberto** (RN-33). Etapa trimestral esquecida há cinco
 meses apresenta **uma** pendência, e não cinco: gerar uma ordem por trimestre vencido encheria a
@@ -651,7 +667,8 @@ disponível também serem derivados.
 
 ### 3.4 Área 3 · Comercial
 
-Duas entidades, e é o tamanho certo. O pedido registra o que foi negociado fora do sistema.
+Seis entidades. O pedido registra o que foi negociado fora do sistema, e o percurso dele entre a
+venda e a saída do caminhão.
 
 ```mermaid
 erDiagram
@@ -663,6 +680,7 @@ erDiagram
     text    situacao
     date    data_entrega
     text    observacoes
+    boolean precisa_nota
     uuid    criado_por FK
   }
   pedidos_itens {
@@ -671,7 +689,41 @@ erDiagram
     uuid    especie_id FK
     uuid    recipiente_id FK
     int     quantidade
+    numeric altura_m
     numeric preco_unitario
+    boolean disponivel
+    int     quantidade_disponivel
+    uuid    recipiente_disponivel_id FK
+    text    observacoes_disponibilidade
+    boolean generico
+    uuid    item_pai_id FK
+    text    especificacao
+  }
+  pedidos_historico {
+    uuid    id PK
+    uuid    pedido_id FK
+    text    situacao_anterior
+    text    situacao_nova
+    uuid    alterado_por FK
+    text    observacoes
+  }
+  pedidos_itens_especies_permitidas {
+    uuid    item_id PK
+    uuid    especie_id PK
+  }
+  pedidos_cargas {
+    uuid    id PK
+    uuid    pedido_id FK
+    int     numero_carga
+    text    situacao
+    text    observacoes
+  }
+  pedidos_cargas_itens {
+    uuid    id PK
+    uuid    carga_id FK
+    uuid    item_id FK
+    int     quantidade
+    boolean separado
   }
   pessoas {}
   especies {}
@@ -683,6 +735,14 @@ erDiagram
   usuarios   ||--o{ pedidos      : "registra"
   especies    ||--o{ pedidos_itens : "é vendida em"
   recipientes ||--o{ pedidos_itens : "define porte de"
+  pedidos ||--o{ pedidos_historico : "percorre"
+  usuarios ||--o{ pedidos_historico : "assina"
+  pedidos_itens ||--o{ pedidos_itens : "é composto por"
+  pedidos_itens ||--o{ pedidos_itens_especies_permitidas : "admite"
+  especies ||--o{ pedidos_itens_especies_permitidas : "é admitida em"
+  pedidos ||--o{ pedidos_cargas : "sai em"
+  pedidos_cargas ||--o{ pedidos_cargas_itens : "leva"
+  pedidos_itens ||--o{ pedidos_cargas_itens : "é separado em"
 ```
 
 **`pedidos.cliente_id` aponta para `cadastro.pessoas`, e não para uma tabela de clientes.** É a
@@ -693,11 +753,32 @@ quem também é fornecedor.
 **`preco_unitario` é digitado, e não referencia tabela de preço** (RN-50). Não há entidade de canal de
 venda nem de tabela de preços: `canal_venda` é enumeração em `pedidos`, porque canal de venda é uma
 lista fechada de cinco valores sem atributos próprios (RN-42), e o preço é o que foi acordado na
-conversa.
+conversa. **O atributo é opcional**, e o nulo é "ainda não precificado": o valor é informado depois
+da conferência, e a aprovação do pedido o exige.
 
-**Não há entidade de disponibilidade.** O saldo que o item exibe (RF-56) é calculado dos lotes
-prontos daquela espécie e recipiente, a cada consulta. Guardá-lo no item congelaria uma leitura que
-muda a cada perda registrada, e o item passaria a mentir sobre o estoque de hoje.
+**`altura_m` é o tamanho da muda que o cliente pediu, em metros, e é opcional** (RF-54). O cliente
+não pede só a espécie e o recipiente: pede "ipê de 1,20". O atributo mora no item, e não na
+observação do pedido, porque é a conferência que precisa dele para saber qual muda separar quando o
+mesmo par espécie e recipiente tem levas de tamanhos diferentes. Nulo é "o cliente não pediu
+altura", que é o caso comum, já que o recipiente costuma determinar o porte. O filho do item
+genérico herda a altura do pai, pela mesma razão que herda o preço.
+
+**O saldo continua sem entidade, e a disponibilidade conferida tem colunas.** São duas coisas, e a
+distinção é o ponto. O saldo que o item exibe (RF-56) é calculado dos lotes prontos daquela espécie
+e recipiente a cada consulta, e guardá-lo congelaria uma leitura que muda a cada perda registrada.
+Já `disponivel`, `quantidade_disponivel` e `recipiente_disponivel_id` guardam o que uma pessoa foi
+ao pátio conferir e respondeu (RF-59), com autor e hora em `pedidos_historico`. Resposta de alguém
+se grava; leitura de estoque se recalcula.
+
+**`pedidos_itens` aponta para si mesma, e é a composição do item pedido sem espécie.** O cliente que
+pede quinhentas mudas nativas sem nomear espécie gera um item de topo com `generico`, e a gerência
+cria um filho por espécie escolhida (RF-60). A composição tem um nível só, garantido por restrição:
+item genérico não tem pai. O filho herda o preço do pai, e o total do pedido soma apenas os itens de
+topo, porque o filho diz qual espécie compõe a venda e não quanto ela custa.
+
+**`recipiente_disponivel_id` é a segunda aresta entre item e recipiente**, e não a repetição da
+primeira. `recipiente_id` é o que o cliente pediu, e o outro é o que a gerência encontrou. Os dois
+convivem até a aprovação, que substitui o primeiro pelo segundo quando eles divergem.
 
 **Não há histórico de estados do pedido.** `situacao` percorre `rascunho`, `confirmado` e
 `cancelado`, e o que o negócio precisa saber é em qual deles o pedido está. Uma tabela de histórico
