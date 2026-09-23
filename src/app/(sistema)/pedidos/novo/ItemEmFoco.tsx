@@ -64,21 +64,16 @@ export function ItemEmFoco({
           </Button>
         </>
       ) : (
-        <>
-          <ComboboxField
-            label="Espécie"
-            options={opcoesEspecie}
-            value={linha.especieId}
-            onChange={(valor) => onAlterar(linha.chave, 'especieId', valor)}
-            onCriarNova={(nome) => onCriarEspecie(linha.chave, nome)}
-            rotuloCriar={(nome) => `+ Cadastrar "${nome}" como espécie nova`}
-          />
-          {!linha.especieId && (
-            <Button variant="secondary" onClick={() => onAlterar(linha.chave, 'generico', true)}>
-              O cliente não escolheu a espécie
-            </Button>
-          )}
-        </>
+        <ComboboxField
+          label="Espécie"
+          options={opcoesEspecie}
+          value={linha.especieId}
+          onChange={(valor) => onAlterar(linha.chave, 'especieId', valor)}
+          onCriarNova={(nome) => onCriarEspecie(linha.chave, nome)}
+          rotuloCriar={(nome) => `+ Cadastrar "${nome}" como espécie nova`}
+          // O genérico é a primeira opção: a espécie fica para a conferência
+          opcaoFixa={{ rotulo: 'Genérico', onEscolher: () => onAlterar(linha.chave, 'generico', true) }}
+        />
       )}
 
       <ComboboxField

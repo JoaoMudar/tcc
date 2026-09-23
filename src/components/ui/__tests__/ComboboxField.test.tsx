@@ -174,4 +174,24 @@ describe('ComboboxField', () => {
       expect(screen.queryByText(/Cadastrar/)).toBeNull();
     });
   });
+
+  it('a opção fixa vem primeiro, em qualquer busca, e fecha a lista ao escolher', () => {
+    const onEscolher = vi.fn();
+    render(
+      <ComboboxField
+        label="Espécie"
+        options={ESPECIES}
+        value=""
+        onChange={vi.fn()}
+        opcaoFixa={{ rotulo: 'Genérico', onEscolher }}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText('Espécie'), { target: { value: 'nada disso' } });
+    const opcoes = screen.getAllByRole('listitem').map((item) => item.textContent);
+    expect(opcoes).toEqual(['Genérico', 'Nada encontrado com esse texto.']);
+
+    fireEvent.click(screen.getByText('Genérico'));
+    expect(onEscolher).toHaveBeenCalledOnce();
+    expect(screen.queryByText('Genérico')).not.toBeInTheDocument();
+  });
 });

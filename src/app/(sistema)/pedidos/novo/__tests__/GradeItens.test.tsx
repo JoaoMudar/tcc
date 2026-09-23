@@ -69,7 +69,8 @@ describe('planilha de itens do pedido (T8.1, RF-54)', () => {
     const onAlterar = vi.fn();
     const { container } = montar([{ ...linhaVazia(1), quantidade: '10' }], { onAlterar });
     expect(enviados(container, 'item_recipiente')).toEqual(['']);
-    fireEvent.click(screen.getAllByText('Sem espécie definida')[0]);
+    fireEvent.focus(screen.getByLabelText('Espécie do item 1'));
+    fireEvent.click(screen.getByText('Genérico'));
     expect(onAlterar).toHaveBeenCalledWith(1, 'generico', true);
   });
 
