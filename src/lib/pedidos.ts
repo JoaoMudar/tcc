@@ -29,6 +29,8 @@ export {
   SITUACOES_PEDIDO,
   TRANSICOES,
   alturaParaCampo,
+  estadoDaResposta,
+  estadoDoGenerico,
   formatAltura,
   formatMoeda,
   formatTotal,
@@ -38,6 +40,7 @@ export {
   normalizaCampoAltura,
   parseAltura,
   parsePreco,
+  perguntasDoItem,
   podeTransicionar,
   quantidadeConfirmada,
   resolveDisponibilidade,
@@ -48,9 +51,11 @@ export {
   validarComposicaoGenerico,
   validarDivisaoCargas,
   type CanalVenda,
+  type EstadoDaResposta,
   type EstadoDisponibilidade,
   type ItemParaResponder,
   type LinhaComposicao,
+  type PerguntasDoItem,
   type SituacaoPedido,
   type Transicao,
   type Urgencia,
@@ -147,6 +152,8 @@ export interface ItemPedido extends NovoItem {
   quantidadeDisponivel: number | null;
   recipienteDisponivelId: string | null;
   recipienteDisponivel: string | null;
+  /** Altura em que a muda existe, quando difere da pedida (P12). */
+  alturaDisponivelM: number | null;
   observacoesDisponibilidade: string | null;
 
   generico: boolean;
@@ -263,6 +270,7 @@ export async function listItens(db: Db, pedidoId: string): Promise<ItemPedido[]>
             i.altura_m::float8 AS "alturaM",
             i.disponivel, i.quantidade_disponivel AS "quantidadeDisponivel",
             i.recipiente_disponivel_id AS "recipienteDisponivelId", rd.nome AS "recipienteDisponivel",
+            i.altura_disponivel_m::float8 AS "alturaDisponivelM",
             i.observacoes_disponibilidade AS "observacoesDisponibilidade",
             i.generico, i.item_pai_id AS "itemPaiId", i.especificacao
        FROM pedidos_itens i
@@ -452,9 +460,11 @@ export async function atualizarItem(
             recipiente_id = CASE WHEN $5::boolean THEN $6::uuid ELSE i.recipiente_id END,
             disponivel = CASE WHEN x.mudou THEN NULL ELSE i.disponivel END,
             quantidade_disponivel = CASE WHEN x.mudou THEN NULL ELSE i.quantidade_disponivel END,
-            recipiente_disponivel_id = CASE WHEN x.mudou THEN NULL ELSE i.recipiente_disponivel_id END
+            recipiente_disponivel_id = CASE WHEN x.mudou THEN NULL ELSE i.recipiente_disponivel_id END,
+            altura_disponivel_m = CASE WHEN x.mudou THEN NULL ELSE i.altura_disponivel_m END
        FROM (SELECT id, NOT generico
                     AND (quantidade IS DISTINCT FROM $3::int
+                         OR altura_m IS DISTINCT FROM $4::numeric
                          OR ($5::boolean AND recipiente_id IS DISTINCT FROM $6::uuid)) AS mudou
                FROM pedidos_itens WHERE id = $2 AND pedido_id = $1) x
       WHERE i.id = x.id`,
@@ -636,7 +646,7 @@ export async function negociarItens(
     }
 
     const confirmada = quantidadeConfirmada(item);
-    if (linha.quantidade !== null && linha.quantidade > confirmada) {
+    if (linha.quantidade !== null && confirmada !== null && linha.quantidade > confirmada) {
       throw new UserError(
         `A conferência confirmou ${confirmada} muda(s) deste item. Para pedir mais, use "Salvar e reenviar para verificação".`,
       );
@@ -728,12 +738,13 @@ export async function confirmarPedido(
   );
   const ajustados = trocados.rowCount ?? 0;
 
-  // O recipiente conferido pode ser outro, em qualquer resposta com muda: quem
-  // manda é o que a gerência achou no pátio
+  // O recipiente e a altura conferidos podem ser outros, em qualquer resposta
+  // com muda: quem manda é o que a gerência achou no pátio
   await client.query(
     `UPDATE pedidos_itens
-        SET recipiente_id = recipiente_disponivel_id, recipiente_disponivel_id = NULL
-      WHERE pedido_id = $1 AND recipiente_disponivel_id IS NOT NULL`,
+        SET recipiente_id = COALESCE(recipiente_disponivel_id, recipiente_id), recipiente_disponivel_id = NULL,
+            altura_m = COALESCE(altura_disponivel_m, altura_m), altura_disponivel_m = NULL
+      WHERE pedido_id = $1 AND (recipiente_disponivel_id IS NOT NULL OR altura_disponivel_m IS NOT NULL)`,
     [pedidoId],
   );
 
@@ -856,10 +867,29 @@ interface ItemParaVerificar extends ItemParaResponder {
   generico: boolean;
 }
 
+/** O item como a conferência o compara: `NUMERIC` volta do `pg` como texto. */
+async function itemParaVerificar(
+  client: Client,
+  pedidoId: string,
+  itemId: string,
+  travar = false,
+): Promise<ItemParaVerificar & { preco: string | null }> {
+  // `AND pedido_id` em toda escrita de item: impede que o identificador de um
+  // item de outro pedido, reenviado no formulário, escreva onde não devia.
+  const { rows } = await client.query<ItemParaVerificar & { preco: string | null }>(
+    `SELECT quantidade, recipiente_id AS "recipienteId", altura_m::float8 AS "alturaM", generico,
+            preco_unitario AS preco
+       FROM pedidos_itens WHERE id = $2 AND pedido_id = $1${travar ? ' FOR UPDATE' : ''}`,
+    [pedidoId, itemId],
+  );
+  if (!rows[0]) throw new UserError('Item não encontrado neste pedido.');
+  return rows[0];
+}
+
 /**
- * T8.10: a resposta da gerência sobre um item específico, gravada na hora. O
- * item que chegou sem quantidade ou sem recipiente é respondido com o que falta
- * (`resolveDisponibilidade`): quantas tem e em que recipiente.
+ * T8.10, P12: a resposta da gerência sobre um item específico, gravada na
+ * hora. O que cada resposta pergunta, e o que ela grava, é
+ * `resolveDisponibilidade`: a mesma regra que a tela usa para montar os campos.
  */
 export async function marcarDisponibilidade(
   client: Client,
@@ -867,31 +897,30 @@ export async function marcarDisponibilidade(
   itemId: string,
   estado: EstadoDisponibilidade,
   autor: AutorDaMudanca,
-  extras: { quantidade?: number | null; recipienteId?: string | null; observacoes?: string | null } = {},
+  extras: {
+    quantidade?: number | null;
+    recipienteId?: string | null;
+    alturaM?: number | null;
+    observacoes?: string | null;
+  } = {},
 ): Promise<void> {
   await abrirOuExigirVerificacao(client, pedidoId, autor);
 
-  // `AND pedido_id` em toda escrita de item: impede que o identificador de um
-  // item de outro pedido, reenviado no formulário, escreva onde não devia.
-  const { rows } = await client.query<ItemParaVerificar>(
-    'SELECT quantidade, recipiente_id AS "recipienteId", generico FROM pedidos_itens WHERE id = $2 AND pedido_id = $1',
-    [pedidoId, itemId],
-  );
-  if (!rows[0]) throw new UserError('Item não encontrado neste pedido.');
-  if (rows[0].generico) {
+  const item = await itemParaVerificar(client, pedidoId, itemId);
+  if (item.generico) {
     throw new UserError('O item genérico se resolve escolhendo as espécies, e não por disponível ou indisponível.');
   }
 
-  const resolvida = resolveDisponibilidade(estado, rows[0], extras);
+  const resolvida = resolveDisponibilidade(estado, item, extras);
   if ('error' in resolvida) throw new UserError(resolvida.error);
-  const { disponivel, quantidadeDisponivel, recipienteDisponivelId } = resolvida.value;
+  const { disponivel, quantidadeDisponivel, recipienteDisponivelId, alturaDisponivelM } = resolvida.value;
 
   await client.query(
     `UPDATE pedidos_itens
         SET disponivel = $3, quantidade_disponivel = $4, recipiente_disponivel_id = $5,
-            observacoes_disponibilidade = $6
+            altura_disponivel_m = $6, observacoes_disponibilidade = $7
       WHERE id = $2 AND pedido_id = $1`,
-    [pedidoId, itemId, disponivel, quantidadeDisponivel, recipienteDisponivelId, extras.observacoes ?? null],
+    [pedidoId, itemId, disponivel, quantidadeDisponivel, recipienteDisponivelId, alturaDisponivelM, extras.observacoes ?? null],
   );
 }
 
@@ -917,9 +946,36 @@ export async function salvarObservacoesVerificacao(
 }
 
 /**
- * T8.10: a composição do item genérico. Apaga os filhos anteriores e grava os
- * novos, porque recompor é decidir de novo, e não acrescentar: somar os antigos
- * com os novos passaria da quantidade do pai na segunda tentativa.
+ * P12: "Não tem" no genérico. Apaga a composição que houver, porque ela dizia
+ * o contrário, e grava a mesma forma do específico indisponível: falso e zero.
+ * A aprovação o tira do pedido pelo mesmo caminho.
+ */
+export async function marcarGenericoIndisponivel(
+  client: Client,
+  pedidoId: string,
+  itemPaiId: string,
+  autor: AutorDaMudanca,
+  observacoes: string | null = null,
+): Promise<void> {
+  await abrirOuExigirVerificacao(client, pedidoId, autor);
+  const item = await itemParaVerificar(client, pedidoId, itemPaiId, true);
+  if (!item.generico) throw new UserError('Este item já tem espécie escolhida: responda "Não tem" nele.');
+
+  await client.query('DELETE FROM pedidos_itens WHERE item_pai_id = $2 AND pedido_id = $1', [pedidoId, itemPaiId]);
+  await client.query(
+    `UPDATE pedidos_itens
+        SET disponivel = false, quantidade_disponivel = 0, recipiente_disponivel_id = NULL,
+            altura_disponivel_m = NULL, observacoes_disponibilidade = $3
+      WHERE id = $2 AND pedido_id = $1`,
+    [pedidoId, itemPaiId, observacoes],
+  );
+}
+
+/**
+ * T8.10, P12: a composição do item genérico, em "Tem tudo" ou "Tem parte".
+ * Apaga os filhos anteriores e grava os novos, porque recompor é decidir de
+ * novo, e não acrescentar: somar os antigos com os novos passaria da quantidade
+ * do pai na segunda tentativa.
  *
  * **O escopo é conferido aqui, e não só na busca da tela**: a lista de espécies
  * oferecidas é conveniência, a recusa é a regra.
@@ -934,36 +990,35 @@ export async function definirComposicaoGenerico(
   itemPaiId: string,
   linhas: readonly LinhaComposicao[],
   autor: AutorDaMudanca,
+  estado: Exclude<EstadoDisponibilidade, 'indisponivel'> = 'disponivel',
+  observacoes: string | null = null,
 ): Promise<void> {
   await abrirOuExigirVerificacao(client, pedidoId, autor);
 
-  const { rows } = await client.query<{ quantidade: number | null; preco: string | null; generico: boolean; altura: string | null }>(
-    'SELECT quantidade, preco_unitario AS preco, generico, altura_m AS altura FROM pedidos_itens WHERE id = $2 AND pedido_id = $1 FOR UPDATE',
-    [pedidoId, itemPaiId],
-  );
-  if (!rows[0]) throw new UserError('Item não encontrado neste pedido.');
-  if (!rows[0].generico) throw new UserError('Este item já tem espécie escolhida, e não se compõe.');
+  const pai = await itemParaVerificar(client, pedidoId, itemPaiId, true);
+  if (!pai.generico) throw new UserError('Este item já tem espécie escolhida, e não se compõe.');
 
   const { rows: escopo } = await client.query<{ especieId: string }>(
     'SELECT especie_id AS "especieId" FROM pedidos_itens_especies_permitidas WHERE item_id = $1',
     [itemPaiId],
   );
   const validada = validarComposicaoGenerico(
-    rows[0].quantidade,
+    pai,
     linhas,
     escopo.map((linha) => linha.especieId),
+    estado,
   );
   if ('error' in validada) throw new UserError(validada.error);
 
   await client.query('DELETE FROM pedidos_itens WHERE item_pai_id = $2 AND pedido_id = $1', [pedidoId, itemPaiId]);
 
-  for (const linha of validada.value) {
+  for (const linha of validada.value.linhas) {
     // O filho herda o preço do pai: foi por aquele preço que as 500 mudas foram
     // vendidas, e o filho não é uma venda nova. O total do pedido soma só os
     // itens de topo, e é o que impede a venda de contar duas vezes (`totalPedido`).
-    // A altura vem junto pela mesma razão: ela é parte do que foi combinado no
-    // item genérico, e vale para as espécies que o compõem. Na lista montada o
-    // filho é a venda, e nasce sem preço.
+    // Recipiente e altura já chegam resolvidos: os do pai em "Tem tudo", os que
+    // a gerência achou em "Tem parte". Na lista montada o filho é a venda, e
+    // nasce sem preço.
     await client.query(
       `INSERT INTO pedidos_itens
          (pedido_id, especie_id, recipiente_id, quantidade, preco_unitario, generico, item_pai_id, disponivel, altura_m)
@@ -973,19 +1028,22 @@ export async function definirComposicaoGenerico(
         linha.especieId,
         linha.recipienteId,
         linha.quantidade,
-        rows[0].quantidade === null ? null : rows[0].preco,
+        pai.quantidade === null ? null : pai.preco,
         itemPaiId,
-        rows[0].altura,
+        linha.alturaM,
       ],
     );
   }
 
-  // O pai fica respondido, e é assim que ele deixa de ser pendência na conclusão
+  // O pai fica respondido, e é assim que ele deixa de ser pendência na conclusão.
+  // Na parte com falta, ele grava quantas a composição somou, como o específico
+  const { disponivel, quantidadeDisponivel } = validada.value;
   await client.query(
     `UPDATE pedidos_itens
-        SET disponivel = true, quantidade_disponivel = NULL, recipiente_disponivel_id = NULL
+        SET disponivel = $3, quantidade_disponivel = $4, recipiente_disponivel_id = NULL,
+            altura_disponivel_m = NULL, observacoes_disponibilidade = $5
       WHERE id = $2 AND pedido_id = $1`,
-    [pedidoId, itemPaiId],
+    [pedidoId, itemPaiId, disponivel, quantidadeDisponivel, observacoes],
   );
 }
 

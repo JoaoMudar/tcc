@@ -316,13 +316,18 @@ export function totalPedido(itens: readonly ItemCalculavel[]): number | null {
  * Quantas mudas a conferência confirmou: o que a gerência contou, ou a
  * quantidade pedida quando ela respondeu "tem tudo". É o teto da negociação,
  * e pedir mais do que isso é voltar à conferência.
+ *
+ * **Nulo é "sem teto"**: o item sem quantidade respondido com "Tem" e sem
+ * número (P12). A gerência disse que existe, não quantas, e a chefia acerta o
+ * número com o cliente.
  */
 export function quantidadeConfirmada(item: {
   quantidade: number | null;
   disponivel: boolean | null;
   quantidadeDisponivel: number | null;
-}): number {
+}): number | null {
   if (item.disponivel === null) return item.quantidade ?? 0;
+  if (item.disponivel && item.quantidade === null && item.quantidadeDisponivel === null) return null;
   return item.quantidadeDisponivel ?? item.quantidade ?? 0;
 }
 
@@ -341,114 +346,289 @@ export function formatTotal(centavos: number | null): string {
 // Verificação de disponibilidade (T8.9)
 // ------------------------------------------------------------
 
-/** O que a gerência responde sobre um item, andando no pátio. */
+/** O que a gerência responde sobre um item, andando no pátio: "Tem tudo", "Tem parte" ou "Não tem". */
 export type EstadoDisponibilidade = 'disponivel' | 'parcial' | 'indisponivel';
 
-/** As três colunas de `pedidos_itens` que o estado resolve. */
+/** As colunas de `pedidos_itens` que a resposta grava. */
 export interface Disponibilidade {
   disponivel: boolean;
   quantidadeDisponivel: number | null;
   recipienteDisponivelId: string | null;
+  alturaDisponivelM: number | null;
 }
 
-/** O que a conferência precisa saber do item para interpretar a resposta. */
+/** O que o cliente especificou no item: é o que a conferência compara. */
 export interface ItemParaResponder {
-  /** Nula quando o cliente não disse quantas: a resposta é "quantas tem". */
+  /** Nula quando o cliente não disse quantas. */
   quantidade: number | null;
-  /** Nulo quando o cliente não disse o tamanho: a resposta diz em qual está. */
+  /** Nulo quando o cliente não disse o tamanho. */
   recipienteId: string | null;
+  /** Nula quando o cliente não pediu altura, que é o caso comum. */
+  alturaM: number | null;
+}
+
+export type CampoConferido = 'quantidade' | 'recipiente' | 'altura';
+
+export interface Pergunta {
+  campo: CampoConferido;
+  obrigatorio: boolean;
+}
+
+export interface PerguntasDoItem {
+  /** Só há "parte" do que foi especificado: o item sem nada especificado não tem este botão. */
+  temParte: boolean;
+  /** "Tem tudo", ou só "Tem" quando o cliente não especificou nada. */
+  rotuloTudo: 'Tem tudo' | 'Tem';
+  /** Os campos do painel de "Tem tudo" (ou de cada espécie, no genérico). */
+  tudo: readonly Pergunta[];
+  /** Os campos do painel de "Tem parte", já preenchidos com o pedido. */
+  parte: readonly Pergunta[];
 }
 
 /**
- * Três botões viram três colunas. **Parcial e indisponível compartilham
- * `disponivel = false`**, e quem os distingue é a quantidade: zero é "não tem
- * nenhuma", maior que zero é "tem só isto". É a mesma forma do CHECK
- * `pedidos_itens_disponibilidade_coerente`, e esta função existe para a tela e
- * o servidor chegarem nela pelo mesmo caminho.
+ * P12: **uma regra só para os 16 tipos de item** (espécie ou genérico, com ou
+ * sem recipiente, altura e quantidade), para a tela e o servidor perguntarem o
+ * mesmo.
  *
- * **O item que chegou incompleto muda a pergunta.** Sem quantidade, não há
- * "tem tudo" nem "tem parte": a gerência diz quantas tem ("tenho 350"), e
- * `disponivel` é só "tem alguma". Sem recipiente, toda resposta com muda diz em
- * qual recipiente ela está, porque é a única informação de tamanho que o pedido
- * vai ter. No item completo o recipiente conferido é opcional no "tem tudo":
- * "tem, mas em 17x22".
+ * - **Tem tudo** é "bate com tudo o que o cliente especificou", e pergunta só o
+ *   que falta para fechar a venda: o recipiente, se não veio (obrigatório,
+ *   porque a aprovação o exige), e a quantidade, se não veio (opcional: a
+ *   chefia acerta na negociação).
+ * - **Tem parte** é "algo do que foi especificado não bate", e pergunta tudo o
+ *   que foi especificado, mais o que "Tem tudo" perguntaria. Altura que o
+ *   cliente não pediu nunca é perguntada.
+ * - **No genérico, cada espécie é uma linha**, e a quantidade de cada uma é
+ *   perguntada mesmo em "Tem tudo": "500 nativas" precisa saber quantas de cada.
+ */
+export function perguntasDoItem(item: ItemParaResponder, generico = false): PerguntasDoItem {
+  const temQuantidade = item.quantidade !== null;
+  const quantidade: Pergunta = { campo: 'quantidade', obrigatorio: temQuantidade };
+  const recipiente: Pergunta = { campo: 'recipiente', obrigatorio: true };
+
+  const tudo: Pergunta[] = [];
+  if (generico || !temQuantidade) tudo.push(quantidade);
+  if (!item.recipienteId) tudo.push(recipiente);
+
+  const parte: Pergunta[] = [quantidade, recipiente];
+  if (item.alturaM !== null) parte.push({ campo: 'altura', obrigatorio: true });
+
+  const temParte = temQuantidade || item.recipienteId !== null || item.alturaM !== null;
+  return { temParte, rotuloTudo: temParte ? 'Tem tudo' : 'Tem', tudo, parte };
+}
+
+function quantidadeInvalida(valor: number | null | undefined): boolean {
+  return valor !== null && valor !== undefined && (!Number.isInteger(valor) || valor < 1);
+}
+
+const NADA_DIFERE = 'Nada difere do pedido: use "Tem tudo".';
+
+/**
+ * A resposta de um item específico vira colunas. **Parcial e indisponível
+ * compartilham `disponivel = false`** quando falta quantidade, e quem os
+ * distingue é o número: zero é "não tem nenhuma". É a forma do CHECK
+ * `pedidos_itens_disponibilidade_coerente`.
+ *
+ * **Conferido igual ao pedido não é informação**: recipiente e altura só são
+ * gravados quando diferem, e é isso que deixa a aprovação copiá-los por cima do
+ * pedido sem apagar nada (`confirmarPedido`).
+ *
+ * "Tem parte" com a quantidade inteira é válido quando o recipiente ou a altura
+ * diferem ("tem as 500, mas em 17x22"), e fica `disponivel = true`.
  */
 export function resolveDisponibilidade(
   estado: EstadoDisponibilidade,
   item: ItemParaResponder,
-  extras: { quantidade?: number | null; recipienteId?: string | null } = {},
+  extras: { quantidade?: number | null; recipienteId?: string | null; alturaM?: number | null } = {},
 ): { error: string } | { value: Disponibilidade } {
   if (estado === 'indisponivel') {
-    return { value: { disponivel: false, quantidadeDisponivel: 0, recipienteDisponivelId: null } };
+    return { value: { disponivel: false, quantidadeDisponivel: 0, recipienteDisponivelId: null, alturaDisponivelM: null } };
   }
 
-  // Conferido igual ao pedido não é informação: grava nulo, como "tem tudo" sempre gravou
-  const conferido = extras.recipienteId && extras.recipienteId !== item.recipienteId ? extras.recipienteId : null;
-  if (!item.recipienteId && !conferido) {
-    return { error: 'Escolha o recipiente em que a muda está.' };
+  const perguntas = perguntasDoItem(item);
+  if (estado === 'parcial' && !perguntas.temParte) {
+    return { error: 'O pedido não especifica nada para comparar: use "Tem".' };
   }
 
-  if (item.quantidade === null || estado === 'parcial') {
-    const quantidade = extras.quantidade ?? null;
-    if (quantidade === null || !Number.isInteger(quantidade) || quantidade < 1) {
-      return { error: 'Informe quantas mudas existem, um número inteiro maior que zero.' };
-    }
-    if (item.quantidade === null) {
-      return { value: { disponivel: true, quantidadeDisponivel: quantidade, recipienteDisponivelId: conferido } };
-    }
-    if (quantidade >= item.quantidade) {
-      return { error: 'Na parcial a quantidade precisa ser menor que a pedida. Se tem tudo, use "Tem tudo".' };
-    }
-    return { value: { disponivel: false, quantidadeDisponivel: quantidade, recipienteDisponivelId: conferido } };
+  const recipiente = extras.recipienteId || item.recipienteId;
+  if (!recipiente) return { error: 'Escolha o recipiente em que a muda está.' };
+  // "Tem tudo" num item com recipiente é o recipiente do pedido
+  const recipienteConferido =
+    estado === 'parcial' || !item.recipienteId ? (recipiente !== item.recipienteId ? recipiente : null) : null;
+
+  const informada = extras.quantidade ?? null;
+  if (quantidadeInvalida(informada)) {
+    return { error: 'Informe quantas mudas existem, um número inteiro maior que zero.' };
   }
 
-  return { value: { disponivel: true, quantidadeDisponivel: null, recipienteDisponivelId: conferido } };
+  if (estado === 'disponivel') {
+    // Com quantidade no pedido, "tem tudo" é ela; sem, o número é opcional
+    const quantidadeDisponivel = item.quantidade === null ? informada : null;
+    return {
+      value: { disponivel: true, quantidadeDisponivel, recipienteDisponivelId: recipienteConferido, alturaDisponivelM: null },
+    };
+  }
+
+  let quantidadeDisponivel: number | null = informada;
+  if (item.quantidade !== null) {
+    if (informada === null) return { error: 'Informe quantas mudas existem, um número inteiro maior que zero.' };
+    if (informada > item.quantidade) {
+      return { error: `Tem parte não passa do pedido: são ${item.quantidade} mudas.` };
+    }
+    // A quantidade inteira não é número a gravar: "tem as 500" é disponível
+    quantidadeDisponivel = informada < item.quantidade ? informada : null;
+  }
+
+  const altura = item.alturaM === null ? null : (extras.alturaM ?? item.alturaM);
+  const alturaConferida = altura !== null && altura !== item.alturaM ? altura : null;
+
+  const faltaMuda = item.quantidade !== null && quantidadeDisponivel !== null;
+  const outroRecipiente = item.recipienteId !== null && recipienteConferido !== null;
+  if (!faltaMuda && !outroRecipiente && alturaConferida === null) return { error: NADA_DIFERE };
+
+  return {
+    value: {
+      disponivel: !faltaMuda,
+      quantidadeDisponivel,
+      recipienteDisponivelId: recipienteConferido,
+      alturaDisponivelM: alturaConferida,
+    },
+  };
 }
 
-/** Uma espécie escolhida para compor um item genérico. */
+/** Como a tela pinta o item: branco é o que ainda não foi olhado. */
+export type EstadoDaResposta = 'pendente' | 'nao_tem' | 'parte' | 'tudo';
+
+/**
+ * O estado sai das colunas, e não de uma coluna própria: "parte" é ter menos
+ * mudas que o pedido, ou tê-las com recipiente ou altura diferente do que o
+ * cliente especificou. No item sem recipiente, o recipiente conferido é o que
+ * faltava, e não uma diferença.
+ */
+export function estadoDaResposta(item: {
+  recipienteId: string | null;
+  disponivel: boolean | null;
+  quantidadeDisponivel: number | null;
+  recipienteDisponivelId: string | null;
+  alturaDisponivelM: number | null;
+}): EstadoDaResposta {
+  if (item.disponivel === null) return 'pendente';
+  if (!item.disponivel && !item.quantidadeDisponivel) return 'nao_tem';
+  if (!item.disponivel) return 'parte';
+  const outroRecipiente = item.recipienteId !== null && item.recipienteDisponivelId !== null;
+  return outroRecipiente || item.alturaDisponivelM !== null ? 'parte' : 'tudo';
+}
+
+/** Uma espécie escolhida para compor um item genérico, como chega da tela. */
 export interface LinhaComposicao {
   especieId: string;
+  /** Vazio herda o do genérico. */
+  recipienteId: string | null;
+  /** Nula só no genérico sem quantidade, onde é opcional. */
+  quantidade: number | null;
+  /** Nula ou ausente herda a do genérico. */
+  alturaM?: number | null;
+}
+
+/** A linha pronta para gravar: o que foi herdado do genérico já está preenchido. */
+export interface LinhaComposta {
+  especieId: string;
   recipienteId: string;
-  quantidade: number;
+  quantidade: number | null;
+  alturaM: number | null;
+}
+
+/** O genérico composto: as linhas e a resposta que o pai grava. */
+export interface ComposicaoValidada {
+  linhas: readonly LinhaComposta[];
+  disponivel: boolean;
+  quantidadeDisponivel: number | null;
 }
 
 /**
  * A composição do item genérico: quais espécies atendem "500 mudas nativas".
  *
- * **Com quantidade no pai, a soma tem de fechar exatamente.** Menos que o pedido entregaria menos do
- * que foi vendido; mais entregaria muda que ninguém comprou. E o escopo, quando
- * o cliente deu um, é **bloqueio rígido**: a compensação ambiental que exige
- * cinco espécies do bioma não aceita a sexta, por mais que o viveiro a tenha.
+ * **Em "Tem tudo", a soma tem de fechar exatamente**, e recipiente e altura
+ * pedidos valem para toda linha. Menos que o pedido entregaria menos do que foi
+ * vendido; mais entregaria muda que ninguém comprou. **Em "Tem parte"**, a soma
+ * pode ficar abaixo, ou fechar com alguma espécie em outro recipiente ou outra
+ * altura. O escopo, quando o cliente deu um, é **bloqueio rígido**: a
+ * compensação ambiental que exige cinco espécies do bioma não aceita a sexta.
  *
- * **Sem quantidade no pai não há soma a fechar**: "manda o que tiver" é a
- * gerência montando a lista, e cada linha é uma venda própria.
+ * **Sem quantidade no pai não há soma**: "manda o que tiver" é a gerência
+ * montando a lista, cada linha é uma venda própria, e quantas de cada é
+ * opcional, como no item específico.
  */
 export function validarComposicaoGenerico(
-  quantidadePai: number | null,
+  pai: ItemParaResponder,
   linhas: readonly LinhaComposicao[],
   permitidas: readonly string[] = [],
-): { error: string } | { value: readonly LinhaComposicao[] } {
+  estado: Exclude<EstadoDisponibilidade, 'indisponivel'> = 'disponivel',
+): { error: string } | { value: ComposicaoValidada } {
   if (linhas.length === 0) return { error: 'Escolha ao menos uma espécie para compor o item.' };
+  if (estado === 'parcial' && !perguntasDoItem(pai, true).temParte) {
+    return { error: 'O pedido não especifica nada para comparar: use "Tem".' };
+  }
 
+  const compostas: LinhaComposta[] = [];
+  let difere = false;
   for (const [indice, linha] of linhas.entries()) {
     const posicao = `linha ${indice + 1}`;
     if (!linha.especieId) return { error: `Escolha a espécie da ${posicao}.` };
-    if (!linha.recipienteId) return { error: `Escolha o recipiente da ${posicao}.` };
-    if (!Number.isInteger(linha.quantidade) || linha.quantidade < 1) {
-      return { error: `Informe a quantidade da ${posicao}, um número inteiro maior que zero.` };
-    }
     if (permitidas.length > 0 && !permitidas.includes(linha.especieId)) {
       return { error: `A espécie da ${posicao} não está entre as que o cliente aceita.` };
     }
+
+    const recipienteId = estado === 'disponivel' && pai.recipienteId ? pai.recipienteId : linha.recipienteId || pai.recipienteId;
+    if (!recipienteId) return { error: `Escolha o recipiente da ${posicao}.` };
+
+    if (pai.quantidade !== null && linha.quantidade === null) {
+      return { error: `Informe a quantidade da ${posicao}, um número inteiro maior que zero.` };
+    }
+    if (quantidadeInvalida(linha.quantidade)) {
+      return { error: `Informe a quantidade da ${posicao}, um número inteiro maior que zero.` };
+    }
+
+    const alturaM = estado === 'disponivel' || pai.alturaM === null ? pai.alturaM : (linha.alturaM ?? pai.alturaM);
+    if (pai.recipienteId && recipienteId !== pai.recipienteId) difere = true;
+    if (alturaM !== pai.alturaM) difere = true;
+    compostas.push({ especieId: linha.especieId, recipienteId, quantidade: linha.quantidade, alturaM });
   }
 
-  if (quantidadePai === null) return { value: linhas };
-  const soma = linhas.reduce((total, linha) => total + linha.quantidade, 0);
-  if (soma < quantidadePai) return { error: `Faltam ${quantidadePai - soma} mudas para fechar o item.` };
-  if (soma > quantidadePai) return { error: `Passou ${soma - quantidadePai} mudas do que o item pede.` };
+  const soma = compostas.reduce((total, linha) => total + (linha.quantidade ?? 0), 0);
+  if (pai.quantidade === null) {
+    if (estado === 'parcial' && !difere) return { error: NADA_DIFERE };
+    return { value: { linhas: compostas, disponivel: true, quantidadeDisponivel: null } };
+  }
 
-  return { value: linhas };
+  if (soma > pai.quantidade) return { error: `Passou ${soma - pai.quantidade} mudas do que o item pede.` };
+  if (estado === 'disponivel' && soma < pai.quantidade) {
+    return { error: `Faltam ${pai.quantidade - soma} mudas para fechar o item.` };
+  }
+  if (estado === 'parcial' && soma === pai.quantidade && !difere) return { error: NADA_DIFERE };
+
+  const falta = soma < pai.quantidade;
+  return { value: { linhas: compostas, disponivel: !falta, quantidadeDisponivel: falta ? soma : null } };
 }
+
+/**
+ * O estado do genérico na tela sai dos filhos: parte é soma abaixo do pedido,
+ * ou alguma espécie em recipiente ou altura diferente do que o cliente pediu.
+ */
+export function estadoDoGenerico(
+  pai: ItemParaResponder & { disponivel: boolean | null; quantidadeDisponivel: number | null },
+  filhos: readonly { recipienteId: string | null; alturaM: number | null }[],
+): EstadoDaResposta {
+  if (pai.disponivel === null) return 'pendente';
+  if (!pai.disponivel && !pai.quantidadeDisponivel) return 'nao_tem';
+  if (!pai.disponivel) return 'parte';
+  const difere = filhos.some(
+    (filho) =>
+      (pai.recipienteId !== null && filho.recipienteId !== pai.recipienteId) ||
+      (pai.alturaM !== null && filho.alturaM !== pai.alturaM),
+  );
+  return difere ? 'parte' : 'tudo';
+}
+
 
 // ------------------------------------------------------------
 // Cargas (T8.9)

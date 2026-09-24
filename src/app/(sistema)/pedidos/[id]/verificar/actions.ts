@@ -61,17 +61,25 @@ export async function marcarDisponibilidadeAction(_previous: FormState, formData
   if (!isUuid(pedidoId) || !isUuid(itemId)) return { error: 'Item inválido.' };
   if (!isEstado(estado)) return { error: 'Resposta inválida.' };
 
-  const extras: { quantidade?: number | null; recipienteId?: string | null; observacoes?: string | null } = {};
+  const extras: {
+    quantidade?: number | null;
+    recipienteId?: string | null;
+    alturaM?: number | null;
+    observacoes?: string | null;
+  } = {};
 
-  // Quantas e em que recipiente: o parcial sempre diz, e o item que chegou sem
-  // quantidade ou sem recipiente também. Quem exige o quê é `resolveDisponibilidade`
+  // Quantas, em que recipiente e com que altura: quem exige o quê, conforme o
+  // que o cliente especificou, é `resolveDisponibilidade` (P12)
   if (estado !== 'indisponivel') {
     const quantidade = pedidos.parseQuantidadeOpcional(formText(formData, 'quantidade'));
     if ('error' in quantidade) return { error: quantidade.error };
     const recipienteId = formText(formData, 'recipiente_id');
     if (recipienteId !== '' && !isUuid(recipienteId)) return { error: 'Escolha o recipiente em que a muda está.' };
+    const altura = pedidos.parseAltura(formText(formData, 'altura'));
+    if ('error' in altura) return { error: altura.error };
     extras.quantidade = quantidade.value;
     extras.recipienteId = recipienteId || null;
+    extras.alturaM = altura.value;
   }
 
   const observacoes = pedidos.parseObservacoesPedido(formText(formData, 'observacoes'));
@@ -123,44 +131,92 @@ export async function salvarObservacoesAction(_previous: FormState, formData: Fo
   return { success: 'Anotações salvas. Você pode continuar depois.' };
 }
 
+/** P12: "Não tem" no genérico, gravado no toque, como no específico. */
+export async function marcarGenericoIndisponivelAction(_previous: FormState, formData: FormData): Promise<FormState> {
+  const user = await requirePermission('verificacao_pedido', 'C');
+  const pedidoId = formText(formData, 'pedido_id');
+  const itemPaiId = formText(formData, 'item_pai_id');
+  if (!isUuid(pedidoId) || !isUuid(itemPaiId)) return { error: 'Item inválido.' };
+  const observacoes = pedidos.parseObservacoesPedido(formText(formData, 'observacoes'));
+  if ('error' in observacoes) return { error: 'A observação pode ter até 500 caracteres.' };
+
+  try {
+    await withTransaction(pool, (client) =>
+      pedidos.marcarGenericoIndisponivel(
+        client,
+        pedidoId,
+        itemPaiId,
+        { perfil: user.perfil, usuarioId: user.usuarioId },
+        observacoes.value,
+      ),
+    );
+  } catch (error) {
+    return { error: toUserMessage(error) };
+  }
+  revalidar(pedidoId);
+  return { success: 'Resposta gravada.' };
+}
+
 /**
- * A composição do item genérico. As linhas chegam como listas paralelas, uma
- * posição por linha da tela, como no cadastro do pedido.
+ * A composição do item genérico, em "Tem tudo" ou "Tem parte". As linhas
+ * chegam como listas paralelas, uma posição por linha da tela, como no
+ * cadastro do pedido. Recipiente, quantidade e altura em branco são o que a
+ * regra não perguntou, e `validarComposicaoGenerico` herda do genérico.
  */
 export async function definirComposicaoAction(_previous: FormState, formData: FormData): Promise<FormState> {
   const user = await requirePermission('verificacao_pedido', 'C');
   const pedidoId = formText(formData, 'pedido_id');
   const itemPaiId = formText(formData, 'item_pai_id');
   if (!isUuid(pedidoId) || !isUuid(itemPaiId)) return { error: 'Item inválido.' };
+  const estado = formText(formData, 'estado');
+  if (estado !== 'disponivel' && estado !== 'parcial') return { error: 'Resposta inválida.' };
 
   const especies = formData.getAll('composicao_especie').map(String);
   const recipientes = formData.getAll('composicao_recipiente').map(String);
   const quantidades = formData.getAll('composicao_quantidade').map(String);
+  const alturas = formData.getAll('composicao_altura').map(String);
   const linhas: pedidos.LinhaComposicao[] = [];
 
   for (let i = 0; i < especies.length; i++) {
+    const recipiente = recipientes[i] ?? '';
+    const quantidadeTexto = quantidades[i] ?? '';
     // Linha em branco é linha que a pessoa abriu e não usou, e não erro
-    if (!especies[i] && !recipientes[i] && !quantidades[i]?.trim()) continue;
+    if (!especies[i] && !quantidadeTexto.trim()) continue;
     const posicao = `linha ${i + 1}`;
     if (!isUuid(especies[i])) return { error: `Escolha a espécie da ${posicao}.` };
-    if (!isUuid(recipientes[i])) return { error: `Escolha o recipiente da ${posicao}.` };
-    const quantidade = pedidos.parseQuantidadeItem(quantidades[i] ?? '');
+    if (recipiente !== '' && !isUuid(recipiente)) return { error: `Escolha o recipiente da ${posicao}.` };
+    const quantidade = pedidos.parseQuantidadeOpcional(quantidadeTexto);
     if ('error' in quantidade) return { error: `Na ${posicao}: ${quantidade.error.toLowerCase()}` };
-    linhas.push({ especieId: especies[i], recipienteId: recipientes[i], quantidade: quantidade.value });
+    const altura = pedidos.parseAltura(alturas[i] ?? '');
+    if ('error' in altura) return { error: `Na ${posicao}: ${altura.error.toLowerCase()}` };
+    linhas.push({
+      especieId: especies[i],
+      recipienteId: recipiente || null,
+      quantidade: quantidade.value,
+      alturaM: altura.value,
+    });
   }
+
+  const observacoes = pedidos.parseObservacoesPedido(formText(formData, 'observacoes'));
+  if ('error' in observacoes) return { error: 'A observação pode ter até 500 caracteres.' };
 
   try {
     await withTransaction(pool, (client) =>
-      pedidos.definirComposicaoGenerico(client, pedidoId, itemPaiId, linhas, {
-        perfil: user.perfil,
-        usuarioId: user.usuarioId,
-      }),
+      pedidos.definirComposicaoGenerico(
+        client,
+        pedidoId,
+        itemPaiId,
+        linhas,
+        { perfil: user.perfil, usuarioId: user.usuarioId },
+        estado,
+        observacoes.value,
+      ),
     );
   } catch (error) {
     return { error: toUserMessage(error) };
   }
   revalidar(pedidoId);
-  return { success: 'Composição definida.' };
+  return { success: 'Composição gravada.' };
 }
 
 /** Fecha a conferência e devolve o pedido à chefia. Recusa se faltar item. */

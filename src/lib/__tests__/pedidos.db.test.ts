@@ -25,6 +25,7 @@ import {
   listItens,
   listPedidos,
   marcarDisponibilidade,
+  marcarGenericoIndisponivel,
   mudarSituacao,
   negociarItens,
   removerItem,
@@ -482,12 +483,16 @@ describe('verificação de disponibilidade (T8.10)', () => {
     expect(depois.get(pequeno.id)).toMatchObject({ disponivel: false, quantidadeDisponivel: 0, recipienteDisponivelId: null });
   });
 
-  it('parcial igual ou maior que o pedido é recusada, e o CHECK do banco diria o mesmo', async () => {
+  it('parcial igual ao pedido em tudo, ou maior que ele, é recusada', async () => {
     const { id, itens: doPedido } = await emVerificacao();
-    const cheio = doPedido[0].quantidade;
+    const { quantidade: cheio, recipienteId } = doPedido[0];
+    // Igual em quantidade e recipiente: nada difere (P12)
     await expect(
-      tx((c) => marcarDisponibilidade(c, id, doPedido[0].id, 'parcial', gerencia(), { quantidade: cheio, recipienteId: tubete })),
+      tx((c) => marcarDisponibilidade(c, id, doPedido[0].id, 'parcial', gerencia(), { quantidade: cheio, recipienteId })),
     ).rejects.toThrow(/tem tudo/i);
+    await expect(
+      tx((c) => marcarDisponibilidade(c, id, doPedido[0].id, 'parcial', gerencia(), { quantidade: cheio! + 1, recipienteId })),
+    ).rejects.toThrow(/não passa do pedido/i);
     expect((await listItens(pool, id))[0].disponivel).toBeNull();
   });
 
@@ -807,7 +812,8 @@ describe('as restrições do banco para o item incompleto (20260924000001)', () 
     const cols = 'especie_id, disponivel, quantidade_disponivel';
     await expect(umItem(cols, [especie, true, 350])).resolves.toBeTruthy();
     await expect(umItem(cols, [especie, false, 0])).resolves.toBeTruthy();
-    await expect(umItem(cols, [especie, true, null])).rejects.toThrow(/disponibilidade_coerente/);
+    // "Tem", sem número, passou a caber na 20260925000001
+    await expect(umItem(cols, [especie, true, null])).resolves.toBeTruthy();
     await expect(umItem(cols, [especie, false, 350])).rejects.toThrow(/disponibilidade_coerente/);
   });
 
@@ -1078,5 +1084,120 @@ describe('item genérico (T8.10)', () => {
     const itens = await listItens(pool, id);
     expect(itens[0].id).toBe(pai.id);
     expect(itens.slice(1).every((i) => i.itemPaiId === pai.id)).toBe(true);
+  });
+});
+
+describe('conferência por tipo de item (P12, 20260925000001)', () => {
+  async function umItem(colunas: string, valores: unknown[]) {
+    const { id } = await novoPedido();
+    const lista = valores.map((_, indice) => `$${indice + 2}`).join(', ');
+    return pool.query(`INSERT INTO pedidos_itens (pedido_id, ${colunas}) VALUES ($1, ${lista})`, [id, ...valores]);
+  }
+
+  it('altura conferida: positiva, até 20 m, e só com muda', async () => {
+    const cols = 'especie_id, quantidade, disponivel, quantidade_disponivel, altura_disponivel_m';
+    await expect(umItem(cols, [especie, 100, true, null, 0.8])).resolves.toBeTruthy();
+    await expect(umItem(cols, [especie, 100, true, null, 25])).rejects.toThrow(/altura_disponivel_positiva/);
+    await expect(umItem(cols, [especie, 100, false, 0, 0.8])).rejects.toThrow(/altura_disponivel_com_muda/);
+  });
+
+  it('"tem parte" com outra altura, aprovado, vira a altura do item', async () => {
+    const { id } = await novoPedido({
+      itens: [{ especieId: especie, recipienteId: tubete, quantidade: 100, precoCentavos: 300, alturaM: 1.2 }],
+    });
+    const [item] = await listItens(pool, id);
+    await tx((c) => marcarDisponibilidade(c, id, item.id, 'parcial', gerencia(), { quantidade: 100, alturaM: 0.8 }));
+    const [conferido] = await listItens(pool, id);
+    expect(conferido).toMatchObject({ disponivel: true, quantidadeDisponivel: null, alturaDisponivelM: 0.8 });
+
+    await tx((c) => concluirVerificacao(c, id, gerencia()));
+    await tx((c) => confirmarPedido(c, id, chefia()));
+    const [aprovado] = await listItens(pool, id);
+    expect(aprovado).toMatchObject({ alturaM: 0.8, alturaDisponivelM: null });
+  });
+
+  it('"tem", sem número, no item sem quantidade: a chefia negocia sem teto', async () => {
+    const { id } = await novoPedido({
+      itens: [{ especieId: especie, recipienteId: tubete, quantidade: null, precoCentavos: null }],
+    });
+    const [item] = await listItens(pool, id);
+    await tx((c) => marcarDisponibilidade(c, id, item.id, 'disponivel', gerencia()));
+    expect((await listItens(pool, id))[0]).toMatchObject({ disponivel: true, quantidadeDisponivel: null });
+
+    await tx((c) => concluirVerificacao(c, id, gerencia()));
+    await tx((c) => negociarItens(c, id, [{ itemId: item.id, precoCentavos: 400, quantidade: 900, recipienteId: null }], chefia()));
+    await tx((c) => confirmarPedido(c, id, chefia()));
+    expect((await listItens(pool, id))[0]).toMatchObject({ quantidade: 900 });
+  });
+
+  it('genérico: "Não tem" apaga a composição, e a aprovação o tira do pedido', async () => {
+    const { id } = await novoPedido({
+      itens: [
+        { especieId: especie, recipienteId: tubete, quantidade: 10, precoCentavos: 100 },
+        { especieId: null, recipienteId: tubete, quantidade: 100, precoCentavos: 200, generico: true },
+      ],
+    });
+    const pai = (await listItens(pool, id)).find((i) => i.generico)!;
+    await tx((c) =>
+      definirComposicaoGenerico(c, id, pai.id, [{ especieId: especie, recipienteId: null, quantidade: 100 }], gerencia()),
+    );
+    await tx((c) => marcarGenericoIndisponivel(c, id, pai.id, gerencia()));
+
+    const lidos = await listItens(pool, id);
+    expect(lidos.filter((i) => i.itemPaiId === pai.id)).toEqual([]);
+    expect(lidos.find((i) => i.id === pai.id)).toMatchObject({ disponivel: false, quantidadeDisponivel: 0 });
+
+    const especifico = lidos.find((i) => !i.generico)!;
+    await tx((c) => marcarDisponibilidade(c, id, especifico.id, 'disponivel', gerencia()));
+    await tx((c) => concluirVerificacao(c, id, gerencia()));
+    expect(await tx((c) => confirmarPedido(c, id, chefia()))).toMatchObject({ removidos: 1 });
+  });
+
+  it('genérico: "Tem parte" com soma menor, e a aprovação passa o pai a valer o que somou', async () => {
+    const { id } = await novoPedido({
+      itens: [{ especieId: null, recipienteId: tubete, quantidade: 500, precoCentavos: 200, generico: true, alturaM: 1.2 }],
+    });
+    const [pai] = await listItens(pool, id);
+    await tx((c) =>
+      definirComposicaoGenerico(
+        c,
+        id,
+        pai.id,
+        [{ especieId: especie, recipienteId: saco, quantidade: 300, alturaM: 0.8 }],
+        gerencia(),
+        'parcial',
+      ),
+    );
+    const lidos = await listItens(pool, id);
+    expect(lidos.find((i) => i.id === pai.id)).toMatchObject({ disponivel: false, quantidadeDisponivel: 300 });
+    expect(lidos.find((i) => i.itemPaiId === pai.id)).toMatchObject({ recipienteId: saco, alturaM: 0.8, quantidade: 300 });
+
+    await tx((c) => concluirVerificacao(c, id, gerencia()));
+    await tx((c) => confirmarPedido(c, id, chefia()));
+    expect((await listItens(pool, id)).find((i) => i.id === pai.id)).toMatchObject({ quantidade: 300 });
+  });
+
+  it('lista montada: espécie sem quantidade é aceita, e a chefia diz quantas', async () => {
+    const { id } = await novoPedido({
+      itens: [{ especieId: null, recipienteId: tubete, quantidade: null, precoCentavos: null, generico: true }],
+    });
+    const [pai] = await listItens(pool, id);
+    await tx((c) =>
+      definirComposicaoGenerico(c, id, pai.id, [{ especieId: especie, recipienteId: null, quantidade: null }], gerencia()),
+    );
+    const filho = (await listItens(pool, id)).find((i) => i.itemPaiId === pai.id)!;
+    expect(filho).toMatchObject({ quantidade: null, recipienteId: tubete, disponivel: true });
+  });
+
+  it('mudar a altura do item no orçamento apaga a resposta, que era sobre a altura antiga', async () => {
+    const { id } = await novoPedido({
+      itens: [{ especieId: especie, recipienteId: tubete, quantidade: 100, precoCentavos: null, alturaM: 1.2 }],
+    });
+    const [item] = await listItens(pool, id);
+    await tx((c) => marcarDisponibilidade(c, id, item.id, 'parcial', gerencia(), { quantidade: 100, alturaM: 0.8 }));
+    // Atalho do teste: a volta ao orçamento pelo fluxo passa por concluir e reenviar
+    await pool.query("UPDATE pedidos SET situacao = 'cadastrado' WHERE id = $1", [id]);
+    await tx((c) => atualizarItem(c, id, item.id, { quantidade: 100, alturaM: 1.5 }));
+    expect((await listItens(pool, id))[0]).toMatchObject({ disponivel: null, alturaDisponivelM: null });
   });
 });

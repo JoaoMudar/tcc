@@ -161,6 +161,8 @@ export default async function PedidoPage({ params, searchParams }: PedidoPagePro
               generico: item.generico,
               disponivel: item.disponivel,
               quantidadeDisponivel: item.quantidadeDisponivel,
+              recipienteDisponivel: item.recipienteDisponivel,
+              alturaDisponivelM: item.alturaDisponivelM,
               pronto: chave ? (porChave.get(chave) ?? 0) : null,
               emProducao: chave ? (emProducao.get(chave) ?? 0) : null,
             };

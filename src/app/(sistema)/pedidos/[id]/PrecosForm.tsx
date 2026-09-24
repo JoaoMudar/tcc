@@ -14,8 +14,8 @@ export interface ItemParaNegociar {
   especie: string;
   /** O genérico com quantidade só recebe preço: a soma dos filhos é dele. */
   generico: boolean;
-  /** O que a conferência confirmou: o teto da quantidade. */
-  confirmada: number;
+  /** O que a conferência confirmou: o teto da quantidade. Nulo é "tem, sem número": sem teto. */
+  confirmada: number | null;
   precoCentavos: number | null;
   /** O recipiente pedido e o conferido, quando diferem. Um só não é escolha. */
   recipientes: readonly SelectOption[];
@@ -54,7 +54,7 @@ export function PrecosForm({ pedidoId, itens }: PrecosFormProps) {
         item.id,
         {
           preco: item.precoCentavos === null ? '' : precoParaCampo(item.precoCentavos),
-          quantidade: item.generico ? '' : String(item.confirmada),
+          quantidade: item.generico || item.confirmada === null ? '' : String(item.confirmada),
           recipienteId: item.recipienteId,
         },
       ]),
@@ -100,7 +100,7 @@ export function PrecosForm({ pedidoId, itens }: PrecosFormProps) {
             <div className="grid grid-cols-2 gap-2">
               {item.generico ? (
                 <p className="self-end text-sm text-muted">
-                  {formatQuantidade(item.confirmada)}
+                  {formatQuantidade(item.confirmada ?? 0)}
                   <input type="hidden" name="negociar_quantidade" value="" />
                 </p>
               ) : (
@@ -109,7 +109,11 @@ export function PrecosForm({ pedidoId, itens }: PrecosFormProps) {
                   name="negociar_quantidade"
                   inputMode="numeric"
                   autoComplete="off"
-                  hint={`Até ${formatQuantidade(item.confirmada)}. Zero tira o item.`}
+                  hint={
+                    item.confirmada === null
+                      ? 'A conferência não contou. Zero tira o item.'
+                      : `Até ${formatQuantidade(item.confirmada)}. Zero tira o item.`
+                  }
                   value={valores[item.id]?.quantidade ?? ''}
                   onChange={(event) => alterar(item.id, 'quantidade', event.target.value)}
                   onBlur={() => gravarSeMudou()}
