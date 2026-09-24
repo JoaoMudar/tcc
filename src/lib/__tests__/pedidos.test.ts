@@ -23,12 +23,10 @@ import {
   podeTransicionar,
   precoParaCampo,
   quantidadeConfirmada,
-  resolveDisponibilidade,
   totalItem,
   totalPedido,
   transicoesDe,
   urgenciaPedido,
-  validarComposicaoGenerico,
   validarDivisaoCargas,
 } from '../pedidos-rotulos';
 import {
@@ -186,110 +184,16 @@ describe('rotuloGenerico', () => {
   });
 });
 
-describe('disponibilidade do item (T8.9)', () => {
-  // O item completo, como era todo item antes do orçamento incompleto
-  const completo = { quantidade: 500, recipienteId: 'r1' };
-
-  it('disponível não guarda quantidade nem recipiente: é o item inteiro, como pedido', () => {
-    expect(resolveDisponibilidade('disponivel', completo)).toEqual({
-      value: { disponivel: true, quantidadeDisponivel: null, recipienteDisponivelId: null },
-    });
-  });
-
-  it('"tem tudo, em 17x22": o recipiente conferido acompanha o disponível quando é outro', () => {
-    expect(resolveDisponibilidade('disponivel', completo, { recipienteId: 'r2' })).toEqual({
-      value: { disponivel: true, quantidadeDisponivel: null, recipienteDisponivelId: 'r2' },
-    });
-    // O mesmo do pedido não é informação: grava nulo
-    expect(resolveDisponibilidade('disponivel', completo, { recipienteId: 'r1' })).toEqual({
-      value: { disponivel: true, quantidadeDisponivel: null, recipienteDisponivelId: null },
-    });
-  });
-
-  it('indisponível é o falso com quantidade zero', () => {
-    expect(resolveDisponibilidade('indisponivel', completo)).toEqual({
-      value: { disponivel: false, quantidadeDisponivel: 0, recipienteDisponivelId: null },
-    });
-  });
-
-  it('parcial guarda quanto tem e em que recipiente está', () => {
-    expect(resolveDisponibilidade('parcial', completo, { quantidade: 300, recipienteId: 'r2' })).toEqual({
-      value: { disponivel: false, quantidadeDisponivel: 300, recipienteDisponivelId: 'r2' },
-    });
-  });
-
-  it('parcial no recipiente pedido não precisa repeti-lo', () => {
-    expect(resolveDisponibilidade('parcial', completo, { quantidade: 300 })).toEqual({
-      value: { disponivel: false, quantidadeDisponivel: 300, recipienteDisponivelId: null },
-    });
-  });
-
-  it('parcial com zero, negativo ou quebrado é recusada', () => {
-    expect(resolveDisponibilidade('parcial', completo, { quantidade: 0, recipienteId: 'r1' })).toHaveProperty('error');
-    expect(resolveDisponibilidade('parcial', completo, { quantidade: -1, recipienteId: 'r1' })).toHaveProperty('error');
-    expect(resolveDisponibilidade('parcial', completo, { quantidade: 1.5, recipienteId: 'r1' })).toHaveProperty('error');
-    expect(resolveDisponibilidade('parcial', completo, { recipienteId: 'r1' })).toHaveProperty('error');
-  });
-
-  it('parcial igual ao total manda usar "Tem tudo", em vez de gravar um parcial que é o todo', () => {
-    const resolvida = resolveDisponibilidade('parcial', completo, { quantidade: 500, recipienteId: 'r1' });
-    expect(resolvida).toHaveProperty('error');
-    expect((resolvida as { error: string }).error).toMatch(/tem tudo/i);
-  });
-
-  describe('item sem quantidade ("tem ipê?")', () => {
-    const semQuantidade = { quantidade: null, recipienteId: 'r1' };
-
-    it('"tenho 350": disponível com a quantidade contada', () => {
-      expect(resolveDisponibilidade('disponivel', semQuantidade, { quantidade: 350 })).toEqual({
-        value: { disponivel: true, quantidadeDisponivel: 350, recipienteDisponivelId: null },
-      });
-    });
-
-    it('sem dizer quantas, a resposta positiva é recusada', () => {
-      expect(resolveDisponibilidade('disponivel', semQuantidade)).toEqual({
-        error: 'Informe quantas mudas existem, um número inteiro maior que zero.',
-      });
-    });
-
-    it('"não tem" continua sendo zero', () => {
-      expect(resolveDisponibilidade('indisponivel', semQuantidade)).toEqual({
-        value: { disponivel: false, quantidadeDisponivel: 0, recipienteDisponivelId: null },
-      });
-    });
-  });
-
-  describe('item sem recipiente ("manda ipê")', () => {
-    it('a resposta com muda diz em que recipiente ela está', () => {
-      const semRecipiente = { quantidade: 200, recipienteId: null };
-      expect(resolveDisponibilidade('disponivel', semRecipiente)).toEqual({
-        error: 'Escolha o recipiente em que a muda está.',
-      });
-      expect(resolveDisponibilidade('disponivel', semRecipiente, { recipienteId: 'r2' })).toEqual({
-        value: { disponivel: true, quantidadeDisponivel: null, recipienteDisponivelId: 'r2' },
-      });
-    });
-
-    it('sem quantidade e sem recipiente: "tem 350 em 17x22"', () => {
-      const vazio = { quantidade: null, recipienteId: null };
-      expect(resolveDisponibilidade('disponivel', vazio, { quantidade: 350, recipienteId: 'r2' })).toEqual({
-        value: { disponivel: true, quantidadeDisponivel: 350, recipienteDisponivelId: 'r2' },
-      });
-      expect(resolveDisponibilidade('disponivel', vazio, { quantidade: 350 })).toHaveProperty('error');
-    });
-
-    it('"não tem" não pede recipiente', () => {
-      expect(resolveDisponibilidade('indisponivel', { quantidade: null, recipienteId: null })).toHaveProperty('value');
-    });
-  });
-});
-
 describe('quantidade confirmada pela conferência', () => {
   it('"tem tudo" confirma a pedida; parcial e "tenho 350" confirmam a contada', () => {
     expect(quantidadeConfirmada({ quantidade: 500, disponivel: true, quantidadeDisponivel: null })).toBe(500);
     expect(quantidadeConfirmada({ quantidade: 500, disponivel: false, quantidadeDisponivel: 300 })).toBe(300);
     expect(quantidadeConfirmada({ quantidade: null, disponivel: true, quantidadeDisponivel: 350 })).toBe(350);
     expect(quantidadeConfirmada({ quantidade: 500, disponivel: false, quantidadeDisponivel: 0 })).toBe(0);
+  });
+
+  it('"tem", sem número, no item sem quantidade: não há teto (P12)', () => {
+    expect(quantidadeConfirmada({ quantidade: null, disponivel: true, quantidadeDisponivel: null })).toBeNull();
   });
 });
 
@@ -312,50 +216,6 @@ describe('item vendável', () => {
   it('o que a conferência disse que não tem nenhuma não é vendido', () => {
     const item = { quantidade: 100, precoCentavos: null, disponivel: false, quantidadeDisponivel: 0 };
     expect(itemVendavel(item, [item])).toBe(false);
-  });
-});
-
-describe('composição do item genérico (T8.9)', () => {
-  const linha = (especieId: string, quantidade: number) => ({ especieId, recipienteId: 'r1', quantidade });
-
-  it('sem quantidade no pai não há soma a fechar: é a lista montada', () => {
-    const linhas = [linha('e1', 120), linha('e2', 35)];
-    expect(validarComposicaoGenerico(null, linhas)).toEqual({ value: linhas });
-    expect(validarComposicaoGenerico(null, [])).toHaveProperty('error');
-  });
-
-  it('fecha quando a soma é exatamente a do pai', () => {
-    const linhas = [linha('e1', 300), linha('e2', 200)];
-    expect(validarComposicaoGenerico(500, linhas)).toEqual({ value: linhas });
-  });
-
-  it('sem escopo, qualquer espécie serve', () => {
-    expect(validarComposicaoGenerico(100, [linha('qualquer', 100)], [])).toHaveProperty('value');
-  });
-
-  it('com escopo, a espécie de fora é bloqueio, e não aviso', () => {
-    const recusada = validarComposicaoGenerico(100, [linha('e9', 100)], ['e1', 'e2']);
-    expect(recusada).toHaveProperty('error');
-    expect((recusada as { error: string }).error).toMatch(/aceita/i);
-  });
-
-  it('composição vazia é recusada', () => {
-    expect(validarComposicaoGenerico(500, [])).toHaveProperty('error');
-  });
-
-  it('diz quanto falta e quanto passou, que é o que a pessoa precisa para corrigir', () => {
-    expect(validarComposicaoGenerico(500, [linha('e1', 300)])).toEqual({ error: 'Faltam 200 mudas para fechar o item.' });
-    expect(validarComposicaoGenerico(500, [linha('e1', 600)])).toEqual({ error: 'Passou 100 mudas do que o item pede.' });
-  });
-
-  it('linha sem espécie, sem recipiente ou com quantidade inválida diz qual linha é', () => {
-    expect(validarComposicaoGenerico(100, [{ especieId: '', recipienteId: 'r1', quantidade: 100 }])).toEqual({
-      error: 'Escolha a espécie da linha 1.',
-    });
-    expect(validarComposicaoGenerico(100, [{ especieId: 'e1', recipienteId: '', quantidade: 100 }])).toEqual({
-      error: 'Escolha o recipiente da linha 1.',
-    });
-    expect(validarComposicaoGenerico(100, [linha('e1', 50), { ...linha('e2', 0) }])).toHaveProperty('error');
   });
 });
 

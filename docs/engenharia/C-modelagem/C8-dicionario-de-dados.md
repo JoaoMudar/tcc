@@ -943,8 +943,9 @@ histórico, e entraria só para poluir a ficha.
 | `altura_m` | numeric(4,2) | ○ | | Altura da muda pedida, em metros (RF-54). Nula é "o cliente não pediu altura". Restrição: maior que zero e até 20 |
 | `preco_unitario` | numeric(10,2) | ○ | | **Preço unitário informado por quem registra, depois da conferência** (RF-55, RN-50). Nulo é "ainda não precificado". Restrição: maior que zero quando existe |
 | `disponivel` | boolean | ○ | | O que a conferência respondeu. **Nulo é "ninguém conferiu ainda"** (RF-59) |
-| `quantidade_disponivel` | integer | ○ | | Quantas existem: quando `disponivel` é falso no item com quantidade, ou sempre que o item veio sem quantidade. Zero significa indisponível (RN-54) |
+| `quantidade_disponivel` | integer | ○ | | Quantas existem: quando `disponivel` é falso no item com quantidade, ou quando o item veio sem quantidade e a gerência contou. Zero significa indisponível (RN-54). No item sem quantidade, nula com `disponivel` verdadeiro é "tem, sem número" |
 | `recipiente_disponivel_id` | uuid | ○ | FK → `recipientes` | Recipiente em que a muda foi encontrada, que pode diferir do pedido. Obrigatório, pelo código, quando o item veio sem recipiente e a resposta tem muda |
+| `altura_disponivel_m` | numeric(4,2) | ○ | | Altura em que a muda existe, em metros, quando difere da pedida ("Tem parte", P12). A aprovação a copia para `altura_m`. Restrição: maior que zero e até 20, e só com muda |
 | `observacoes_disponibilidade` | text | ○ | | Observação da gerência sobre o item |
 | `generico` | boolean | ● | | Item pedido sem escolha de espécie (RF-60) |
 | `item_pai_id` | uuid | ○ | FK → `pedidos_itens` | Item genérico que este filho compõe. Nulo no item de topo |
@@ -956,8 +957,10 @@ que mantém a composição em um nível só. A resposta da conferência tem trê
 colunas nulas); no item com quantidade, `disponivel` verdadeiro sem número ou falso com
 `quantidade_disponivel` de zero até `quantidade` menos um; no item sem quantidade,
 `quantidade_disponivel` de zero em diante, com `disponivel` verdadeiro exatamente quando ela passa de
-zero. O genérico composto fica verdadeiro e sem número, com ou sem quantidade.
-`recipiente_disponivel_id` não existe quando `quantidade_disponivel` é zero.
+zero, ou `disponivel` verdadeiro sem número ("tem", sem contar). O genérico composto fica verdadeiro e
+sem número, com ou sem quantidade; o genérico em "Tem parte" com falta usa a forma do item com
+quantidade, falso com a soma da composição. `recipiente_disponivel_id` e `altura_disponivel_m` não
+existem quando `quantidade_disponivel` é zero.
 
 > **O preço é digitado, e o sistema não o calcula.** Não há referência a tabela de preço, piso
 > mínimo nem margem: o valor é o que foi negociado na conversa com o cliente, e ao sistema cabe

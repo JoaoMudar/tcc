@@ -694,6 +694,7 @@ erDiagram
     boolean disponivel
     int     quantidade_disponivel
     uuid    recipiente_disponivel_id FK
+    numeric altura_disponivel_m
     text    observacoes_disponibilidade
     boolean generico
     uuid    item_pai_id FK
@@ -766,7 +767,7 @@ genérico herda a altura do pai, pela mesma razão que herda o preço.
 **O saldo continua sem entidade, e a disponibilidade conferida tem colunas.** São duas coisas, e a
 distinção é o ponto. O saldo que o item exibe (RF-56) é calculado dos lotes prontos daquela espécie
 e recipiente a cada consulta, e guardá-lo congelaria uma leitura que muda a cada perda registrada.
-Já `disponivel`, `quantidade_disponivel` e `recipiente_disponivel_id` guardam o que uma pessoa foi
+Já `disponivel`, `quantidade_disponivel`, `recipiente_disponivel_id` e `altura_disponivel_m` guardam o que uma pessoa foi
 ao pátio conferir e respondeu (RF-59), com autor e hora em `pedidos_historico`. Resposta de alguém
 se grava; leitura de estoque se recalcula.
 
@@ -784,7 +785,9 @@ muda existe (`recipiente_disponivel_id`), e a aprovação exige que o item vend�
 
 **`recipiente_disponivel_id` é a segunda aresta entre item e recipiente**, e não a repetição da
 primeira. `recipiente_id` é o que o cliente pediu, e o outro é o que a gerência encontrou. Os dois
-convivem até a aprovação, que substitui o primeiro pelo segundo quando eles divergem.
+convivem até a aprovação, que substitui o primeiro pelo segundo quando eles divergem. A altura segue a
+mesma forma sem ser aresta: `altura_m` é a pedida, `altura_disponivel_m` a encontrada, e a aprovação
+copia a segunda sobre a primeira.
 
 **Não há histórico de estados do pedido.** `situacao` percorre `rascunho`, `confirmado` e
 `cancelado`, e o que o negócio precisa saber é em qual deles o pedido está. Uma tabela de histórico

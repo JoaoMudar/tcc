@@ -3,6 +3,20 @@
 Uma entrada por migration nova, como pede o `CLAUDE.md`. As migrations até `20260901000008` são o
 schema inicial em português e estão descritas no `C8`.
 
+## 24/09/2026 · `20260925000001_conferencia_altura_e_quantidade_opcional.sql`
+
+- **A conferência registra a altura encontrada.** Nova coluna `pedidos_itens.altura_disponivel_m`
+  (numeric(4,2), opcional), com os CHECKs `pedidos_itens_altura_disponivel_positiva` (0 a 20 m) e
+  `pedidos_itens_altura_disponivel_com_muda` (não existe com `quantidade_disponivel` zero). Só é
+  gravada quando difere da pedida, e a aprovação a copia para `altura_m`.
+- **"Tem", sem número, no item sem quantidade.** `pedidos_itens_disponibilidade_coerente` ganha o
+  ramo `quantidade IS NULL AND disponivel = true AND quantidade_disponivel IS NULL`: a gerência
+  diz que tem sem contar, e a chefia acerta o número na negociação.
+- Compatível: nada é migrado, e tudo o que a constraint anterior aceitava a nova aceita.
+- Na mesma alteração, fora do banco (plano P12): a conferência passa a ter uma regra só para todo
+  item, com "Tem parte" perguntando tudo o que o cliente especificou; o genérico ganha "Não tem" e
+  "Tem parte", e a composição com soma menor grava o pai como parcial.
+
 ## 24/09/2026 · `20260924000002_generico_observacao_opcional.sql`
 
 - **O texto do item genérico passa a ser opcional.** Sai o CHECK

@@ -70,12 +70,13 @@ Desde 24/09/2026 (plano P11, migration `20260924000001`):
 1. **Recipiente e quantidade são opcionais no cadastro.** Só a aprovação os exige. O item genérico
    leva uma observação opcional do que o cliente pediu (migration `20260924000002`).
 2. **A conferência abre sem quantidade.** No item que veio sem ela, a gerência responde "não tem"
-   ou "tem N", e diz em qual recipiente.
-3. **Sem recipiente, a resposta com muda diz em qual está.** No item completo, o "tem tudo" aceita
-   um recipiente diferente do pedido.
-4. **O genérico sem quantidade é uma lista montada.** A gerência escolhe espécies e quantidades sem
-   soma a fechar, e cada espécie vira um item com preço próprio. Com quantidade (tipos 5 e 6), a
-   soma continua tendo de fechar, e o preço é o do genérico.
+   ou "tem", e o número de quantas tem é opcional (P12, migration `20260925000001`).
+3. **Sem recipiente, a resposta com muda diz em qual está.** Recipiente e altura diferentes do
+   pedido são "Tem parte", que pergunta de novo tudo o que o cliente especificou.
+4. **O genérico sem quantidade é uma lista montada.** A gerência escolhe espécies, com quantidade
+   opcional e sem soma a fechar, e cada espécie vira um item com preço próprio. Com quantidade
+   (tipos 5 e 6), "Tem tudo" fecha a soma e "Tem parte" pode ficar abaixo; o preço é o do genérico.
+   O genérico também pode ser "Não tem".
 5. **Negociar não volta à conferência.** Na ficha, a chefia põe preço, baixa a quantidade até o
    confirmado, zera o item ou escolhe entre o recipiente pedido e o conferido. Pedir mais do que
    existe é "Salvar e reenviar".

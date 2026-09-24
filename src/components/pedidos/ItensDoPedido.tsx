@@ -16,6 +16,9 @@ export interface ItemExibido {
   generico?: boolean;
   disponivel?: boolean | null;
   quantidadeDisponivel?: number | null;
+  /** O que a conferência achou, quando difere do pedido (P12). A aprovação os copia para o item. */
+  recipienteDisponivel?: string | null;
+  alturaDisponivelM?: number | null;
   /** RF-56: saldo lido dos lotes agora, quando a tela o carrega. */
   pronto?: number | null;
   emProducao?: number | null;
@@ -87,6 +90,14 @@ export function ItensDoPedido({ itens }: ItensDoPedidoProps) {
               <span className="text-base text-muted">
                 {item.recipiente ?? 'a definir'}
                 {item.alturaM ? <span className="block text-sm">{formatAltura(item.alturaM)}</span> : null}
+                {(item.recipienteDisponivel || item.alturaDisponivelM) && (
+                  <span className="block text-sm font-semibold text-amber-800">
+                    Conferido:{' '}
+                    {[item.recipienteDisponivel, item.alturaDisponivelM ? formatAltura(item.alturaDisponivelM) : null]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </span>
+                )}
               </span>
               <span className="text-right text-base font-semibold text-ink">{item.quantidade === null ? 'a definir' : formatQuantidade(item.quantidade)}</span>
               {comPreco && (

@@ -111,8 +111,8 @@ Fonte: Elaborado pelo autor (2026).
 | RN-51 | O perfil do usuário (chefia, gerência ou administrador) define o que ele pode ver e fazer. |
 | RN-52 | Todo registro guarda quem o fez. |
 | RN-53 | O pedido percorre oito situações, cadastrado, verificando, verificado, pendente de alteração, aprovado, separando, pronto para envio e cancelado, e cada uma delas espera por um perfil determinado. |
-| RN-54 | O item conferido está disponível por inteiro, disponível em parte ou indisponível. A parte informada vai de uma muda até uma a menos que a pedida, e exige dizer em que recipiente ela está. |
-| RN-55 | A composição do item pedido sem espécie soma exatamente a quantidade dele, e só admite espécie que o cliente aceite. |
+| RN-54 | O item conferido está disponível por inteiro, disponível em parte ou indisponível. A parte difere do pedido em ao menos um atributo que o cliente especificou: quantidade menor, de uma muda até uma a menos que a pedida, outro recipiente ou outra altura. |
+| RN-55 | A composição do item pedido sem espécie, quando ele tem quantidade, soma exatamente essa quantidade na resposta por inteiro e no máximo essa quantidade na resposta em parte, e só admite espécie que o cliente aceite. |
 | RN-56 | O item pedido sem espécie não vai na carga, e sim as espécies que o compõem. A soma de um item nas cargas reproduz a quantidade dele. |
 | RN-57 | A carga fica pronta quando todos os itens dela foram separados, e o pedido fica pronto para envio quando todas as cargas estão prontas. |
 | RN-58 | O dia de carregar é o dia útil anterior à data de entrega, de segunda a sexta-feira. |
@@ -198,7 +198,7 @@ Fonte: Elaborado pelo autor (2026).
 | RF-56 | Saldo disponível ao lado do item | O sistema deve apresentar, ao lado de cada item do pedido, a quantidade de muda pronta que a produção tem daquela espécie e recipiente. | RN-06, RN-08 |
 | RF-57 | Situação do pedido | O sistema deve controlar a situação do pedido ao longo das oito situações que vão do cadastro ao pronto para envio, impedindo alteração de item depois da aprovação. | RN-48, RN-53 |
 | RF-58 | Listagem de pedidos com filtro | O sistema deve listar os pedidos com filtro por cliente, canal e período. | RN-42 |
-| RF-59 | Disponibilidade conferida item a item | O sistema deve registrar, para cada item do pedido, a disponibilidade conferida no viveiro, que pode ser total, parcial com a quantidade encontrada e o recipiente em que ela está, ou nenhuma; no item cadastrado sem quantidade ou sem recipiente, a conferência registra quantas mudas existem e em que recipiente. | RN-54 |
+| RF-59 | Disponibilidade conferida item a item | O sistema deve registrar, para cada item do pedido, a disponibilidade conferida no viveiro, que pode ser total, parcial ou nenhuma; a parcial registra, do que o cliente especificou (quantidade, recipiente, altura), o que foi encontrado; no item cadastrado sem recipiente, a resposta com muda registra em que recipiente ela está, e no item sem quantidade, opcionalmente, quantas existem. | RN-54 |
 | RF-60 | Composição do item pedido sem espécie | O sistema deve permitir compor em espécies o item que o cliente pediu sem escolher espécie, respeitando as espécies que ele aceita; sem quantidade no item, a composição é uma lista montada, e cada espécie dela é vendida com preço próprio. | RN-55 |
 | RF-61 | Cargas do pedido e separação dos itens | O sistema deve permitir organizar o pedido aprovado em cargas e registrar a separação de cada item em cada carga. | RN-56, RN-57 |
 | RF-62 | Dia de carregar e calendário de entregas | O sistema deve apresentar o dia de carregamento de cada pedido e o calendário de entregas e carregamentos do mês. | RN-58 |

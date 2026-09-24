@@ -66,7 +66,7 @@ function respondeCom(linha: Record<string, unknown>) {
 
 /** O pedido em conferência, com um item de 500 que não é genérico. */
 function emConferencia() {
-  respondeCom({ id: PEDIDO, numero: 1, situacao: 'verificando', quantidade: 500, recipienteId: RECIPIENTE, generico: false, preco: '2.00' });
+  respondeCom({ id: PEDIDO, numero: 1, situacao: 'verificando', quantidade: 500, recipienteId: RECIPIENTE, alturaM: null, generico: false, preco: '2.00' });
 }
 
 function gravouEm(tabela: string) {
@@ -95,7 +95,7 @@ describe('permissão (D4 §3.2)', () => {
 
 describe('a resposta abre a conferência (T8.12)', () => {
   it('responder o primeiro item do pedido cadastrado abre a conferência e grava junto', async () => {
-    respondeCom({ id: PEDIDO, numero: 1, situacao: 'cadastrado', quantidade: 500, recipienteId: RECIPIENTE, generico: false, preco: '2.00' });
+    respondeCom({ id: PEDIDO, numero: 1, situacao: 'cadastrado', quantidade: 500, recipienteId: RECIPIENTE, alturaM: null, generico: false, preco: '2.00' });
     const dados = form({ pedido_id: PEDIDO, item_id: ITEM, estado: 'disponivel' });
 
     expect((await actions.marcarDisponibilidadeAction({}, dados)).error).toBeUndefined();
@@ -112,7 +112,7 @@ describe('a resposta abre a conferência (T8.12)', () => {
   });
 
   it('depois de aprovado a resposta é recusada, e nada é gravado', async () => {
-    respondeCom({ id: PEDIDO, numero: 1, situacao: 'aprovado', quantidade: 500, generico: false, preco: '2.00' });
+    respondeCom({ id: PEDIDO, numero: 1, situacao: 'aprovado', quantidade: 500, recipienteId: null, alturaM: null, generico: false, preco: '2.00' });
     const dados = form({ pedido_id: PEDIDO, item_id: ITEM, estado: 'disponivel' });
 
     const state = await actions.marcarDisponibilidadeAction({}, dados);
@@ -146,20 +146,20 @@ describe('validação antes do banco', () => {
     const dados = form({ pedido_id: PEDIDO, item_id: ITEM, estado: 'parcial', quantidade: '300' });
     expect((await actions.marcarDisponibilidadeAction({}, dados)).error).toBeUndefined();
     const [[, valores]] = gravouEm('UPDATE pedidos_itens');
-    expect(valores).toEqual([PEDIDO, ITEM, false, 300, null, null]);
+    expect(valores).toEqual([PEDIDO, ITEM, false, 300, null, null, null]);
   });
 
   it('o item que veio sem quantidade responde "tem 350 em 17x22"', async () => {
     const SACO = '4f7b3a5c-2d9e-4a6f-9b4c-6d0e1f2a3b4c';
-    respondeCom({ id: PEDIDO, numero: 1, situacao: 'verificando', quantidade: null, recipienteId: null, generico: false });
+    respondeCom({ id: PEDIDO, numero: 1, situacao: 'verificando', quantidade: null, recipienteId: null, alturaM: null, generico: false });
     const dados = form({ pedido_id: PEDIDO, item_id: ITEM, estado: 'disponivel', quantidade: '350', recipiente_id: SACO });
     expect((await actions.marcarDisponibilidadeAction({}, dados)).error).toBeUndefined();
     const [[, valores]] = gravouEm('UPDATE pedidos_itens');
-    expect(valores).toEqual([PEDIDO, ITEM, true, 350, SACO, null]);
+    expect(valores).toEqual([PEDIDO, ITEM, true, 350, SACO, null, null]);
   });
 
   it('o item que veio sem recipiente não aceita "tem" sem dizer em qual', async () => {
-    respondeCom({ id: PEDIDO, numero: 1, situacao: 'verificando', quantidade: 200, recipienteId: null, generico: false });
+    respondeCom({ id: PEDIDO, numero: 1, situacao: 'verificando', quantidade: 200, recipienteId: null, alturaM: null, generico: false });
     const dados = form({ pedido_id: PEDIDO, item_id: ITEM, estado: 'disponivel' });
     const state = await actions.marcarDisponibilidadeAction({}, dados);
     expect(state.error).toMatch(/em que a muda está/i);
@@ -197,10 +197,11 @@ describe('validação antes do banco', () => {
 
 describe('composição do genérico', () => {
   it('a linha em branco que ninguém usou não vira erro nem espécie', async () => {
-    respondeCom({ id: PEDIDO, numero: 1, situacao: 'verificando', quantidade: 500, generico: true, preco: '2.00' });
+    respondeCom({ id: PEDIDO, numero: 1, situacao: 'verificando', quantidade: 500, recipienteId: null, alturaM: null, generico: true, preco: '2.00' });
     const dados = form({
       pedido_id: PEDIDO,
       item_pai_id: ITEM,
+      estado: 'disponivel',
       composicao_especie: [ESPECIE, ''],
       composicao_recipiente: [RECIPIENTE, ''],
       composicao_quantidade: ['500', ''],
@@ -213,12 +214,63 @@ describe('composição do genérico', () => {
     const dados = form({
       pedido_id: PEDIDO,
       item_pai_id: ITEM,
+      estado: 'disponivel',
       composicao_especie: '',
       composicao_recipiente: RECIPIENTE,
       composicao_quantidade: '500',
     });
     const state = await actions.definirComposicaoAction({}, dados);
     expect(state.error).toMatch(/linha 1/i);
+    expectNoDatabase();
+  });
+});
+
+describe('altura conferida (P12)', () => {
+  it('"tem parte" com outra altura grava a altura, em metros', async () => {
+    respondeCom({ id: PEDIDO, numero: 1, situacao: 'verificando', quantidade: 500, recipienteId: RECIPIENTE, alturaM: 1.2, generico: false });
+    const dados = form({ pedido_id: PEDIDO, item_id: ITEM, estado: 'parcial', quantidade: '500', altura: '80 cm' });
+    expect((await actions.marcarDisponibilidadeAction({}, dados)).error).toBeUndefined();
+    const [[, valores]] = gravouEm('UPDATE pedidos_itens');
+    expect(valores).toEqual([PEDIDO, ITEM, true, null, null, 0.8, null]);
+  });
+
+  it('altura que não se entende é recusada antes do banco', async () => {
+    const dados = form({ pedido_id: PEDIDO, item_id: ITEM, estado: 'parcial', quantidade: '300', altura: 'alta' });
+    expect((await actions.marcarDisponibilidadeAction({}, dados)).error).toMatch(/altura/i);
+    expectNoDatabase();
+  });
+});
+
+describe('genérico: "Não tem" e "Tem parte" (P12)', () => {
+  beforeEach(() => {
+    respondeCom({ id: PEDIDO, numero: 1, situacao: 'verificando', quantidade: 500, recipienteId: RECIPIENTE, alturaM: null, generico: true, preco: '2.00' });
+  });
+
+  it('"Não tem" apaga a composição e grava falso com zero', async () => {
+    const state = await actions.marcarGenericoIndisponivelAction({}, form({ pedido_id: PEDIDO, item_pai_id: ITEM }));
+    expect(state.error).toBeUndefined();
+    expect(gravouEm('DELETE FROM pedidos_itens WHERE item_pai_id')).toHaveLength(1);
+    expect(String(gravouEm('UPDATE pedidos_itens')[0][0])).toMatch(/disponivel = false, quantidade_disponivel = 0/);
+  });
+
+  it('"Tem parte" com soma menor grava o pai com quantas somou', async () => {
+    const dados = form({
+      pedido_id: PEDIDO,
+      item_pai_id: ITEM,
+      estado: 'parcial',
+      composicao_especie: ESPECIE,
+      composicao_recipiente: RECIPIENTE,
+      composicao_quantidade: '300',
+      composicao_altura: '',
+    });
+    expect((await actions.definirComposicaoAction({}, dados)).error).toBeUndefined();
+    const atualizacao = gravouEm('UPDATE pedidos_itens').at(-1)!;
+    expect(atualizacao[1]).toEqual([PEDIDO, ITEM, false, 300, null]);
+  });
+
+  it('resposta que não é "Tem tudo" nem "Tem parte" é recusada antes do banco', async () => {
+    const dados = form({ pedido_id: PEDIDO, item_pai_id: ITEM, estado: 'indisponivel', composicao_especie: ESPECIE });
+    expect((await actions.definirComposicaoAction({}, dados)).error).toMatch(/resposta inválida/i);
     expectNoDatabase();
   });
 });

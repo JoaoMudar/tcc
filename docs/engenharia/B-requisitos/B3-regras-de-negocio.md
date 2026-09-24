@@ -229,8 +229,8 @@ e já se diz "fiz tantos saquinhos hoje". Apague o sistema e os enunciados sobre
 | ID | Regra | Tipo | Origem | Realiza | Restringe |
 |---|---|---|---|---|---|
 | **RN-53** | O pedido percorre oito situações, cadastrado, verificando, verificado, pendente de alteração, aprovado, separando, pronto para envio e cancelado, e cada uma delas espera por um perfil determinado | Fato | `rotinas/3-comercial` | RF-57 | - |
-| **RN-54** | O item conferido está disponível por inteiro, disponível em parte ou indisponível. A parte informada vai de uma muda até uma a menos que a pedida, e exige dizer em que recipiente ela está | Restrição | `rotinas/3-comercial` | RF-59 | - |
-| **RN-55** | A composição do item pedido sem espécie soma exatamente a quantidade dele, e só admite espécie que o cliente aceite | Restrição | `rotinas/3-comercial` | RF-60 | - |
+| **RN-54** | O item conferido está disponível por inteiro, disponível em parte ou indisponível. A parte difere do pedido em ao menos um atributo que o cliente especificou: quantidade menor, de uma muda até uma a menos que a pedida, outro recipiente ou outra altura | Restrição | `rotinas/3-comercial` | RF-59 | - |
+| **RN-55** | A composição do item pedido sem espécie, quando ele tem quantidade, soma exatamente essa quantidade na resposta por inteiro e no máximo essa quantidade na resposta em parte, e só admite espécie que o cliente aceite | Restrição | `rotinas/3-comercial` | RF-60 | - |
 | **RN-56** | O item pedido sem espécie não vai na carga, e sim as espécies que o compõem. A soma de um item nas cargas reproduz a quantidade dele | Restrição | `rotinas/3-comercial` | RF-61 | - |
 | **RN-57** | A carga fica pronta quando todos os itens dela foram separados, e o pedido fica pronto para envio quando todas as cargas estão prontas | Fato | `rotinas/3-comercial` | RF-61 | - |
 | **RN-58** | O dia de carregar é o dia útil anterior à data de entrega, de segunda a sexta-feira | Fato | `rotinas/3-comercial` | RF-62 | - |
@@ -239,7 +239,9 @@ e já se diz "fiz tantos saquinhos hoje". Apague o sistema e os enunciados sobre
 que o pedido não será atendido por inteiro, e só a quantidade as separa. Zero significa que não há
 nenhuma muda, e qualquer número maior significa que há aquela quantidade e não mais. Sem o limite
 superior, o parcial igual ao total passaria a existir como terceira forma de dizer disponível, e a
-mesma situação teria duas escritas possíveis.
+mesma situação teria duas escritas possíveis. Pela mesma razão a parte que não difere do pedido em
+nada é recusada: com todas as mudas, ela só existe quando o recipiente ou a altura encontrados são
+outros.
 
 **RN-58 ignora feriado de propósito.** Os feriados municipais variam de cidade para cidade, e um
 calendário incompleto marcaria como dia de carregar um dia em que não há ninguém no viveiro. Como a
@@ -474,7 +476,7 @@ não dependa de abrir outro arquivo. **Não editar aqui**: a fonte é o `B2`.
 | RF-56 | O sistema deve apresentar, ao lado de cada item do pedido, a quantidade de muda pronta que a produção tem daquela espécie e recipiente | D | OP |
 | RF-57 | O sistema deve controlar a situação do pedido ao longo das oito situações que vão do cadastro ao pronto para envio, impedindo alteração de item depois da aprovação | D | ORG |
 | RF-58 | O sistema deve listar os pedidos com filtro por cliente, canal e período | D | OP |
-| RF-59 | O sistema deve registrar, para cada item do pedido, a disponibilidade conferida no viveiro, que pode ser total, parcial com a quantidade encontrada e o recipiente em que ela está, ou nenhuma; no item cadastrado sem quantidade ou sem recipiente, a conferência registra quantas mudas existem e em que recipiente | D | OP |
+| RF-59 | O sistema deve registrar, para cada item do pedido, a disponibilidade conferida no viveiro, que pode ser total, parcial ou nenhuma; a parcial registra, do que o cliente especificou (quantidade, recipiente, altura), o que foi encontrado; no item cadastrado sem recipiente, a resposta com muda registra em que recipiente ela está, e no item sem quantidade, opcionalmente, quantas existem | D | OP |
 | RF-60 | O sistema deve permitir compor em espécies o item que o cliente pediu sem escolher espécie, respeitando as espécies que ele aceita; sem quantidade no item, a composição é uma lista montada, e cada espécie dela é vendida com preço próprio | D | OP |
 | RF-61 | O sistema deve permitir organizar o pedido aprovado em cargas e registrar a separação de cada item em cada carga | D | OP |
 | RF-62 | O sistema deve apresentar o dia de carregamento de cada pedido e o calendário de entregas e carregamentos do mês | D | OP |

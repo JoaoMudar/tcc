@@ -59,25 +59,35 @@ resposta no sistema.
 
 ### Conferência de disponibilidade (gerência, no pátio)
 
-A gerência abre a conferência e responde, item a item, a pergunta "tem essa muda?". Três respostas,
-e elas viram quatro colunas de `pedidos_itens`:
+A gerência abre a conferência e responde, item a item, a pergunta "tem essa muda?". **Uma regra
+só vale para todo item, com espécie ou genérico, e ela depende do que o cliente especificou**
+(recipiente, altura, quantidade), desde 24/09/2026 (plano P12, migration `20260925000001`):
 
-| Resposta | `disponivel` | `quantidade_disponivel` | `recipiente_disponivel_id` |
+| Botão | Aparece | Pergunta |
+|---|---|---|
+| Não tem | sempre | nada |
+| Tem parte | quando o cliente especificou alguma coisa | tudo o que foi especificado, já preenchido com o pedido, e a pessoa troca o que difere |
+| Tem tudo ("Tem", quando nada foi especificado) | sempre | o recipiente, se o pedido não tem (obrigatório), e a quantidade, se o pedido não tem (opcional) |
+
+A altura que o cliente não pediu nunca é perguntada. "Tem parte" com nada diferente do pedido é
+recusado, porque é "Tem tudo" escrito de outro jeito. No item genérico, a resposta com muda é a
+lista de espécies que o atende, uma linha por espécie, com os mesmos campos. Quando o genérico tem
+quantidade, cada linha diz quantas: em "Tem tudo" a soma fecha exatamente, em "Tem parte" pode
+ficar abaixo, ou fechar com alguma espécie em outro recipiente ou outra altura.
+
+As respostas viram colunas de `pedidos_itens`:
+
+| Resposta | `disponivel` | `quantidade_disponivel` | recipiente e altura conferidos |
 |---|---|---|---|
-| ainda não olhou | nulo | nulo | nulo |
-| tem tudo | verdadeiro | nulo | nulo |
-| tem parte | falso | de 1 a total menos 1 | quando é outro que o pedido |
-| não tem | falso | 0 | nulo |
-| tem N (item sem quantidade) | verdadeiro | N | quando é outro que o pedido |
-
-**O item que chegou incompleto muda a pergunta.** Sem quantidade ("tem ipê?"), a resposta é "não
-tem" ou "tem N", e `disponivel` é só "tem alguma". Sem recipiente, toda resposta com muda diz em
-qual recipiente ela está, porque é a única informação de tamanho que o pedido vai ter. No "tem
-tudo" do item completo o recipiente conferido é opcional: "tem, mas em 17x22".
+| ainda não olhou | nulo | nulo | nulos |
+| não tem | falso | 0 | nulos |
+| tem tudo | verdadeiro | nulo, ou o número contado no item sem quantidade | o recipiente, se o pedido não tinha |
+| tem parte, com menos mudas | falso | de 1 a total menos 1 | quando diferem do pedido |
+| tem parte, com todas | verdadeiro | nulo | quando diferem do pedido |
 
 **Parcial e indisponível compartilham `disponivel = false`**, e quem os distingue é a quantidade.
-O recipiente da parcial **pode ser outro** que o pedido: achou as 300 em saco 17x22 quando o pedido
-dizia 10x18. Não é bloqueio, é informação para a chefia ver na aprovação.
+O recipiente e a altura conferidos só são gravados quando diferem do pedido, e a aprovação os copia
+sobre o item.
 
 **Não se envia à chefia pela metade**: item sem resposta segura a conclusão, porque deixar passar
 faria a chefia aprovar sobre uma apuração incompleta, que é o que a etapa existe para evitar.
