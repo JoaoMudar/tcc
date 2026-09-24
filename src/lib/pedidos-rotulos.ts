@@ -221,6 +221,25 @@ export function normalizaCampoAltura(texto: string): string {
   return 'error' in lida ? texto : formatAltura(lida.value);
 }
 
+/** Quatro dígitos bastam: 99,99 m. O teto de 20 m fica com o `parseAltura`. */
+const ALTURA_MAX_DIGITOS = 4;
+
+/**
+ * A máscara da altura na grade de itens, aplicada a cada tecla: os dígitos
+ * entram pela direita e as duas últimas casas são os centímetros, como na
+ * máquina de somar ("1" é 0,01 m, "123" é 1,23 m).
+ *
+ * O apagar que só tira o " m" do fim não mudaria nada, porque a máscara
+ * devolveria a unidade; por isso ele tira o último dígito.
+ */
+export function mascaraAltura(novo: string, anterior: string): string {
+  const digitosDe = (texto: string) => texto.replace(/\D/g, '').replace(/^0+/, '');
+  let digitos = digitosDe(novo);
+  if (digitos === digitosDe(anterior) && novo.length < anterior.length) digitos = digitos.slice(0, -1);
+  digitos = digitos.slice(0, ALTURA_MAX_DIGITOS);
+  return digitos ? formatAltura(Number(digitos) / 100) : '';
+}
+
 /** O campo volta para a tela como a pessoa espera lê-lo, e não como "1250". */
 export function precoParaCampo(centavos: number): string {
   return (centavos / 100).toFixed(2).replace('.', ',');

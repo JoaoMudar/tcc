@@ -7,7 +7,7 @@ import { MARCA_OBRIGATORIO } from '@/components/ui/marcaObrigatorio';
 import type { SelectOption } from '@/components/ui/SelectField';
 import { TextField } from '@/components/ui/TextField';
 import { formatQuantidade, lerQuantidade } from '@/lib/lotes-rotulos';
-import { chaveSaldo, normalizaCampoAltura, rotuloGenerico } from '@/lib/pedidos-rotulos';
+import { chaveSaldo, mascaraAltura, normalizaCampoAltura, rotuloGenerico } from '@/lib/pedidos-rotulos';
 import type { Celula, Linha } from './linhas-pedido';
 import type { SaldosPorChave } from './NovoPedidoForm';
 
@@ -218,12 +218,11 @@ export function GradeItens({
                     <TextField
                       label={`Altura do item ${indice + 1}, em metros`}
                       compacto
-                      inputMode="decimal"
+                      inputMode="numeric"
                       autoComplete="off"
                       value={linha.altura}
                       onFocus={() => setFoco({ linha: indice, coluna: 2 })}
-                      onChange={(evento) => onAlterar(linha.chave, 'altura', evento.target.value)}
-                      onBlur={(evento) => onAlterar(linha.chave, 'altura', normalizaCampoAltura(evento.target.value))}
+                      onChange={(evento) => onAlterar(linha.chave, 'altura', mascaraAltura(evento.target.value, linha.altura))}
                     />
                   </td>
                   <td className="border-l border-line p-0">
