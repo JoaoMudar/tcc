@@ -169,13 +169,13 @@ describe('planilha de itens do pedido (T8.1, RF-54)', () => {
     expect(onCriarEspecie).toHaveBeenCalledWith(7, 'Guapuruvu');
   });
 
-  it('a altura digitada em centímetros vira metros ao sair do campo', () => {
+  it('a altura sai em metros enquanto é digitada', () => {
     const onAlterar = vi.fn();
     montar([preenchida({ altura: '' })], { onAlterar });
-    fireEvent.blur(screen.getByLabelText('Altura do item 1, em metros'), {
-      target: { value: '120' },
+    fireEvent.change(screen.getByLabelText('Altura do item 1, em metros'), {
+      target: { value: '123' },
     });
-    expect(onAlterar).toHaveBeenLastCalledWith(1, 'altura', '1,20 m');
+    expect(onAlterar).toHaveBeenLastCalledWith(1, 'altura', '1,23 m');
   });
 
   it('no celular a altura aparece uma vez só com a unidade', () => {

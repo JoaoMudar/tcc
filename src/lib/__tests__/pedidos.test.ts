@@ -16,6 +16,7 @@ import {
   isCanalVenda,
   isSituacaoPedido,
   itemVendavel,
+  mascaraAltura,
   normalizaCampoAltura,
   parseAltura,
   parsePreco,
@@ -561,6 +562,24 @@ describe('altura da muda pedida (RF-54)', () => {
     expect(normalizaCampoAltura('1,20 m')).toBe('1,20 m');
     expect(normalizaCampoAltura('')).toBe('');
     expect(normalizaCampoAltura('grande')).toBe('grande');
+  });
+
+  it('a máscara da grade enche pela direita, com os centímetros nas duas últimas casas', () => {
+    expect(mascaraAltura('1', '')).toBe('0,01 m');
+    expect(mascaraAltura('0,01 m2', '0,01 m')).toBe('0,12 m');
+    expect(mascaraAltura('0,12 m3', '0,12 m')).toBe('1,23 m');
+    expect(mascaraAltura('1,23 m4', '1,23 m')).toBe('12,34 m');
+    expect(mascaraAltura('123', '')).toBe('1,23 m');
+    expect(mascaraAltura('1a2b', '')).toBe('0,12 m');
+    expect(mascaraAltura('12345', '')).toBe('12,34 m');
+    expect(mascaraAltura('', '0,01 m')).toBe('');
+    expect(mascaraAltura('abc', '')).toBe('');
+  });
+
+  it('o apagar que só tira o " m" tira o último dígito', () => {
+    expect(mascaraAltura('1,23 ', '1,23 m')).toBe('0,12 m');
+    expect(mascaraAltura('0,01 ', '0,01 m')).toBe('');
+    expect(mascaraAltura('1,2 m', '1,23 m')).toBe('0,12 m');
   });
 
   it('não guarda mais que dois decimais, que é o que a trena mede', () => {

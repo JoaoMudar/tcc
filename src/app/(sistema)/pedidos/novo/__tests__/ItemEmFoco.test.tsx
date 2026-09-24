@@ -22,7 +22,7 @@ describe('item do pedido em tela cheia (T8.1)', () => {
     expect(screen.queryByText(/tamanho da muda combinado/)).toBeNull();
   });
 
-  it('a altura digitada em centímetros vira metros ao sair do campo', () => {
+  it('a altura sai em metros enquanto é digitada', () => {
     const onAlterar = vi.fn();
     render(
       <ItemEmFoco
@@ -37,7 +37,7 @@ describe('item do pedido em tela cheia (T8.1)', () => {
         onCriarEspecie={vi.fn()}
       />,
     );
-    fireEvent.blur(screen.getByLabelText('Altura em metros'), {
+    fireEvent.change(screen.getByLabelText('Altura em metros'), {
       target: { value: '80' },
     });
     expect(onAlterar).toHaveBeenLastCalledWith(3, 'altura', '0,80 m');
