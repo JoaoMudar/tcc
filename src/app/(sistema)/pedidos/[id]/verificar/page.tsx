@@ -38,7 +38,16 @@ export default async function VerificarPage({ params }: VerificarPageProps) {
     redirect(`/pedidos/${id}`);
   }
 
-  const topo = pedido.itens.filter((item) => item.itemPaiId === null);
+  // O complemento (P13) é parte da resposta do item que ele completa: sai no cartão dele
+  const topo = pedido.itens.filter((item) => item.itemPaiId === null && item.complementaItemId === null);
+  const complementoDe = new Map(
+    pedido.itens
+      .filter((item) => item.complementaItemId !== null)
+      .map((item) => [
+        item.complementaItemId!,
+        { quantidade: item.quantidade, recipienteId: item.recipienteId, recipiente: item.recipiente, alturaM: item.alturaM },
+      ]),
+  );
   const genericos = topo.filter((item) => item.generico);
   const especificos = topo.filter((item) => !item.generico);
   const respondidos = topo.filter((item) => item.disponivel !== null).length;
@@ -134,6 +143,7 @@ export default async function VerificarPage({ params }: VerificarPageProps) {
                   recipienteDisponivel: item.recipienteDisponivel,
                   alturaDisponivelM: item.alturaDisponivelM,
                   observacoesDisponibilidade: item.observacoesDisponibilidade,
+                  complemento: complementoDe.get(item.id) ?? null,
                 }}
                 recipientes={opcoesRecipiente}
               />

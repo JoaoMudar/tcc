@@ -5,6 +5,7 @@ import {
   estadoDaResposta,
   estadoDoGenerico,
   perguntasDoItem,
+  resolveComplemento,
   resolveDisponibilidade,
   validarComposicaoGenerico,
 } from '../pedidos-rotulos';
@@ -111,7 +112,7 @@ describe('resolveDisponibilidade (P12)', () => {
 
   it('"Tem parte" igual ao pedido manda usar "Tem tudo"', () => {
     const resolvida = resolveDisponibilidade('parcial', completo, { quantidade: 500, recipienteId: 'tubete', alturaM: 1.2 });
-    expect(resolvida).toEqual({ error: 'Nada difere do pedido: use "Tem tudo".' });
+    expect(resolvida).toEqual({ error: 'Nada difere do pedido.' });
   });
 
   it('"Tem parte" não passa do pedido e exige a quantidade quando ela foi pedida', () => {
@@ -203,7 +204,7 @@ describe('validarComposicaoGenerico (P12)', () => {
   it('"Tem parte" que fecha a soma precisa de alguma diferença de recipiente ou altura', () => {
     const pai = item('QRA');
     const igual = [linha('e1', 500, { recipienteId: 'tubete', alturaM: 1.2 })];
-    expect(validarComposicaoGenerico(pai, igual, [], 'parcial')).toEqual({ error: 'Nada difere do pedido: use "Tem tudo".' });
+    expect(validarComposicaoGenerico(pai, igual, [], 'parcial')).toEqual({ error: 'Nada difere do pedido.' });
     const outraAltura = [linha('e1', 500, { recipienteId: 'tubete', alturaM: 0.8 })];
     expect(validarComposicaoGenerico(pai, outraAltura, [], 'parcial')).toMatchObject({
       value: { disponivel: true, quantidadeDisponivel: null, linhas: [{ alturaM: 0.8 }] },
@@ -243,5 +244,51 @@ describe('estadoDoGenerico (P12)', () => {
     expect(estadoDoGenerico({ ...pai, disponivel: null }, [])).toBe('pendente');
     expect(estadoDoGenerico({ ...pai, disponivel: false, quantidadeDisponivel: 0 }, [])).toBe('nao_tem');
     expect(estadoDoGenerico({ ...pai, disponivel: false, quantidadeDisponivel: 300 }, [])).toBe('parte');
+  });
+});
+
+describe('resolveComplemento: o "+" de "Tem parte" (P13)', () => {
+  const pedido = item('QR');
+
+  it('completa em outro recipiente até o pedido', () => {
+    expect(resolveComplemento(pedido, { quantidade: 300 }, { quantidade: 200, recipienteId: 'saco' })).toEqual({
+      value: { quantidade: 200, recipienteId: 'saco', alturaM: null },
+    });
+    expect(resolveComplemento(pedido, { quantidade: 300 }, { quantidade: 100, recipienteId: 'saco' })).toHaveProperty('value');
+  });
+
+  it('as duas linhas não passam do pedido', () => {
+    expect(resolveComplemento(pedido, { quantidade: 300 }, { quantidade: 201, recipienteId: 'saco' })).toEqual({
+      error: 'As duas linhas passam do pedido: são 500 mudas.',
+    });
+  });
+
+  it('quantas e em que recipiente são obrigatórios', () => {
+    expect(resolveComplemento(pedido, { quantidade: 300 }, { recipienteId: 'saco' })).toHaveProperty('error');
+    expect(resolveComplemento(pedido, { quantidade: 300 }, { quantidade: 0, recipienteId: 'saco' })).toHaveProperty('error');
+    expect(resolveComplemento(pedido, { quantidade: 300 }, { quantidade: 200 })).toEqual({
+      error: 'Escolha o recipiente do complemento.',
+    });
+  });
+
+  it('igual à primeira linha é recusado', () => {
+    expect(resolveComplemento(pedido, { quantidade: 300 }, { quantidade: 200, recipienteId: 'tubete' })).toHaveProperty('error');
+    expect(
+      resolveComplemento(pedido, { quantidade: 300, recipienteId: 'saco' }, { quantidade: 200, recipienteId: 'saco' }),
+    ).toHaveProperty('error');
+  });
+
+  it('com altura pedida, a outra altura no mesmo recipiente basta, e a altura vazia herda a pedida', () => {
+    const comAltura = item('QRA');
+    expect(resolveComplemento(comAltura, { quantidade: 300 }, { quantidade: 200, recipienteId: 'tubete', alturaM: 0.8 })).toEqual({
+      value: { quantidade: 200, recipienteId: 'tubete', alturaM: 0.8 },
+    });
+    expect(resolveComplemento(comAltura, { quantidade: 300 }, { quantidade: 200, recipienteId: 'saco' })).toEqual({
+      value: { quantidade: 200, recipienteId: 'saco', alturaM: 1.2 },
+    });
+  });
+
+  it('item sem quantidade pedida não se completa', () => {
+    expect(resolveComplemento(item('R'), { quantidade: 30 }, { quantidade: 20, recipienteId: 'saco' })).toHaveProperty('error');
   });
 });

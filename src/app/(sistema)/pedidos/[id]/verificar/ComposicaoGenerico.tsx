@@ -1,6 +1,6 @@
 'use client';
 
-import { startTransition, useActionState, useState } from 'react';
+import { startTransition, useActionState, useRef, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { ComboboxField } from '@/components/ui/ComboboxField';
 import { Notice } from '@/components/ui/Notice';
@@ -9,6 +9,7 @@ import { TextField } from '@/components/ui/TextField';
 import { EMPTY_FORM_STATE } from '@/lib/form-state';
 import { formatQuantidade, lerQuantidade } from '@/lib/lotes-rotulos';
 import {
+  NADA_DIFERE,
   type EstadoDaResposta,
   type LinhaComposicao,
   alturaParaCampo,
@@ -107,10 +108,10 @@ function lerLinhas(linhas: readonly Linha[]): { error: string } | { value: Linha
   return { value: lidas };
 }
 
-function resumoDoGenerico(item: GenericoParaCompor, gravada: EstadoDaResposta, rotuloTudo: string): string {
-  if (gravada === 'nao_tem') return 'Não tem no viveiro';
+/** Só em "Tem parte", como no item com espécie: "Não tem" e "Tem tudo" o botão cheio já diz. */
+function resumoDoGenerico(item: GenericoParaCompor, gravada: EstadoDaResposta): string | undefined {
+  if (gravada !== 'parte') return undefined;
   const especies = item.filhos.length === 1 ? '1 espécie' : `${item.filhos.length} espécies`;
-  if (gravada === 'tudo') return `${rotuloTudo}: ${especies}`;
   if (item.quantidade === null) return `Tem parte: ${especies}`;
   const soma = item.quantidadeDisponivel ?? item.quantidade;
   return `Tem parte: ${formatQuantidade(soma)} de ${formatQuantidade(item.quantidade)}, em ${especies}`;
@@ -124,8 +125,13 @@ function resumoDoGenerico(item: GenericoParaCompor, gravada: EstadoDaResposta, r
  *
  * **O contador ao vivo é o que faz a tela funcionar**: em "Tem tudo" a soma tem
  * de fechar exatamente, e descobrir isso só no envio faria a pessoa recomeçar a
- * conta. O botão de gravar só habilita quando a regra fecha, e a regra é a
- * mesma do servidor (`validarComposicaoGenerico`).
+ * conta.
+ *
+ * **Não há "Gravar"**, como no item com espécie: cada campo grava ao sair dele,
+ * e só quando a regra fecha, que é a mesma do servidor
+ * (`validarComposicaoGenerico`). Enquanto não fecha, o contador diz o porquê.
+ * O servidor apaga e regrava a composição inteira, e por isso gravar a cada
+ * campo não acumula espécies.
  */
 export function ComposicaoGenerico({ pedidoId, item, especies, recipientes }: ComposicaoGenericoProps) {
   const [state, formAction, pending] = useActionState(definirComposicaoAction, EMPTY_FORM_STATE);
@@ -136,6 +142,12 @@ export function ComposicaoGenerico({ pedidoId, item, especies, recipientes }: Co
   const [aberta, setAberta] = useState<Modo | null>(gravada === 'parte' || gravada === 'tudo' ? gravada : null);
   const [linhas, setLinhas] = useState<Linha[]>(() => (aberta ? linhasIniciais(item, aberta, gravada) : []));
   const [observacao, setObservacao] = useState(item.observacoesDisponibilidade ?? '');
+  // O último botão tocado: "Não tem" não abre painel, e o cartão tem de pintar mesmo assim
+  const [tocada, setTocada] = useState<Resposta | null>(null);
+  // O que já está no banco: sair do campo sem mudar nada não regrava
+  const gravado = useRef<string | null>(
+    aberta && gravada === aberta ? JSON.stringify([aberta, linhas, observacao]) : null,
+  );
 
   function gravarNaoTem() {
     const dados = new FormData();
@@ -146,6 +158,7 @@ export function ComposicaoGenerico({ pedidoId, item, especies, recipientes }: Co
   }
 
   function escolher(resposta: Resposta) {
+    setTocada(resposta);
     if (resposta === 'nao_tem') {
       setAberta(null);
       gravarNaoTem();
@@ -155,8 +168,46 @@ export function ComposicaoGenerico({ pedidoId, item, especies, recipientes }: Co
     setLinhas(linhasIniciais(item, resposta, gravada));
   }
 
-  const alterar = (chave: number, campo: keyof Omit<Linha, 'chave'>, valor: string) =>
-    setLinhas((atuais) => atuais.map((linha) => (linha.chave === chave ? { ...linha, [campo]: valor } : linha)));
+  /** Grava a composição quando a regra fecha; antes disso, o contador explica. */
+  function enviar(modo: Modo, proximas: readonly Linha[]) {
+    const lidas = lerLinhas(proximas);
+    if ('error' in lidas) return;
+    const estado = modo === 'parte' ? 'parcial' : 'disponivel';
+    if ('error' in validarComposicaoGenerico(item, lidas.value, item.especiesPermitidas, estado)) return;
+
+    const chave = JSON.stringify([modo, proximas, observacao]);
+    // Repetir só vale se o banco já tem exatamente isto: depois de erro, vai de novo
+    if (chave === gravado.current && !state.error) return;
+    gravado.current = chave;
+
+    const perguntadas = new Set((modo === 'parte' ? perguntas.parte : perguntas.tudo).map((p) => p.campo));
+    const dados = new FormData();
+    dados.set('pedido_id', pedidoId);
+    dados.set('item_pai_id', item.id);
+    dados.set('estado', estado);
+    dados.set('observacoes', observacao);
+    // As listas vão paralelas: campo que a regra não pergunta vai vazio, e o servidor herda do genérico
+    for (const linha of proximas) {
+      dados.append('composicao_especie', linha.especieId);
+      dados.append('composicao_quantidade', perguntadas.has('quantidade') ? linha.quantidade : '');
+      dados.append('composicao_recipiente', perguntadas.has('recipiente') ? linha.recipienteId : '');
+      dados.append('composicao_altura', perguntadas.has('altura') ? linha.altura : '');
+    }
+    startTransition(() => formAction(dados));
+  }
+
+  /** `gravar` é o fim da edição do campo: sair dele, ou escolher na lista. */
+  function alterar(chave: number, campo: keyof Omit<Linha, 'chave'>, valor: string, gravar = false) {
+    const proximas = linhas.map((linha) => (linha.chave === chave ? { ...linha, [campo]: valor } : linha));
+    setLinhas(proximas);
+    if (gravar && aberta) enviar(aberta, proximas);
+  }
+
+  function tirar(chave: number) {
+    const proximas = linhas.filter((linha) => linha.chave !== chave);
+    setLinhas(proximas);
+    if (aberta) enviar(aberta, proximas);
+  }
 
   // Escopo do cliente: sem lista, qualquer espécie serve (T8.7)
   const oferecidas =
@@ -170,7 +221,9 @@ export function ComposicaoGenerico({ pedidoId, item, especies, recipientes }: Co
   const completo = validada !== null && 'value' in validada;
   const soma = 'value' in lidas ? lidas.value.reduce((total, linha) => total + (linha.quantidade ?? 0), 0) : 0;
   const escolheuAlguma = linhas.some((linha) => linha.especieId);
-  const falha = 'error' in lidas ? lidas.error : validada && 'error' in validada ? validada.error : null;
+  const erro = 'error' in lidas ? lidas.error : validada && 'error' in validada ? validada.error : null;
+  // "Nada difere" não vira aviso, como no item com espécie: a regra continua, só a frase sai
+  const falha = erro === NADA_DIFERE ? null : erro;
 
   let contador: string;
   if (item.quantidade === null) {
@@ -184,9 +237,11 @@ export function ComposicaoGenerico({ pedidoId, item, especies, recipientes }: Co
 
   const lista = aberta === 'parte' ? perguntas.parte : perguntas.tudo;
   const pergunta = (campo: 'quantidade' | 'recipiente' | 'altura') => lista.find((p) => p.campo === campo);
+  // O cartão pinta no toque: a cor diz o que a pessoa escolheu, antes de gravar
+  const selecionada = aberta ?? tocada ?? (gravada === 'pendente' ? null : gravada);
 
   return (
-    <li className={`flex flex-col gap-3 rounded-xl border-2 p-4 ${COR_DO_ESTADO[gravada]}`}>
+    <li className={`flex flex-col gap-3 rounded-xl border-2 p-4 ${COR_DO_ESTADO[selecionada ?? 'pendente']}`}>
       <CabecalhoItem
         sobretitulo="Sem espécie definida"
         titulo={rotuloGenerico(item.especificacao)}
@@ -194,7 +249,7 @@ export function ComposicaoGenerico({ pedidoId, item, especies, recipientes }: Co
         recipiente={item.recipiente}
         alturaM={item.alturaM}
         estado={gravada}
-        resumo={resumoDoGenerico(item, gravada, perguntas.rotuloTudo)}
+        resumo={resumoDoGenerico(item, gravada)}
       >
         {item.especiesPermitidas.length > 0 && (
           <p className="text-sm font-semibold text-amber-900">
@@ -222,17 +277,13 @@ export function ComposicaoGenerico({ pedidoId, item, especies, recipientes }: Co
 
       <BotoesResposta
         perguntas={perguntas}
-        selecionada={aberta ?? (gravada === 'pendente' ? null : gravada)}
+        selecionada={selecionada}
         pending={pending || gravandoNaoTem}
         onEscolher={escolher}
       />
 
       {aberta && (
-        <form action={formAction} className="flex flex-col gap-3">
-          <input type="hidden" name="pedido_id" value={pedidoId} />
-          <input type="hidden" name="item_pai_id" value={item.id} />
-          <input type="hidden" name="estado" value={aberta === 'parte' ? 'parcial' : 'disponivel'} />
-          <input type="hidden" name="observacoes" value={observacao} />
+        <div className="flex flex-col gap-3">
 
           {linhas.map((linha, indice) => {
             const quantidade = pergunta('quantidade');
@@ -246,11 +297,10 @@ export function ComposicaoGenerico({ pedidoId, item, especies, recipientes }: Co
                   name="composicao_especie"
                   options={oferecidas}
                   value={linha.especieId}
-                  onChange={(valor) => alterar(linha.chave, 'especieId', valor)}
+                  onChange={(valor) => alterar(linha.chave, 'especieId', valor, true)}
                   required
                 />
-                {/* As listas vão paralelas: campo que a regra não pergunta vai vazio, e o servidor herda do genérico */}
-                {quantidade ? (
+                {quantidade && (
                   <TextField
                     label="Quantas"
                     name="composicao_quantidade"
@@ -259,23 +309,20 @@ export function ComposicaoGenerico({ pedidoId, item, especies, recipientes }: Co
                     required={quantidade.obrigatorio}
                     value={linha.quantidade}
                     onChange={(evento) => alterar(linha.chave, 'quantidade', evento.target.value)}
+                    onBlur={() => alterar(linha.chave, 'quantidade', linha.quantidade, true)}
                   />
-                ) : (
-                  <input type="hidden" name="composicao_quantidade" value="" />
                 )}
-                {recipiente ? (
+                {recipiente && (
                   <SelectField
                     label="Recipiente"
                     name="composicao_recipiente"
                     options={recipientes}
                     required={recipiente.obrigatorio}
                     value={linha.recipienteId}
-                    onChange={(evento) => alterar(linha.chave, 'recipienteId', evento.target.value)}
+                    onChange={(evento) => alterar(linha.chave, 'recipienteId', evento.target.value, true)}
                   />
-                ) : (
-                  <input type="hidden" name="composicao_recipiente" value="" />
                 )}
-                {altura ? (
+                {altura && (
                   <TextField
                     label="Altura"
                     name="composicao_altura"
@@ -284,15 +331,11 @@ export function ComposicaoGenerico({ pedidoId, item, especies, recipientes }: Co
                     required={altura.obrigatorio}
                     value={linha.altura}
                     onChange={(evento) => alterar(linha.chave, 'altura', evento.target.value)}
+                    onBlur={() => alterar(linha.chave, 'altura', linha.altura, true)}
                   />
-                ) : (
-                  <input type="hidden" name="composicao_altura" value="" />
                 )}
                 {linhas.length > 1 && (
-                  <Button
-                    variant="secondary"
-                    onClick={() => setLinhas((atuais) => atuais.filter((atual) => atual.chave !== linha.chave))}
-                  >
+                  <Button variant="secondary" onClick={() => tirar(linha.chave)}>
                     Tirar esta espécie
                   </Button>
                 )}
@@ -314,21 +357,19 @@ export function ComposicaoGenerico({ pedidoId, item, especies, recipientes }: Co
               {contador}
             </p>
             {escolheuAlguma && falha && <p className="text-sm text-amber-900">{falha}</p>}
-            <Button type="submit" pending={pending} pendingLabel="Gravando…" disabled={!completo}>
-              Gravar
-            </Button>
           </div>
 
           {state.error && <Notice tone="error">{state.error}</Notice>}
-          {state.success && <Notice tone="success">{state.success}</Notice>}
-        </form>
+        </div>
       )}
 
       <CampoObservacao
         valor={observacao}
         onChange={setObservacao}
         onBlur={() => {
+          // A observação vai junto da resposta: com resposta gravada, regrava a mesma
           if (gravada === 'nao_tem') gravarNaoTem();
+          else if (aberta && gravada === aberta) enviar(aberta, linhas);
         }}
       />
 
