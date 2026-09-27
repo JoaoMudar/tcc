@@ -3,6 +3,18 @@
 Uma entrada por migration nova, como pede o `CLAUDE.md`. As migrations até `20260901000008` são o
 schema inicial em português e estão descritas no `C8`.
 
+## 27/09/2026 · `20260927000001_conferencia_complemento.sql`
+
+- **"Tem parte" completa em outro recipiente.** Nova coluna `pedidos_itens.complementa_item_id`
+  (uuid, opcional, FK para `pedidos_itens` com `ON DELETE CASCADE`) e índice parcial. O complemento
+  é um item da mesma espécie, de topo, já respondido e sem preço, que a chefia precifica na
+  negociação. O CHECK `pedidos_itens_complemento_especifico` o impede de ser genérico, filho ou
+  complemento de si mesmo.
+- Compatível: a coluna nasce nula, que é "item pedido pelo cliente", e nada é migrado.
+- Na mesma alteração, fora do banco (plano P13): o cartão da conferência pinta no toque; "Nada
+  difere do pedido." perde o conselho; saem os textos "Vai junto com a resposta do item.", "Grava
+  ao sair do campo.", "Gravando…", "Gravado." e "Se não contou, deixe em branco.".
+
 ## 24/09/2026 · `20260925000001_conferencia_altura_e_quantidade_opcional.sql`
 
 - **A conferência registra a altura encontrada.** Nova coluna `pedidos_itens.altura_disponivel_m`

@@ -6,6 +6,7 @@ import { lerQuantidade } from './lotes-rotulos';
 import type { Perfil } from './perfis';
 import {
   type CanalVenda,
+  type ComplementoConferido,
   type EstadoDisponibilidade,
   type ItemParaResponder,
   type LinhaComposicao,
@@ -15,6 +16,7 @@ import {
   isCanalVenda,
   podeTransicionar,
   quantidadeConfirmada,
+  resolveComplemento,
   resolveDisponibilidade,
   validarComposicaoGenerico,
 } from './pedidos-rotulos';
@@ -43,6 +45,7 @@ export {
   perguntasDoItem,
   podeTransicionar,
   quantidadeConfirmada,
+  resolveComplemento,
   resolveDisponibilidade,
   totalItem,
   totalPedido,
@@ -51,6 +54,7 @@ export {
   validarComposicaoGenerico,
   validarDivisaoCargas,
   type CanalVenda,
+  type ComplementoConferido,
   type EstadoDaResposta,
   type EstadoDisponibilidade,
   type ItemParaResponder,
@@ -159,6 +163,8 @@ export interface ItemPedido extends NovoItem {
   generico: boolean;
   itemPaiId: string | null;
   especificacao: string | null;
+  /** O item que este completa em outro recipiente, na conferência (P13). Nulo é item pedido. */
+  complementaItemId: string | null;
 }
 
 export interface PedidoResumo {
@@ -272,7 +278,8 @@ export async function listItens(db: Db, pedidoId: string): Promise<ItemPedido[]>
             i.recipiente_disponivel_id AS "recipienteDisponivelId", rd.nome AS "recipienteDisponivel",
             i.altura_disponivel_m::float8 AS "alturaDisponivelM",
             i.observacoes_disponibilidade AS "observacoesDisponibilidade",
-            i.generico, i.item_pai_id AS "itemPaiId", i.especificacao
+            i.generico, i.item_pai_id AS "itemPaiId", i.especificacao,
+            i.complementa_item_id AS "complementaItemId"
        FROM pedidos_itens i
        -- LEFT: o item genérico não tem espécie até a gerência compor
        LEFT JOIN especies e ON e.id = i.especie_id
@@ -461,7 +468,8 @@ export async function atualizarItem(
             disponivel = CASE WHEN x.mudou THEN NULL ELSE i.disponivel END,
             quantidade_disponivel = CASE WHEN x.mudou THEN NULL ELSE i.quantidade_disponivel END,
             recipiente_disponivel_id = CASE WHEN x.mudou THEN NULL ELSE i.recipiente_disponivel_id END,
-            altura_disponivel_m = CASE WHEN x.mudou THEN NULL ELSE i.altura_disponivel_m END
+            altura_disponivel_m = CASE WHEN x.mudou THEN NULL ELSE i.altura_disponivel_m END,
+            complementa_item_id = CASE WHEN x.mudou THEN NULL ELSE i.complementa_item_id END
        FROM (SELECT id, NOT generico
                     AND (quantidade IS DISTINCT FROM $3::int
                          OR altura_m IS DISTINCT FROM $4::numeric
@@ -471,6 +479,15 @@ export async function atualizarItem(
     [pedidoId, itemId, valores.quantidade, valores.alturaM, trocaRecipiente, valores.recipienteId ?? null],
   );
   if (!rowCount) throw new UserError('Item não encontrado neste pedido.');
+
+  // P13: o complemento era parte da resposta que caiu, e sai com ela. O próprio
+  // complemento, mudado pela chefia, deixa de sê-lo (acima): vira item pedido
+  await client.query(
+    `DELETE FROM pedidos_itens c
+      WHERE c.complementa_item_id = $2 AND c.pedido_id = $1
+        AND EXISTS (SELECT 1 FROM pedidos_itens o WHERE o.id = $2 AND o.disponivel IS NULL)`,
+    [pedidoId, itemId],
+  );
 }
 
 export async function removerItem(client: Client, pedidoId: string, itemId: string): Promise<void> {
@@ -865,6 +882,7 @@ export async function iniciarVerificacao(
 
 interface ItemParaVerificar extends ItemParaResponder {
   generico: boolean;
+  complementaItemId: string | null;
 }
 
 /** O item como a conferência o compara: `NUMERIC` volta do `pg` como texto. */
@@ -878,7 +896,7 @@ async function itemParaVerificar(
   // item de outro pedido, reenviado no formulário, escreva onde não devia.
   const { rows } = await client.query<ItemParaVerificar & { preco: string | null }>(
     `SELECT quantidade, recipiente_id AS "recipienteId", altura_m::float8 AS "alturaM", generico,
-            preco_unitario AS preco
+            complementa_item_id AS "complementaItemId", preco_unitario AS preco
        FROM pedidos_itens WHERE id = $2 AND pedido_id = $1${travar ? ' FOR UPDATE' : ''}`,
     [pedidoId, itemId],
   );
@@ -902,18 +920,45 @@ export async function marcarDisponibilidade(
     recipienteId?: string | null;
     alturaM?: number | null;
     observacoes?: string | null;
+    /** P13: a segunda linha de "Tem parte", em outro recipiente. Ausente é "sem complemento". */
+    complemento?: { quantidade: number | null; recipienteId: string | null; alturaM: number | null } | null;
   } = {},
 ): Promise<void> {
   await abrirOuExigirVerificacao(client, pedidoId, autor);
 
-  const item = await itemParaVerificar(client, pedidoId, itemId);
+  const item = await itemParaVerificar(client, pedidoId, itemId, true);
   if (item.generico) {
     throw new UserError('O item genérico se resolve escolhendo as espécies, e não por disponível ou indisponível.');
+  }
+  if (item.complementaItemId) {
+    throw new UserError('Este item completa outro: responda no item que ele completa.');
   }
 
   const resolvida = resolveDisponibilidade(estado, item, extras);
   if ('error' in resolvida) throw new UserError(resolvida.error);
   const { disponivel, quantidadeDisponivel, recipienteDisponivelId, alturaDisponivelM } = resolvida.value;
+
+  let complemento: ComplementoConferido | null = null;
+  if (extras.complemento) {
+    if (estado !== 'parcial') throw new UserError('Só "Tem parte" se completa com outro recipiente.');
+    const resolvido = resolveComplemento(item, extras, extras.complemento);
+    if ('error' in resolvido) throw new UserError(resolvido.error);
+    complemento = resolvido.value;
+  }
+
+  // Responder de novo é decidir de novo, como na composição do genérico: o
+  // complemento anterior sai, e volta só se a resposta nova o trouxer
+  await client.query('DELETE FROM pedidos_itens WHERE complementa_item_id = $2 AND pedido_id = $1', [pedidoId, itemId]);
+  if (complemento) {
+    // Sem preço: saco diferente tem preço diferente, e é a chefia quem o digita
+    await client.query(
+      `INSERT INTO pedidos_itens
+         (pedido_id, especie_id, recipiente_id, quantidade, altura_m, generico, disponivel, complementa_item_id)
+       SELECT pedido_id, especie_id, $3, $4, $5, false, true, id
+         FROM pedidos_itens WHERE id = $2 AND pedido_id = $1`,
+      [pedidoId, itemId, complemento.recipienteId, complemento.quantidade, complemento.alturaM],
+    );
+  }
 
   await client.query(
     `UPDATE pedidos_itens
@@ -1072,7 +1117,8 @@ export async function concluirVerificacao(
             COUNT(*) FILTER (WHERE disponivel AND NOT generico)::int AS disponiveis,
             COUNT(*) FILTER (WHERE generico)::int                    AS genericos
        FROM pedidos_itens
-      WHERE pedido_id = $1 AND item_pai_id IS NULL`,
+      -- O complemento é parte da resposta do item que ele completa, e não item conferido
+      WHERE pedido_id = $1 AND item_pai_id IS NULL AND complementa_item_id IS NULL`,
     [pedidoId],
   );
   const { pendentes, total, disponiveis, genericos } = rows[0];

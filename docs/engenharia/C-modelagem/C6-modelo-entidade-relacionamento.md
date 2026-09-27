@@ -699,6 +699,7 @@ erDiagram
     boolean generico
     uuid    item_pai_id FK
     text    especificacao
+    uuid    complementa_item_id FK
   }
   pedidos_historico {
     uuid    id PK
@@ -739,6 +740,7 @@ erDiagram
   pedidos ||--o{ pedidos_historico : "percorre"
   usuarios ||--o{ pedidos_historico : "assina"
   pedidos_itens ||--o{ pedidos_itens : "é composto por"
+  pedidos_itens |o--o| pedidos_itens : "é completado por"
   pedidos_itens ||--o{ pedidos_itens_especies_permitidas : "admite"
   especies ||--o{ pedidos_itens_especies_permitidas : "é admitida em"
   pedidos ||--o{ pedidos_cargas : "sai em"
@@ -778,6 +780,15 @@ item genérico não tem pai. Quando o genérico tem quantidade, o filho herda o 
 total soma o pai, porque o filho diz qual espécie compõe a venda e não quanto ela custa. Quando o
 genérico não tem quantidade ("manda o que tiver"), ele é uma lista montada: os filhos são os itens
 de venda, cada um com seu preço, e é deles que o total sai.
+
+**A segunda aresta de `pedidos_itens` consigo mesma é o complemento** (`complementa_item_id`, P13).
+O saco pedido nem sempre tem a quantidade toda, e a gerência oferece completar com outro ("tem 300
+em 17x22 + 200 em 20x26"). A segunda linha não cabe nas colunas de conferência do item, que guardam
+uma resposta só, e vira um item da mesma espécie, de topo, já respondido e sem preço: saco
+diferente tem preço diferente, e é a chefia quem o digita. Não é composição: o complemento é venda
+própria, e o total o soma. Cada item tem no máximo um complemento, e o complemento não tem outro;
+a regra está em `marcarDisponibilidade`, que apaga o anterior a cada resposta. A restrição
+`pedidos_itens_complemento_especifico` impede o complemento genérico ou filho.
 
 **O item pode nascer sem recipiente**, e a aresta com `recipientes` é por isso de zero ou um. O
 cliente que pergunta "tem ipê?" não disse o tamanho; a conferência responde em qual recipiente a

@@ -296,3 +296,68 @@ describe('conclusão', () => {
     expect(gravouEm('UPDATE pedidos SET situacao')).toEqual([]);
   });
 });
+
+describe('o complemento em outro recipiente (P13)', () => {
+  const SACO = '4f7b3a5c-2d9e-4a6f-9b4c-6d0e1f2a3b4c';
+
+  it('"Tem parte" com o "+" cria o item que completa, sem preço', async () => {
+    const dados = form({
+      pedido_id: PEDIDO,
+      item_id: ITEM,
+      estado: 'parcial',
+      quantidade: '300',
+      complemento_quantidade: '200',
+      complemento_recipiente_id: SACO,
+    });
+    expect((await actions.marcarDisponibilidadeAction({}, dados)).error).toBeUndefined();
+    const [[sql, valores]] = gravouEm('INSERT INTO pedidos_itens');
+    expect(String(sql)).toContain('complementa_item_id');
+    expect(String(sql)).not.toContain('preco_unitario');
+    expect(valores).toEqual([PEDIDO, ITEM, SACO, 200, null]);
+  });
+
+  it('responder de novo apaga o complemento anterior', async () => {
+    const dados = form({ pedido_id: PEDIDO, item_id: ITEM, estado: 'parcial', quantidade: '300' });
+    expect((await actions.marcarDisponibilidadeAction({}, dados)).error).toBeUndefined();
+    expect(gravouEm('DELETE FROM pedidos_itens WHERE complementa_item_id')).toHaveLength(1);
+    expect(gravouEm('INSERT INTO pedidos_itens')).toEqual([]);
+  });
+
+  it('as duas linhas não passam do pedido, e nada é gravado', async () => {
+    const dados = form({
+      pedido_id: PEDIDO,
+      item_id: ITEM,
+      estado: 'parcial',
+      quantidade: '300',
+      complemento_quantidade: '300',
+      complemento_recipiente_id: SACO,
+    });
+    expect((await actions.marcarDisponibilidadeAction({}, dados)).error).toMatch(/passam do pedido/);
+    expect(gravouEm('INSERT INTO pedidos_itens')).toEqual([]);
+    expect(gravouEm('UPDATE pedidos_itens')).toEqual([]);
+  });
+
+  it('só "Tem parte" se completa', async () => {
+    const dados = form({
+      pedido_id: PEDIDO,
+      item_id: ITEM,
+      estado: 'disponivel',
+      complemento_quantidade: '200',
+      complemento_recipiente_id: SACO,
+    });
+    expect((await actions.marcarDisponibilidadeAction({}, dados)).error).toMatch(/Tem parte/);
+  });
+
+  it('recipiente do complemento que não é identificador é recusado antes do banco', async () => {
+    const dados = form({
+      pedido_id: PEDIDO,
+      item_id: ITEM,
+      estado: 'parcial',
+      quantidade: '300',
+      complemento_quantidade: '200',
+      complemento_recipiente_id: 'saco',
+    });
+    expect((await actions.marcarDisponibilidadeAction({}, dados)).error).toMatch(/recipiente do complemento/);
+    expectNoDatabase();
+  });
+});

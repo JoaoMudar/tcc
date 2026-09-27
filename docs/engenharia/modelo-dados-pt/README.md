@@ -57,7 +57,7 @@ node scripts/mede-figuras.mjs
 | 14 | `fig14-producao-agenda` | Produção: semana, atribuição e participantes | 8,8 pt |
 | 15 | `fig15-producao-lote` | Produção: o lote e seus movimentos | 8,7 pt |
 | 16 | `fig16-producao-protocolo-do-lote` | Produção: o lote seguindo o protocolo | 21,1 pt |
-| 17 | `fig17-comercial-pedido` | Comercial: pedido, item e a disponibilidade conferida | 7,8 pt |
+| 17 | `fig17-comercial-pedido` | Comercial: pedido, item e a disponibilidade conferida | 6,7 pt |
 | 18 | `fig18-comercial-carga` | Comercial: as cargas do pedido e a separação | 15,0 pt |
 
 **A menor é a 6, a 6,9 pt, e é a conceitual da produção.** Continua sendo a mais apertada da série

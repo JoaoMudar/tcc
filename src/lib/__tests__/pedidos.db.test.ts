@@ -489,7 +489,7 @@ describe('verificação de disponibilidade (T8.10)', () => {
     // Igual em quantidade e recipiente: nada difere (P12)
     await expect(
       tx((c) => marcarDisponibilidade(c, id, doPedido[0].id, 'parcial', gerencia(), { quantidade: cheio, recipienteId })),
-    ).rejects.toThrow(/tem tudo/i);
+    ).rejects.toThrow(/nada difere do pedido/i);
     await expect(
       tx((c) => marcarDisponibilidade(c, id, doPedido[0].id, 'parcial', gerencia(), { quantidade: cheio! + 1, recipienteId })),
     ).rejects.toThrow(/não passa do pedido/i);
@@ -1114,6 +1114,77 @@ describe('conferência por tipo de item (P12, 20260925000001)', () => {
     await tx((c) => confirmarPedido(c, id, chefia()));
     const [aprovado] = await listItens(pool, id);
     expect(aprovado).toMatchObject({ alturaM: 0.8, alturaDisponivelM: null });
+  });
+
+  it('"tem parte" com o "+": o complemento é item próprio, a chefia precifica e a aprovação leva os dois', async () => {
+    const { id } = await novoPedido({
+      itens: [{ especieId: especie, recipienteId: tubete, quantidade: 500, precoCentavos: 300 }],
+    });
+    const [item] = await listItens(pool, id);
+    await tx((c) =>
+      marcarDisponibilidade(c, id, item.id, 'parcial', gerencia(), {
+        quantidade: 300,
+        complemento: { quantidade: 200, recipienteId: saco, alturaM: null },
+      }),
+    );
+    const conferidos = await listItens(pool, id);
+    const complemento = conferidos.find((i) => i.complementaItemId === item.id)!;
+    expect(complemento).toMatchObject({
+      especieId: especie,
+      recipienteId: saco,
+      quantidade: 200,
+      precoCentavos: null,
+      disponivel: true,
+    });
+
+    // Resumo da conferência conta o que foi pedido, e não o complemento
+    const { resumo } = await tx((c) => concluirVerificacao(c, id, gerencia()));
+    expect(resumo).toBe('0 de 1 disponíveis.');
+
+    await tx((c) => negociarItens(c, id, [soPreco(complemento.id, 900)], chefia()));
+    await tx((c) => confirmarPedido(c, id, chefia()));
+    const aprovados = (await listItens(pool, id)).sort((a, b) => b.quantidade! - a.quantidade!);
+    expect(aprovados.map((i) => [i.quantidade, i.recipienteId, i.precoCentavos])).toEqual([
+      [300, tubete, 300],
+      [200, saco, 900],
+    ]);
+  });
+
+  it('responder de novo sem o "+" apaga o complemento', async () => {
+    const { id } = await novoPedido({
+      itens: [{ especieId: especie, recipienteId: tubete, quantidade: 500, precoCentavos: 300 }],
+    });
+    const [item] = await listItens(pool, id);
+    const complemento = { quantidade: 200, recipienteId: saco, alturaM: null };
+    await tx((c) => marcarDisponibilidade(c, id, item.id, 'parcial', gerencia(), { quantidade: 300, complemento }));
+    expect(await listItens(pool, id)).toHaveLength(2);
+    await expect(
+      tx((c) => marcarDisponibilidade(c, id, item.id, 'parcial', gerencia(), { quantidade: 300, complemento: { ...complemento, quantidade: 201 } })),
+    ).rejects.toThrow(/passam do pedido/);
+    expect(await listItens(pool, id)).toHaveLength(2);
+
+    await tx((c) => marcarDisponibilidade(c, id, item.id, 'disponivel', gerencia()));
+    expect(await listItens(pool, id)).toHaveLength(1);
+  });
+
+  it('o complemento não se responde sozinho, e o CHECK recusa complemento genérico', async () => {
+    const { id } = await novoPedido({
+      itens: [{ especieId: especie, recipienteId: tubete, quantidade: 500, precoCentavos: 300 }],
+    });
+    const [item] = await listItens(pool, id);
+    await tx((c) =>
+      marcarDisponibilidade(c, id, item.id, 'parcial', gerencia(), {
+        quantidade: 300,
+        complemento: { quantidade: 200, recipienteId: saco, alturaM: null },
+      }),
+    );
+    const complemento = (await listItens(pool, id)).find((i) => i.complementaItemId === item.id)!;
+    await expect(tx((c) => marcarDisponibilidade(c, id, complemento.id, 'disponivel', gerencia()))).rejects.toThrow(
+      /completa outro/,
+    );
+    await expect(
+      pool.query('UPDATE pedidos_itens SET generico = true, especie_id = NULL WHERE id = $1', [complemento.id]),
+    ).rejects.toThrow();
   });
 
   it('"tem", sem número, no item sem quantidade: a chefia negocia sem teto', async () => {

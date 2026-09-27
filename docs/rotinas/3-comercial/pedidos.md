@@ -85,6 +85,18 @@ As respostas viram colunas de `pedidos_itens`:
 | tem parte, com menos mudas | falso | de 1 a total menos 1 | quando diferem do pedido |
 | tem parte, com todas | verdadeiro | nulo | quando diferem do pedido |
 
+**"Tem parte" pode completar em outro recipiente**, desde 27/09/2026 (plano P13, migration
+`20260927000001`). O saco pedido nem sempre tem a quantidade toda, e o viveiro oferece completar com
+outro: "tem 300 em 17x22 + 200 em 20x26". O "+" do painel abre uma segunda linha com os mesmos
+campos, já com o que falta para fechar o pedido. As duas linhas somam no máximo a quantidade
+pedida, e a segunda tem de diferir da primeira em recipiente ou altura. Ela vira **um item próprio**
+da mesma espécie (`complementa_item_id`), já respondido e sem preço: saco diferente tem preço
+diferente, e a chefia o digita na negociação, como em qualquer item. Responder o item de novo apaga
+o complemento anterior, e a conferência não o conta como item a responder.
+
+O cartão toma a cor da resposta no toque, antes de gravar: vermelho em "Não tem", amarelo em "Tem
+parte" e verde em "Tem tudo". Branco é o que ninguém olhou.
+
 **Parcial e indisponível compartilham `disponivel = false`**, e quem os distingue é a quantidade.
 O recipiente e a altura conferidos só são gravados quando diferem do pedido, e a aprovação os copia
 sobre o item.
@@ -92,7 +104,8 @@ sobre o item.
 **Não se envia à chefia pela metade**: item sem resposta segura a conclusão, porque deixar passar
 faria a chefia aprovar sobre uma apuração incompleta, que é o que a etapa existe para evitar.
 
-Cada toque grava na hora, e não há "Salvar" por item: quem confere está andando com o celular numa
+Cada toque grava na hora, e não há "Salvar" por item, nem no genérico: a composição grava ao sair
+de cada campo, assim que a soma fecha pela regra. Quem confere está andando com o celular numa
 mão, e um botão a mais por item é um item que fica sem resposta.
 
 ### Contagem para carregar (gerência, no galpão)

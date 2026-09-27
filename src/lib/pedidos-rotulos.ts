@@ -420,7 +420,7 @@ function quantidadeInvalida(valor: number | null | undefined): boolean {
   return valor !== null && valor !== undefined && (!Number.isInteger(valor) || valor < 1);
 }
 
-const NADA_DIFERE = 'Nada difere do pedido: use "Tem tudo".';
+export const NADA_DIFERE = 'Nada difere do pedido.';
 
 /**
  * A resposta de um item específico vira colunas. **Parcial e indisponível
@@ -493,6 +493,53 @@ export function resolveDisponibilidade(
       alturaDisponivelM: alturaConferida,
     },
   };
+}
+
+/** A segunda linha de "Tem parte": o que completa o pedido em outro recipiente. */
+export interface ComplementoConferido {
+  quantidade: number;
+  recipienteId: string;
+  /** Nula quando o cliente não pediu altura. */
+  alturaM: number | null;
+}
+
+/**
+ * P13: "Tem parte" com o "+". O saco pedido não tem a quantidade toda, e o
+ * viveiro oferece completar com outro ("tem 300 em 17x22 + 200 em 20x26").
+ *
+ * **O complemento é um item próprio**, da mesma espécie e sem preço, porque
+ * saco diferente tem preço diferente e é a chefia quem o digita. Por isso ele
+ * exige o que um item vendável exige: quantas e em que recipiente.
+ *
+ * **Completar não passa do pedido**: a soma das duas linhas vai até a
+ * quantidade pedida. E o complemento tem de diferir da linha principal em
+ * recipiente ou altura, senão é a mesma linha escrita duas vezes.
+ */
+export function resolveComplemento(
+  item: ItemParaResponder,
+  principal: { quantidade?: number | null; recipienteId?: string | null; alturaM?: number | null },
+  complemento: { quantidade?: number | null; recipienteId?: string | null; alturaM?: number | null },
+): { error: string } | { value: ComplementoConferido } {
+  if (item.quantidade === null) return { error: 'Só se completa o item que tem quantidade pedida.' };
+  const quantidade = complemento.quantidade ?? null;
+  if (quantidade === null || quantidadeInvalida(quantidade)) {
+    return { error: 'Informe quantas mudas completam, um número inteiro maior que zero.' };
+  }
+  if (!complemento.recipienteId) return { error: 'Escolha o recipiente do complemento.' };
+
+  const soma = (principal.quantidade ?? 0) + quantidade;
+  if (soma > item.quantidade) {
+    return { error: `As duas linhas passam do pedido: são ${item.quantidade} mudas.` };
+  }
+
+  const alturaPrincipal = item.alturaM === null ? null : (principal.alturaM ?? item.alturaM);
+  const altura = item.alturaM === null ? null : (complemento.alturaM ?? item.alturaM);
+  const recipientePrincipal = principal.recipienteId || item.recipienteId;
+  if (complemento.recipienteId === recipientePrincipal && altura === alturaPrincipal) {
+    return { error: 'O complemento é igual à primeira linha: troque o recipiente ou some as duas.' };
+  }
+
+  return { value: { quantidade, recipienteId: complemento.recipienteId, alturaM: altura } };
 }
 
 /** Como a tela pinta o item: branco é o que ainda não foi olhado. */

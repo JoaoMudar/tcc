@@ -26,6 +26,7 @@ erDiagram
     boolean generico
     uuid    item_pai_id FK
     text    especificacao
+    uuid    complementa_item_id FK
   }
   pedidos_historico {
     uuid id PK
@@ -54,5 +55,6 @@ erDiagram
   pedidos ||--o{ pedidos_historico : "percorre"
   usuarios ||--o{ pedidos_historico : "assina"
   pedidos_itens ||--o{ pedidos_itens : "e composto por"
+  pedidos_itens |o--o| pedidos_itens : "e completado por"
   pedidos_itens ||--o{ pedidos_itens_especies_permitidas : "admite"
   especies ||--o{ pedidos_itens_especies_permitidas : "e admitida em"

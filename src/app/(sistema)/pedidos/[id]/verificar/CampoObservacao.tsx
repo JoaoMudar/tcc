@@ -37,7 +37,6 @@ export function CampoObservacao({ valor, onChange, onBlur }: CampoObservacaoProp
       value={valor}
       onChange={(evento) => onChange(evento.target.value)}
       onBlur={onBlur}
-      hint="Vai junto com a resposta do item."
     />
   );
 }
