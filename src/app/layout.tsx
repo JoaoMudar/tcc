@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import { RegistraServiceWorker } from '@/components/RegistraServiceWorker';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -16,7 +17,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
     <html lang="pt-BR">
-      <body className="min-h-dvh antialiased">{children}</body>
+      <body className="min-h-dvh antialiased">
+        {children}
+        <RegistraServiceWorker />
+      </body>
     </html>
   );
 }
