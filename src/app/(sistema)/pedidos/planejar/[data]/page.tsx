@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { formatData, isDataIso } from '@/lib/datas';
 import pool from '@/lib/db';
+import { SITUACOES_PEDIDO } from '@/lib/pedidos-rotulos';
 import { AVISOS_DA_ROTA, formatDistancia, isAvisoDaRota } from '@/lib/rotas';
 import { type PedidoParaViagem, cargasDaViagem, listParadas, partidasBase, pedidosDisponiveis, viagemDoDia } from '@/lib/viagens';
 import { requirePageAccess } from '@/lib/auth/guards';
@@ -25,6 +26,8 @@ function paraEscolher(pedido: PedidoParaViagem, dia: string): PedidoParaEscolher
     cliente: pedido.cliente,
     local: local(pedido),
     itens: pedido.itens,
+    // O aprovado é o caso comum e não precisa dizer; o resto já tem carga
+    situacao: pedido.situacao === 'aprovado' ? null : SITUACOES_PEDIDO[pedido.situacao],
     entrega:
       pedido.dataEntrega === dia ? '' : pedido.dataEntrega ? `entrega ${formatData(pedido.dataEntrega).slice(0, 5)}` : 'sem data',
   };

@@ -116,7 +116,7 @@ Fonte: Elaborado pelo autor (2026).
 | RN-56 | O item pedido sem espécie não vai na carga, e sim as espécies que o compõem. A soma de um item nas cargas reproduz a quantidade dele. |
 | RN-57 | A carga fica pronta quando todos os itens dela foram separados, e o pedido fica pronto para envio quando todas as cargas estão prontas. |
 | RN-58 | O dia de carregar é o dia útil anterior à data de entrega, de segunda a sexta-feira. |
-| RN-59 | Só entra na viagem de entrega o pedido aprovado, sem carga organizada e fora de outra viagem em andamento, e entrar nela marca a data de entrega do pedido para o dia da viagem. |
+| RN-59 | Só entra na viagem de entrega o pedido de aprovado para cima (aprovado, separando ou pronto para envio) que nunca esteve em outra viagem, e entrar nela marca a data de entrega do pedido para o dia da viagem. |
 | RN-60 | Os itens da viagem são carregados na ordem inversa das entregas: a última entrega vai para o fundo do caminhão e a primeira fica perto da porta. A viagem fica pronta quando todas as cargas dos pedidos dela estão prontas. |
 
 Fonte: Elaborado pelo autor (2026).
@@ -204,7 +204,7 @@ Fonte: Elaborado pelo autor (2026).
 | RF-60 | Composição do item pedido sem espécie | O sistema deve permitir compor em espécies o item que o cliente pediu sem escolher espécie, respeitando as espécies que ele aceita; sem quantidade no item, a composição é uma lista montada, e cada espécie dela é vendida com preço próprio. | RN-55 |
 | RF-61 | Cargas do pedido e separação dos itens | O sistema deve permitir organizar o pedido aprovado em cargas e registrar a separação de cada item em cada carga. | RN-56, RN-57 |
 | RF-62 | Dia de carregar e calendário de entregas | O sistema deve apresentar o dia de carregamento de cada pedido e o calendário de entregas e carregamentos do mês. | RN-58 |
-| RF-63 | Viagem de entrega do dia | O sistema deve permitir planejar a viagem de entrega de um dia, reunindo nela pedidos aprovados, marcando em cada um a data de entrega da viagem e retomando o planejamento na etapa em que ele parou. | RN-59 |
+| RF-63 | Viagem de entrega do dia | O sistema deve permitir planejar a viagem de entrega de um dia, reunindo nela pedidos de aprovado para cima, marcando em cada um a data de entrega da viagem e retomando o planejamento na etapa em que ele parou. | RN-59 |
 | RF-64 | Rota da viagem e ordem de carregamento | O sistema deve sugerir a ordem das paradas da viagem a partir do endereço de saída, permitir reordená-las e acrescentar parada sem pedido, abrir o trajeto num serviço de mapas e apresentar a separação dos itens na ordem inversa das entregas. | RN-60 |
 
 Fonte: Elaborado pelo autor (2026).

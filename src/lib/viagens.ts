@@ -5,7 +5,7 @@ import { UserError } from './errors';
 import { nomeEspecieSql } from './lotes';
 import { PARTIDA_AGROLANDIA, PARTIDA_ITAPEMA } from './parametros';
 import { type AutorDaMudanca, travarPedido } from './pedidos';
-import { SITUACOES_PEDIDO } from './pedidos-rotulos';
+import { SITUACOES_PEDIDO, type SituacaoPedido } from './pedidos-rotulos';
 import { type AvisoDaRota, type SituacaoViagem, aplicarOrdemSugerida, enderecoEmTexto } from './rotas';
 import { type Coordenada, MapaIndisponivel, geocodificarTexto, otimizarOrdem } from './rotas-ors';
 import type { Db } from './sql';
@@ -14,7 +14,7 @@ import { withTransaction } from './transaction';
 export { atualizarSituacaoViagem } from './cargas';
 
 /**
- * P14: a viagem de entrega. Junta os pedidos aprovados que saem no mesmo
+ * P14: a viagem de entrega. Junta os pedidos (de aprovado para cima) que saem no mesmo
  * caminhão, guarda a ordem das paradas e a etapa em que o planejamento parou.
  *
  * **Toda ação grava na hora.** Não há botão "Salvar": pôr e tirar pedido, a
@@ -70,8 +70,15 @@ export interface PedidoParaViagem {
   cidade: string | null;
   logradouro: string | null;
   dataEntrega: string | null;
+  situacao: SituacaoPedido;
   itens: ItemResumido[];
 }
+
+/**
+ * O pedido entra na viagem **de aprovado para cima**: o aprovado ganha a carga
+ * no carregamento, e o que já está separando ou pronto leva as cargas que já tem.
+ */
+export const SITUACOES_DA_VIAGEM: readonly SituacaoPedido[] = ['aprovado', 'separando', 'pronto_envio'];
 
 const COLUNAS_VIAGEM = `v.id, to_char(v.data, 'YYYY-MM-DD') AS data, v.partida_descricao AS "partidaDescricao",
        v.partida_lat::float8 AS "partidaLat", v.partida_lng::float8 AS "partidaLng", v.situacao,
@@ -172,21 +179,22 @@ export async function listParadas(db: Db, viagemId: string): Promise<ParadaDaVia
 }
 
 /**
- * O que pode entrar numa viagem: **só pedido aprovado**, sem carga organizada e
- * fora de outra viagem em andamento. É o único com item travado para separar.
+ * O que pode entrar numa viagem: pedido de aprovado para cima
+ * (`SITUACOES_DA_VIAGEM`) que **nunca esteve em viagem nenhuma**. Como não há
+ * situação "entregue", o pedido que já saiu num caminhão continua pronto para
+ * envio, e sem esta regra a lista acumularia tudo o que já foi entregue.
  */
 export async function pedidosDisponiveis(db: Db): Promise<PedidoParaViagem[]> {
   const { rows } = await db.query<Omit<PedidoParaViagem, 'itens'>>(
     `SELECT p.id, p.numero_pedido AS numero, c.nome AS cliente, e.cidade, e.logradouro,
-            to_char(p.data_entrega, 'YYYY-MM-DD') AS "dataEntrega"
+            to_char(p.data_entrega, 'YYYY-MM-DD') AS "dataEntrega", p.situacao
        FROM pedidos p
        JOIN cadastro.pessoas c ON c.id = p.cliente_id
        ${ENDERECO_DE_ENTREGA}
-      WHERE p.situacao = 'aprovado'
-        AND NOT EXISTS (SELECT 1 FROM pedidos_cargas l WHERE l.pedido_id = p.id)
-        AND NOT EXISTS (SELECT 1 FROM viagens_paradas vp JOIN viagens v ON v.id = vp.viagem_id
-                         WHERE vp.pedido_id = p.id AND v.situacao <> 'pronta')
+      WHERE p.situacao = ANY($1::text[])
+        AND NOT EXISTS (SELECT 1 FROM viagens_paradas vp WHERE vp.pedido_id = p.id)
       ORDER BY p.data_entrega NULLS LAST, p.numero_pedido`,
+    [SITUACOES_DA_VIAGEM],
   );
   const itens = await itensDosPedidos(
     db,
@@ -274,20 +282,15 @@ export async function adicionarPedido(
   }
 
   const pedido = await travarPedido(client, pedidoId);
-  if (pedido.situacao !== 'aprovado') {
+  if (!SITUACOES_DA_VIAGEM.includes(pedido.situacao)) {
     throw new UserError(
-      `O pedido ${pedido.numero} está em ${SITUACOES_PEDIDO[pedido.situacao].toLowerCase()}, e só pedido aprovado entra na viagem.`,
+      `O pedido ${pedido.numero} está em ${SITUACOES_PEDIDO[pedido.situacao].toLowerCase()}, e só pedido aprovado para cima entra na viagem.`,
     );
   }
-  const { rows: impedimentos } = await client.query<{ cargas: number; viagens: number }>(
-    `SELECT (SELECT COUNT(*) FROM pedidos_cargas WHERE pedido_id = $1)::int AS cargas,
-            (SELECT COUNT(*) FROM viagens_paradas vp JOIN viagens v ON v.id = vp.viagem_id
-              WHERE vp.pedido_id = $1 AND v.situacao <> 'pronta')::int AS viagens`,
+  const { rows: impedimentos } = await client.query<{ viagens: number }>(
+    'SELECT COUNT(*)::int AS viagens FROM viagens_paradas WHERE pedido_id = $1',
     [pedidoId],
   );
-  if (impedimentos[0].cargas > 0) {
-    throw new UserError(`O pedido ${pedido.numero} já tem carga organizada.`);
-  }
   if (impedimentos[0].viagens > 0) {
     throw new UserError(`O pedido ${pedido.numero} já está em outra viagem.`);
   }
@@ -389,38 +392,51 @@ export async function salvarOrdem(
   );
 }
 
-/** Tela 2: de onde o caminhão sai. A coordenada antiga era de outro endereço, e some. */
-export async function definirPartida(client: Client, viagemId: string, descricao: string): Promise<void> {
+/**
+ * Tela 2: de onde o caminhão sai. A coordenada antiga era de outro endereço, e
+ * some; a que veio junto com o endereço escolhido na lista entra no lugar dela.
+ */
+export async function definirPartida(
+  client: Client,
+  viagemId: string,
+  descricao: string,
+  coordenada: Coordenada | null = null,
+): Promise<void> {
   const texto = descricao.trim();
   if (!texto) throw new UserError('Digite o endereço de saída.');
   const viagem = await travarViagem(client, viagemId);
   exigirEtapa(viagem, 'roteirizando', 'A saída só muda na etapa da rota.');
-  if (texto === viagem.partidaDescricao) return;
+  if (texto === viagem.partidaDescricao && !coordenada) return;
   await client.query(
-    `UPDATE viagens SET partida_descricao = $2, partida_lat = NULL, partida_lng = NULL,
+    `UPDATE viagens SET partida_descricao = $2, partida_lat = $3, partida_lng = $4,
                         distancia_m = NULL, duracao_s = NULL, sugerir_ordem = true
       WHERE id = $1`,
-    [viagemId, texto],
+    [viagemId, texto, coordenada?.lat ?? null, coordenada?.lng ?? null],
   );
 }
 
-/** Tela 2: parada que não é entrega ("abastecer"). Sem item, não aparece no carregamento. */
+/**
+ * Tela 2: parada que não é entrega ("abastecer"). Sem item, não aparece no
+ * carregamento. A coordenada vem do endereço escolhido na lista, e sem endereço
+ * não há o que situar.
+ */
 export async function adicionarParada(
   client: Client,
   viagemId: string,
   descricao: string,
   endereco: string | null,
+  coordenada: Coordenada | null = null,
 ): Promise<void> {
   const texto = descricao.trim();
   if (!texto) throw new UserError('Descreva a parada.');
   const viagem = await travarViagem(client, viagemId);
   exigirEtapa(viagem, 'roteirizando', 'Parada extra só entra na etapa da rota.');
-  await client.query('INSERT INTO viagens_paradas (viagem_id, ordem, descricao, endereco) VALUES ($1, $2, $3, $4)', [
-    viagemId,
-    await proximaOrdem(client, viagemId),
-    texto,
-    endereco?.trim() || null,
-  ]);
+  const local = endereco?.trim() || null;
+  const ponto = local ? coordenada : null;
+  await client.query(
+    'INSERT INTO viagens_paradas (viagem_id, ordem, descricao, endereco, lat, lng) VALUES ($1, $2, $3, $4, $5, $6)',
+    [viagemId, await proximaOrdem(client, viagemId), texto, local, ponto?.lat ?? null, ponto?.lng ?? null],
+  );
   await esquecerRota(client, viagemId, { sugerirDeNovo: false });
 }
 
@@ -459,20 +475,33 @@ export async function mudarEtapa(
 }
 
 /**
- * Tela 2 → Tela 3: cria a carga de cada pedido, numa transação só. Cada pedido
- * passa a `separando` por `criarCargaUnica`, que é a mesma porta do "Organizar
+ * Tela 2 → Tela 3: cria a carga de cada pedido aprovado, numa transação só. Cada
+ * um passa a `separando` por `criarCargaUnica`, que é a mesma porta do "Organizar
  * cargas": o pedido que alguém mexeu no meio do caminho recusa a viagem inteira.
+ *
+ * O pedido que **já tem carga** (separando ou pronto para envio) segue com as
+ * dele, todas: o item já separado chega marcado e travado na Tela 3.
  */
 export async function iniciarCarregamento(client: Client, viagemId: string, autor: AutorDaMudanca): Promise<void> {
   const viagem = await travarViagem(client, viagemId);
   exigirEtapa(viagem, 'roteirizando', 'O carregamento começa na etapa da rota.');
-  const { rows } = await client.query<{ pedidoId: string }>(
-    `SELECT pedido_id AS "pedidoId" FROM viagens_paradas
-      WHERE viagem_id = $1 AND pedido_id IS NOT NULL ORDER BY ordem`,
+  const { rows } = await client.query<{ pedidoId: string; numero: number; situacao: SituacaoPedido; temCarga: boolean }>(
+    `SELECT vp.pedido_id AS "pedidoId", p.numero_pedido AS numero, p.situacao,
+            EXISTS (SELECT 1 FROM pedidos_cargas c WHERE c.pedido_id = vp.pedido_id) AS "temCarga"
+       FROM viagens_paradas vp
+       JOIN pedidos p ON p.id = vp.pedido_id
+      WHERE vp.viagem_id = $1 ORDER BY vp.ordem`,
     [viagemId],
   );
   if (rows.length === 0) throw new UserError('A viagem não tem pedido.');
-  for (const { pedidoId } of rows) await criarCargaUnica(client, pedidoId, autor);
+  for (const { pedidoId, numero, situacao, temCarga } of rows) {
+    if (!temCarga) {
+      await criarCargaUnica(client, pedidoId, autor);
+    } else if (!SITUACOES_DA_VIAGEM.includes(situacao)) {
+      // A carga ficou, mas o pedido foi cancelado depois de entrar na viagem
+      throw new UserError(`O pedido ${numero} está em ${SITUACOES_PEDIDO[situacao].toLowerCase()}, e não vai na viagem.`);
+    }
+  }
   await client.query("UPDATE viagens SET situacao = 'carregando' WHERE id = $1", [viagemId]);
 }
 
@@ -512,6 +541,7 @@ export async function cargasDaViagem(db: Db, viagemId: string): Promise<GrupoDoC
  * Tela 3: "Carga pronta" fecha as cargas de todos os pedidos da viagem, cada
  * uma por `concluirCarga`, que leva o pedido a pronto para envio e a viagem a
  * pronta na última. Item por separar em qualquer entrega recusa tudo.
+ * A carga que já chegou pronta fica como está.
  */
 export async function concluirViagem(
   client: Client,
@@ -542,6 +572,8 @@ export async function concluirViagem(
     [viagemId],
   );
   for (const carga of cargas) await concluirCarga(client, carga.id, autor);
+  // Viagem só com pedido já pronto não passa por `concluirCarga`, que é quem a fecha
+  await client.query("UPDATE viagens SET situacao = 'pronta' WHERE id = $1 AND situacao = 'carregando'", [viagemId]);
 
   const { rows: pedidos } = await client.query<{ n: number }>(
     'SELECT COUNT(*)::int AS n FROM viagens_paradas WHERE viagem_id = $1 AND pedido_id IS NOT NULL',

@@ -86,4 +86,19 @@ describe('GradeItensFicha (T8.1, RF-55)', () => {
     render(<GradeItensFicha itens={[item({ quantidade: null })]} saldos={{}} faltaBloqueia />);
     expect(screen.getAllByText('Definir')[0].className).toMatch(/red/);
   });
+
+  it('na aprovação, a quantidade que falta fica vermelha no campo, como o preço', () => {
+    render(
+      <GradeItensFicha
+        itens={[item({ quantidade: null })]}
+        saldos={{}}
+        valores={{ a: { preco: '', quantidade: '', recipienteId: 't' } }}
+        onAlterar={vi.fn()}
+        faltaBloqueia
+      />,
+    );
+    const [quantidade] = screen.getAllByLabelText('Quantidade do item 1');
+    expect(quantidade.getAttribute('placeholder')).toBe('Definir');
+    expect(quantidade.className).toContain('placeholder:text-red-600');
+  });
 });

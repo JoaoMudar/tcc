@@ -12,6 +12,7 @@ vi.mock('@/lib/rotas-ors', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/rotas-ors')>()),
   geocodificarTexto: vi.fn(),
   otimizarOrdem: vi.fn(),
+  sugerirEnderecos: vi.fn(),
 }));
 
 const client = { query: vi.fn(), release: vi.fn() };
@@ -19,7 +20,7 @@ vi.mock('@/lib/db', () => ({ default: { query: vi.fn(), connect: vi.fn(async () 
 
 const { requireUser } = await import('@/lib/auth/dal');
 const { default: pool } = await import('@/lib/db');
-const { MapaIndisponivel, geocodificarTexto } = await import('@/lib/rotas-ors');
+const { MapaIndisponivel, geocodificarTexto, sugerirEnderecos } = await import('@/lib/rotas-ors');
 const actions = await import('../actions');
 
 const DIA = '2026-10-02';
@@ -70,7 +71,7 @@ function responder(sql: unknown) {
   if (texto.includes('FROM pedidos WHERE id = $1 FOR UPDATE')) {
     return { rows: [{ id: PEDIDO, numero: 7, situacao: situacaoPedido }], rowCount: 1 };
   }
-  if (texto.includes('AS cargas')) return { rows: [{ cargas: 0, viagens: 0 }], rowCount: 1 };
+  if (texto.includes('AS viagens')) return { rows: [{ viagens: 0 }], rowCount: 1 };
   if (texto.includes('AS n')) return { rows: [{ n: 1 }], rowCount: 1 };
   if (texto.includes('UPDATE pedidos SET data_entrega')) return { rows: [], rowCount: dataEntregaMudou ? 1 : 0 };
   if (texto.includes('FROM viagens_paradas vp')) {
@@ -127,10 +128,20 @@ describe('pôr pedido na carga (Tela 1)', () => {
     expect(gravouEm('INSERT INTO viagens_paradas')).toHaveLength(1);
   });
 
-  it('só pedido aprovado entra', async () => {
+  it('pedido separando ou pronto para envio também entra', async () => {
+    for (const situacao of ['separando', 'pronto_envio']) {
+      vi.clearAllMocks();
+      situacaoPedido = situacao;
+      const state = await actions.adicionarPedidoAction({}, form({ data: DIA, pedido_id: PEDIDO }));
+      expect(state.error).toBeUndefined();
+      expect(gravouEm('INSERT INTO viagens_paradas')).toHaveLength(1);
+    }
+  });
+
+  it('antes de aprovado, não entra', async () => {
     situacaoPedido = 'verificado';
     const state = await actions.adicionarPedidoAction({}, form({ data: DIA, pedido_id: PEDIDO }));
-    expect(state.error).toMatch(/só pedido aprovado entra na viagem/);
+    expect(state.error).toMatch(/só pedido aprovado para cima entra na viagem/);
     expect(gravouEm('INSERT INTO viagens_paradas')).toHaveLength(0);
   });
 
@@ -181,10 +192,43 @@ describe('ordem da rota (Tela 2)', () => {
     expect(state.error).toMatch(/paradas mudaram/);
   });
 
+  it('parada extra com endereço escolhido na lista grava a coordenada', async () => {
+    situacaoViagem = 'roteirizando';
+    const state = await actions.adicionarParadaAction(
+      {},
+      form({ data: DIA, viagem_id: VIAGEM, descricao: 'Abastecer', endereco: 'Posto, Rio do Sul', lat: '-27.2', lng: '-49.6' }),
+    );
+    expect(state.error).toBeUndefined();
+    expect(gravouEm('INSERT INTO viagens_paradas')[0][1]).toEqual([VIAGEM, 1, 'Abastecer', 'Posto, Rio do Sul', -27.2, -49.6]);
+  });
+
+  it('saída digitada e escolhida na lista já vai com a coordenada', async () => {
+    situacaoViagem = 'roteirizando';
+    await expect(
+      actions.definirPartidaAction(
+        {},
+        form({ data: DIA, viagem_id: VIAGEM, partida: 'outro', endereco: 'Rodoviária, Ibirama', lat: '-27.05', lng: '-49.51' }),
+      ),
+    ).rejects.toThrow('REDIRECT');
+    expect(gravouEm('SET partida_descricao')[0][1]).toEqual([VIAGEM, 'Rodoviária, Ibirama', -27.05, -49.51]);
+  });
+
   it('parada extra precisa de descrição', async () => {
     situacaoViagem = 'roteirizando';
     const state = await actions.adicionarParadaAction({}, form({ data: DIA, viagem_id: VIAGEM, descricao: ' ' }));
     expect(state.error).toBe('Descreva a parada.');
     expect(state.fields).toEqual({ descricao: ' ', endereco: '' });
+  });
+});
+
+describe('sugestões de endereço', () => {
+  it('texto curto não consulta o mapa', async () => {
+    await expect(actions.buscarEnderecosAction('ab')).resolves.toEqual([]);
+    expect(sugerirEnderecos).not.toHaveBeenCalled();
+  });
+
+  it('mapa fora do ar é lista vazia, e não erro', async () => {
+    vi.mocked(sugerirEnderecos).mockRejectedValue(new MapaIndisponivel('sem chave'));
+    await expect(actions.buscarEnderecosAction('Rio do Sul')).resolves.toEqual([]);
   });
 });

@@ -3,6 +3,7 @@ import {
   aplicarOrdemSugerida,
   enderecoEmTexto,
   formatDiaDaViagem,
+  lerCoordenada,
   formatDistancia,
   isAvisoDaRota,
   isSituacaoViagem,
@@ -157,5 +158,18 @@ describe('formatos', () => {
     expect(isAvisoDaRota('mapa_indisponivel')).toBe(true);
     expect(isAvisoDaRota('<script>')).toBe(false);
     expect(isAvisoDaRota(undefined)).toBe(false);
+  });
+});
+
+describe('lerCoordenada', () => {
+  it('lê a coordenada da sugestão escolhida', () => {
+    expect(lerCoordenada('-27.2', '-49.6')).toEqual({ lat: -27.2, lng: -49.6 });
+  });
+
+  it('vazio ou fora do mapa vale como ausente', () => {
+    expect(lerCoordenada('', '')).toBeNull();
+    expect(lerCoordenada('-27.2', '')).toBeNull();
+    expect(lerCoordenada('abc', '-49.6')).toBeNull();
+    expect(lerCoordenada('95', '-49.6')).toBeNull();
   });
 });

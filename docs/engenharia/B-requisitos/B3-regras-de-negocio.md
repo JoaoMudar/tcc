@@ -234,7 +234,7 @@ e já se diz "fiz tantos saquinhos hoje". Apague o sistema e os enunciados sobre
 | **RN-56** | O item pedido sem espécie não vai na carga, e sim as espécies que o compõem. A soma de um item nas cargas reproduz a quantidade dele | Restrição | `rotinas/3-comercial` | RF-61 | - |
 | **RN-57** | A carga fica pronta quando todos os itens dela foram separados, e o pedido fica pronto para envio quando todas as cargas estão prontas | Fato | `rotinas/3-comercial` | RF-61 | - |
 | **RN-58** | O dia de carregar é o dia útil anterior à data de entrega, de segunda a sexta-feira | Fato | `rotinas/3-comercial` | RF-62 | - |
-| **RN-59** | Só entra na viagem de entrega o pedido aprovado, sem carga organizada e fora de outra viagem em andamento, e entrar nela marca a data de entrega do pedido para o dia da viagem | Restrição | `rotinas/3-comercial` | RF-63 | - |
+| **RN-59** | Só entra na viagem de entrega o pedido de aprovado para cima (aprovado, separando ou pronto para envio) que nunca esteve em outra viagem, e entrar nela marca a data de entrega do pedido para o dia da viagem | Restrição | `rotinas/3-comercial` | RF-63 | - |
 | **RN-60** | Os itens da viagem são carregados na ordem inversa das entregas: a última entrega vai para o fundo do caminhão e a primeira fica perto da porta. A viagem fica pronta quando todas as cargas dos pedidos dela estão prontas | Fato | `rotinas/3-comercial` | RF-64 | - |
 
 **RN-54 é a regra que sustenta a diferença entre parcial e indisponível.** As duas respostas dizem
@@ -488,7 +488,7 @@ não dependa de abrir outro arquivo. **Não editar aqui**: a fonte é o `B2`.
 | RF-60 | O sistema deve permitir compor em espécies o item que o cliente pediu sem escolher espécie, respeitando as espécies que ele aceita; sem quantidade no item, a composição é uma lista montada, e cada espécie dela é vendida com preço próprio | D | OP |
 | RF-61 | O sistema deve permitir organizar o pedido aprovado em cargas e registrar a separação de cada item em cada carga | D | OP |
 | RF-62 | O sistema deve apresentar o dia de carregamento de cada pedido e o calendário de entregas e carregamentos do mês | D | OP |
-| RF-63 | O sistema deve permitir planejar a viagem de entrega de um dia, reunindo nela pedidos aprovados, marcando em cada um a data de entrega da viagem e retomando o planejamento na etapa em que ele parou | D | OP |
+| RF-63 | O sistema deve permitir planejar a viagem de entrega de um dia, reunindo nela pedidos de aprovado para cima, marcando em cada um a data de entrega da viagem e retomando o planejamento na etapa em que ele parou | D | OP |
 | RF-64 | O sistema deve sugerir a ordem das paradas da viagem a partir do endereço de saída, permitir reordená-las e acrescentar parada sem pedido, abrir o trajeto num serviço de mapas e apresentar a separação dos itens na ordem inversa das entregas | D | OP |
 
 ### 7.2 Requisitos não funcionais

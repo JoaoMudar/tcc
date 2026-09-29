@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { MapaIndisponivel, geocodificarTexto, otimizarOrdem } from '../rotas-ors';
+import { MapaIndisponivel, geocodificarTexto, numeroDaCasa, otimizarOrdem, sugerirEnderecos } from '../rotas-ors';
 
 const fetchMock = vi.fn();
 
@@ -17,6 +17,75 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
+});
+
+describe('sugerirEnderecos', () => {
+  it('devolve rótulo e coordenada de cada sugestão, com foco perto do viveiro', async () => {
+    responde({
+      features: [
+        { properties: { label: 'Posto Ipiranga, Rio do Sul, SC, Brasil' }, geometry: { coordinates: [-49.6431234, -27.2141234] } },
+        { properties: {}, geometry: { coordinates: [-49.6, -27.2] } },
+      ],
+    });
+    await expect(sugerirEnderecos('posto rio do sul')).resolves.toEqual([
+      { rotulo: 'Posto Ipiranga, Rio do Sul, SC, Brasil', lat: -27.214123, lng: -49.643123 },
+    ]);
+
+    const url = new URL(String(fetchMock.mock.calls[0][0]));
+    expect(url.pathname).toBe('/geocode/autocomplete');
+    expect(url.searchParams.get('boundary.country')).toBe('BR');
+    expect(url.searchParams.get('focus.point.lat')).toBe('-27.4086');
+  });
+
+  it('sem chave, é MapaIndisponivel sem consultar', async () => {
+    vi.stubEnv('ORS_API_KEY', '');
+    await expect(sugerirEnderecos('Ibirama')).rejects.toBeInstanceOf(MapaIndisponivel);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  const rua = {
+    properties: { label: 'Rua Wilhelm Doering, Agrolândia, SC, Brazil', name: 'Rua Wilhelm Doering', layer: 'street' },
+    geometry: { coordinates: [-49.82, -27.41] },
+  };
+
+  it('autocomplete vazio cai para a busca completa, e o número digitado entra no rótulo', async () => {
+    responde({ features: [] });
+    responde({ features: [rua] });
+    await expect(sugerirEnderecos('Wilhelm doering, 300')).resolves.toEqual([
+      { rotulo: 'Rua Wilhelm Doering, 300, Agrolândia, SC, Brazil', lat: -27.41, lng: -49.82 },
+    ]);
+    expect(new URL(String(fetchMock.mock.calls[1][0])).pathname).toBe('/geocode/search');
+  });
+
+  it('autocomplete com resultado não faz a busca completa', async () => {
+    responde({ features: [rua] });
+    await expect(sugerirEnderecos('Wilhelm doering')).resolves.toEqual([
+      { rotulo: 'Rua Wilhelm Doering, Agrolândia, SC, Brazil', lat: -27.41, lng: -49.82 },
+    ]);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('endereço com número da API mantém o rótulo, e repetido sai uma vez só', async () => {
+    const casa = {
+      properties: { label: 'Rua Wilhelm Doering 103, Agrolândia, SC, Brazil', name: 'Rua Wilhelm Doering 103', layer: 'address' },
+      geometry: { coordinates: [-49.8, -27.4] },
+    };
+    responde({ features: [casa, casa] });
+    const lista = await sugerirEnderecos('Wilhelm doering 300');
+    expect(lista.map((s) => s.rotulo)).toEqual(['Rua Wilhelm Doering 103, Agrolândia, SC, Brazil']);
+  });
+});
+
+describe('numeroDaCasa', () => {
+  it('acha o número, com ou sem vírgula e letra', () => {
+    expect(numeroDaCasa('Wilhelm doering, 300')).toBe('300');
+    expect(numeroDaCasa('Rua XV 12A, Rio do Sul')).toBe('12A');
+    expect(numeroDaCasa('Wilhelm doering')).toBeNull();
+  });
+
+  it('CEP não é número da casa', () => {
+    expect(numeroDaCasa('Rua Wilhelm Doering, 89185-000')).toBeNull();
+  });
 });
 
 describe('geocodificarTexto', () => {

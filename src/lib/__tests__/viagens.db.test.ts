@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { Pool, type PoolClient } from 'pg';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { concluirCarga, listCargas, marcarItemSeparado } from '../cargas';
+import { concluirCarga, criarCargaUnica, criarCargas, listCargas, marcarItemSeparado } from '../cargas';
 import {
   concluirVerificacao,
   confirmarPedido,
@@ -167,7 +167,7 @@ describe('montar a carga (Tela 1)', () => {
     await expect(tx((c) => adicionarPedido(c, umDia(), pedido, gerencia()))).rejects.toThrow(/já está em outra viagem/);
   });
 
-  it('só pedido aprovado entra', async () => {
+  it('só pedido de aprovado para cima entra', async () => {
     const { id } = await tx((client) =>
       criarPedido(client, {
         clienteId: cliente,
@@ -178,10 +178,38 @@ describe('montar a carga (Tela 1)', () => {
         itens: [{ especieId: especie, recipienteId: tubete, quantidade: 10, precoCentavos: 100 }],
       }),
     );
-    await expect(tx((c) => adicionarPedido(c, umDia(), id, gerencia()))).rejects.toThrow(/só pedido aprovado/);
+    await expect(tx((c) => adicionarPedido(c, umDia(), id, gerencia()))).rejects.toThrow(/aprovado para cima/);
   });
 
-  it('tirar renumera as paradas, e tirar o último apaga a viagem', async () => {
+  it('pedido separando ou pronto para envio entra, e o que já viajou some da lista', async () => {
+    const separando = await pedidoAprovado(null);
+    await tx((c) => criarCargaUnica(c, separando, gerencia()));
+    const pronto = await pedidoAprovado(null);
+    const [carga] = await tx(async (c) => {
+      await criarCargaUnica(c, pronto, gerencia());
+      return listCargas(c, pronto);
+    });
+    await tx((c) => marcarItemSeparado(c, carga.itens[0].id, true));
+    await tx((c) => concluirCarga(c, carga.id, gerencia()));
+
+    const disponiveis = await pedidosDisponiveis(pool);
+    expect(disponiveis.find((p) => p.id === separando)?.situacao).toBe('separando');
+    expect(disponiveis.find((p) => p.id === pronto)?.situacao).toBe('pronto_envio');
+
+    const dia = umDia();
+    const { viagemId } = await tx((c) => adicionarPedido(c, dia, pronto, gerencia()));
+    await tx((c) => mudarEtapa(c, viagemId, 'roteirizando'));
+    await tx((c) => iniciarCarregamento(c, viagemId, gerencia()));
+    // Viagem só com pedido já pronto: nada a separar, e ela fecha mesmo assim
+    await expect(tx((c) => concluirViagem(c, viagemId, gerencia()))).resolves.toEqual({ pedidos: 1 });
+    expect((await findViagem(pool, viagemId))!.situacao).toBe('pronta');
+
+    // Já esteve numa viagem concluída: não volta para a lista nem entra em outra
+    expect((await pedidosDisponiveis(pool)).map((p) => p.id)).not.toContain(pronto);
+    await expect(tx((c) => adicionarPedido(c, umDia(), pronto, gerencia()))).rejects.toThrow(/já está em outra viagem/);
+  });
+
+    it('tirar renumera as paradas, e tirar o último apaga a viagem', async () => {
     const dia = umDia();
     const a = await pedidoAprovado(dia);
     const b = await pedidoAprovado(dia);
@@ -313,7 +341,26 @@ describe('o carregamento (Tela 3)', () => {
     expect(await listCargas(pool, a)).toEqual([]);
   });
 
-  it('iniciar de novo é recusado, e nenhum pedido ganha segunda carga', async () => {
+  it('pedido que já tem cargas leva as dele, todas, sem ganhar outra', async () => {
+    const dia = umDia();
+    const dividido = await pedidoAprovado(dia);
+    const [item] = await listItens(pool, dividido);
+    await tx((c) =>
+      criarCargas(c, dividido, [[{ itemId: item.id, quantidade: 200 }], [{ itemId: item.id, quantidade: 100 }]], gerencia()),
+    );
+    const novo = await pedidoAprovado(dia, outroCliente);
+    const { viagemId } = await tx((c) => adicionarPedido(c, dia, dividido, gerencia()));
+    await tx((c) => adicionarPedido(c, dia, novo, gerencia()));
+    await tx((c) => mudarEtapa(c, viagemId, 'roteirizando'));
+
+    await tx((c) => iniciarCarregamento(c, viagemId, gerencia()));
+    expect(await listCargas(pool, dividido)).toHaveLength(2);
+    expect(await listCargas(pool, novo)).toHaveLength(1);
+    const [grupo] = await cargasDaViagem(pool, viagemId);
+    expect(grupo.itens.map((i) => i.quantidade)).toEqual([200, 100]);
+  });
+
+    it('iniciar de novo é recusado, e nenhum pedido ganha segunda carga', async () => {
     const { viagemId, a, b } = await viagemNaRota();
     await tx((c) => iniciarCarregamento(c, viagemId, gerencia()));
     await expect(tx((c) => iniciarCarregamento(c, viagemId, gerencia()))).rejects.toThrow(/etapa da rota/);

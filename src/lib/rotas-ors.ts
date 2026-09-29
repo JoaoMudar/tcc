@@ -1,4 +1,5 @@
 import 'server-only';
+import type { SugestaoDeEndereco } from './rotas';
 
 /**
  * P14: o cliente do OpenRouteService, a API de mapas da viagem de entrega.
@@ -61,6 +62,64 @@ export async function geocodificarTexto(texto: string): Promise<Coordenada | nul
   const coordenadas = corpo.features?.[0]?.geometry?.coordinates;
   if (!coordenadas || !Number.isFinite(coordenadas[0]) || !Number.isFinite(coordenadas[1])) return null;
   return { lng: arredonda(coordenadas[0]), lat: arredonda(coordenadas[1]) };
+}
+
+/** Agrolândia (SC): a busca prefere o que fica perto do viveiro, sem excluir o resto. */
+const FOCO = { lat: '-27.4086', lng: '-49.8219' };
+
+interface FeatureDoMapa {
+  properties?: { label?: string; name?: string; layer?: string };
+  geometry?: { coordinates?: [number, number] };
+}
+
+/**
+ * O número da casa no texto digitado: um termo só de dígitos (com letra
+ * opcional, como "300A"). O CEP (`89185-000`) tem hífen e fica de fora.
+ */
+export function numeroDaCasa(texto: string): string | null {
+  return texto.split(/[\s,]+/).find((termo) => /^\d{1,5}[a-z]?$/i.test(termo)) ?? null;
+}
+
+async function consultarLugares(rota: 'autocomplete' | 'search', texto: string): Promise<FeatureDoMapa[]> {
+  const busca = new URLSearchParams({
+    api_key: chave(),
+    text: texto,
+    'boundary.country': 'BR',
+    'focus.point.lat': FOCO.lat,
+    'focus.point.lon': FOCO.lng,
+    size: '5',
+  });
+  const corpo = (await pedir(`${BASE}/geocode/${rota}?${busca.toString()}`)) as { features?: FeatureDoMapa[] };
+  return corpo.features ?? [];
+}
+
+/**
+ * A lista que aparece enquanto se digita um endereço (`/geocode/autocomplete`),
+ * só no Brasil. Escolher uma linha já traz a coordenada, e o endereço não
+ * precisa ser procurado de novo na hora de sugerir a ordem.
+ *
+ * O autocomplete não sabe cair para a rua: com um número que a base não tem
+ * (quase todos, no interior), volta vazio. Aí a busca completa (`/geocode/search`)
+ * acha a rua, e o número digitado entra no rótulo para não se perder na escolha.
+ */
+export async function sugerirEnderecos(texto: string): Promise<SugestaoDeEndereco[]> {
+  let features = await consultarLugares('autocomplete', texto);
+  if (features.length === 0) features = await consultarLugares('search', texto);
+
+  const numero = numeroDaCasa(texto);
+  const vistos = new Set<string>();
+  return features.flatMap((feature) => {
+    const { label, name, layer } = feature.properties ?? {};
+    const coordenadas = feature.geometry?.coordinates;
+    if (!label || !coordenadas || !Number.isFinite(coordenadas[0]) || !Number.isFinite(coordenadas[1])) return [];
+    const comNumero =
+      numero && layer === 'street' && name && label.startsWith(name) && !name.includes(numero)
+        ? `${name}, ${numero}${label.slice(name.length)}`
+        : label;
+    if (vistos.has(comNumero)) return [];
+    vistos.add(comNumero);
+    return [{ rotulo: comNumero, lng: arredonda(coordenadas[0]), lat: arredonda(coordenadas[1]) }];
+  });
 }
 
 export interface RotaOtimizada {

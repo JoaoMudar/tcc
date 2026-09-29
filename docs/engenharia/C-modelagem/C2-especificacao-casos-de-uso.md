@@ -408,13 +408,13 @@ recusa as duas operações.
 | **Objetivo** | Juntar os pedidos que saem no mesmo caminhão, decidir a ordem das paradas e carregar na ordem inversa das entregas |
 | **Requisitos** | RF-63, RF-64 |
 | **Frequência** | Semanal |
-| **Pré-condições** | Existe pedido *aprovado*, sem carga organizada e fora de outra viagem em andamento |
+| **Pré-condições** | Existe pedido *aprovado*, *separando* ou *pronto para envio* que nunca esteve em outra viagem |
 | **Pós-condições** | Pedidos da viagem *prontos para envio*, com todas as cargas prontas, e a viagem pronta |
 
 ### FP: Fluxo principal
 
 1. A gerência toca, no calendário, um dia com entrega.
-2. O sistema apresenta os pedidos já na carga do dia, os marcados para o dia e os aprovados em aberto.
+2. O sistema apresenta os pedidos já na carga do dia, os marcados para o dia e os demais em aberto.
 3. A gerência põe um pedido na carga.
 4. O sistema grava o pedido na viagem, marca a data de entrega dele para o dia e registra a mudança no histórico do pedido.
 5. A gerência repete o passo 3 e confirma a carga.

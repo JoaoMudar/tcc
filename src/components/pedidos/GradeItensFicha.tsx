@@ -156,7 +156,7 @@ export function GradeItensFicha({ itens, saldos, valores, onAlterar, faltaBloque
       placeholder={linha.falta.quantidade ? 'Definir' : ''}
       value={valores?.[linha.item.id]?.quantidade ?? ''}
       onChange={(evento) => onAlterar?.(linha.item.id, 'quantidade', evento.target.value)}
-      className={classe}
+      className={`${classe} ${linha.falta.quantidade ? (faltaBloqueia ? 'placeholder:text-red-600' : 'placeholder:text-amber-700') : ''}`}
     />
   );
 

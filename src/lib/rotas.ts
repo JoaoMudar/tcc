@@ -32,6 +32,25 @@ export function isAvisoDaRota(valor: string | undefined): valor is AvisoDaRota {
   return valor !== undefined && Object.hasOwn(AVISOS_DA_ROTA, valor);
 }
 
+/** Uma linha da lista que aparece enquanto se digita o endereço, como no Google Maps. */
+export interface SugestaoDeEndereco {
+  rotulo: string;
+  lat: number;
+  lng: number;
+}
+
+/**
+ * A coordenada que veio do formulário, junto com o endereço escolhido na lista.
+ * Qualquer coisa fora do mapa vale como ausente: o endereço em texto ainda é
+ * procurado depois, como era antes da lista existir.
+ */
+export function lerCoordenada(lat: string, lng: string): { lat: number; lng: number } | null {
+  if (lat.trim() === '' || lng.trim() === '') return null;
+  const [y, x] = [Number(lat), Number(lng)];
+  if (!Number.isFinite(y) || !Number.isFinite(x) || Math.abs(y) > 90 || Math.abs(x) > 180) return null;
+  return { lat: y, lng: x };
+}
+
 /** Um ponto no mapa: pela coordenada, quando a API a achou, ou pelo texto. */
 export interface PontoDaRota {
   lat: number | null;
