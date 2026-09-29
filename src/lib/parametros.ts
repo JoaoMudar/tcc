@@ -17,8 +17,9 @@ interface ParametroInfo {
   label: string;
   unidade: string;
   dica: string;
-  min: number;
-  max: number;
+  /** Limites do número. O parâmetro de texto (endereço) não os tem. */
+  min?: number;
+  max?: number;
 }
 
 export const ATENCAO = 'producao.atraso_atencao_dias';
@@ -26,6 +27,8 @@ export const CRITICO = 'producao.atraso_critico_dias';
 export const MORTALIDADE = 'producao.mortalidade_limite_pct';
 export const JANELA_AVISO = 'producao.protocolo_janela_aviso_pct';
 export const HORIZONTE = 'producao.protocolo_horizonte_dias';
+export const PARTIDA_AGROLANDIA = 'comercial.viagem_partida_agrolandia';
+export const PARTIDA_ITAPEMA = 'comercial.viagem_partida_itapema';
 
 /** Como a tela chama cada chave (textos do F1 UC-06). Chave sem entrada aparece com a `descricao` do banco. */
 export const PARAMETRO_INFO: Record<string, ParametroInfo> = {
@@ -63,6 +66,16 @@ export const PARAMETRO_INFO: Record<string, ParametroInfo> = {
     dica: 'Até quantos dias à frente as etapas aparecem como sugestão na agenda',
     min: 1,
     max: 365,
+  },
+  [PARTIDA_AGROLANDIA]: {
+    label: 'Viagem: saída de Agrolândia',
+    unidade: '',
+    dica: 'Endereço de onde o caminhão sai, a opção padrão da rota',
+  },
+  [PARTIDA_ITAPEMA]: {
+    label: 'Viagem: saída de Itapema',
+    unidade: '',
+    dica: 'Endereço da segunda base de saída',
   },
 };
 
@@ -122,7 +135,7 @@ export function validateParametros(
 
     // Segunda camada: o limite de cada chave que a tela conhece
     const info = PARAMETRO_INFO[parametro.chave];
-    if (info) {
+    if (info?.min !== undefined && info.max !== undefined) {
       const numero = Number(parsed.value);
       if (!Number.isInteger(numero) || numero < info.min || numero > info.max) {
         return { error: `"${label}" precisa ser um número inteiro de ${info.min} a ${info.max}.` };

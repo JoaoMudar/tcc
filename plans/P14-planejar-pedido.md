@@ -97,17 +97,27 @@ Migration nova `2026MMDD000001_viagens.sql`:
 - Env `ORS_API_KEY` (Vercel e `.env.local`), usada só no servidor.
 
 ## Tarefas
-- [ ] Branch `feat/planejar-pedido` a partir de `master`.
-- [ ] Migration `viagens` + colunas de geocodificação + parâmetros de partida.
-- [ ] `src/lib/viagens.ts`: `viagemDoDia`, `adicionarPedido` (grava `data_entrega` e histórico), `tirarPedido`, `salvarOrdem`, `adicionarParada`, `removerParada`, `mudarEtapa` (`montando` ↔ `roteirizando`), `iniciarCarregamento`, `atualizarSituacaoViagem`.
-- [ ] `src/lib/rotas.ts`: cliente ORS (`geocodificar` com cache, `otimizarOrdem`), com timeout e erro tratado; função pura `ordemDeCarregamento(paradas)`; função pura `resumoDoItem(item)` para o texto concatenado; função pura `linkGoogleMaps(partida, paradas)`, que devolve uma ou mais URLs.
-- [ ] `concluirCarga`: ao fechar a última carga de uma viagem, levar a viagem a `pronta`.
-- [ ] Páginas em `src/app/(sistema)/pedidos/planejar/[data]/`: `page.tsx`, `MontarCarga.tsx`, `RotaDaViagem.tsx`, `CarregarViagem.tsx`, `actions.ts`; guarda `requirePageAccess('cargas_pedido')`.
-- [ ] Dependência `@dnd-kit/core` + `@dnd-kit/sortable`.
-- [ ] `CalendarioCargas.tsx`: dia com entrega navega para a rotina; painel dos outros dias ganha o botão; viagem em andamento mostra o ponto e o cartão "Continuar".
-- [ ] Configurações: os dois endereços de partida.
-- [ ] Testes: unit de `ordemDeCarregamento`, `resumoDoItem`, `linkGoogleMaps` (ordem, ponto sem endereço fora, divisão acima de 10) e validações; retomada na etapa certa; actions com `vi.mock` do pool e do ORS (sucesso, sem endereço, API fora); `viagens.db.test.ts` no padrão de `cargas.db.test.ts`; `CalendarioCargas` navegando.
+- [x] Branch `feat/planejar-pedido` a partir de `master`.
+- [x] Migration `viagens` + colunas de geocodificação + parâmetros de partida.
+- [x] `src/lib/viagens.ts`: `viagemDoDia`, `adicionarPedido` (grava `data_entrega` e histórico), `tirarPedido`, `salvarOrdem`, `adicionarParada`, `removerParada`, `mudarEtapa` (`montando` ↔ `roteirizando`), `iniciarCarregamento`, `atualizarSituacaoViagem`.
+- [x] `src/lib/rotas.ts`: cliente ORS (`geocodificar` com cache, `otimizarOrdem`), com timeout e erro tratado; função pura `ordemDeCarregamento(paradas)`; função pura `resumoDoItem(item)` para o texto concatenado; função pura `linkGoogleMaps(partida, paradas)`, que devolve uma ou mais URLs.
+- [x] `concluirCarga`: ao fechar a última carga de uma viagem, levar a viagem a `pronta`.
+- [x] Páginas em `src/app/(sistema)/pedidos/planejar/[data]/`: `page.tsx`, `MontarCarga.tsx`, `RotaDaViagem.tsx`, `CarregarViagem.tsx`, `actions.ts`; guarda `requirePageAccess('cargas_pedido')`.
+- [x] Dependência `@dnd-kit/core` + `@dnd-kit/sortable`.
+- [x] `CalendarioCargas.tsx`: dia com entrega navega para a rotina; painel dos outros dias ganha o botão; viagem em andamento mostra o ponto e o cartão "Continuar".
+- [x] Configurações: os dois endereços de partida.
+- [x] Testes: unit de `ordemDeCarregamento`, `resumoDoItem`, `linkGoogleMaps` (ordem, ponto sem endereço fora, divisão acima de 10) e validações; retomada na etapa certa; actions com `vi.mock` do pool e do ORS (sucesso, sem endereço, API fora); `viagens.db.test.ts` no padrão de `cargas.db.test.ts`; `CalendarioCargas` navegando.
 - [ ] Docs: `docs/rotinas/3-comercial/planejar-pedido.md`, links em `pedidos.md` e `00-mapa-de-rotinas.md`; C6, C8 e `modelo-dados-pt` (`.mmd`, `.png`, `mede-figuras.mjs`, `confere-modelo-pt.mjs`); CHANGELOG; RF/RN/caso de uso novos e `verifica-rastreabilidade.mjs` + scripts `build-*` afetados.
+
+Notas da execução (29/09/2026):
+- A nota de data no histórico exigiu afrouxar `pedidos_historico_muda_de_situacao`: linha sem troca
+  de situação agora entra, desde que tenha observação. A ficha a mostra como nota, sem seta.
+- `viagens.sugerir_ordem` (coluna a mais que o plano): liga quando os pedidos da carga mudam e
+  desliga quando a ordem é arrumada à mão, para voltar da Tela 1 não desfazer o arraste.
+- `atualizarSituacaoViagem` mora em `cargas.ts` (reexportada por `viagens.ts`): `concluirCarga` a
+  chama, e o import ao contrário faria um ciclo.
+- `geocodificado_em` preenchido com a coordenada nula guarda o "não achado", e o cartão avisa.
+- A Tela 3 fecha todas as cargas da viagem num botão só (`concluirViagem`), como no protótipo.
 
 ## Verificação
 - `npm test` e `node scripts/verifica-rastreabilidade.mjs`.

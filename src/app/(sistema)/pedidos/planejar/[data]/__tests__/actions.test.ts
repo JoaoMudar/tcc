@@ -1,0 +1,190 @@
+// @vitest-environment node
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
+vi.mock('next/navigation', () => ({
+  redirect: vi.fn((url: string) => {
+    throw new Error(`REDIRECT ${url}`);
+  }),
+}));
+vi.mock('@/lib/auth/dal', () => ({ requireUser: vi.fn() }));
+vi.mock('@/lib/rotas-ors', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/rotas-ors')>()),
+  geocodificarTexto: vi.fn(),
+  otimizarOrdem: vi.fn(),
+}));
+
+const client = { query: vi.fn(), release: vi.fn() };
+vi.mock('@/lib/db', () => ({ default: { query: vi.fn(), connect: vi.fn(async () => client) } }));
+
+const { requireUser } = await import('@/lib/auth/dal');
+const { default: pool } = await import('@/lib/db');
+const { MapaIndisponivel, geocodificarTexto } = await import('@/lib/rotas-ors');
+const actions = await import('../actions');
+
+const DIA = '2026-10-02';
+const VIAGEM = '3e6a2f4b-1c8d-4f5e-8a3b-5c9d0e1f2a3b';
+const PEDIDO = '0b9f3f3e-8a5b-4c1a-9d0e-2f6a7b8c9d0e';
+const PARADA = '1c8e2d4f-9a6b-4d2c-8e1f-3a7b8c9d0e1f';
+
+function form(values: Record<string, string>): FormData {
+  const data = new FormData();
+  for (const [name, value] of Object.entries(values)) data.append(name, value);
+  return data;
+}
+
+function gravouEm(trecho: string) {
+  return client.query.mock.calls.filter(([sql]) => String(sql).includes(trecho));
+}
+
+function expectNoDatabase() {
+  expect(pool.query).not.toHaveBeenCalled();
+  expect(pool.connect).not.toHaveBeenCalled();
+}
+
+let situacaoPedido: string;
+let situacaoViagem: string;
+let viagemExistente: boolean;
+let dataEntregaMudou: boolean;
+
+function viagemRow() {
+  return {
+    id: VIAGEM,
+    data: DIA,
+    partidaDescricao: 'Agrolândia, SC',
+    partidaLat: null,
+    partidaLng: null,
+    situacao: situacaoViagem,
+    sugerirOrdem: true,
+    distanciaM: null,
+    duracaoS: null,
+  };
+}
+
+function responder(sql: unknown) {
+  const texto = String(sql);
+  if (texto.includes('FROM viagens WHERE data')) return { rows: viagemExistente ? [{ id: VIAGEM }] : [], rowCount: 1 };
+  if (texto.includes('FROM viagens v WHERE v.id')) return { rows: [viagemRow()], rowCount: 1 };
+  if (texto.includes('SELECT valor FROM parametros')) return { rows: [{ valor: 'Agrolândia, SC' }], rowCount: 1 };
+  if (texto.includes('INSERT INTO viagens (')) return { rows: [{ id: VIAGEM }], rowCount: 1 };
+  if (texto.includes('FROM pedidos WHERE id = $1 FOR UPDATE')) {
+    return { rows: [{ id: PEDIDO, numero: 7, situacao: situacaoPedido }], rowCount: 1 };
+  }
+  if (texto.includes('AS cargas')) return { rows: [{ cargas: 0, viagens: 0 }], rowCount: 1 };
+  if (texto.includes('AS n')) return { rows: [{ n: 1 }], rowCount: 1 };
+  if (texto.includes('UPDATE pedidos SET data_entrega')) return { rows: [], rowCount: dataEntregaMudou ? 1 : 0 };
+  if (texto.includes('FROM viagens_paradas vp')) {
+    return {
+      rows: [{ id: PARADA, pedidoId: PEDIDO, lat: null, lng: null, naoAchado: false, enderecoId: null }],
+      rowCount: 1,
+    };
+  }
+  return { rows: [], rowCount: 1 };
+}
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  situacaoPedido = 'aprovado';
+  situacaoViagem = 'montando';
+  viagemExistente = false;
+  dataEntregaMudou = true;
+  client.query.mockImplementation(async (sql: unknown) => responder(sql));
+  vi.mocked(pool.query).mockImplementation((async (sql: unknown) => responder(sql)) as never);
+  vi.mocked(requireUser).mockResolvedValue({
+    sessaoId: 's1',
+    usuarioId: 'u1',
+    login: 'x',
+    nomeExibicao: 'X',
+    perfil: 'gerencia',
+    deveTrocarSenha: false,
+    expiraEm: new Date(),
+    ultimoUsoEm: new Date(),
+  });
+});
+
+describe('pôr pedido na carga (Tela 1)', () => {
+  it('cria a viagem do dia, põe o pedido e marca a entrega com linha no histórico', async () => {
+    const state = await actions.adicionarPedidoAction({}, form({ data: DIA, pedido_id: PEDIDO }));
+    expect(state.error).toBeUndefined();
+    expect(gravouEm('INSERT INTO viagens (')).toHaveLength(1);
+    expect(gravouEm('INSERT INTO viagens_paradas')[0][1]).toEqual([VIAGEM, 1, PEDIDO]);
+    expect(gravouEm('UPDATE pedidos SET data_entrega')[0][1]).toEqual([PEDIDO, DIA]);
+    const historico = gravouEm('INSERT INTO pedidos_historico');
+    expect(historico).toHaveLength(1);
+    expect(historico[0][1]).toEqual([PEDIDO, 'aprovado', 'u1', 'Entrega marcada para 02/10 no planejamento da viagem.']);
+  });
+
+  it('pedido que já era para o dia não ganha linha no histórico', async () => {
+    dataEntregaMudou = false;
+    await actions.adicionarPedidoAction({}, form({ data: DIA, pedido_id: PEDIDO }));
+    expect(gravouEm('INSERT INTO pedidos_historico')).toHaveLength(0);
+  });
+
+  it('usa a viagem que já existe no dia', async () => {
+    viagemExistente = true;
+    await actions.adicionarPedidoAction({}, form({ data: DIA, pedido_id: PEDIDO }));
+    expect(gravouEm('INSERT INTO viagens (')).toHaveLength(0);
+    expect(gravouEm('INSERT INTO viagens_paradas')).toHaveLength(1);
+  });
+
+  it('só pedido aprovado entra', async () => {
+    situacaoPedido = 'verificado';
+    const state = await actions.adicionarPedidoAction({}, form({ data: DIA, pedido_id: PEDIDO }));
+    expect(state.error).toMatch(/só pedido aprovado entra na viagem/);
+    expect(gravouEm('INSERT INTO viagens_paradas')).toHaveLength(0);
+  });
+
+  it('com a carga já confirmada, recusa', async () => {
+    viagemExistente = true;
+    situacaoViagem = 'roteirizando';
+    const state = await actions.adicionarPedidoAction({}, form({ data: DIA, pedido_id: PEDIDO }));
+    expect(state.error).toMatch(/já foi confirmada/);
+  });
+
+  it('data ou pedido inválidos não chegam ao banco', async () => {
+    expect((await actions.adicionarPedidoAction({}, form({ data: '2026-02-30', pedido_id: PEDIDO }))).error).toBeDefined();
+    expect((await actions.adicionarPedidoAction({}, form({ data: DIA, pedido_id: 'x' }))).error).toBeDefined();
+    expectNoDatabase();
+  });
+});
+
+describe('confirmar carga (Tela 1 → Tela 2)', () => {
+  it('com o mapa fora do ar, abre a rota com o aviso e a ordem como estava', async () => {
+    vi.mocked(geocodificarTexto).mockRejectedValue(new MapaIndisponivel('sem chave'));
+    await expect(actions.confirmarCargaAction({}, form({ data: DIA, viagem_id: VIAGEM }))).rejects.toThrow(
+      `REDIRECT /pedidos/planejar/${DIA}?aviso=mapa_indisponivel`,
+    );
+    expect(gravouEm("SET situacao = $2")[0][1]).toEqual([VIAGEM, 'roteirizando']);
+    expect(gravouEm('UPDATE viagens_paradas SET ordem')).toHaveLength(0);
+  });
+
+  it('carga vazia não vai para a rota', async () => {
+    client.query.mockImplementation(async (sql: unknown) =>
+      String(sql).includes('AS n') ? { rows: [{ n: 0 }], rowCount: 1 } : responder(sql),
+    );
+    const state = await actions.confirmarCargaAction({}, form({ data: DIA, viagem_id: VIAGEM }));
+    expect(state.error).toMatch(/ao menos um pedido/);
+  });
+});
+
+describe('ordem da rota (Tela 2)', () => {
+  it('recusa lista com id que não é uuid, sem ir ao banco', async () => {
+    const state = await actions.salvarOrdemAction(DIA, VIAGEM, [PARADA, 'x']);
+    expect(state.error).toBe('Ordem inválida.');
+    expectNoDatabase();
+  });
+
+  it('recusa ordem velha: as paradas mudaram enquanto a tela estava aberta', async () => {
+    situacaoViagem = 'roteirizando';
+    const outra = '2d7f1e5a-0b7c-4e3d-9f2a-4b8c9d0e1f2a';
+    const state = await actions.salvarOrdemAction(DIA, VIAGEM, [outra]);
+    expect(state.error).toMatch(/paradas mudaram/);
+  });
+
+  it('parada extra precisa de descrição', async () => {
+    situacaoViagem = 'roteirizando';
+    const state = await actions.adicionarParadaAction({}, form({ data: DIA, viagem_id: VIAGEM, descricao: ' ' }));
+    expect(state.error).toBe('Descreva a parada.');
+    expect(state.fields).toEqual({ descricao: ' ', endereco: '' });
+  });
+});
