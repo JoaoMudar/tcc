@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useEffect, useId, useRef, useState } from 'react';
-import { filtraOpcoes, normalizeTexto } from '@/lib/busca-opcoes';
-import { classeRotulo } from './marcaObrigatorio';
-import type { SelectOption } from './SelectField';
+import { useEffect, useId, useRef, useState } from "react";
+import { filtraOpcoes, normalizeTexto } from "@/lib/busca-opcoes";
+import { classeRotulo } from "./marcaObrigatorio";
+import type { SelectOption } from "./SelectField";
 
 /** Mais do que isto vira rolagem dentro de rolagem na tela do celular. */
 const MAX_VISIVEL = 8;
@@ -64,7 +64,7 @@ export function ComboboxField({
   options,
   value,
   onChange,
-  placeholder = 'Digite para procurar…',
+  placeholder = "Digite para procurar…",
   hint,
   error,
   compacto = false,
@@ -80,13 +80,15 @@ export function ComboboxField({
 
   const escolhida = options.find((opcao) => opcao.value === value);
   const fixaAtiva = opcaoFixa?.ativa ?? false;
-  const [busca, setBusca] = useState(fixaAtiva ? opcaoFixa!.rotulo : (escolhida?.label ?? ''));
+  const [busca, setBusca] = useState(
+    fixaAtiva ? opcaoFixa!.rotulo : (escolhida?.label ?? ""),
+  );
   const [aberta, setAberta] = useState(false);
   // Escolha vinda de fora (o cliente recém-criado no modal) precisa aparecer no campo
   const [valorVisto, setValorVisto] = useState(value);
   if (value !== valorVisto) {
     setValorVisto(value);
-    setBusca(options.find((opcao) => opcao.value === value)?.label ?? '');
+    setBusca(options.find((opcao) => opcao.value === value)?.label ?? "");
   }
   // A opção fixa escolhida aparece no campo; desfeita pela digitação, o texto fica
   const [fixaVista, setFixaVista] = useState(fixaAtiva);
@@ -96,23 +98,34 @@ export function ComboboxField({
   }
   const mostraFixa = fixaAtiva && busca === opcaoFixa?.rotulo;
 
-  // Com o rótulo fixo no campo, a lista abre inteira: "Genérico" não é busca
-  const encontradas = filtraOpcoes(options, mostraFixa ? '' : busca);
+  // Com a escolha escrita no campo, a lista abre inteira, como um select: o
+  // nome escolhido (ou o "Genérico") não é busca, e filtrar por ele deixaria uma linha só
+  const mostraEscolha = escolhida !== undefined && busca === escolhida.label;
+  const encontradas = filtraOpcoes(
+    options,
+    mostraFixa || mostraEscolha ? "" : busca,
+  );
   const visiveis = encontradas.slice(0, MAX_VISIVEL);
   const escondidas = encontradas.length - visiveis.length;
-  const digitouSemEscolher = busca.trim() !== '' && !escolhida && !mostraFixa;
+  const digitouSemEscolher = busca.trim() !== "" && !escolhida && !mostraFixa;
   // Nome idêntico ao de uma opção é escolha, não cadastro: seria a mesma de novo
   const podeCriar =
     onCriarNova !== undefined &&
     !mostraFixa &&
-    busca.trim() !== '' &&
-    !options.some((opcao) => normalizeTexto(opcao.label) === normalizeTexto(busca.trim()));
+    busca.trim() !== "" &&
+    !options.some(
+      (opcao) => normalizeTexto(opcao.label) === normalizeTexto(busca.trim()),
+    );
 
   // Texto digitado sem tocar na lista enche o campo visível, mas não é escolha:
   // para o navegador barrar o envio, o campo precisa se declarar inválido
   const campoRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
-    campoRef.current?.setCustomValidity(required && digitouSemEscolher ? 'Toque num nome da lista para escolher.' : '');
+    campoRef.current?.setCustomValidity(
+      required && digitouSemEscolher
+        ? "Toque num nome da lista para escolher."
+        : "",
+    );
   }, [required, digitouSemEscolher]);
 
   function escolher(opcao: SelectOption) {
@@ -127,110 +140,172 @@ export function ComboboxField({
     setAberta(true);
     // Texto digitado não é escolha: enquanto não tocarem na lista, o campo vai vazio
     if (value || fixaAtiva) {
-      setValorVisto('');
-      onChange('');
+      setValorVisto("");
+      onChange("");
     }
   }
 
   return (
     <div
-      className={compacto ? 'relative' : 'flex flex-col gap-1'}
+      className={compacto ? undefined : "flex flex-col gap-1"}
       onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget)) setAberta(false);
+        if (!event.currentTarget.contains(event.relatedTarget))
+          setAberta(false);
       }}
     >
-      <label htmlFor={id} className={compacto ? 'sr-only' : classeRotulo(required)}>
+      <label
+        htmlFor={id}
+        className={compacto ? "sr-only" : classeRotulo(required)}
+      >
         {label}
       </label>
       {name && <input type="hidden" name={name} value={value} />}
-      <input
-        ref={campoRef}
-        id={id}
-        type="text"
-        required={required}
-        autoComplete="off"
-        placeholder={placeholder}
-        value={busca}
-        onChange={(event) => digitar(event.target.value)}
-        onFocus={() => setAberta(true)}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={[hintId, errorId, digitouSemEscolher ? avisoId : null].filter(Boolean).join(' ') || undefined}
-        className={
-          compacto
-            ? // Célula de planilha: sem moldura de formulário, a grade da tabela é
-              // a borda. O texto digitado que ainda não virou escolha fica em
-              // âmbar, porque na célula não cabe a frase de aviso
-              `h-11 w-full bg-transparent px-3 text-base placeholder:text-gray-400 focus:bg-white focus:outline-2 focus:-outline-offset-2 focus:outline-brand ${
-                mostraFixa ? 'font-bold text-blue-800' : digitouSemEscolher ? 'text-amber-800' : 'text-ink'
-              }`
-            : `min-h-touch w-full rounded-lg border-[1.5px] border-gray-300 bg-white px-3 text-base placeholder:text-gray-400 focus:border-brand-dark focus:outline-none aria-invalid:border-red-600 ${
-                mostraFixa ? 'font-bold text-blue-800' : 'text-ink'
-              }`
-        }
-      />
-      {/* O científico da espécie escolhida, miúdo embaixo do nome popular */}
-      {escolhida?.detalhe && busca === escolhida.label && (
-        <p className={`text-xs text-muted italic ${compacto ? '-mt-2 px-3 pb-1' : ''}`}>{escolhida.detalhe}</p>
-      )}
-
-      {aberta && (
-        <ul
-          className={`flex max-h-72 flex-col divide-y divide-line overflow-y-auto rounded-lg border-[1.5px] border-gray-300 bg-white ${
-            compacto ? 'absolute top-full left-0 z-30 w-max max-w-sm min-w-full shadow-lg' : ''
-          }`}
+      {/* A lista se ancora aqui, e não no contêiner inteiro: assim ela abre
+          colada no campo, por cima da dica e do erro, e não embaixo deles */}
+      <div className="relative">
+        <input
+          ref={campoRef}
+          id={id}
+          type="text"
+          required={required}
+          autoComplete="off"
+          placeholder={placeholder}
+          value={busca}
+          onChange={(event) => digitar(event.target.value)}
+          onFocus={() => setAberta(true)}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={
+            [hintId, errorId, digitouSemEscolher ? avisoId : null]
+              .filter(Boolean)
+              .join(" ") || undefined
+          }
+          className={
+            compacto
+              ? // Célula de planilha: sem moldura de formulário, a grade da tabela é
+                // a borda. O texto digitado que ainda não virou escolha fica em
+                // âmbar, porque na célula não cabe a frase de aviso
+                `h-11 w-full bg-transparent pr-8 pl-3 text-base placeholder:text-gray-400 focus:bg-white focus:outline-2 focus:-outline-offset-2 focus:outline-brand ${
+                  mostraFixa
+                    ? "font-bold text-blue-800"
+                    : digitouSemEscolher
+                      ? "text-amber-800"
+                      : "text-ink"
+                }`
+              : `min-h-touch w-full rounded-lg border-[1.5px] border-gray-300 bg-white pr-10 pl-3 text-base placeholder:text-gray-400 focus:border-brand-dark focus:outline-none aria-invalid:border-red-600 ${
+                  mostraFixa ? "font-bold text-blue-800" : "text-ink"
+                }`
+          }
+        />
+        {/* A seta de select: diz que há lista, e abre a lista inteira sem digitar.
+          Fora da ordem do Tab, porque o campo já abre a lista ao receber o foco */}
+        <button
+          type="button"
+          tabIndex={-1}
+          aria-label={
+            aberta
+              ? `Fechar as opções de ${label}`
+              : `Mostrar as opções de ${label}`
+          }
+          aria-expanded={aberta}
+          // Sem isto o campo perde o foco no toque, e ao voltar reabre a lista que se quis fechar
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => {
+            setAberta((atual) => !atual);
+            campoRef.current?.focus();
+          }}
+          className={`absolute inset-y-0 right-0 flex items-center justify-center text-muted ${compacto ? "w-8" : "w-10"}`}
         >
-          {opcaoFixa && (
-            <li>
-              <button
-                type="button"
-                onClick={() => {
-                  setAberta(false);
-                  opcaoFixa.onEscolher();
-                }}
-                aria-current={fixaAtiva ? true : undefined}
-                className="min-h-touch w-full px-3 py-2 text-left text-base font-bold text-blue-800 active:bg-brand-light"
-              >
-                {opcaoFixa.rotulo}
-              </button>
-            </li>
-          )}
-          {visiveis.length === 0 ? (
-            <li className="px-3 py-3 text-base text-muted">Nada encontrado com esse texto.</li>
-          ) : (
-            visiveis.map((opcao) => (
-              <li key={opcao.value}>
+          <svg
+            viewBox="0 0 24 24"
+            className={`${compacto ? "size-4" : "size-5"} transition-transform ${aberta ? "rotate-180" : ""}`}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            aria-hidden="true"
+          >
+            <path
+              d="M6 9l6 6 6-6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
+
+        {/* A lista flutua sobre o que vem embaixo, em vez de empurrar a tela */}
+        {aberta && (
+          <ul
+            className={`absolute top-full left-0 z-30 mt-1 flex max-h-72 flex-col divide-y divide-line overflow-y-auto rounded-lg border-[1.5px] border-gray-300 bg-white shadow-lg ${
+              compacto ? "w-max max-w-sm min-w-full" : "w-full"
+            }`}
+          >
+            {opcaoFixa && (
+              <li>
                 <button
                   type="button"
-                  onClick={() => escolher(opcao)}
-                  aria-current={opcao.value === value ? true : undefined}
-                  className="min-h-touch w-full px-3 py-2 text-left text-base text-ink active:bg-brand-light aria-[current]:font-bold"
+                  onClick={() => {
+                    setAberta(false);
+                    opcaoFixa.onEscolher();
+                  }}
+                  aria-current={fixaAtiva ? true : undefined}
+                  className="min-h-touch w-full px-3 py-2 text-left text-base font-bold text-blue-800 active:bg-brand-light"
                 >
-                  {opcao.label}
-                  {opcao.detalhe && <span className="block text-sm font-normal text-muted italic">{opcao.detalhe}</span>}
+                  {opcaoFixa.rotulo}
                 </button>
               </li>
-            ))
-          )}
-          {escondidas > 0 && (
-            <li className="px-3 py-2 text-sm text-muted">
-              e mais {escondidas}: digite um pedaço do nome para achar
-            </li>
-          )}
-          {podeCriar && (
-            <li>
-              <button
-                type="button"
-                onClick={() => {
-                  setAberta(false);
-                  onCriarNova?.(busca.trim());
-                }}
-                className="min-h-touch w-full px-3 py-2 text-left text-base font-bold text-brand active:bg-brand-light"
-              >
-                {rotuloCriar(busca.trim())}
-              </button>
-            </li>
-          )}
-        </ul>
+            )}
+            {visiveis.length === 0 ? (
+              <li className="px-3 py-3 text-base text-muted">
+                Nada encontrado com esse texto.
+              </li>
+            ) : (
+              visiveis.map((opcao) => (
+                <li key={opcao.value}>
+                  <button
+                    type="button"
+                    onClick={() => escolher(opcao)}
+                    aria-current={opcao.value === value ? true : undefined}
+                    className="min-h-touch w-full px-3 py-2 text-left text-base text-ink active:bg-brand-light aria-[current]:font-bold"
+                  >
+                    {opcao.label}
+                    {opcao.detalhe && (
+                      <span className="block text-sm font-normal text-muted italic">
+                        {opcao.detalhe}
+                      </span>
+                    )}
+                  </button>
+                </li>
+              ))
+            )}
+            {escondidas > 0 && (
+              <li className="px-3 py-2 text-sm text-muted">
+                e mais {escondidas}: digite um pedaço do nome para achar
+              </li>
+            )}
+            {podeCriar && (
+              <li>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAberta(false);
+                    onCriarNova?.(busca.trim());
+                  }}
+                  className="min-h-touch w-full px-3 py-2 text-left text-base font-bold text-brand active:bg-brand-light"
+                >
+                  {rotuloCriar(busca.trim())}
+                </button>
+              </li>
+            )}
+          </ul>
+        )}
+      </div>
+
+      {/* O científico da espécie escolhida, miúdo embaixo do nome popular */}
+      {mostraEscolha && escolhida.detalhe && (
+        <p
+          className={`text-xs text-muted italic ${compacto ? "-mt-2 px-3 pb-1" : ""}`}
+        >
+          {escolhida.detalhe}
+        </p>
       )}
 
       {digitouSemEscolher && !aberta && !compacto && (

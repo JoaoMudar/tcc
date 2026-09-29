@@ -5,11 +5,11 @@ import pool from '@/lib/db';
 import { nomeExibido, searchEspecies } from '@/lib/especies';
 import { saldoEmProducao, saldoPronto } from '@/lib/estoque';
 import { listClientes } from '@/lib/pedidos';
-import { chaveSaldo } from '@/lib/pedidos-rotulos';
 import { formatVolume, listRecipientes } from '@/lib/recipientes';
 import { requirePageAccess } from '@/lib/auth/guards';
 import { can } from '@/lib/permissions';
-import { NovoPedidoForm, type SaldosPorChave } from './NovoPedidoForm';
+import { montarSaldos } from '@/components/pedidos/linhas-pedido';
+import { NovoPedidoForm } from './NovoPedidoForm';
 
 /**
  * T8.1, UC-31: o pedido já negociado por WhatsApp, registrado depois. O saldo de
@@ -26,14 +26,7 @@ export default async function NovoPedidoPage() {
     saldoEmProducao(pool),
   ]);
 
-  const saldos: SaldosPorChave = {};
-  for (const linha of prontos) {
-    saldos[chaveSaldo(linha.especieId, linha.recipienteId)] = { pronto: linha.quantidade, producao: 0 };
-  }
-  for (const linha of producao) {
-    const chave = chaveSaldo(linha.especieId, linha.recipienteId);
-    saldos[chave] = { pronto: saldos[chave]?.pronto ?? 0, producao: linha.quantidade };
-  }
+  const saldos = montarSaldos(prontos, producao);
 
   // Sem espécie cadastrada não há o que pedir. Recipiente não trava: o item pode
   // nascer sem ele, e a conferência responde em qual a muda está

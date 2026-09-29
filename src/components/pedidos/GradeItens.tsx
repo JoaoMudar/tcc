@@ -8,8 +8,7 @@ import type { SelectOption } from '@/components/ui/SelectField';
 import { TextField } from '@/components/ui/TextField';
 import { formatQuantidade, lerQuantidade } from '@/lib/lotes-rotulos';
 import { chaveSaldo, mascaraAltura, normalizaCampoAltura, rotuloGenerico } from '@/lib/pedidos-rotulos';
-import type { Celula, Linha } from './linhas-pedido';
-import type { SaldosPorChave } from './NovoPedidoForm';
+import type { Celula, Linha, SaldosPorChave } from './linhas-pedido';
 
 interface GradeItensProps {
   linhas: readonly Linha[];
@@ -22,8 +21,10 @@ interface GradeItensProps {
   onAdicionar: (abrirFicha: boolean) => void;
   /** No celular a linha não se edita no lugar: ela abre em tela cheia. */
   onEditar: (chave: number) => void;
-  onColar: (texto: string, foco: Celula | null) => void;
-  onColarLista: () => void;
+  /** Sem ele, a colagem de várias células fica com o navegador (a ficha do pedido não importa lista). */
+  onColar?: (texto: string, foco: Celula | null) => void;
+  /** Sem ele, o botão "Colar lista" não aparece. */
+  onColarLista?: () => void;
   /** O nome digitado que não está no catálogo, para cadastrar e voltar escolhido na linha. */
   onCriarEspecie: (chave: number, nome: string) => void;
 }
@@ -78,7 +79,7 @@ export function GradeItens({
    */
   function aoColar(evento: ClipboardEvent<HTMLDivElement>) {
     const texto = evento.clipboardData.getData('text/plain');
-    if (!texto) return;
+    if (!texto || !onColar) return;
     const varias = texto.includes('\t') || /\r?\n.*\S/.test(texto.trim());
     // Uma célula só é colagem comum, e o navegador faz melhor que nós
     if (!varias) return;
@@ -129,9 +130,11 @@ export function GradeItens({
 
       <div className="flex items-center gap-3">
         <h2 className="text-sm font-bold tracking-widest text-muted uppercase">Itens</h2>
-        <Button variant="outline" className="h-9 min-h-0! w-auto! shrink-0 px-3! text-sm!" onClick={onColarLista}>
-          📋 Colar lista
-        </Button>
+        {onColarLista && (
+          <Button variant="outline" className="h-9 min-h-0! w-auto! shrink-0 px-3! text-sm!" onClick={onColarLista}>
+            📋 Colar lista
+          </Button>
+        )}
       </div>
 
       {/* Planilha: tela larga. Sem `overflow-hidden` no contorno, porque a lista

@@ -206,6 +206,37 @@ describe('validação antes do banco (UC-31 FE-1)', () => {
     expect(valores).toEqual([PEDIDO, ITEM, null, null, true, RECIPIENTE]);
   });
 
+  it('a grade da ficha troca a espécie do item junto com o resto', async () => {
+    emSituacao('cadastrado');
+    const dados = form({
+      pedido_id: PEDIDO,
+      item_id: ITEM,
+      quantidade: '10',
+      altura: '',
+      item_generico: '0',
+      item_especie: ESPECIE,
+      item_especificacao: '',
+    });
+    const state = await actions.atualizarItemAction({}, dados);
+    expect(state.error).toBeUndefined();
+    const [, valores] = client.query.mock.calls.find(([sql]) => String(sql).includes('SET generico = $3'))!;
+    // pedido, item, genérico, espécie
+    expect((valores as unknown[]).slice(0, 4)).toEqual([PEDIDO, ITEM, false, ESPECIE]);
+  });
+
+  it('a espécie apagada na grade não é gravada: o item não fica sem o que foi pedido', async () => {
+    const dados = form({ pedido_id: PEDIDO, item_id: ITEM, quantidade: '', altura: '', item_generico: '0', item_especie: '' });
+    const state = await actions.atualizarItemAction({}, dados);
+    expect(state.error).toMatch(/espécie/i);
+    expectNoDatabase();
+  });
+
+  it('o item acrescentado devolve o id, para a grade continuar na mesma linha', async () => {
+    client.query.mockResolvedValue({ rows: [{ id: ITEM, numero: 1, situacao: 'cadastrado' }], rowCount: 1 });
+    const state = await actions.adicionarItemAction({}, form({ pedido_id: PEDIDO, item_especie: ESPECIE, item_quantidade: '5' }));
+    expect(state).toMatchObject({ itemId: ITEM });
+  });
+
   it('recipiente em branco é "o cliente não disse o tamanho", e não erro (RF-54)', async () => {
     await expect(actions.criarPedidoAction({}, pedidoValido({ item_recipiente: '', item_quantidade: '' }))).rejects.toThrow(
       /^redirect:/,
@@ -338,7 +369,7 @@ describe('negociação depois da conferência (RF-55, RN-50)', () => {
       {},
       form({ pedido_id: PEDIDO, negociar_item_id: ITEM, negociar_quantidade: '400' }),
     );
-    expect(state.error).toMatch(/confirmou 300.*reenviar/i);
+    expect(state.error).toMatch(/confirmou 300.*solicitar alteração/i);
   });
 
   it('quantidade zero tira o item do pedido', async () => {

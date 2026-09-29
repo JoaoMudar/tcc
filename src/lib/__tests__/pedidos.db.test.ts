@@ -1016,6 +1016,37 @@ describe('item genérico (T8.10)', () => {
     expect(totalPedido(itens)).toBe(500 * 200);
   });
 
+  it('na grade da ficha, o genérico que vira espécie perde a composição e a resposta', async () => {
+    const { id, pai } = await comGenerico([especie]);
+    await tx((c) =>
+      definirComposicaoGenerico(c, id, pai.id, [{ especieId: especie, recipienteId: tubete, quantidade: 500 }], gerencia()),
+    );
+    await tx((c) => concluirVerificacao(c, id, gerencia()));
+    await tx((c) => mudarSituacao(c, id, 'cadastrado', chefia()));
+
+    const identidade = { generico: false, especieId: outraEspecie, especificacao: null };
+    await tx((c) => atualizarItem(c, id, pai.id, { quantidade: 500, alturaM: 1.2, recipienteId: tubete, identidade }));
+
+    const itens = await listItens(pool, id);
+    expect(itens).toHaveLength(1);
+    expect(itens[0]).toMatchObject({ generico: false, especieId: outraEspecie, especificacao: null, disponivel: null });
+    expect(await listEspeciesPermitidas(pool, pai.id)).toEqual([]);
+  });
+
+  it('trocar a espécie no orçamento derruba a resposta dada sobre a outra', async () => {
+    const { id } = await novoPedido({
+      itens: [{ especieId: especie, recipienteId: tubete, quantidade: 100, precoCentavos: null }],
+    });
+    const [item] = await listItens(pool, id);
+    await tx((c) => marcarDisponibilidade(c, id, item.id, 'disponivel', gerencia()));
+    await tx((c) => concluirVerificacao(c, id, gerencia()));
+    await tx((c) => mudarSituacao(c, id, 'cadastrado', chefia()));
+
+    const identidade = { generico: false, especieId: outraEspecie, especificacao: null };
+    await tx((c) => atualizarItem(c, id, item.id, { quantidade: 100, alturaM: null, recipienteId: tubete, identidade }));
+    expect((await listItens(pool, id))[0]).toMatchObject({ especieId: outraEspecie, disponivel: null });
+  });
+
   it('o filho herda a altura pedida no genérico: ela é parte do que foi combinado', async () => {
     const { id, pai } = await comGenerico();
     await tx((c) =>

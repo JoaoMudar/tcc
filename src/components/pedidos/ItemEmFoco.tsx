@@ -7,8 +7,7 @@ import type { SelectOption } from '@/components/ui/SelectField';
 import { TextField } from '@/components/ui/TextField';
 import { formatQuantidade, lerQuantidade } from '@/lib/lotes-rotulos';
 import { chaveSaldo, mascaraAltura } from '@/lib/pedidos-rotulos';
-import type { Linha } from './linhas-pedido';
-import type { SaldosPorChave } from './NovoPedidoForm';
+import type { Linha, SaldosPorChave } from './linhas-pedido';
 
 interface ItemEmFocoProps {
   linha: Linha;
@@ -29,7 +28,8 @@ interface ItemEmFocoProps {
  * está de fato digitando, e não na lista.
  *
  * Escreve no mesmo estado da planilha, então fechar não é cancelar: o que foi
- * digitado já está no pedido, e o pedido só é gravado no botão do formulário.
+ * digitado já está no pedido. No cadastro o pedido é gravado no botão do
+ * formulário; na ficha, ao digitar.
  */
 export function ItemEmFoco({
   linha,

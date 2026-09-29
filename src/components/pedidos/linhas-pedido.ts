@@ -1,15 +1,37 @@
 /**
- * As linhas da planilha de itens do pedido novo, e o que a colagem faz com
+ * As linhas da planilha de itens do pedido (no cadastro e na ficha), e o que a colagem faz com
  * elas. Puro, sem React e sem SQL: é a parte que o teste consegue olhar sem
  * montar tela nenhuma.
  */
-import { normalizaCampoAltura } from '@/lib/pedidos-rotulos';
+import { chaveSaldo, normalizaCampoAltura } from '@/lib/pedidos-rotulos';
 import {
   type EspecieParaColagem,
   type RecipienteParaColagem,
   casaEspecie,
   casaRecipiente,
 } from '@/lib/pedidos-colagem';
+
+/** Saldo pronto e em produção de cada par espécie e recipiente, lido na abertura da tela. */
+export type SaldosPorChave = Record<string, { pronto: number; producao: number }>;
+
+interface SaldoDoPar {
+  especieId: string;
+  recipienteId: string;
+  quantidade: number;
+}
+
+/** As duas leituras de estoque (RF-56) juntas, por par espécie e recipiente. */
+export function montarSaldos(prontos: readonly SaldoDoPar[], producao: readonly SaldoDoPar[]): SaldosPorChave {
+  const saldos: SaldosPorChave = {};
+  for (const linha of prontos) {
+    saldos[chaveSaldo(linha.especieId, linha.recipienteId)] = { pronto: linha.quantidade, producao: 0 };
+  }
+  for (const linha of producao) {
+    const chave = chaveSaldo(linha.especieId, linha.recipienteId);
+    saldos[chave] = { pronto: saldos[chave]?.pronto ?? 0, producao: linha.quantidade };
+  }
+  return saldos;
+}
 
 export interface Linha {
   chave: number;

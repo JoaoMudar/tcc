@@ -9,8 +9,8 @@ interface ConfirmacaoDuplaProps {
   /** O que o botão da tela diz, antes de qualquer coisa acontecer. */
   rotuloBotao: string;
   titulo: string;
-  /** O que a ação faz de irreversível, em uma frase. */
-  aviso: string;
+  /** O que a ação faz de irreversível, em uma frase. Opcional: o título às vezes já diz. */
+  aviso?: string;
   rotuloConfirmar: string;
   rotuloVoltar?: string;
   action: (payload: FormData) => void;
@@ -54,7 +54,7 @@ export function ConfirmacaoDupla({
       {aberta && (
         <Modal titulo={titulo} onFechar={() => setAberta(false)}>
           <form action={action} className="flex flex-col gap-3">
-            <Notice tone="warning">{aviso}</Notice>
+            {aviso && <Notice tone="warning">{aviso}</Notice>}
             {children}
             {erro && <Notice tone="error">{erro}</Notice>}
             <Button type="submit" variant="secondary" pending={pendente} pendingLabel="Confirmando…">

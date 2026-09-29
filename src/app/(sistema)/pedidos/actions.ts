@@ -113,27 +113,34 @@ export async function criarPedidoAction(_previous: FormState, formData: FormData
   redirect(`/pedidos?feito=criado&numero=${numero}`);
 }
 
+/** O item gravado devolve o id: a grade da ficha continua editando a mesma linha. */
+export interface ItemSalvoState extends FormState {
+  itemId?: string;
+}
+
 /** Um item só, acrescentado ao pedido que ainda é rascunho (RF-57). */
-export async function adicionarItemAction(_previous: FormState, formData: FormData): Promise<FormState> {
+export async function adicionarItemAction(_previous: ItemSalvoState, formData: FormData): Promise<ItemSalvoState> {
   await requirePermission('pedidos', 'A');
   const pedidoId = formText(formData, 'pedido_id');
   if (!isUuid(pedidoId)) return { error: 'Pedido inválido.' };
   const itens = lerItens(formData);
   if ('error' in itens) return { error: itens.error };
 
+  let itemId: string;
   try {
-    await withTransaction(pool, (client) => pedidos.adicionarItem(client, pedidoId, itens.value[0]));
+    itemId = await withTransaction(pool, (client) => pedidos.adicionarItem(client, pedidoId, itens.value[0]));
   } catch (error) {
     return { error: toUserMessage(error) };
   }
   revalidarPedidos(pedidoId);
-  return { success: 'Item acrescentado.' };
+  return { success: 'Item acrescentado.', itemId };
 }
 
 /**
  * RF-57: recipiente, quantidade e altura mudam enquanto o pedido é orçamento. O
  * preço vem depois da conferência. O recipiente só muda quando o campo vem no
- * formulário, e vazio é "o cliente não disse o tamanho".
+ * formulário, e vazio é "o cliente não disse o tamanho". A espécie, do mesmo
+ * jeito: só quando `item_generico` vem, e é a grade da ficha que o manda.
  */
 export async function atualizarItemAction(_previous: FormState, formData: FormData): Promise<FormState> {
   await requirePermission('pedidos', 'A');
@@ -151,6 +158,15 @@ export async function atualizarItemAction(_previous: FormState, formData: FormDa
     if (texto !== '' && !isUuid(texto)) return { error: 'Recipiente inválido.', fields };
     recipienteId = texto || null;
   }
+  let identidade: pedidos.IdentidadeItem | undefined;
+  if (formData.has('item_generico')) {
+    const generico = formText(formData, 'item_generico') === '1';
+    const especieId = formText(formData, 'item_especie');
+    if (!generico && !isUuid(especieId)) return { error: 'Escolha a espécie do item.', fields };
+    const especificacao = pedidos.parseObservacoesPedido(formText(formData, 'item_especificacao'));
+    if ('error' in especificacao) return { error: 'A observação é longa demais.', fields };
+    identidade = { generico, especieId: generico ? null : especieId, especificacao: especificacao.value };
+  }
 
   try {
     await withTransaction(pool, (client) =>
@@ -158,6 +174,7 @@ export async function atualizarItemAction(_previous: FormState, formData: FormDa
         quantidade: quantidade.value,
         alturaM: altura.value,
         ...(recipienteId === undefined ? {} : { recipienteId }),
+        ...(identidade ? { identidade } : {}),
       }),
     );
   } catch (error) {

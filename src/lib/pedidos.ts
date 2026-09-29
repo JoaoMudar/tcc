@@ -366,7 +366,8 @@ function exigirCadastrado(pedido: PedidoTravado): void {
   );
 }
 
-async function inserirItens(client: Client, pedidoId: string, itens: readonly NovoItem[]): Promise<void> {
+async function inserirItens(client: Client, pedidoId: string, itens: readonly NovoItem[]): Promise<string[]> {
+  const ids: string[] = [];
   for (const item of itens) {
     const generico = item.generico ?? false;
     if (generico && item.especieId) throw new UserError('O item genérico é o que não tem espécie escolhida.');
@@ -388,6 +389,7 @@ async function inserirItens(client: Client, pedidoId: string, itens: readonly No
       ],
     );
 
+    ids.push(rows[0].id);
     // Sem nenhuma linha aqui, qualquer espécie serve: é o caso comum, e é por
     // isso que o escopo é representado pela ausência (T8.7).
     for (const especieId of generico ? (item.especiesPermitidas ?? []) : []) {
@@ -397,6 +399,7 @@ async function inserirItens(client: Client, pedidoId: string, itens: readonly No
       );
     }
   }
+  return ids;
 }
 
 export interface NovoPedido {
@@ -432,10 +435,59 @@ export async function criarPedido(client: Client, input: NovoPedido): Promise<{ 
   return rows[0];
 }
 
-/** RF-57: item novo só entra em pedido que ainda é rascunho. */
-export async function adicionarItem(client: Client, pedidoId: string, item: NovoItem): Promise<void> {
+/**
+ * RF-57: item novo só entra em pedido que ainda é rascunho. Devolve o id, porque
+ * a grade da ficha grava a linha ao digitar e continua editando a mesma linha.
+ */
+export async function adicionarItem(client: Client, pedidoId: string, item: NovoItem): Promise<string> {
   exigirCadastrado(await travarPedido(client, pedidoId));
-  await inserirItens(client, pedidoId, [item]);
+  const [id] = await inserirItens(client, pedidoId, [item]);
+  return id;
+}
+
+/** O que o item é: a espécie, ou o genérico com a observação dele. */
+export interface IdentidadeItem {
+  generico: boolean;
+  especieId: string | null;
+  especificacao: string | null;
+}
+
+/**
+ * A troca de espécie na grade da ficha. **Trocar o que o item é derruba a
+ * resposta da conferência**, como trocar quantidade: ela foi dada sobre outra
+ * muda. Deixar de ser genérico (ou passar a ser) apaga a composição e as
+ * espécies permitidas, que só fazem sentido no genérico.
+ */
+async function trocarIdentidade(client: Client, pedidoId: string, itemId: string, nova: IdentidadeItem): Promise<void> {
+  if (nova.generico && nova.especieId) throw new UserError('O item genérico é o que não tem espécie escolhida.');
+  if (!nova.generico && !nova.especieId) throw new UserError('Escolha a espécie do item.');
+  const { rows } = await client.query<{ generico: boolean; especieId: string | null; especificacao: string | null }>(
+    `SELECT generico, especie_id AS "especieId", especificacao
+       FROM pedidos_itens WHERE id = $2 AND pedido_id = $1`,
+    [pedidoId, itemId],
+  );
+  const atual = rows[0];
+  if (!atual) throw new UserError('Item não encontrado neste pedido.');
+  const especificacao = nova.generico ? nova.especificacao?.trim() || null : null;
+  const trocouTipo = atual.generico !== nova.generico;
+  const trocouEspecie = trocouTipo || atual.especieId !== (nova.generico ? null : nova.especieId);
+  if (!trocouEspecie && atual.especificacao === especificacao) return;
+
+  if (trocouTipo) {
+    await client.query('DELETE FROM pedidos_itens WHERE item_pai_id = $2 AND pedido_id = $1', [pedidoId, itemId]);
+    await client.query('DELETE FROM pedidos_itens_especies_permitidas WHERE item_id = $1', [itemId]);
+  }
+  await client.query(
+    `UPDATE pedidos_itens
+        SET generico = $3, especie_id = $4, especificacao = $5,
+            disponivel = CASE WHEN $6::boolean THEN NULL ELSE disponivel END,
+            quantidade_disponivel = CASE WHEN $6::boolean THEN NULL ELSE quantidade_disponivel END,
+            recipiente_disponivel_id = CASE WHEN $6::boolean THEN NULL ELSE recipiente_disponivel_id END,
+            altura_disponivel_m = CASE WHEN $6::boolean THEN NULL ELSE altura_disponivel_m END,
+            complementa_item_id = CASE WHEN $6::boolean THEN NULL ELSE complementa_item_id END
+      WHERE id = $2 AND pedido_id = $1`,
+    [pedidoId, itemId, nova.generico, nova.generico ? null : nova.especieId, especificacao, trocouEspecie],
+  );
 }
 
 /**
@@ -457,9 +509,16 @@ export async function atualizarItem(
   client: Client,
   pedidoId: string,
   itemId: string,
-  valores: { quantidade: number | null; alturaM: number | null; recipienteId?: string | null },
+  valores: {
+    quantidade: number | null;
+    alturaM: number | null;
+    recipienteId?: string | null;
+    /** Quando vem, o item pode trocar de espécie ou virar genérico (a grade da ficha). */
+    identidade?: IdentidadeItem;
+  },
 ): Promise<void> {
   exigirCadastrado(await travarPedido(client, pedidoId));
+  if (valores.identidade) await trocarIdentidade(client, pedidoId, itemId, valores.identidade);
   const trocaRecipiente = valores.recipienteId !== undefined;
   const { rowCount } = await client.query(
     `UPDATE pedidos_itens i
@@ -592,8 +651,8 @@ interface ItemParaNegociar {
  * **O que a conferência confirmou é o teto.** A chefia baixa a quantidade, tira
  * o item (zero) ou escolhe entre o recipiente pedido e o conferido sem devolver
  * o pedido à gerência, porque nada disso pede que alguém olhe o pátio de novo.
- * Pedir mais do que existe, ou outro recipiente, pede: é o "Salvar e reenviar
- * para verificação".
+ * Pedir mais do que existe, ou outro recipiente, pede: é o "Solicitar
+ * alteração", que devolve o pedido ao orçamento.
  *
  * **Gravar a quantidade encerra a conferência do item**: `disponivel` passa a
  * verdadeiro e `quantidade_disponivel` a nulo, porque o pedido agora pede
@@ -665,12 +724,12 @@ export async function negociarItens(
     const confirmada = quantidadeConfirmada(item);
     if (linha.quantidade !== null && confirmada !== null && linha.quantidade > confirmada) {
       throw new UserError(
-        `A conferência confirmou ${confirmada} muda(s) deste item. Para pedir mais, use "Salvar e reenviar para verificação".`,
+        `A conferência confirmou ${confirmada} muda(s) deste item. Para pedir mais, use "Solicitar alteração".`,
       );
     }
     const opcoes = [item.recipienteId, item.recipienteDisponivelId].filter((id): id is string => id !== null);
     if (linha.recipienteId !== null && !opcoes.includes(linha.recipienteId)) {
-      throw new UserError('Escolha o recipiente pedido ou o que a conferência achou. Outro, só reenviando para verificação.');
+      throw new UserError('Escolha o recipiente pedido ou o que a conferência achou. Outro, só com "Solicitar alteração".');
     }
 
     const encerra = linha.quantidade !== null;
