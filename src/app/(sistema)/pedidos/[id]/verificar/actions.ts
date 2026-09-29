@@ -251,5 +251,5 @@ export async function concluirVerificacaoAction(_previous: FormState, formData: 
     return { error: toUserMessage(error) };
   }
   revalidar(pedidoId);
-  redirect(`/pedidos/${pedidoId}?feito=verificado`);
+  redirect(`/pedidos/${pedidoId}`);
 }

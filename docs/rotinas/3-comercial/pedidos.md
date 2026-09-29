@@ -10,10 +10,8 @@ A negociação nasce no WhatsApp e é conversa entre pessoas. O sistema não par
 
 ```
 cadastrado ─► verificando ─► verificado ─► aprovado ─► separando ─► pronto_envio
-                                  │
-                                  └─► pendente_alteracao ─┐
-                                                          │
-      (a chefia edita e reenvia) ◄────────────────────────┘
+    ▲                             │
+    └── "Solicitar alteração" ◄───┘
 
 qualquer situação ─► cancelado
 ```
@@ -26,7 +24,7 @@ fluxo antigo de três situações não sabia dizer:
 | `cadastrado` | Gerência | A chefia registrou; falta conferir no viveiro. A tela mostra **Orçamento** |
 | `verificando` | Gerência | A conferência está aberta, item a item |
 | `verificado` | Chefia | A gerência respondeu tudo e devolveu; é aqui que a chefia negocia preço e quantidade |
-| `pendente_alteracao` | Chefia | A chefia pediu mudança antes de aprovar |
+| `pendente_alteracao` | Chefia | Legado: a ficha não leva mais o pedido para cá, e o de antes volta ao orçamento |
 | `aprovado` | Gerência | Vendido, e o item não muda mais. Falta organizar as viagens |
 | `separando` | Gerência | As cargas existem, e estão sendo contadas |
 | `pronto_envio` | ninguém | Todas as cargas prontas; o caminhão sai |
@@ -42,6 +40,14 @@ o pedido passa de `cadastrado` a `verificando` na mesma transação da resposta.
 gesto de pessoa, e não efeito de abrir a tela: o gesto é a resposta, e o histórico registra quem
 abriu. Um botão separado antes disso só rendia um item sem resposta e um erro que não era de
 ninguém.
+
+**A ficha mostra só o próximo passo**, e só para quem o executa. No orçamento é "Começar
+verificação" (chefia e gerência); no verificado, "Aprovar pedido" e "Solicitar alteração" (chefia),
+com a lista do que ainda falta acima do botão de aprovar; no aprovado, "Organizar cargas" (chefia e
+gerência). A conferência e a separação mudam a situação na tela delas, quando o trabalho termina.
+"Solicitar alteração" devolve o pedido ao orçamento, onde os itens voltam a ser editados na mesma
+grade do cadastro. O andamento aparece como linha do tempo, uma fase depois da outra, com o dia de
+cada uma. O cancelamento fica no fim da ficha.
 
 **Aprovar é o ato que trava o item** (RF-57). Antes disso item e quantidade se alteram; depois,
 não. A chefia ainda pode editar, e editar **devolve o pedido ao começo da conferência**: o
@@ -135,14 +141,17 @@ espécie, e o resto quando ele disser. Os sete jeitos de o pedido chegar estão 
 [`pedidos-como-chegam.md`](pedidos-como-chegam.md).
 
 **O valor se fecha na negociação**, com o pedido em `verificado`, quando a conferência já disse
-quantas mudas existem e em que recipiente. A ficha mostra então um formulário por item vendido,
-com preço, quantidade (preenchida com a confirmada) e, quando a gerência achou a muda em outro
-recipiente, a escolha entre os dois. A chefia baixa a quantidade ou zera o item sem devolver o
-pedido à conferência; pedir mais do que existe, ou outro recipiente, é "Salvar e reenviar".
+quantas mudas existem e em que recipiente. **A negociação acontece na própria grade de itens**, com
+uma coluna de preço no fim de cada item e a quantidade (preenchida com a confirmada) editável, e
+grava enquanto se digita, sem botão de salvar. Quando a gerência achou a muda em outro recipiente, a
+célula do recipiente vira a escolha entre os dois. A chefia baixa a quantidade ou zera o item sem
+devolver o pedido à conferência; pedir mais do que existe, ou outro recipiente, é "Solicitar
+alteração".
 
 **A aprovação exige o item completo**: todo item vendido com recipiente, quantidade e preço, e todo
-item sem espécie já composto. A recusa conta o que falta por motivo. Enquanto faltar preço ou
-quantidade, a tela diz "a definir" no lugar do total, em vez de anunciar uma soma parcial.
+item sem espécie já composto. A recusa conta o que falta por motivo, e a grade marca cada célula
+que falta com "Definir", em amarelo, e em vermelho no verificado, quando a falta segura a
+aprovação.
 
 ### Colar a lista do cliente
 

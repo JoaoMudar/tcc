@@ -337,6 +337,82 @@ export function rotuloGenerico(observacao: string | null | undefined): string {
   return texto ? `Genérico: ${texto}` : 'Genérico';
 }
 
+/**
+ * A fase como a linha do tempo da ficha a conta: o que aconteceu naquele dia,
+ * e não o nome da situação. "Orçamento" é o que o pedido é; "Cadastrado" é o
+ * que aconteceu com ele.
+ */
+export const ROTULO_HISTORICO: Record<SituacaoPedido, string> = {
+  cadastrado: 'Cadastrado',
+  verificando: 'Em verificação',
+  verificado: 'Verificado',
+  pendente_alteracao: 'Alteração solicitada',
+  aprovado: 'Aprovado',
+  separando: 'Separando',
+  pronto_envio: 'Pronto para envio',
+  cancelado: 'Cancelado',
+};
+
+/** O item como a aprovação o lê: o pedido e o que a conferência achou. */
+export interface ItemParaAprovar extends ItemCalculavel {
+  id: string;
+  generico: boolean;
+  recipienteId: string | null;
+  recipienteDisponivelId?: string | null;
+}
+
+export interface CamposFaltando {
+  quantidade: boolean;
+  recipiente: boolean;
+  preco: boolean;
+  /** O genérico que a gerência ainda não compôs. */
+  composicao: boolean;
+}
+
+/**
+ * O que falta no item para a aprovação passar, **com a mesma regra de
+ * `confirmarPedido`**: só o item vendável é cobrado, e valem os valores depois
+ * de a aprovação consumir a conferência (o parcial passa a valer pelo que
+ * existe, o recipiente conferido substitui o pedido). É o que a grade marca como
+ * "Definir" e o que o botão de aprovar lista antes de alguém tocar nele.
+ */
+export function camposFaltando(item: ItemParaAprovar, itens: readonly ItemParaAprovar[]): CamposFaltando {
+  const composicao = item.generico && !itens.some((outro) => outro.itemPaiId === item.id);
+  if (!itemVendavel(item, itens)) return { quantidade: false, recipiente: false, preco: false, composicao };
+  const parcial = item.disponivel === false && (item.quantidadeDisponivel ?? 0) > 0;
+  const quantidade = parcial ? item.quantidadeDisponivel! : item.quantidade;
+  return {
+    quantidade: quantidade === null,
+    recipiente: !item.generico && (item.recipienteDisponivelId ?? item.recipienteId) === null,
+    preco: item.precoCentavos === null,
+    composicao,
+  };
+}
+
+/**
+ * O que impede a aprovação, numa frase: "Falta preço em 2 itens e recipiente
+ * em 1 item." Nulo quando nada falta.
+ */
+export function resumoFaltas(itens: readonly ItemParaAprovar[]): string | null {
+  const contagem = { preco: 0, quantidade: 0, recipiente: 0, composicao: 0 };
+  for (const item of itens) {
+    const falta = camposFaltando(item, itens);
+    for (const campo of Object.keys(contagem) as (keyof typeof contagem)[]) if (falta[campo]) contagem[campo]++;
+  }
+  const nomes: Record<keyof typeof contagem, string> = {
+    preco: 'preço',
+    quantidade: 'quantidade',
+    recipiente: 'recipiente',
+    composicao: 'espécies do genérico',
+  };
+  const partes = (Object.keys(contagem) as (keyof typeof contagem)[])
+    .filter((campo) => contagem[campo] > 0)
+    .map((campo) => `${nomes[campo]} em ${contagem[campo]} ${contagem[campo] === 1 ? 'item' : 'itens'}`);
+  if (partes.length === 0) return null;
+  const lista = partes.length === 1 ? partes[0] : `${partes.slice(0, -1).join(', ')} e ${partes.at(-1)}`;
+  return `Falta ${lista}.`;
+}
+
 /** O total que a tela imprime: "R$ 1.250,00" ou "a definir" enquanto faltar preço. */
 export function formatTotal(centavos: number | null): string {
   return centavos === null ? 'a definir' : formatMoeda(centavos);

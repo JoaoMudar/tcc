@@ -79,7 +79,7 @@ Desde 24/09/2026 (plano P11, migration `20260924000001`):
    O genérico também pode ser "Não tem".
 5. **Negociar não volta à conferência.** Na ficha, a chefia põe preço, baixa a quantidade até o
    confirmado, zera o item ou escolhe entre o recipiente pedido e o conferido. Pedir mais do que
-   existe é "Salvar e reenviar".
+   existe é "Solicitar alteração", que devolve o pedido ao orçamento.
 6. **A primeira etapa aparece como "Orçamento".**
 
 **O que ainda não faz:** a colagem não transforma sozinha a linha sem espécie reconhecida em item

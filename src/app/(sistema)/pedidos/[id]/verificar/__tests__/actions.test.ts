@@ -282,7 +282,7 @@ describe('conclusão', () => {
       rowCount: 1,
     });
     await expect(actions.concluirVerificacaoAction({}, form({ pedido_id: PEDIDO }))).rejects.toThrow(
-      `redirect:/pedidos/${PEDIDO}?feito=verificado`,
+      `redirect:/pedidos/${PEDIDO}`,
     );
   });
 

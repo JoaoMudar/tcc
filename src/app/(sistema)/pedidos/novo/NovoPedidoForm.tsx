@@ -16,12 +16,17 @@ import { CANAIS_VENDA, CANAL_PADRAO } from '@/lib/pedidos-rotulos';
 import { criarPedidoAction } from '../actions';
 import { ClienteNovoTela } from './ClienteNovoTela';
 import { ColarLista, type ItemImportado } from './ColarLista';
-import { GradeItens } from './GradeItens';
-import { ItemEmFoco } from './ItemEmFoco';
-import { type Celula, type Linha, aplicarColagemTabular, estaVazia, linhaVazia, proximaChave } from './linhas-pedido';
-
-/** Saldo pronto e em produção de cada par espécie e recipiente, lido na abertura da tela. */
-export type SaldosPorChave = Record<string, { pronto: number; producao: number }>;
+import { GradeItens } from '@/components/pedidos/GradeItens';
+import { ItemEmFoco } from '@/components/pedidos/ItemEmFoco';
+import {
+  type Celula,
+  type Linha,
+  type SaldosPorChave,
+  aplicarColagemTabular,
+  estaVazia,
+  linhaVazia,
+  proximaChave,
+} from '@/components/pedidos/linhas-pedido';
 
 interface NovoPedidoFormProps {
   clientes: readonly SelectOption[];
