@@ -7,7 +7,8 @@ import { isDataIso } from '@/lib/datas';
 import pool from '@/lib/db';
 import { toUserMessage } from '@/lib/errors';
 import { type FormState, formText } from '@/lib/form-state';
-import type { AvisoDaRota } from '@/lib/rotas';
+import { type AvisoDaRota, type SugestaoDeEndereco, lerCoordenada } from '@/lib/rotas';
+import { MapaIndisponivel, sugerirEnderecos } from '@/lib/rotas-ors';
 import { withTransaction } from '@/lib/transaction';
 import { isUuid } from '@/lib/uuid';
 import * as viagens from '@/lib/viagens';
@@ -112,6 +113,23 @@ export async function voltarParaCargaAction(_previous: FormState, formData: Form
   return {};
 }
 
+/** A lista que abre enquanto se digita um endereço. Mapa fora do ar é lista vazia: o texto livre continua valendo. */
+export async function buscarEnderecosAction(texto: string): Promise<SugestaoDeEndereco[]> {
+  await requirePermission('cargas_pedido', 'A');
+  const busca = typeof texto === 'string' ? texto.trim() : '';
+  if (busca.length < 3 || busca.length > 200) return [];
+  try {
+    return await sugerirEnderecos(busca);
+  } catch (error) {
+    if (error instanceof MapaIndisponivel) return [];
+    throw error;
+  }
+}
+
+function coordenadaDoForm(formData: FormData) {
+  return lerCoordenada(formText(formData, 'lat'), formText(formData, 'lng'));
+}
+
 /** A saída: Agrolândia, Itapema (de Configurações) ou um endereço digitado. */
 export async function definirPartidaAction(_previous: FormState, formData: FormData): Promise<FormState> {
   await requirePermission('cargas_pedido', 'A');
@@ -124,7 +142,9 @@ export async function definirPartidaAction(_previous: FormState, formData: FormD
     const base = await viagens.partidasBase(pool);
     const descricao =
       escolha === 'agrolandia' ? base.agrolandia : escolha === 'itapema' ? base.itapema : formText(formData, 'endereco');
-    await withTransaction(pool, (client) => viagens.definirPartida(client, viagem.viagemId, descricao));
+    // Só o endereço digitado traz coordenada: as duas bases são procuradas pelo texto
+    const coordenada = escolha === 'outro' ? coordenadaDoForm(formData) : null;
+    await withTransaction(pool, (client) => viagens.definirPartida(client, viagem.viagemId, descricao, coordenada));
     const atual = await viagens.findViagem(pool, viagem.viagemId);
     if (atual?.sugerirOrdem) aviso = await viagens.sugerirRota(pool, viagem.viagemId);
   } catch (error) {
@@ -174,7 +194,7 @@ export async function adicionarParadaAction(_previous: FormState, formData: Form
 
   try {
     await withTransaction(pool, (client) =>
-      viagens.adicionarParada(client, viagem.viagemId, descricao, endereco || null),
+      viagens.adicionarParada(client, viagem.viagemId, descricao, endereco || null, coordenadaDoForm(formData)),
     );
   } catch (error) {
     return { error: toUserMessage(error), fields: { descricao, endereco } };
@@ -239,15 +259,12 @@ export async function concluirViagemAction(_previous: FormState, formData: FormD
   if (!viagem) return { error: 'Viagem inválida.' };
 
   try {
-    const { pedidos } = await withTransaction(pool, (client) =>
+    await withTransaction(pool, (client) =>
       viagens.concluirViagem(client, viagem.viagemId, { perfil: user.perfil, usuarioId: user.usuarioId }),
     );
-    revalidar(viagem.data);
-    return {
-      success:
-        pedidos === 1 ? 'Carga pronta. O pedido ficou pronto para envio.' : `Carga pronta. ${pedidos} pedidos ficaram prontos para envio.`,
-    };
   } catch (error) {
     return { error: toUserMessage(error) };
   }
+  revalidar(viagem.data);
+  return {};
 }

@@ -12,14 +12,16 @@ import {
 } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useActionState, useState, useTransition } from 'react';
+import { useActionState, useId, useState, useTransition } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Notice } from '@/components/ui/Notice';
+import { CampoEndereco } from '@/components/ui/CampoEndereco';
 import { TextField } from '@/components/ui/TextField';
-import { EMPTY_FORM_STATE } from '@/lib/form-state';
+import { EMPTY_FORM_STATE, type FormState } from '@/lib/form-state';
 import { linkGoogleMaps, moverNaLista } from '@/lib/rotas';
 import {
   adicionarParadaAction,
+  buscarEnderecosAction,
   definirPartidaAction,
   iniciarCarregamentoAction,
   removerParadaAction,
@@ -163,12 +165,23 @@ export function RotaDaViagem({ data, viagemId, partida, paradas, distancia, avis
 
   const [saida, escolherSaida, escolhendo] = useActionState(definirPartidaAction, EMPTY_FORM_STATE);
   const [sugestao, sugerir, sugerindo] = useActionState(sugerirOrdemAction, EMPTY_FORM_STATE);
-  const [extra, adicionarParada, adicionando] = useActionState(adicionarParadaAction, EMPTY_FORM_STATE);
+  // A contagem das paradas que entraram: o campo de endereço guarda o próprio
+  // texto, e só esvazia ao nascer de novo
+  const [extra, adicionarParada, adicionando] = useActionState(
+    async (anterior: FormState & { entraram?: number }, formData: FormData) => {
+      const resultado = await adicionarParadaAction(anterior, formData);
+      return { ...resultado, entraram: (anterior.entraram ?? 0) + (resultado.error ? 0 : 1) };
+    },
+    EMPTY_FORM_STATE as FormState & { entraram?: number },
+  );
   const [remocao, removerParada] = useActionState(removerParadaAction, EMPTY_FORM_STATE);
   const [inicio, iniciar, iniciando] = useActionState(iniciarCarregamentoAction, EMPTY_FORM_STATE);
 
   // Mouse e toque separados: no toque, só pressionar e segurar vira arraste, e
   // rolar a lista com o dedo continua rolando
+  // O dnd-kit numera os ids por contador global, que difere entre servidor e
+  // navegador: com o id fixo, a hidratação não reclama do aria-describedby
+  const dndId = useId();
   const sensores = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 6 } }),
@@ -237,12 +250,13 @@ export function RotaDaViagem({ data, viagemId, partida, paradas, distancia, avis
               <input type="hidden" name="data" value={data} />
               <input type="hidden" name="viagem_id" value={viagemId} />
               <input type="hidden" name="partida" value="outro" />
-              <TextField
+              <CampoEndereco
                 label="Endereço de saída"
                 name="endereco"
                 className="flex-1"
                 required
                 defaultValue={saida.fields?.endereco ?? (partida.escolha === 'outro' ? partida.descricao : '')}
+                buscar={buscarEnderecosAction}
               />
               <Button type="submit" className="w-auto!" pending={escolhendo} pendingLabel="…">
                 Usar
@@ -266,7 +280,7 @@ export function RotaDaViagem({ data, viagemId, partida, paradas, distancia, avis
             <span className="text-base font-semibold text-ink">{partida.descricao}</span>
           </div>
 
-          <DndContext sensors={sensores} collisionDetection={closestCenter} onDragEnd={aoSoltar}>
+          <DndContext id={dndId} sensors={sensores} collisionDetection={closestCenter} onDragEnd={aoSoltar}>
             <SortableContext items={ordem} strategy={verticalListSortingStrategy}>
               <ol className="flex flex-col gap-2" aria-busy={gravando || undefined}>
                 {naOrdem.map((parada, indice) => {
@@ -327,7 +341,7 @@ export function RotaDaViagem({ data, viagemId, partida, paradas, distancia, avis
           <input type="hidden" name="data" value={data} />
           <input type="hidden" name="viagem_id" value={viagemId} />
           <TextField label="Parada extra" name="descricao" required defaultValue={extra.fields?.descricao} />
-          <TextField label="Endereço" name="endereco" defaultValue={extra.fields?.endereco} />
+          <CampoEndereco key={extra.entraram ?? 0} label="Endereço" name="endereco" buscar={buscarEnderecosAction} />
           {extra.error && <Notice tone="error">{extra.error}</Notice>}
           <Button type="submit" variant="secondary" pending={adicionando} pendingLabel="Adicionando…">
             Adicionar parada

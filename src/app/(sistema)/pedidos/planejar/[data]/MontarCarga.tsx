@@ -26,6 +26,8 @@ export interface PedidoNaCarga {
 export interface PedidoParaEscolher extends PedidoNaCarga {
   /** `entrega 05/10` ou `sem data`; vazio na lista do próprio dia. */
   entrega: string;
+  /** "Separando" ou "Pronto para envio": o pedido que já tem carga. `null` no aprovado. */
+  situacao: string | null;
 }
 
 interface MontarCargaProps {
@@ -79,7 +81,14 @@ export function MontarCarga({ data, viagemId, carga, marcados, abertos }: Montar
             className="flex w-full items-center gap-3 rounded-lg border border-line bg-white p-3 text-left text-ink active:bg-brand-light disabled:opacity-60"
           >
             <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <span className="text-base font-bold">{pedido.cliente}</span>
+              <span className="flex flex-wrap items-center gap-2">
+                <span className="text-base font-bold">{pedido.cliente}</span>
+                {pedido.situacao && (
+                  <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-bold text-green-800">
+                    {pedido.situacao}
+                  </span>
+                )}
+              </span>
               <span className="text-sm text-muted">
                 {[`Pedido ${pedido.numero}`, pedido.local, pedido.entrega].filter(Boolean).join(' · ')}
               </span>

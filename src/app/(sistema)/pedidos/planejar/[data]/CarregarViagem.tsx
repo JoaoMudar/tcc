@@ -37,13 +37,6 @@ interface CarregarViagemProps {
 /** Do escuro (fundo) ao claro (porta): a faixa diz de relance onde cada entrega fica. */
 const TONS = ['bg-green-900 text-white', 'bg-green-700 text-white', 'bg-green-600 text-white', 'bg-green-400 text-green-950', 'bg-green-300 text-green-950'];
 
-function passoDoGrupo(indice: number, total: number): string {
-  if (total === 1) return 'Carregue';
-  if (indice === 0) return 'Carregue primeiro · fundo';
-  if (indice === total - 1) return 'Carregue por último · porta';
-  return `Carregue em ${indice + 1}º`;
-}
-
 /**
  * Tela 3: o carregamento. É a contagem do "Organizar cargas", agrupada por
  * pedido na **ordem inversa da rota**: primeiro os itens da última entrega, que
@@ -87,9 +80,8 @@ export function CarregarViagem({ data, viagemId, pronta, grupos }: CarregarViage
             <section key={grupo.pedidoId} className="flex flex-col gap-2">
               <div className="flex items-baseline justify-between gap-2">
                 <div className="flex flex-col">
-                  <span className="text-sm font-extrabold tracking-wider text-brand-dark uppercase">
-                    {passoDoGrupo(indice, total)}
-                  </span>
+                  {/* A ordem de carregar: 1 vai para o fundo */}
+                  <span className="text-sm font-extrabold tracking-wider text-brand-dark">{indice + 1}</span>
                   <span className="text-lg font-extrabold text-ink">{grupo.cliente}</span>
                   <span className="text-sm text-muted">
                     {[`${grupo.entrega}ª entrega de ${total}`, grupo.cidade].filter(Boolean).join(' · ')}
@@ -143,9 +135,6 @@ export function CarregarViagem({ data, viagemId, pronta, grupos }: CarregarViage
         })}
 
         {conclusao.error && <Notice tone="error">{conclusao.error}</Notice>}
-        {(conclusao.success || pronta) && (
-          <Notice tone="success">{conclusao.success ?? 'Carga pronta. Os pedidos estão prontos para envio.'}</Notice>
-        )}
         {pronta && (
           <Link href={`/pedidos/planejar/${data}?nova=1`} className="text-center text-base font-semibold text-brand-dark">
             Planejar outra viagem neste dia
