@@ -37,9 +37,17 @@ erDiagram
     timestamptz atualizado_em
     uuid atualizado_por FK
   }
+  envios_recebidos {
+    uuid chave PK
+    text tipo
+    uuid usuario_id FK
+    jsonb resposta
+    timestamptz recebido_em
+  }
   pessoas {}
 
   usuarios ||--o{ sessoes       : "mantem"
   usuarios ||--o{ eventos_login : "gera"
   usuarios ||--o{ parametros    : "ajusta"
+  usuarios ||--o{ envios_recebidos : "envia"
   pessoas  ||--o| usuarios      : "pode ter login"

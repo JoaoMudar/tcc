@@ -27,11 +27,11 @@ traduzir de um para o outro.
 
 | Agrupamento | Entidades | Papel |
 |---|---:|---|
-| *(transversal)* **Acesso e configurações** | 4 | Autenticação, sessão, auditoria e parâmetros do sistema |
+| *(transversal)* **Acesso e configurações** | 5 | Autenticação, sessão, auditoria, parâmetros do sistema e a chave do registro feito sem conexão |
 | **1 · Cadastro único** | 15 | Catálogo de produção, endereço do viveiro, identidade das pessoas e protocolo de manejo: não consome nada, alimenta tudo |
 | **2 · Produção** | 6 | Agenda da semana, lote, movimento e percurso pelo protocolo |
 | **3 · Comercial** | 8 | Pedido, item, histórico, conferência, carga e viagem de entrega |
-| **Total** | **33** | mais 2 visões derivadas (`situacao_lote` e `lotes_etapas_vencimento`), documentadas em [`C8`](C8-dicionario-de-dados.md) |
+| **Total** | **34** | mais 2 visões derivadas (`situacao_lote` e `lotes_etapas_vencimento`), documentadas em [`C8`](C8-dicionario-de-dados.md) |
 
 **O preço da escolha, declarado:** agrupar por propósito faz relacionamentos cruzarem a fronteira
 do diagrama: `atribuicoes` é da Produção e aponta para `especies`, `recipientes`, `tipos_tarefa` e
@@ -101,7 +101,7 @@ erDiagram
   USUARIO      ||--o{ MOVIMENTO_LOTE : "registra"
 ```
 
-O diagrama conceitual apresenta **dezenove entidades**, e não as trinta e três do modelo
+O diagrama conceitual apresenta **dezenove entidades**, e não as trinta e quatro do modelo
 completo. A redução é deliberada: Sommerville (2011) observa que a ausência de detalhe excessivo é
 característica central do modelo, cujo objetivo é destacar o mais relevante e não especificar por
 inteiro. Entidades associativas, de histórico e de auditoria aparecem apenas nos modelos lógicos por
@@ -140,16 +140,16 @@ Seis leituras que o modelo conceitual já entrega:
 
 ### 2.1 Recorte implementado
 
-O modelo descrito aqui é o **especificado**, e desde 18/09/2026 ele é também o construído: as 33
+O modelo descrito aqui é o **especificado**, e desde 18/09/2026 ele é também o construído: as 34
 entidades existem no banco, mais as visões `situacao_lote` e `lotes_etapas_vencimento`.
 
 | Área | No banco | Só especificadas |
 |---|---:|---:|
-| *(transversal)* Acesso e configurações | 4 | 0 |
+| *(transversal)* Acesso e configurações | 5 | 0 |
 | 1 · Cadastro único | 15 | 0 |
 | 2 · Produção | 6 | 0 |
 | 3 · Comercial | 8 | 0 |
-| **Total** | **33** | **0** |
+| **Total** | **34** | **0** |
 
 O [`C8`](C8-dicionario-de-dados.md) marca a condição entidade por entidade.
 
@@ -167,7 +167,7 @@ onde o desenho anterior discordava do [`C8`](C8-dicionario-de-dados.md), foi o `
 Convenção dos diagramas: entidade de **outra** área aparece como **caixa vazia**, apenas para que
 a aresta exista. Os atributos dela estão no diagrama da área a que pertence.
 
-Atributos comuns à maioria das entidades, omitidos dos diagramas para não repetir trinta e três
+Atributos comuns à maioria das entidades, omitidos dos diagramas para não repetir trinta e quatro
 vezes: `id` (chave primária), `criado_em` e `atualizado_em`. Onde `ativo` aparece, é a marca de
 inativação que substitui a exclusão. As exceções, tabelas sem `atualizado_em` porque nada nelas se
 altera, e as duas de ligação, sem `id` porque a chave é o par que as define, estão registradas uma
@@ -220,13 +220,28 @@ erDiagram
     timestamptz atualizado_em
     uuid atualizado_por FK
   }
+  envios_recebidos {
+    uuid chave PK
+    text tipo
+    uuid usuario_id FK
+    jsonb resposta
+    timestamptz recebido_em
+  }
   pessoas {}
 
   usuarios ||--o{ sessoes     : "mantém"
   usuarios ||--o{ eventos_login : "gera"
   usuarios ||--o{ parametros     : "ajusta"
+  usuarios ||--o{ envios_recebidos : "envia"
   pessoas ||--o| usuarios : "pode ter login"
 ```
+
+**`envios_recebidos` é a chave de idempotência do registro feito sem conexão** (RNF-05, UC-20 FA-3).
+A chave é gerada no aparelho, antes de qualquer tentativa de envio, e o servidor a grava na mesma
+transação da perda, da contagem ou da confirmação de tarefa: o reenvio encontra a chave e recebe a
+resposta da primeira vez, sem gravar de novo. É tabela própria, e não coluna em `movimentos_lote`,
+porque a confirmação sem perda e a contagem igual ao saldo não gravam movimento e também precisam
+reconhecer o reenvio.
 
 **`usuarios.pessoa_id` é opcional, e a opcionalidade é a regra.** Usuário é *credencial*; funcionário é
 *vínculo* (`cadastro.pessoas`). Há pessoa com login e sem vínculo (o administrador), e pessoa com

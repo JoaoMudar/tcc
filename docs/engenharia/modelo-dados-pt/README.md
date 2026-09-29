@@ -10,7 +10,7 @@ o que restou aqui é o recorte e o cuidado com a legibilidade impressa. O regist
 renomeado, e do que o aplicativo em outro repositório precisa acompanhar, está em
 [`de-para-ingles-portugues.md`](de-para-ingles-portugues.md).
 
-**São treze figuras para trinta e três entidades**, e nenhuma precisa ser girada. Não foi sempre
+**São treze figuras para trinta e quatro entidades**, e nenhuma precisa ser girada. Não foi sempre
 assim: até a redução de escopo eram dezenove figuras para sessenta e duas entidades, com duas
 obrigando a paisagem e várias raspando o piso de legibilidade. O ganho não veio de desenhar melhor,
 veio de haver menos o que desenhar.
@@ -20,7 +20,8 @@ disponibilidade e a carga acrescentaram quatro entidades ao pedido, e desenhá-l
 figura 17 abaixo do piso de legibilidade. A divisão foi por assunto, o pedido e o que se confere
 nele numa figura, a viagem do caminhão na outra, e não por corte arbitrário de tamanho. Em
 29/09/2026 a viagem de entrega (`viagens`, `viagens_paradas`) entrou na figura 18, que é onde o
-assunto já estava.
+assunto já estava. Em 30/09/2026 a figura 8 ganhou a quinta caixa, `envios_recebidos`, e passou de
+9,2 pt para 6,7 pt: continua acima do piso, no mesmo valor da figura 17.
 
 Fonte Mermaid em `mmd/`, PNGs em `img/`, layout em `mermaid-config.json` (`nodeSpacing` 30 e
 `rankSpacing` 45 no lugar dos padrões 140 e 80 do Mermaid, que são a causa do espalhamento).
@@ -50,7 +51,7 @@ node scripts/mede-figuras.mjs
 |---:|---|---|---|
 | 6 | `fig06-conceitual-producao` | Conceitual: da semente à muda pronta | 6,9 pt |
 | 7 | `fig07-conceitual-comercial` | Conceitual: do cadastro ao pedido | 9,9 pt |
-| 8 | `fig08-acesso` | Acesso e configurações, transversais às três áreas | 9,2 pt |
+| 8 | `fig08-acesso` | Acesso e configurações, transversais às três áreas | 6,7 pt |
 | 9 | `fig09-cadastros-especie` | Cadastros: a espécie e seus nomes | 8,7 pt |
 | 10 | `fig10-cadastros-insumo-recipiente` | Cadastros: recipiente e insumo | 11,5 pt |
 | 11 | `fig11-cadastros-viveiro` | Cadastros: área, canteiro e turno de trabalho | 12,5 pt |

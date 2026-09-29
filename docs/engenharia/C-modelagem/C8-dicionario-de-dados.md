@@ -38,8 +38,9 @@ quatro módulos do sistema, com o Acesso à frente por atravessar os quatro.
   acompanha: `especies.ativa` e `cadastro.pessoas.ativa`.
 - **As três são convenção, e não obrigação**, e a tabela que foge dela declara o atributo (ou a
   ausência dele) na sua própria linha. Quem só registra fato consumado não tem `atualizado_em`, porque
-  não se altera: é o caso de `sessoes`, `eventos_login`, `movimentos_lote` e
-  `especies_nomes_populares`. As duas tabelas de ligação, `cadastro.pessoas_papeis` e
+  não se altera: é o caso de `sessoes`, `eventos_login`, `movimentos_lote`,
+  `especies_nomes_populares` e `envios_recebidos`, que também não tem `id`, porque a chave gerada no
+  aparelho já identifica a linha. As duas tabelas de ligação, `cadastro.pessoas_papeis` e
   `atribuicoes_participantes`, também não têm `id`: a chave é o par que as define, e é ela que impede a
   linha repetida. E `ativo` só existe onde há catálogo a arquivar.
 - Nome de entidade fora do esquema `public` vem qualificado (`cadastro.pessoas`), na coluna Chave inclusive.
@@ -52,7 +53,7 @@ quatro módulos do sistema, com o Acesso à frente por atravessar os quatro.
 ## Recorte implementado
 
 Este dicionário descreve o **modelo especificado**, que desde 18/09/2026 é também o construído: as
-33 entidades existem no banco, mais as visões `situacao_lote` e `lotes_etapas_vencimento`. Até
+34 entidades existem no banco, mais as visões `situacao_lote` e `lotes_etapas_vencimento`. Até
 aquela data as quatro entidades do protocolo estavam especificadas e não implementadas, e a
 distinção era registrada entidade por entidade. Não era defeito de modelagem: o modelo responde à especificação completa de requisitos, e
 a construção segue a priorização declarada em
@@ -132,6 +133,23 @@ UC-22 FA-2.
 | `sucesso` | boolean | ● | | Resultado da tentativa |
 | `ip` | text | ○ | | Endereço de origem |
 | `agente_usuario` | text | ○ | | Dispositivo e navegador |
+
+## `envios_recebidos`: chave do registro feito sem conexão
+
+O registro de campo (perda, contagem e confirmação de tarefa) pode ser feito sem rede: o aparelho
+o guarda numa fila e envia quando a rede volta (RNF-05). Reenviar é da natureza da fila, porque a
+resposta pode se perder depois de o servidor ter gravado. A chave é gerada no aparelho e gravada na
+mesma transação do registro; chave já vista devolve a resposta guardada, sem gravar de novo
+(UC-20 FA-3). Registro recusado desfaz a chave junto, e o reenvio encontra a mesma recusa. Só fato
+consumado: sem `id`, sem `atualizado_em` e sem `ativo`.
+
+| Atributo | Tipo | Ob. | Chave | Descrição |
+|---|---|:--:|:--:|---|
+| `chave` | uuid | ● | PK | Gerada no aparelho, e não pelo banco: é ela que identifica o reenvio |
+| `tipo` | text | ● | | Lista fechada: `perda`, `contagem`, `confirmacao_tarefa` |
+| `usuario_id` | uuid | ● | FK → `usuarios` | Quem enviou. Chave repetida com outro usuário ou outro tipo é recusada, e não devolve a resposta alheia |
+| `resposta` | jsonb | ● | | O que o servidor respondeu da primeira vez (mensagem e, na confirmação, o destino da tela) |
+| `recebido_em` | timestamptz | ● | | Momento da primeira gravação |
 
 ## `parametros`: parâmetro do sistema
 
@@ -1100,8 +1118,8 @@ verificação atravessa a situação da viagem (RN-59).
 
 | Área | Entidades | Observação |
 |---|---:|---|
-| *(transversal)* Acesso e configurações | 4 | `usuarios`, `sessoes`, `eventos_login` e `parametros`, os parâmetros do sistema |
+| *(transversal)* Acesso e configurações | 5 | `usuarios`, `sessoes`, `eventos_login`, `parametros`, os parâmetros do sistema, e `envios_recebidos`, a chave do registro feito sem conexão |
 | 1 · Cadastro único | 15 | catálogo (`especies`, `especies_nomes_populares`, `especies_fotos`, `recipientes`, `insumos`), endereço do viveiro (`areas`, `canteiros`), trabalho (`tipos_tarefa`, `turnos_trabalho`), protocolo (`protocolos`, `protocolos_etapas`, `especies_protocolos_tempos`) e o esquema `cadastro` (`pessoas`, `pessoas_papeis`, `pessoas_enderecos`) |
 | 2 · Produção | 6 | `semanas`, `atribuicoes`, `atribuicoes_participantes`, `lotes`, `movimentos_lote`, `lotes_etapas` |
 | 3 · Comercial | 8 | `pedidos`, `pedidos_itens`, `pedidos_historico`, `pedidos_itens_especies_permitidas`, `pedidos_cargas`, `pedidos_cargas_itens`, `viagens` e `viagens_paradas` |
-| **Total** | **33** | mais `situacao_lote` e `lotes_etapas_vencimento`, que são visões e não tabelas |
+| **Total** | **34** | mais `situacao_lote` e `lotes_etapas_vencimento`, que são visões e não tabelas |

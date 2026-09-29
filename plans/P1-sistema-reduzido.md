@@ -191,10 +191,12 @@ celular) aguarda execução manual no navegador.*
 
 ## Fase 9: PWA e registro sem conexão (cortável)
 
-- [ ] **T9.1** Manifest, ícones e instalação no celular (RNF-23)
-- [ ] **T9.2** Service worker com cache da casca
-- [ ] **T9.3** Fila local idempotente para perda, contagem e confirmação de tarefa, com a migration da chave de idempotência (RNF-05)
-- [ ] **T9.4** Indicador de pendentes e reenvio ao reconectar, testado em modo avião
+- [x] **T9.1** Manifest, ícones e instalação no celular (RNF-23). *`src/app/manifest.ts`; ícones desenhados por código (`src/lib/icone.tsx`, `ImageResponse`), sem binário no repositório, e prerenderizados no build. Manifest, ícones, `sw.js` e `/offline` entram em `PUBLIC_PATHS`, porque o navegador os busca sem cookie*
+- [x] **T9.2** Service worker com cache da casca. *`public/sw.js` à mão (o next-pwa é de webpack). Guarda a casca (`/_next/static`, ícones, manifest), a página `/offline` e, **por decisão de 29/09/2026, só a última versão aberta da ficha do lote e da ficha da tarefa**, que são as páginas dos formulários de campo; a ficha aberta por link interno pede para ser guardada (`GuardaParaSemRede`), porque essa navegação não passa pelo evento de página. Sair apaga as fichas e a fila (E4 A-08). Registrado só em produção*
+- [x] **T9.3** Fila local idempotente para perda, contagem e confirmação de tarefa, com a migration da chave de idempotência (RNF-05). *Migration `20260930000001`, tabela `envios_recebidos`. **As três Server Actions saíram para a rota fixa `POST /api/registros`**: o identificador da action muda a cada publicação, e o registro guardado ontem falharia depois de uma atualização. O registro entra no IndexedDB antes de qualquer tentativa (TA-59), e o miolo das três está em `src/lib/registros-campo.ts`. A contagem sem rede tem a diferença calculada contra o saldo da hora em que chega. A confirmação guardada tira o formulário da tela, para não ser confirmada duas vezes*
+- [x] **T9.4** Indicador de pendentes e reenvio ao reconectar. *`IndicadorFila`: "Sem conexão · N a enviar", e em vermelho o recusado, com o motivo e o descarte em dois toques. Tenta ao abrir, ao voltar a rede, ao voltar para a aba e a cada 30 s. O recusado não é reenviado sozinho. O teste em modo avião no celular fica para a execução manual*
+
+**Aceite:** TA-23, TA-59. *Em 30/09/2026: a idempotência contra Postgres real em `envios.db.test.ts` (perda reenviada baixa uma vez, dois envios simultâneos da mesma chave, recusa não guarda a chave, chave de outro usuário recusada, confirmação reenviada sem duplicar a perda da tarefa, com a soma dos movimentos conferida contra o saldo); fila, classificação das respostas, indicador e formulários por teste com IndexedDB simulado. TA-23 e TA-59 no celular em modo avião, e a instalação pelo navegador (RNF-23), aguardam execução manual.*
 
 ## Fase 10: Pronto para operar
 

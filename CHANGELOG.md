@@ -3,6 +3,19 @@
 Uma entrada por migration nova, como pede o `CLAUDE.md`. As migrations até `20260901000008` são o
 schema inicial em português e estão descritas no `C8`.
 
+## 30/09/2026 · `20260930000001_envios_recebidos.sql`
+
+- **A chave de idempotência do registro feito sem conexão** (RNF-05, UC-20 FA-3). Tabela nova
+  `envios_recebidos`: `chave` (uuid, PK, gerada no aparelho), `tipo` com CHECK em `perda`,
+  `contagem` e `confirmacao_tarefa`, `usuario_id` (FK `usuarios`), `resposta` (jsonb, o que o
+  servidor respondeu da primeira vez) e `recebido_em`. A chave grava na mesma transação do
+  registro; o reenvio recebe a resposta guardada e não grava de novo.
+- Compatível: tabela nova, nasce vazia.
+- Na mesma alteração, fora do banco (plano P1, Fase 9): manifest e ícones gerados por código, service
+  worker em `public/sw.js`, página `/offline`, a rota `POST /api/registros` no lugar das Server
+  Actions de perda, contagem e confirmação de tarefa, a fila no IndexedDB do aparelho, o indicador
+  de pendentes e a limpeza do aparelho ao sair. Dependência nova de desenvolvimento: `fake-indexeddb`.
+
 ## 29/09/2026 · `20260929000001_viagens.sql`
 
 - **A viagem de entrega.** Tabelas novas `viagens` (dia, partida em texto com coordenada opcional,

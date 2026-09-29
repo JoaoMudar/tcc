@@ -166,6 +166,12 @@ pelo tipo de controle de Sommerville.
   registro de perda em fila não revela custo, margem nem dado de cliente.
 - *Prevenção*: o dispositivo da gerência não recebe dado fiscal de pessoa, por
   decisão da matriz de acesso.
+- *Limitação*: além da fila, o aparelho guarda só a **última versão aberta da ficha do lote e da
+  ficha da tarefa**, que são as páginas dos três formulários de campo. Sem elas, recarregar a página
+  sem rede perderia o formulário (TA-59). Nenhuma outra página é guardada: pedido, cliente e dado
+  fiscal não ficam no aparelho. Decisão de 29/09/2026.
+- *Prevenção*: **sair apaga a fila e as fichas guardadas**. Se ainda há registro esperando rede, o
+  botão avisa quantos são antes do segundo toque.
 
 > É a razão de a sincronização ser por fila e não por réplica local do banco. A réplica seria mais
 > confortável de programar e colocaria a base inteira em seis celulares que circulam em campo.
