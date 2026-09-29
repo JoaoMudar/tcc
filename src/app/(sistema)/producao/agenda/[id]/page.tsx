@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { GuardaParaSemRede } from '@/components/GuardaParaSemRede';
 import { PageHeader } from '@/components/PageHeader';
 import { Notice } from '@/components/ui/Notice';
 import { Pill } from '@/components/ui/Pill';
@@ -45,6 +46,7 @@ export default async function AtribuicaoPage({ params, searchParams }: Atribuica
   return (
     <main>
       <PageHeader area="2 · Produção" title={a.tipo} />
+      <GuardaParaSemRede caminho={`/producao/agenda/${a.id}`} />
       <div className="mx-auto flex max-w-md flex-col gap-4 p-4 md:p-8">
         <Link href={`/producao?dia=${a.data}`} className="text-base font-semibold text-brand-dark">
           Voltar à agenda do dia
@@ -158,6 +160,7 @@ export default async function AtribuicaoPage({ params, searchParams }: Atribuica
             <h2 className="text-lg font-bold text-ink">Confirmar que foi feita</h2>
             <ConfirmarForm
               atribuicaoId={a.id}
+              descricao={`${a.tipo}, ${formatData(a.data)}`}
               exigeLote={a.exigeLote}
               exigeArea={a.exigeArea}
               eQuantitativa={a.eQuantitativa}

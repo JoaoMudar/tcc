@@ -2,11 +2,19 @@ import { describe, expect, it } from 'vitest';
 import { isPublicPath, loginRedirectPath, safeNextPath } from '../route-rules';
 
 describe('isPublicPath', () => {
-  it('só o login é aberto', () => {
+  it('só o login é aberto entre as telas', () => {
     expect(isPublicPath('/login')).toBe(true);
     expect(isPublicPath('/')).toBe(false);
     expect(isPublicPath('/trocar-senha')).toBe(false);
     expect(isPublicPath('/loginx')).toBe(false);
+  });
+
+  it('abre o que o navegador busca sem cookie para instalar e abrir sem rede', () => {
+    for (const caminho of ['/manifest.webmanifest', '/sw.js', '/icones/192', '/icones/512-maskable', '/icon', '/apple-icon', '/offline']) {
+      expect(isPublicPath(caminho), caminho).toBe(true);
+    }
+    expect(isPublicPath('/producao/lotes')).toBe(false);
+    expect(isPublicPath('/iconesx')).toBe(false);
   });
 });
 

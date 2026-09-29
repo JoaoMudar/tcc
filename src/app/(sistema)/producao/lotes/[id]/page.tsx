@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { GuardaParaSemRede } from '@/components/GuardaParaSemRede';
 import { PageHeader } from '@/components/PageHeader';
 import { AcaoRecolhivel } from '@/components/ui/AcaoRecolhivel';
 import { Notice } from '@/components/ui/Notice';
@@ -61,6 +62,7 @@ export default async function LotePage({ params, searchParams }: LotePageProps) 
   return (
     <main>
       <PageHeader area="2 · Produção" title={`Lote ${lote.codigo}`} />
+      <GuardaParaSemRede caminho={`/producao/lotes/${lote.id}`} />
       <div className="mx-auto flex max-w-md flex-col gap-4 p-4 md:p-8">
         <Link href="/producao/lotes" className="text-base font-semibold text-brand-dark">
           Voltar
@@ -150,12 +152,12 @@ export default async function LotePage({ params, searchParams }: LotePageProps) 
 
         {podePerda && (
           <AcaoRecolhivel titulo="Registrar perda">
-            <PerdaForm loteId={lote.id} saldo={lote.quantidadeAtual} />
+            <PerdaForm loteId={lote.id} codigo={lote.codigo} saldo={lote.quantidadeAtual} />
           </AcaoRecolhivel>
         )}
         {podeMovimento && (
           <AcaoRecolhivel titulo="Contagem física">
-            <ContagemForm loteId={lote.id} saldo={lote.quantidadeAtual} />
+            <ContagemForm loteId={lote.id} codigo={lote.codigo} saldo={lote.quantidadeAtual} />
           </AcaoRecolhivel>
         )}
         {podeRepicar && atribuicaoRepicagem && (
