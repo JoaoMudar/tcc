@@ -18,7 +18,7 @@
 | 2. Verificar | gerência | Vai no pátio. Para cada item: tem? quantas? em que recipiente? |
 | 3. Negociar | chefia | Manda ao cliente o que tem. Ajusta itens e põe preço. |
 | 4. Fechar | chefia | Aprova. O sistema só deixa se tudo estiver preenchido. |
-| 5. Entregar | gerência | Separa em cargas e confere. |
+| 5. Entregar | gerência | Separa em cargas e confere, pedido a pedido ou na viagem do dia ([`planejar-pedido.md`](planejar-pedido.md)). |
 
 ## Os 7 tipos de pedido
 

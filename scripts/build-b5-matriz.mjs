@@ -81,6 +81,8 @@ const MAPA = {
   'RF-60': ['`pedidos_itens`, `pedidos_itens_especies_permitidas`', 'Verificação de pedido'],
   'RF-61': ['`pedidos_cargas`, `pedidos_cargas_itens`', 'Cargas do pedido'],
   'RF-62': ['*derivada* de `pedidos` e `pedidos_cargas`', 'Cargas do pedido'],
+  'RF-63': ['`viagens`, `viagens_paradas`, `pedidos_historico`', 'Cargas do pedido'],
+  'RF-64': ['`viagens_paradas`, `pessoas_enderecos`, `pedidos_cargas_itens`', 'Cargas do pedido'],
 };
 
 // ---------------------------------------------------------------- leitura das fontes

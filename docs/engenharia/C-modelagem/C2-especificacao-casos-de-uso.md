@@ -11,7 +11,7 @@
 
 ## Como ler
 
-Dez casos de uso, dos trinta e quatro catalogados em [`C1`](C1-diagrama-casos-de-uso.md), estão
+Quinze casos de uso, dos trinta e nove catalogados em [`C1`](C1-diagrama-casos-de-uso.md), estão
 especificados aqui. O critério de seleção foi duplo: **concentração de fluxos alternativos** e
 **custo operacional do erro**. Cadastrar um insumo errado corrige-se em segundos; repicar para o
 canteiro errado põe a leva num lugar em que ninguém vai procurá-la.
@@ -397,6 +397,66 @@ recusa as duas operações.
 > na linha da carga, e guardar um segundo número abriria a pergunta do que fazer quando os dois
 > divergem. Hoje a falta descoberta no galpão volta para a chefia editar o pedido, e registrar a
 > divergência é a evolução natural desta etapa, não o seu estado atual.
+
+---
+
+## UC-39 · Planejar a viagem de entrega
+
+| | |
+|---|---|
+| **Ator principal** | Gerência |
+| **Objetivo** | Juntar os pedidos que saem no mesmo caminhão, decidir a ordem das paradas e carregar na ordem inversa das entregas |
+| **Requisitos** | RF-63, RF-64 |
+| **Frequência** | Semanal |
+| **Pré-condições** | Existe pedido *aprovado*, sem carga organizada e fora de outra viagem em andamento |
+| **Pós-condições** | Pedidos da viagem *prontos para envio*, com todas as cargas prontas, e a viagem pronta |
+
+### FP: Fluxo principal
+
+1. A gerência toca, no calendário, um dia com entrega.
+2. O sistema apresenta os pedidos já na carga do dia, os marcados para o dia e os aprovados em aberto.
+3. A gerência põe um pedido na carga.
+4. O sistema grava o pedido na viagem, marca a data de entrega dele para o dia e registra a mudança no histórico do pedido.
+5. A gerência repete o passo 3 e confirma a carga.
+6. O sistema sugere a ordem das paradas a partir do endereço de saída, com a distância e o tempo estimados.
+7. A gerência ajusta a ordem, se quiser, e inicia o carregamento.
+8. O sistema cria a carga de cada pedido e apresenta os itens agrupados por pedido, a última entrega primeiro.
+9. A gerência marca cada item separado e dá a carga por pronta.
+10. O sistema registra as cargas como prontas, os pedidos como *prontos para envio* e a viagem como pronta.
+
+### FA-1: Sair e voltar
+
+Em qualquer passo, a gerência sai da rotina. Tudo o que foi feito já está gravado. O calendário
+passa a mostrar a viagem em andamento, e tocar nela reabre a rotina na etapa em que parou.
+
+### FA-2: Parada sem pedido
+
+No passo 7, a gerência acrescenta uma parada com descrição e, se quiser, endereço. A parada entra
+na ordem da rota e não aparece no carregamento, porque não tem item.
+
+### FA-3: Trajeto no mapa
+
+No passo 7, a gerência abre o trajeto no Google Maps, na ordem da tela. A parada sem endereço fica
+de fora, e acima de dez paradas o trajeto se divide em dois.
+
+### FE-1: Serviço de mapas indisponível
+
+No passo 6, o serviço não responde ou não está configurado. O sistema mantém a ordem atual, avisa,
+e a gerência ordena as paradas à mão.
+
+### FE-2: Pedido sem endereço de entrega
+
+No passo 6, um pedido não tem endereço de entrega, ou o serviço não o encontra. O sistema o põe no
+fim da ordem, com aviso no cartão, e a gerência o posiciona à mão.
+
+### FE-3: Pedido que não pode entrar
+
+No passo 3, o pedido deixou de estar aprovado, já tem carga ou já está em outra viagem. O sistema
+recusa e informa o motivo.
+
+> **A ordem da separação não é escolhida, é derivada da rota.** Quem carrega põe por último o que se
+> entrega primeiro, para que fique perto da porta. O sistema inverte a ordem das paradas, e por isso
+> reordenar a rota já reordena a separação (RN-60).
 
 ---
 

@@ -3,6 +3,29 @@
 Uma entrada por migration nova, como pede o `CLAUDE.md`. As migrations até `20260901000008` são o
 schema inicial em português e estão descritas no `C8`.
 
+## 29/09/2026 · `20260929000001_viagens.sql`
+
+- **A viagem de entrega.** Tabelas novas `viagens` (dia, partida em texto com coordenada opcional,
+  `situacao` em `montando`, `roteirizando`, `carregando` e `pronta`, que é também a etapa em que o
+  planejamento parou, `sugerir_ordem`, distância e tempo da rota sugerida, `criado_por`) e
+  `viagens_paradas` (ordem com `UNIQUE (viagem_id, ordem)` deferível, pedido opcional com
+  `UNIQUE (viagem_id, pedido_id)`, descrição e endereço da parada avulsa, CHECK de pedido ou
+  descrição).
+- **Coordenada guardada no endereço.** `cadastro.pessoas_enderecos` ganha `lat`, `lng` e
+  `geocodificado_em`, e o gatilho `pessoas_enderecos_zera_coordenada` as apaga quando o texto do
+  endereço muda. `geocodificado_em` com coordenada nula é "o serviço procurou e não achou".
+- **Dois parâmetros de texto**: `comercial.viagem_partida_agrolandia` e
+  `comercial.viagem_partida_itapema`.
+- **`pedidos_historico_muda_de_situacao` afrouxada**: a linha sem troca de situação passa a entrar
+  quando traz observação. É a nota da data de entrega marcada no planejamento da viagem.
+- Compatível: tabelas e colunas novas nascem vazias, e tudo o que a restrição anterior aceitava a
+  nova aceita.
+- Na mesma alteração, fora do banco (plano P14): a rotina `/pedidos/planejar/[data]` em três etapas
+  (carga, rota, carregamento), a sugestão de ordem pelo OpenRouteService (`ORS_API_KEY`, só no
+  servidor), o link do Google Maps, o calendário abrindo a rotina e mostrando "Continuar", e
+  `concluirCarga` levando a viagem a pronta. Dependências novas: `@dnd-kit/core`, `@dnd-kit/sortable`
+  e `@dnd-kit/utilities`.
+
 ## 27/09/2026 · `20260927000001_conferencia_complemento.sql`
 
 - **"Tem parte" completa em outro recipiente.** Nova coluna `pedidos_itens.complementa_item_id`

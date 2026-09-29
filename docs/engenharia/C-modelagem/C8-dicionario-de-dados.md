@@ -52,7 +52,7 @@ quatro módulos do sistema, com o Acesso à frente por atravessar os quatro.
 ## Recorte implementado
 
 Este dicionário descreve o **modelo especificado**, que desde 18/09/2026 é também o construído: as
-31 entidades existem no banco, mais as visões `situacao_lote` e `lotes_etapas_vencimento`. Até
+33 entidades existem no banco, mais as visões `situacao_lote` e `lotes_etapas_vencimento`. Até
 aquela data as quatro entidades do protocolo estavam especificadas e não implementadas, e a
 distinção era registrada entidade por entidade. Não era defeito de modelagem: o modelo responde à especificação completa de requisitos, e
 a construção segue a priorização declarada em
@@ -63,13 +63,14 @@ a construção segue a priorização declarada em
 | *(transversal)* Acesso e configurações | 4 | 0 |
 | 1 · Cadastro único | 12 | 3 |
 | 2 · Produção | 5 | 1 |
-| 3 · Comercial | 6 | 0 |
-| **Total** | **27** | **4** |
+| 3 · Comercial | 8 | 0 |
+| **Total** | **29** | **4** |
 
 As quatro entidades que o Comercial ganhou em 21/09/2026, `pedidos_historico`,
 `pedidos_itens_especies_permitidas`, `pedidos_cargas` e `pedidos_cargas_itens`, nasceram já no
 banco, pelas migrations `20260921000001` e `20260921000002`. Nenhuma delas passou pela condição de
 especificada e não implementada, e é por isso que a coluna da direita continua zerada nesta linha.
+O mesmo vale para `viagens` e `viagens_paradas`, de 29/09/2026 (migration `20260929000001`).
 
 As 3 do Cadastro único são as do **protocolo de atividades**: `protocolos`, `protocolos_etapas` e
 `especies_protocolos_tempos`. A 1 da Produção é
@@ -157,6 +158,10 @@ exige uma implantação.
 > **`valor` é texto e `tipo_valor` diz como lê-lo.** A alternativa, uma coluna por tipo, deixaria
 > três nulas em toda linha. O tipo declarado é o que permite a tela de configurações apresentar o
 > campo certo e validar antes de gravar.
+
+> **Duas chaves da viagem de entrega** (RF-64): `comercial.viagem_partida_agrolandia` e
+> `comercial.viagem_partida_itapema`, de `tipo_valor` `texto`, os dois endereços de onde o caminhão
+> pode sair. A rota oferece os dois e aceita um terceiro digitado.
 
 > **Duas chaves novas com o protocolo de atividades, ainda não implementadas:**
 > `producao.protocolo_janela_aviso_pct` (padrão 20), o percentual final do intervalo em que a etapa
@@ -304,7 +309,14 @@ exige uma implantação.
 | `cidade` | text | ○ | | Município |
 | `uf` | char(2) | ○ | | Unidade federativa |
 | `cep` | text | ○ | | CEP |
+| `lat` | numeric(9,6) | ○ | | Latitude que o serviço de mapas achou para este texto. Restrição: nula junto com `lng` |
+| `lng` | numeric(9,6) | ○ | | Longitude, idem |
+| `geocodificado_em` | timestamptz | ○ | | Quando o serviço foi consultado. **Preenchido com `lat` nula: o serviço procurou e não achou** |
 | `criado_em`, `atualizado_em` | timestamptz | ● | | Criação e alteração |
+
+> **A coordenada vale para o texto de quando foi consultada.** O gatilho
+> `pessoas_enderecos_zera_coordenada` apaga as três colunas quando logradouro, cidade, UF ou CEP
+> mudam. Guardá-la evita consultar o serviço de mapas a cada viagem para o mesmo cliente (RF-64).
 
 > **A entidade existe porque uma pessoa tem mais de um endereço, e o de entrega pode não ser o de
 > cobrança** (RN-49). É `tipo` que os distingue, e a tabela não impõe endereço único por tipo: a
@@ -919,8 +931,10 @@ e a situação que dele decorre (RF-51, RF-52).
 | `alterado_por` | uuid | ● | FK → `usuarios` | Quem assinou a mudança (RN-52) |
 | `observacoes` | text | ○ | | Motivo do cancelamento, resumo da conferência, o que a transição precisar dizer em uma linha |
 
-**Restrição:** `situacao_nova` diferente de `situacao_anterior`. Linha que não muda nada não é
-histórico, e entraria só para poluir a ficha.
+**Restrição:** `situacao_nova` diferente de `situacao_anterior`, **ou** `observacoes` preenchida.
+Linha que não muda nada não é histórico, e entraria só para poluir a ficha. Desde 29/09/2026 a
+linha sem troca de situação entra quando traz observação: é a nota da data de entrega marcada no
+planejamento da viagem (RN-59), que muda o pedido sem mudar a situação.
 
 > **A tabela existe desde 21/09/2026, e a decisão anterior era de não a ter.** O argumento de então
 > valia para duas transições feitas pela mesma pessoa, quem mudou o quê se resolvia perguntando. Com
@@ -1042,6 +1056,46 @@ linhas de tabelas diferentes.
 > galpão volta para a chefia editar o pedido, e registrar a divergência é a evolução natural desta
 > tabela, não o estado dela.
 
+## `viagens`: viagem de entrega do dia
+
+| Atributo | Tipo | Ob. | Chave | Descrição |
+|---|---|:--:|:--:|---|
+| `id` | uuid | ● | PK | Identificador |
+| `data` | date | ● | | Dia da entrega |
+| `partida_descricao` | text | ● | | Endereço de onde o caminhão sai, em texto. Nasce com o de `comercial.viagem_partida_agrolandia` |
+| `partida_lat`, `partida_lng` | numeric(9,6) | ○ | | Coordenada da partida achada pelo serviço de mapas. Restrição: nulas juntas |
+| `situacao` | varchar(20) | ● | | `montando`, `roteirizando`, `carregando` ou `pronta`. **É também a etapa em que o planejamento parou** |
+| `sugerir_ordem` | boolean | ● | | Verdadeiro quando as entregas mudaram desde a última sugestão de ordem. A ordem arrumada à mão o desliga |
+| `distancia_m` | integer | ○ | | Distância da rota sugerida, em metros. Nula sem o serviço de mapas, ou depois de a ordem mudar à mão |
+| `duracao_s` | integer | ○ | | Tempo estimado da rota sugerida, em segundos, idem |
+| `criado_por` | uuid | ● | FK → `usuarios` | Quem começou o planejamento (RN-52) |
+| `criado_em`, `atualizado_em` | timestamptz | ● | | Criação e alteração |
+
+> **A viagem organiza as cargas, e não as substitui** (RF-63). O que se separa e confere continua
+> sendo `pedidos_cargas`, uma por pedido, criada quando o carregamento começa. A viagem fica
+> `pronta` quando todas as cargas dos pedidos dela estão prontas (RN-60).
+
+## `viagens_paradas`: parada da viagem
+
+| Atributo | Tipo | Ob. | Chave | Descrição |
+|---|---|:--:|:--:|---|
+| `id` | uuid | ● | PK | Identificador |
+| `viagem_id` | uuid | ● | FK → `viagens` | Viagem. Apagada a viagem, as paradas vão junto |
+| `ordem` | integer | ● | UK com `viagem_id` | Posição na rota, a partir de 1. Unicidade **deferível**, porque reordenar troca posições |
+| `pedido_id` | uuid | ○ | FK → `pedidos`, UK com `viagem_id` | Pedido entregue nesta parada. **Nulo na parada avulsa** |
+| `descricao` | text | ○ | | O que é a parada avulsa ("abastecer") |
+| `endereco` | text | ○ | | Endereço da parada avulsa. Na entrega, o endereço vem do cadastro do cliente |
+| `lat`, `lng` | numeric(9,6) | ○ | | Coordenada da parada avulsa. Restrição: nulas juntas |
+| `criado_em` | timestamptz | ● | | Criação |
+
+**Restrições:** `pedido_id` ou `descricao` preenchido; `ordem` maior que zero. Um pedido só está em
+uma viagem que ainda não ficou pronta, garantido pela aplicação com o pedido travado, porque a
+verificação atravessa a situação da viagem (RN-59).
+
+> **A ordem de carregamento não é coluna.** É a inversa de `ordem`, entre as paradas com pedido
+> (RN-60), e se deriva na leitura: guardá-la seria um segundo número a divergir do primeiro a cada
+> arraste.
+
 ## Resumo
 
 | Área | Entidades | Observação |
@@ -1049,5 +1103,5 @@ linhas de tabelas diferentes.
 | *(transversal)* Acesso e configurações | 4 | `usuarios`, `sessoes`, `eventos_login` e `parametros`, os parâmetros do sistema |
 | 1 · Cadastro único | 15 | catálogo (`especies`, `especies_nomes_populares`, `especies_fotos`, `recipientes`, `insumos`), endereço do viveiro (`areas`, `canteiros`), trabalho (`tipos_tarefa`, `turnos_trabalho`), protocolo (`protocolos`, `protocolos_etapas`, `especies_protocolos_tempos`) e o esquema `cadastro` (`pessoas`, `pessoas_papeis`, `pessoas_enderecos`) |
 | 2 · Produção | 6 | `semanas`, `atribuicoes`, `atribuicoes_participantes`, `lotes`, `movimentos_lote`, `lotes_etapas` |
-| 3 · Comercial | 6 | `pedidos`, `pedidos_itens`, `pedidos_historico`, `pedidos_itens_especies_permitidas`, `pedidos_cargas` e `pedidos_cargas_itens` |
-| **Total** | **31** | mais `situacao_lote` e `lotes_etapas_vencimento`, que são visões e não tabelas |
+| 3 · Comercial | 8 | `pedidos`, `pedidos_itens`, `pedidos_historico`, `pedidos_itens_especies_permitidas`, `pedidos_cargas`, `pedidos_cargas_itens`, `viagens` e `viagens_paradas` |
+| **Total** | **33** | mais `situacao_lote` e `lotes_etapas_vencimento`, que são visões e não tabelas |

@@ -107,7 +107,7 @@ Migration nova `2026MMDD000001_viagens.sql`:
 - [x] `CalendarioCargas.tsx`: dia com entrega navega para a rotina; painel dos outros dias ganha o botão; viagem em andamento mostra o ponto e o cartão "Continuar".
 - [x] Configurações: os dois endereços de partida.
 - [x] Testes: unit de `ordemDeCarregamento`, `resumoDoItem`, `linkGoogleMaps` (ordem, ponto sem endereço fora, divisão acima de 10) e validações; retomada na etapa certa; actions com `vi.mock` do pool e do ORS (sucesso, sem endereço, API fora); `viagens.db.test.ts` no padrão de `cargas.db.test.ts`; `CalendarioCargas` navegando.
-- [ ] Docs: `docs/rotinas/3-comercial/planejar-pedido.md`, links em `pedidos.md` e `00-mapa-de-rotinas.md`; C6, C8 e `modelo-dados-pt` (`.mmd`, `.png`, `mede-figuras.mjs`, `confere-modelo-pt.mjs`); CHANGELOG; RF/RN/caso de uso novos e `verifica-rastreabilidade.mjs` + scripts `build-*` afetados.
+- [x] Docs: `docs/rotinas/3-comercial/planejar-pedido.md`, links em `pedidos.md` e `00-mapa-de-rotinas.md`; C6, C8 e `modelo-dados-pt` (`.mmd`, `.png`, `mede-figuras.mjs`, `confere-modelo-pt.mjs`); CHANGELOG; RF/RN/caso de uso novos e `verifica-rastreabilidade.mjs` + scripts `build-*` afetados.
 
 Notas da execução (29/09/2026):
 - A nota de data no histórico exigiu afrouxar `pedidos_historico_muda_de_situacao`: linha sem troca

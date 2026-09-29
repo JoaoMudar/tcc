@@ -30,8 +30,8 @@ traduzir de um para o outro.
 | *(transversal)* **Acesso e configurações** | 4 | Autenticação, sessão, auditoria e parâmetros do sistema |
 | **1 · Cadastro único** | 15 | Catálogo de produção, endereço do viveiro, identidade das pessoas e protocolo de manejo: não consome nada, alimenta tudo |
 | **2 · Produção** | 6 | Agenda da semana, lote, movimento e percurso pelo protocolo |
-| **3 · Comercial** | 2 | Pedido e item |
-| **Total** | **27** | mais 2 visões derivadas (`situacao_lote` e `lotes_etapas_vencimento`), documentadas em [`C8`](C8-dicionario-de-dados.md) |
+| **3 · Comercial** | 8 | Pedido, item, histórico, conferência, carga e viagem de entrega |
+| **Total** | **33** | mais 2 visões derivadas (`situacao_lote` e `lotes_etapas_vencimento`), documentadas em [`C8`](C8-dicionario-de-dados.md) |
 
 **O preço da escolha, declarado:** agrupar por propósito faz relacionamentos cruzarem a fronteira
 do diagrama: `atribuicoes` é da Produção e aponta para `especies`, `recipientes`, `tipos_tarefa` e
@@ -101,7 +101,7 @@ erDiagram
   USUARIO      ||--o{ MOVIMENTO_LOTE : "registra"
 ```
 
-O diagrama conceitual apresenta **dezenove entidades**, e não as trinta e uma do modelo
+O diagrama conceitual apresenta **dezenove entidades**, e não as trinta e três do modelo
 completo. A redução é deliberada: Sommerville (2011) observa que a ausência de detalhe excessivo é
 característica central do modelo, cujo objetivo é destacar o mais relevante e não especificar por
 inteiro. Entidades associativas, de histórico e de auditoria aparecem apenas nos modelos lógicos por
@@ -140,7 +140,7 @@ Seis leituras que o modelo conceitual já entrega:
 
 ### 2.1 Recorte implementado
 
-O modelo descrito aqui é o **especificado**, e desde 18/09/2026 ele é também o construído: as 27
+O modelo descrito aqui é o **especificado**, e desde 18/09/2026 ele é também o construído: as 33
 entidades existem no banco, mais as visões `situacao_lote` e `lotes_etapas_vencimento`.
 
 | Área | No banco | Só especificadas |
@@ -148,8 +148,8 @@ entidades existem no banco, mais as visões `situacao_lote` e `lotes_etapas_venc
 | *(transversal)* Acesso e configurações | 4 | 0 |
 | 1 · Cadastro único | 15 | 0 |
 | 2 · Produção | 6 | 0 |
-| 3 · Comercial | 2 | 0 |
-| **Total** | **27** | **0** |
+| 3 · Comercial | 8 | 0 |
+| **Total** | **33** | **0** |
 
 O [`C8`](C8-dicionario-de-dados.md) marca a condição entidade por entidade.
 
@@ -167,7 +167,7 @@ onde o desenho anterior discordava do [`C8`](C8-dicionario-de-dados.md), foi o `
 Convenção dos diagramas: entidade de **outra** área aparece como **caixa vazia**, apenas para que
 a aresta exista. Os atributos dela estão no diagrama da área a que pertence.
 
-Atributos comuns à maioria das entidades, omitidos dos diagramas para não repetir trinta e uma
+Atributos comuns à maioria das entidades, omitidos dos diagramas para não repetir trinta e três
 vezes: `id` (chave primária), `criado_em` e `atualizado_em`. Onde `ativo` aparece, é a marca de
 inativação que substitui a exclusão. As exceções, tabelas sem `atualizado_em` porque nada nelas se
 altera, e as duas de ligação, sem `id` porque a chave é o par que as define, estão registradas uma
@@ -372,13 +372,16 @@ erDiagram
     boolean ativo
   }
   pessoas_enderecos {
-    uuid id PK
-    uuid pessoa_id FK
-    enum tipo
-    text logradouro
-    text cidade
-    char uf
-    text cep
+    uuid        id PK
+    uuid        pessoa_id FK
+    enum        tipo
+    text        logradouro
+    text        cidade
+    char        uf
+    text        cep
+    numeric     lat
+    numeric     lng
+    timestamptz geocodificado_em
   }
   atribuicoes {}
   lotes {}
@@ -667,8 +670,8 @@ disponível também serem derivados.
 
 ### 3.4 Área 3 · Comercial
 
-Seis entidades. O pedido registra o que foi negociado fora do sistema, e o percurso dele entre a
-venda e a saída do caminhão.
+Oito entidades. O pedido registra o que foi negociado fora do sistema, e o percurso dele entre a
+venda e a saída do caminhão. A viagem de entrega junta os pedidos que saem no mesmo caminhão.
 
 ```mermaid
 erDiagram
@@ -727,6 +730,28 @@ erDiagram
     int     quantidade
     boolean separado
   }
+  viagens {
+    uuid    id PK
+    date    data
+    text    partida_descricao
+    numeric partida_lat
+    numeric partida_lng
+    text    situacao
+    boolean sugerir_ordem
+    int     distancia_m
+    int     duracao_s
+    uuid    criado_por FK
+  }
+  viagens_paradas {
+    uuid    id PK
+    uuid    viagem_id FK
+    int     ordem
+    uuid    pedido_id FK
+    text    descricao
+    text    endereco
+    numeric lat
+    numeric lng
+  }
   pessoas {}
   especies {}
   recipientes {}
@@ -746,6 +771,9 @@ erDiagram
   pedidos ||--o{ pedidos_cargas : "sai em"
   pedidos_cargas ||--o{ pedidos_cargas_itens : "leva"
   pedidos_itens ||--o{ pedidos_cargas_itens : "é separado em"
+  viagens ||--o{ viagens_paradas : "para em"
+  pedidos |o--o{ viagens_paradas : "é entregue em"
+  usuarios ||--o{ viagens : "planeja"
 ```
 
 **`pedidos.cliente_id` aponta para `cadastro.pessoas`, e não para uma tabela de clientes.** É a
@@ -800,10 +828,29 @@ convivem até a aprovação, que substitui o primeiro pelo segundo quando eles d
 mesma forma sem ser aresta: `altura_m` é a pedida, `altura_disponivel_m` a encontrada, e a aprovação
 copia a segunda sobre a primeira.
 
-**Não há histórico de estados do pedido.** `situacao` percorre `rascunho`, `confirmado` e
-`cancelado`, e o que o negócio precisa saber é em qual deles o pedido está. Uma tabela de histórico
-existiria para responder quem mudou o quê e quando, pergunta que o viveiro de nove pessoas resolve
-perguntando.
+**`pedidos_historico` guarda cada troca de situação, e também a nota que não troca nenhuma.** A
+restrição `pedidos_historico_muda_de_situacao` recusa a linha vazia, que não diria nada; desde a
+migration `20260929000001` ela aceita a linha sem troca de situação quando há observação. É a
+data de entrega marcada no planejamento da viagem (RN-59): o pedido muda sem mudar de situação, e a
+ficha precisa dizer quando e por quê.
+
+**A viagem organiza as cargas, e não as substitui** (RF-63, RF-64). `viagens` é o caminhão de um
+dia, e `viagens_paradas` são as paradas dele na ordem da rota. A parada com pedido é uma entrega; a
+sem pedido ("abastecer") só tem descrição e, se houver, endereço. O que se separa continua sendo a
+carga de cada pedido, e a ordem de carregamento não é guardada: é a inversa da ordem das paradas
+(RN-60), derivada na leitura. A aresta com `pedidos` é de zero ou um do lado do pedido porque a
+parada avulsa não tem pedido, e um pedido só está numa viagem em andamento, regra que o código
+confere com o pedido travado.
+
+**`situacao` da viagem é também a etapa onde o planejamento parou**: montando, roteirizando,
+carregando e pronta. É o que deixa sair no meio e voltar ao mesmo ponto. A ordem das paradas tem
+unicidade deferível, porque reordenar troca posições e, no meio da troca, duas paradas têm o mesmo
+número.
+
+**A coordenada fica no endereço, e não na parada** (`pessoas_enderecos.lat`, `lng`,
+`geocodificado_em`). O endereço do cliente não muda entre uma viagem e outra, e cada consulta ao
+serviço de mapas custa cota. Um gatilho apaga as três colunas quando o texto do endereço muda, e
+`geocodificado_em` preenchido com a coordenada nula registra que o serviço procurou e não achou.
 
 ---
 

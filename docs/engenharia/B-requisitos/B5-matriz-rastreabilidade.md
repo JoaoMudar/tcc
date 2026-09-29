@@ -147,6 +147,8 @@ As seções seguem as **três áreas de negócio** do sistema, na mesma ordem da
 | RF-60 | UC-36 | `pedidos_itens`, `pedidos_itens_especies_permitidas` | Verificação de pedido | TA-73 |
 | RF-61 | UC-37, UC-38 | `pedidos_cargas`, `pedidos_cargas_itens` | Cargas do pedido | TA-75 |
 | RF-62 | UC-38 | *derivada* de `pedidos` e `pedidos_cargas` | Cargas do pedido | TA-76 |
+| RF-63 | UC-39 | `viagens`, `viagens_paradas`, `pedidos_historico` | Cargas do pedido | TA-77 |
+| RF-64 | UC-39 | `viagens_paradas`, `pessoas_enderecos`, `pedidos_cargas_itens` | Cargas do pedido | TA-78 |
 
 
 ---
@@ -272,10 +274,10 @@ ser o documento que mais diverge.
 
 | Verificação | Resultado |
 |---|---|
-| Requisitos funcionais com caso de uso | 58 de 62 |
-| Requisitos funcionais com entidade ou derivação declarada | **62 de 62** |
-| Requisitos funcionais com regra de acesso definida | **62 de 62** |
-| Requisitos de prioridade *deve ter* com teste de aceite | 57 de 57 |
+| Requisitos funcionais com caso de uso | 60 de 64 |
+| Requisitos funcionais com entidade ou derivação declarada | **64 de 64** |
+| Requisitos funcionais com regra de acesso definida | **64 de 64** |
+| Requisitos de prioridade *deve ter* com teste de aceite | 59 de 59 |
 | Requisitos *deveria ter* sem teste | 1: deliberado |
 | Casos de uso sem requisito de origem | 0 |
 | Entidades sem requisito de origem | 0 |

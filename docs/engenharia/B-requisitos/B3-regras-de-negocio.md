@@ -234,6 +234,8 @@ e já se diz "fiz tantos saquinhos hoje". Apague o sistema e os enunciados sobre
 | **RN-56** | O item pedido sem espécie não vai na carga, e sim as espécies que o compõem. A soma de um item nas cargas reproduz a quantidade dele | Restrição | `rotinas/3-comercial` | RF-61 | - |
 | **RN-57** | A carga fica pronta quando todos os itens dela foram separados, e o pedido fica pronto para envio quando todas as cargas estão prontas | Fato | `rotinas/3-comercial` | RF-61 | - |
 | **RN-58** | O dia de carregar é o dia útil anterior à data de entrega, de segunda a sexta-feira | Fato | `rotinas/3-comercial` | RF-62 | - |
+| **RN-59** | Só entra na viagem de entrega o pedido aprovado, sem carga organizada e fora de outra viagem em andamento, e entrar nela marca a data de entrega do pedido para o dia da viagem | Restrição | `rotinas/3-comercial` | RF-63 | - |
+| **RN-60** | Os itens da viagem são carregados na ordem inversa das entregas: a última entrega vai para o fundo do caminhão e a primeira fica perto da porta. A viagem fica pronta quando todas as cargas dos pedidos dela estão prontas | Fato | `rotinas/3-comercial` | RF-64 | - |
 
 **RN-54 é a regra que sustenta a diferença entre parcial e indisponível.** As duas respostas dizem
 que o pedido não será atendido por inteiro, e só a quantidade as separa. Zero significa que não há
@@ -242,6 +244,10 @@ superior, o parcial igual ao total passaria a existir como terceira forma de diz
 mesma situação teria duas escritas possíveis. Pela mesma razão a parte que não difere do pedido em
 nada é recusada: com todas as mudas, ela só existe quando o recipiente ou a altura encontrados são
 outros.
+
+**RN-60 decide a ordem de pôr, e não a de tirar.** O caminhão é descarregado pela porta traseira,
+e o que se entrega primeiro precisa estar à mão quando ele para. A inversão é feita pelo sistema, a
+partir da ordem das paradas, e por isso reordenar a rota reordena também a separação.
 
 **RN-58 ignora feriado de propósito.** Os feriados municipais variam de cidade para cidade, e um
 calendário incompleto marcaria como dia de carregar um dia em que não há ninguém no viveiro. Como a
@@ -258,13 +264,13 @@ sem que a causa aparecesse em tela nenhuma.
 | C: Protocolo de atividades por lote | RN-30 a RN-41 | 12 |
 | D: Cliente e pedido | RN-42 a RN-50 | 9 |
 | E: Acesso e responsabilidade | RN-51 a RN-52 | 2 |
-| F: Conferência e carga | RN-53 a RN-58 | 6 |
-| **Total** | | **52** |
+| F: Conferência e carga | RN-53 a RN-60 | 8 |
+| **Total** | | **60** |
 
 | Tipo | Quantidade |
 |---|---:|
-| Fato | 25 |
-| Restrição | 16 |
+| Fato | 29 |
+| Restrição | 20 |
 | Derivação | 10 |
 | Acionamento | 1 |
 
@@ -272,7 +278,7 @@ sem que a causa aparecesse em tela nenhuma.
 
 ## 4. Rastreabilidade inversa: requisito funcional → regra que o origina
 
-Os 62 requisitos funcionais de `B2`. Quatro não decorrem de regra de
+Os 64 requisitos funcionais de `B2`. Quatro não decorrem de regra de
 negócio e estão justificados na seção 6.
 
 | RF | Regras que o originam |
@@ -339,6 +345,8 @@ negócio e estão justificados na seção 6.
 | RF-60 | RN-55 |
 | RF-61 | RN-56, RN-57 |
 | RF-62 | RN-58 |
+| RF-63 | RN-59 |
+| RF-64 | RN-60 |
 ## 5. Rastreabilidade inversa: requisito não funcional → origem
 
 Os requisitos não funcionais deste projeto **não decorrem de regra de negócio**, e sim das
@@ -369,7 +377,7 @@ diz o que o sistema tem de fazer, e o ambiente diz sob que condições ele tem d
 
 ### 6.1 Requisitos funcionais sem regra de negócio
 
-Quatro dos cinquenta e oito requisitos funcionais não têm regra de negócio que os origine. Os quatro
+Quatro dos sessenta e quatro requisitos funcionais não têm regra de negócio que os origine. Os quatro
 são de política do projeto, e nenhum é omissão do catálogo. Eram quatro também até 31/08/2026, mas
 não os mesmos: um deles, que prescrevia a organização de uma tela, foi cortado por não ser
 requisito, e a decisão de interface que ele carregava vive no protótipo
@@ -480,6 +488,8 @@ não dependa de abrir outro arquivo. **Não editar aqui**: a fonte é o `B2`.
 | RF-60 | O sistema deve permitir compor em espécies o item que o cliente pediu sem escolher espécie, respeitando as espécies que ele aceita; sem quantidade no item, a composição é uma lista montada, e cada espécie dela é vendida com preço próprio | D | OP |
 | RF-61 | O sistema deve permitir organizar o pedido aprovado em cargas e registrar a separação de cada item em cada carga | D | OP |
 | RF-62 | O sistema deve apresentar o dia de carregamento de cada pedido e o calendário de entregas e carregamentos do mês | D | OP |
+| RF-63 | O sistema deve permitir planejar a viagem de entrega de um dia, reunindo nela pedidos aprovados, marcando em cada um a data de entrega da viagem e retomando o planejamento na etapa em que ele parou | D | OP |
+| RF-64 | O sistema deve sugerir a ordem das paradas da viagem a partir do endereço de saída, permitir reordená-las e acrescentar parada sem pedido, abrir o trajeto num serviço de mapas e apresentar a separação dos itens na ordem inversa das entregas | D | OP |
 
 ### 7.2 Requisitos não funcionais
 

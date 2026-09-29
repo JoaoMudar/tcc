@@ -181,6 +181,8 @@ qualquer implementação do motor tem de reproduzir.
 | **TA-74** | RF-57 | Pedido verificado com um item indisponível e um disponível em parte | 1. Aprovar o pedido<br>2. Conferir os itens que restaram | O indisponível sai do pedido, e o parcial passa a valer pela quantidade, pelo recipiente e pela altura encontrados | Não executado |
 | **TA-75** | RF-61 | Pedido aprovado, dividido em duas cargas | 1. Separar os itens da primeira carga e fechá-la<br>2. Separar os itens da segunda e fechá-la | O pedido só passa a *pronto para envio* ao fechar a segunda carga | Não executado |
 | **TA-76** | RF-62 | Pedido com entrega numa segunda-feira | 1. Consultar o calendário de entregas e carregamentos | A sexta-feira anterior aparece como dia de carregar | Não executado |
+| **TA-77** | RF-63 | Pedido aprovado sem data de entrega e viagem de 02/10 com um pedido | 1. Pôr o pedido na carga de 02/10<br>2. Confirmar a carga e reordenar as paradas<br>3. Sair e tocar em "Continuar" no calendário | O pedido passa a ter entrega em 02/10, com a mudança no histórico, e a rotina reabre na rota, com a ordem arrumada | Não executado |
+| **TA-78** | RF-64 | Viagem com três entregas e uma parada sem pedido, com o serviço de mapas fora do ar | 1. Confirmar a carga<br>2. Abrir o trajeto no Google Maps<br>3. Iniciar o carregamento | A rota avisa que o mapa está indisponível e mantém a ordem; o trajeto segue a ordem da tela; o carregamento lista primeiro os itens da terceira entrega, e a parada sem pedido não aparece | Não executado |
 
 ## 7. Requisitos não funcionais
 
@@ -238,10 +240,10 @@ requisitos de prioridade *deve ter* sem verificação correspondente.
 | Agenda da semana | 9 | RF-26, RF-27, RF-28, RF-29, RF-30, RF-31 |
 | Protocolo de atividades por lote | 12 | RF-22, RF-23, RF-24, RF-25, RF-40, RF-46, RF-47, RF-48, RF-49, RF-50, RF-51, RF-52, RF-53 |
 | Mapa de lotes | 2 | RF-44, RF-45 |
-| Clientes e pedidos | 12 | RF-15, RF-17, RF-54, RF-55, RF-57, RF-58, RF-59, RF-60, RF-61, RF-62 |
+| Clientes e pedidos | 14 | RF-15, RF-17, RF-54, RF-55, RF-57, RF-58, RF-59, RF-60, RF-61, RF-62, RF-63, RF-64 |
 | Requisitos não funcionais | 7 | RNF-01, RNF-02, RNF-05, RNF-06, RNF-08, RNF-09, RNF-11, RNF-14 |
 | Casos acrescentados pela matriz de rastreabilidade | 9 | RF-05, RF-11, RF-18, RF-26, RF-28, RF-39, RF-41, RF-43, RF-56, RNF-14 |
-| **Total** | **76** | **57 dos 57 requisitos de prioridade *deve ter*** |
+| **Total** | **78** | **59 dos 59 requisitos de prioridade *deve ter*** |
 
 **Todos os requisitos de prioridade *deve ter* têm caso de aceite.**
 

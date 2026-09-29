@@ -26,8 +26,34 @@ erDiagram
     int     quantidade
     boolean separado
   }
+  viagens {
+    uuid    id PK
+    date    data
+    text    partida_descricao
+    numeric partida_lat
+    numeric partida_lng
+    text    situacao
+    boolean sugerir_ordem
+    int     distancia_m
+    int     duracao_s
+    uuid    criado_por FK
+  }
+  viagens_paradas {
+    uuid    id PK
+    uuid    viagem_id FK
+    int     ordem
+    uuid    pedido_id FK
+    text    descricao
+    text    endereco
+    numeric lat
+    numeric lng
+  }
+  usuarios {}
 
   pedidos ||--o{ pedidos_cargas : "sai em"
   pedidos_cargas ||--o{ pedidos_cargas_itens : "leva"
   pedidos_itens ||--o{ pedidos_cargas_itens : "e separado em"
   pedidos ||--o{ pedidos_itens : "compoe-se de"
+  viagens ||--o{ viagens_paradas : "para em"
+  pedidos |o--o{ viagens_paradas : "e entregue em"
+  usuarios ||--o{ viagens : "planeja"

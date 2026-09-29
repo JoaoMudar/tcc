@@ -79,6 +79,8 @@ const NOME = {
   'RF-60': 'Composição do item pedido sem espécie',
   'RF-61': 'Cargas do pedido e separação dos itens',
   'RF-62': 'Dia de carregar e calendário de entregas',
+  'RF-63': 'Viagem de entrega do dia',
+  'RF-64': 'Rota da viagem e ordem de carregamento',
 };
 
 // ---------------------------------------------------------------- leitura

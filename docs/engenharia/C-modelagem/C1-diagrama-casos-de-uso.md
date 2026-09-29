@@ -209,6 +209,7 @@ graph LR
     UC64(["UC-36 · Compor item pedido sem espécie"])
     UC65(["UC-37 · Organizar as cargas do pedido"])
     UC66(["UC-38 · Contar o pedido para carregar"])
+    UC67(["UC-39 · Planejar a viagem de entrega"])
   end
 
   GE --- UC42
@@ -231,6 +232,7 @@ graph LR
   GE --- UC64
   GE --- UC65
   GE --- UC66
+  GE --- UC67
 ```
 
 ### 3.3 Administrador
@@ -305,8 +307,9 @@ alimenta a matriz de rastreabilidade [`B5`](../B-requisitos/B5-matriz-rastreabil
 | **UC-36** | Compor item pedido sem espécie | 3 · Com. | Gerência | RF-60 | **✔ sim** |
 | **UC-37** | Organizar as cargas do pedido | 3 · Com. | Gerência | RF-61 | **✔ sim** |
 | **UC-38** | Contar o pedido para carregar | 3 · Com. | Gerência | RF-61, RF-62 | **✔ sim** |
+| **UC-39** | Planejar a viagem de entrega | 3 · Com. | Gerência | RF-63, RF-64 | **✔ sim** |
 
-**38 casos de uso.** Os quatorze marcados são especificados em detalhe em
+**39 casos de uso.** Os quinze marcados são especificados em detalhe em
 [`C2`](C2-especificacao-casos-de-uso.md): são os que concentram fluxos alternativos e exceções, e
 aqueles cujo erro tem maior custo operacional.
 

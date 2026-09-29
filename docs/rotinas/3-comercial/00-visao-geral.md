@@ -17,6 +17,7 @@ lado o que a produção tem pronto.
 | # | Rotina | Pergunta que responde | Documento |
 |---|---|---|---|
 | 1 | **Pedidos** | O que o cliente quer, tem, e por quanto? | [`pedidos.md`](pedidos.md) |
+| 2 | **Planejar pedido** | Quais pedidos saem juntos, em que ordem, e como carregar? | [`planejar-pedido.md`](planejar-pedido.md) |
 
 O ciclo é da chefia, que é quem responde por preço, com duas fases executadas pela gerência, a
 conferência no viveiro e a contagem da carga
@@ -33,10 +34,11 @@ percorre duas etapas dentro do sistema, a organização das viagens e a contagem
 uma, até ficar pronto para envio. São oito situações ao todo, e cada uma espera por um perfil
 determinado (RN-53).
 
-A **entrega** continua fora do escopo, e com ela o roteiro de viagem e o motorista
-([`A1` §7](../../engenharia/A-fundacao/A1-documento-de-visao.md)). O sistema acompanha o pedido até
-a muda estar contada e no lugar de carregamento, e o que acontece na estrada é combinado entre
-pessoas, como a negociação foi.
+A **viagem de entrega** é planejada no sistema desde 29/09/2026: os pedidos que saem juntos, a
+ordem das paradas e a ordem de carregar ([`planejar-pedido.md`](planejar-pedido.md)). O motorista e
+o que acontece na estrada continuam fora do escopo
+([`A1` §7](../../engenharia/A-fundacao/A1-documento-de-visao.md)), combinados entre pessoas, como a
+negociação foi.
 
 ## Relação com as outras áreas
 

@@ -42,6 +42,11 @@ cobrir, porque são o trabalho que a gerência faz entre a venda e a saída do c
 carga e a contagem; continuam fora a entrega, o roteiro de viagem e o motorista. O registro da
 volta está em [`auditoria-divergencias.md`](auditoria-divergencias.md).
 
+**A viagem de entrega entrou em 29/09/2026** (plano P14). O caminhão sai com vários pedidos, e quem
+carrega precisa pôr por último o que se entrega primeiro. O sistema passou a planejar a viagem do
+dia: junta os pedidos, sugere a ordem das paradas por um serviço de mapas e apresenta a separação
+na ordem inversa. Continuam fora o motorista e o que acontece depois que o caminhão sai.
+
 **Saiu também o perfil colaborador.** Os seis trabalhadores de campo deixaram de operar o sistema:
 o trabalho deles é planejado e confirmado pela gerência. Restaram três perfis, e três pessoas.
 

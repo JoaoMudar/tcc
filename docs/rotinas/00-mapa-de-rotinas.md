@@ -225,11 +225,13 @@ estar contada e no lugar de carregamento.
 | Aprovar o pedido, travando os itens | Chefia |
 | Organizar o pedido em cargas, uma por viagem | Gerência |
 | Contar e separar os itens de cada carga | Gerência |
+| Planejar a viagem de entrega do dia: pedidos, rota e ordem de carregar | Gerência |
 | Acompanhar pedidos, com filtro por cliente, canal e período | Chefia |
 
 **É a única área em que os dois perfis trabalham no mesmo registro**, alternando-se. A chefia vende
-e decide; a gerência responde o que o viveiro tem e o que já foi separado. A entrega continua fora
-do escopo, e o pedido termina em pronto para envio.
+e decide; a gerência responde o que o viveiro tem e o que já foi separado. A viagem é planejada
+até a carga pronta; o que acontece na estrada continua fora do escopo, e o pedido termina em pronto
+para envio.
 
 Área `/comercial`; as telas continuam em `/pedidos`.
 
@@ -257,7 +259,9 @@ docs/rotinas/
 │   └── 06-protocolo-de-atividades.md  o que o lote tem de receber
 └── 3-comercial/
     ├── 00-visao-geral.md           a área e o que ela consome
-    └── pedidos.md                  o cadastro de pedidos, a única rotina
+    ├── pedidos.md                  o cadastro de pedidos, da conferência à carga
+    ├── pedidos-como-chegam.md      os tipos de pedido, em leitura curta
+    └── planejar-pedido.md          a viagem de entrega: carga, rota e carregamento
 ```
 
 **Acesso e Configurações não têm pasta.** São transversais e não têm rotina de negócio própria:

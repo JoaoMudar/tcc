@@ -124,6 +124,11 @@ Depois conta item por item, carga por carga, e marca. **O que se grava é a conf
 número contado**: quantas contar já está escrito na linha. A carga só fecha com tudo marcado, e o
 pedido só fica pronto para envio quando todas as cargas estiverem prontas.
 
+**Vários pedidos no mesmo caminhão**: a rotina [`planejar-pedido.md`](planejar-pedido.md) junta os
+pedidos aprovados de um dia numa viagem, sugere a ordem das paradas e gera a separação na ordem
+inversa da rota. Ela cria uma carga por pedido pela mesma porta desta seção, e quem não a usa
+continua organizando as cargas pedido a pedido.
+
 **Dia de carregar é o dia útil anterior à entrega** (segunda a sexta). Entrega na segunda se carrega
 na sexta. Feriado fica de fora de propósito: os municipais variam, e um calendário errado atrasaria
 o carregamento sem ninguém entender por quê.
@@ -248,8 +253,9 @@ carga nunca vê "tem 300 das 500", vê 300, que é o que vai no caminhão.
 `20260924000001_pedido_orcamento_incompleto.sql`, e
 descritas em [`C8`](../../engenharia/C-modelagem/C8-dicionario-de-dados.md).
 
-**Não há entrega, roteiro nem motorista.** A carga termina quando o pedido fica pronto para envio,
-e o que acontece na estrada continua fora do sistema
+**Não há motorista nem acompanhamento na estrada.** A carga termina quando o pedido fica pronto
+para envio, e a viagem planejada ([`planejar-pedido.md`](planejar-pedido.md)) termina junto; o que
+acontece na estrada continua fora do sistema
 ([`A1` §7](../../engenharia/A-fundacao/A1-documento-de-visao.md)).
 
 ## Quem opera

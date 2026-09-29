@@ -10,7 +10,7 @@ o que restou aqui é o recorte e o cuidado com a legibilidade impressa. O regist
 renomeado, e do que o aplicativo em outro repositório precisa acompanhar, está em
 [`de-para-ingles-portugues.md`](de-para-ingles-portugues.md).
 
-**São treze figuras para trinta e uma entidades**, e nenhuma precisa ser girada. Não foi sempre
+**São treze figuras para trinta e três entidades**, e nenhuma precisa ser girada. Não foi sempre
 assim: até a redução de escopo eram dezenove figuras para sessenta e duas entidades, com duas
 obrigando a paisagem e várias raspando o piso de legibilidade. O ganho não veio de desenhar melhor,
 veio de haver menos o que desenhar.
@@ -18,7 +18,9 @@ veio de haver menos o que desenhar.
 **O Comercial ocupa duas figuras desde 21/09/2026**, e é a única área dividida. A conferência de
 disponibilidade e a carga acrescentaram quatro entidades ao pedido, e desenhá-las juntas levaria a
 figura 17 abaixo do piso de legibilidade. A divisão foi por assunto, o pedido e o que se confere
-nele numa figura, a viagem do caminhão na outra, e não por corte arbitrário de tamanho.
+nele numa figura, a viagem do caminhão na outra, e não por corte arbitrário de tamanho. Em
+29/09/2026 a viagem de entrega (`viagens`, `viagens_paradas`) entrou na figura 18, que é onde o
+assunto já estava.
 
 Fonte Mermaid em `mmd/`, PNGs em `img/`, layout em `mermaid-config.json` (`nodeSpacing` 30 e
 `rankSpacing` 45 no lugar dos padrões 140 e 80 do Mermaid, que são a causa do espalhamento).
@@ -52,13 +54,13 @@ node scripts/mede-figuras.mjs
 | 9 | `fig09-cadastros-especie` | Cadastros: a espécie e seus nomes | 8,7 pt |
 | 10 | `fig10-cadastros-insumo-recipiente` | Cadastros: recipiente e insumo | 11,5 pt |
 | 11 | `fig11-cadastros-viveiro` | Cadastros: área, canteiro e turno de trabalho | 12,5 pt |
-| 12 | `fig12-cadastros-pessoas` | Cadastros: identidade única e papéis | 8,4 pt |
+| 12 | `fig12-cadastros-pessoas` | Cadastros: identidade única e papéis | 7,3 pt |
 | 13 | `fig13-cadastros-tarefa-protocolo` | Cadastros: tipo de tarefa e protocolo de atividades | 7,5 pt |
 | 14 | `fig14-producao-agenda` | Produção: semana, atribuição e participantes | 8,8 pt |
 | 15 | `fig15-producao-lote` | Produção: o lote e seus movimentos | 8,7 pt |
 | 16 | `fig16-producao-protocolo-do-lote` | Produção: o lote seguindo o protocolo | 21,1 pt |
 | 17 | `fig17-comercial-pedido` | Comercial: pedido, item e a disponibilidade conferida | 6,7 pt |
-| 18 | `fig18-comercial-carga` | Comercial: as cargas do pedido e a separação | 15,0 pt |
+| 18 | `fig18-comercial-carga` | Comercial: as cargas do pedido, a separação e a viagem de entrega | 8,7 pt |
 
 **A menor é a 6, a 6,9 pt, e é a conceitual da produção.** Continua sendo a mais apertada da série
 pelo mesmo motivo de sempre: ela é a única que precisa mostrar o ciclo inteiro numa figura só, do

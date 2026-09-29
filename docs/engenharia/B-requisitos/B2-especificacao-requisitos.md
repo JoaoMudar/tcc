@@ -385,6 +385,8 @@ para dizer por quanto deveria ter sido vendido.
 | **RF-60** | O sistema deve permitir compor em espécies o item que o cliente pediu sem escolher espécie, respeitando as espécies que ele aceita; sem quantidade no item, a composição é uma lista montada, e cada espécie dela é vendida com preço próprio | Gerência | D | OP | Composição que não soma exatamente a quantidade do item é recusada |
 | **RF-61** | O sistema deve permitir organizar o pedido aprovado em cargas e registrar a separação de cada item em cada carga | Gerência | D | OP | Carga com item por separar não é dada como pronta |
 | **RF-62** | O sistema deve apresentar o dia de carregamento de cada pedido e o calendário de entregas e carregamentos do mês | Gerência | D | OP | Pedido com entrega na segunda-feira aparece para carregar na sexta-feira anterior |
+| **RF-63** | O sistema deve permitir planejar a viagem de entrega de um dia, reunindo nela pedidos aprovados, marcando em cada um a data de entrega da viagem e retomando o planejamento na etapa em que ele parou | Gerência | D | OP | Pedido sem data posto na viagem de 02/10 passa a ser entregue em 02/10, com a mudança no histórico; quem sai na etapa da rota volta a ela pelo calendário |
+| **RF-64** | O sistema deve sugerir a ordem das paradas da viagem a partir do endereço de saída, permitir reordená-las e acrescentar parada sem pedido, abrir o trajeto num serviço de mapas e apresentar a separação dos itens na ordem inversa das entregas | Gerência | D | OP | Viagem com três entregas apresenta primeiro os itens da terceira; sem o serviço de mapas, a ordem continua sendo arrumada à mão |
 
 **RF-55 acontece depois de RF-59, e a ordem é a do trabalho.** Quem registra o pedido está no meio
 de uma conversa de WhatsApp e anota o que o cliente quer; o preço se fecha quando a conferência já
@@ -409,7 +411,13 @@ encontrou quando foi ao pátio conferir, e RF-61 responde o que já foi contado 
 carregamento. Os três números podem divergir sem que nenhum esteja errado, porque respondem a
 perguntas diferentes, feitas em momentos diferentes e por pessoas diferentes.
 
-Quatro requisitos desta área são da **gerência**, e é a primeira vez que o Comercial não é só da
+**RF-63 e RF-64 organizam, e não substituem, a carga de RF-61.** A viagem junta os pedidos que
+saem no mesmo caminhão e decide a ordem das paradas; o que se separa e confere continua sendo a
+carga de cada pedido. Quem não usar a viagem organiza as cargas pedido a pedido, como antes. O
+serviço de mapas só sugere: se ele não responde, a ordem é arrumada à mão, e o planejamento nunca
+para por causa dele.
+
+Seis requisitos desta área são da **gerência**, e é a primeira vez que o Comercial não é só da
 chefia. A razão está em quem faz o trabalho, e não em quem decide a venda. Conferir a muda e contar
 a carga acontecem no viveiro, com o celular na mão, e quem está lá é a gerência
 ([`D4` §3.2](../D-arquitetura/D4-matriz-rbac.md)).

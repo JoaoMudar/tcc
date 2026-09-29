@@ -138,7 +138,7 @@ Delimitação deliberada. Cada exclusão tem motivo declarado.
 | **Apuração de custo e formação de preço** | O preço é o que foi negociado na conversa com o cliente (RN-50). Apurar custo exigiria medir consumo de insumo e tempo por lote, e nenhum dos dois é registrado hoje: o sistema calcularia sobre dado que não tem. |
 | **Módulo financeiro: extrato, conciliação, lançamentos e centros de custo** | A base bancária é pessoal e da empresa ao mesmo tempo, e separá-la é problema contábil antes de ser problema de software. |
 | **Cotação com fornecedores e estoque de insumo** | O insumo permanece como catálogo, sem consumo nem saldo. Sem custeio, não há a quem entregar o número. |
-| **Entregas, cargas e roteirização** | O pedido registra a data prevista de entrega e para aí. Logística é operação de terceiro, e o viveiro a combina por telefone. |
+| **Entrega, motorista e acompanhamento na estrada** | O sistema vai até a carga pronta, com a viagem planejada: os pedidos que saem juntos, a ordem das paradas e a ordem de carregar (RF-63, RF-64). O que acontece depois que o caminhão sai é combinado por telefone. |
 | **Apontamento de entrada e saída por relógio** | Medir a hora de chegada e de saída de cada pessoa é controle de ponto: é relação de trabalho, e não gestão de produção. Não se confunde com a hora da **tarefa**, que a agenda registra quando a tarefa a tem (RN-12): registrar que a irrigação é das sete às oito não mede a jornada de ninguém. |
 | **Tela de campo** | Os seis colaboradores não operam o sistema: o trabalho deles é planejado e confirmado pela gerência. Ver §5. |
 

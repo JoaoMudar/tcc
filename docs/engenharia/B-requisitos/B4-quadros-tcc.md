@@ -116,6 +116,8 @@ Fonte: Elaborado pelo autor (2026).
 | RN-56 | O item pedido sem espécie não vai na carga, e sim as espécies que o compõem. A soma de um item nas cargas reproduz a quantidade dele. |
 | RN-57 | A carga fica pronta quando todos os itens dela foram separados, e o pedido fica pronto para envio quando todas as cargas estão prontas. |
 | RN-58 | O dia de carregar é o dia útil anterior à data de entrega, de segunda a sexta-feira. |
+| RN-59 | Só entra na viagem de entrega o pedido aprovado, sem carga organizada e fora de outra viagem em andamento, e entrar nela marca a data de entrega do pedido para o dia da viagem. |
+| RN-60 | Os itens da viagem são carregados na ordem inversa das entregas: a última entrega vai para o fundo do caminhão e a primeira fica perto da porta. A viagem fica pronta quando todas as cargas dos pedidos dela estão prontas. |
 
 Fonte: Elaborado pelo autor (2026).
 
@@ -127,8 +129,8 @@ Fonte: Elaborado pelo autor (2026).
 | Produção, lote e trabalho | RN-08, RN-09, RN-10, RN-11, RN-12, RN-13, RN-14, RN-15, RN-16, RN-17, RN-18, RN-19, RN-20, RN-21, RN-22, RN-23, RN-24, RN-25, RN-26, RN-27, RN-28, RN-29 | 22 |
 | Protocolo de atividades por lote | RN-30, RN-31, RN-32, RN-33, RN-34, RN-35, RN-36, RN-37, RN-38, RN-39, RN-40, RN-41 | 12 |
 | Cliente e pedido | RN-42, RN-43, RN-44, RN-45, RN-46, RN-47, RN-48, RN-49, RN-50 | 9 |
-| Acesso e responsabilidade | RN-51, RN-52, RN-53, RN-54, RN-55, RN-56, RN-57, RN-58 | 8 |
-| **Total** | | **58** |
+| Acesso e responsabilidade | RN-51, RN-52, RN-53, RN-54, RN-55, RN-56, RN-57, RN-58, RN-59, RN-60 | 10 |
+| **Total** | | **60** |
 
 Fonte: Elaborado pelo autor (2026).
 
@@ -202,6 +204,8 @@ Fonte: Elaborado pelo autor (2026).
 | RF-60 | Composição do item pedido sem espécie | O sistema deve permitir compor em espécies o item que o cliente pediu sem escolher espécie, respeitando as espécies que ele aceita; sem quantidade no item, a composição é uma lista montada, e cada espécie dela é vendida com preço próprio. | RN-55 |
 | RF-61 | Cargas do pedido e separação dos itens | O sistema deve permitir organizar o pedido aprovado em cargas e registrar a separação de cada item em cada carga. | RN-56, RN-57 |
 | RF-62 | Dia de carregar e calendário de entregas | O sistema deve apresentar o dia de carregamento de cada pedido e o calendário de entregas e carregamentos do mês. | RN-58 |
+| RF-63 | Viagem de entrega do dia | O sistema deve permitir planejar a viagem de entrega de um dia, reunindo nela pedidos aprovados, marcando em cada um a data de entrega da viagem e retomando o planejamento na etapa em que ele parou. | RN-59 |
+| RF-64 | Rota da viagem e ordem de carregamento | O sistema deve sugerir a ordem das paradas da viagem a partir do endereço de saída, permitir reordená-las e acrescentar parada sem pedido, abrir o trajeto num serviço de mapas e apresentar a separação dos itens na ordem inversa das entregas. | RN-60 |
 
 Fonte: Elaborado pelo autor (2026).
 
@@ -253,13 +257,13 @@ Fonte: Elaborado pelo autor (2026).
 
 | Origem | RF: Qtd. | RF: % | RNF: Qtd. | RNF: % |
 |---|---:|---:|---:|---:|
-| Observação participante (OP) | 25 | 36,2 | 0 | 0,0 |
-| Entrevista (EN) | 14 | 20,3 | 0 | 0,0 |
-| Análise documental (AD) | 2 | 2,9 | 0 | 0,0 |
-| Estudo do domínio (DOM) | 6 | 8,7 | 1 | 7,1 |
-| Exigência legal (LEG) | 2 | 2,9 | 3 | 21,4 |
-| Política do projeto (ORG) | 20 | 29,0 | 10 | 71,4 |
-| **Total de menções** | **69** | | **14** | |
+| Observação participante (OP) | 27 | 38,0 | 0 | 0,0 |
+| Entrevista (EN) | 14 | 19,7 | 0 | 0,0 |
+| Análise documental (AD) | 2 | 2,8 | 0 | 0,0 |
+| Estudo do domínio (DOM) | 6 | 8,5 | 1 | 7,1 |
+| Exigência legal (LEG) | 2 | 2,8 | 3 | 21,4 |
+| Política do projeto (ORG) | 20 | 28,2 | 10 | 71,4 |
+| **Total de menções** | **71** | | **14** | |
 
 Fonte: Elaborado pelo autor (2026).
 
