@@ -52,7 +52,7 @@ beforeEach(() => {
 });
 
 describe('permissões da agenda (D4 §3.3)', () => {
-  it('chefia só lê: não lança, altera, exclui, confirma, abre, copia, publica nem fecha', async () => {
+  it('chefia só lê: não lança, altera, exclui, abre, copia, publica nem fecha', async () => {
     loggedAs('chefia');
     const semana = form({ semana: SEMANA });
     const tarefa = form({ id: ID });
@@ -60,7 +60,6 @@ describe('permissões da agenda (D4 §3.3)', () => {
     await expect(actions.atualizarAtribuicaoAction({}, tarefa)).rejects.toThrow(FORBIDDEN_MESSAGE);
     await expect(actions.excluirAtribuicaoAction({}, tarefa)).rejects.toThrow(FORBIDDEN_MESSAGE);
     await expect(actions.reagendarAtribuicaoAction({}, tarefa)).rejects.toThrow(FORBIDDEN_MESSAGE);
-    await expect(actions.confirmarAtribuicaoAction({}, tarefa)).rejects.toThrow(FORBIDDEN_MESSAGE);
     await expect(actions.abrirSemanaAction({}, semana)).rejects.toThrow(FORBIDDEN_MESSAGE);
     await expect(actions.copiarSemanaAction({}, semana)).rejects.toThrow(FORBIDDEN_MESSAGE);
     await expect(actions.publicarSemanaAction({}, semana)).rejects.toThrow(FORBIDDEN_MESSAGE);
@@ -81,23 +80,11 @@ describe('permissões da agenda (D4 §3.3)', () => {
     expect(await actions.reagendarAtribuicaoAction({}, form({ id: ID, data: SEMANA, turno_id: 'x' }))).toMatchObject({
       error: expect.stringContaining('Escolha o turno'),
     });
-    expect(await actions.confirmarAtribuicaoAction({}, form({ id: 'x' }))).toEqual({ error: 'Tarefa inválida.' });
     expect(await actions.abrirSemanaAction({}, form({ semana: 'x' }))).toEqual({ error: 'Semana inválida.' });
     expect(await actions.copiarSemanaAction({}, form({ semana: '2026-09-16' }))).toEqual({ error: 'Semana inválida.' });
     expect(await actions.publicarSemanaAction({}, form({ semana: '' }))).toEqual({ error: 'Semana inválida.' });
     expect(await actions.fecharSemanaAction({}, form({ semana: 'x' }))).toEqual({ error: 'Semana inválida.' });
     expectNoDatabase();
-  });
-
-  it('TA-32: sem o lote exigido a confirmação não abre transação, e mantém o digitado', async () => {
-    loggedAs('gerencia');
-    vi.mocked(pool.query).mockResolvedValueOnce({
-      rows: [{ id: ID, exigeLote: true, exigeArea: false, eQuantitativa: true, unidadeMedida: 'un', participantes: [{ id: PESSOA, nome: 'Rogério', quantidade: null }] }],
-    } as never);
-    const state = await actions.confirmarAtribuicaoAction({}, form({ id: ID, [`quantidade_${PESSOA}`]: '120' }));
-    expect(state.error).toMatch(/exige o lote/);
-    expect(state.fields).toMatchObject({ [`quantidade_${PESSOA}`]: '120' });
-    expect(pool.connect).not.toHaveBeenCalled();
   });
 
   it('fechar a semana publicada volta para a agenda', async () => {

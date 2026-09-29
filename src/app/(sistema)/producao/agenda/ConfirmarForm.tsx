@@ -1,19 +1,20 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useState } from 'react';
+import { useRegistroCampo } from '@/components/useRegistroCampo';
 import { Button } from '@/components/ui/Button';
 import { Notice } from '@/components/ui/Notice';
 import { type SelectOption, SelectField } from '@/components/ui/SelectField';
 import { TextField } from '@/components/ui/TextField';
 import type { UnidadeTarefa } from '@/lib/agenda-rotulos';
-import { EMPTY_FORM_STATE } from '@/lib/form-state';
 import { lerQuantidade } from '@/lib/lotes-rotulos';
 import { CausaPicker } from '../lotes/CausaPicker';
 import { type AreaOpcao, AreaCanteiroOpcional } from './AreaCanteiroOpcional';
-import { confirmarAtribuicaoAction } from './actions';
 
 interface ConfirmarFormProps {
   atribuicaoId: string;
+  /** Como a tarefa aparece na fila do aparelho: "Plantio, 14/09/2026". */
+  descricao: string;
   exigeLote: boolean;
   exigeArea: boolean;
   eQuantitativa: boolean;
@@ -29,9 +30,12 @@ interface ConfirmarFormProps {
 /**
  * T5.5, UC-20: o lote uma vez, um número por participante só se a tarefa for
  * quantitativa, e as mudas que morreram no mesmo gesto, para a perda não ser esquecida.
+ * Sem rede fica no aparelho e vai depois (UC-20 FA-3); a repicagem, que precisa
+ * escolher o destino das mudas no servidor, espera a rede.
  */
 export function ConfirmarForm({
   atribuicaoId,
+  descricao,
   exigeLote,
   exigeArea,
   eQuantitativa,
@@ -43,12 +47,19 @@ export function ConfirmarForm({
   areaId,
   canteiroId,
 }: ConfirmarFormProps) {
-  const [state, formAction, pending] = useActionState(confirmarAtribuicaoAction, EMPTY_FORM_STATE);
+  const [state, formAction, pending] = useRegistroCampo('confirmacao_tarefa', {
+    rotulo: () => `Confirmação: ${descricao}`,
+    complementoGuardado: (campos) =>
+      campos.depois === 'repicar' ? 'A repicagem se registra na ficha do lote, com rede.' : undefined,
+  });
   const fields = state.error ? state.fields : undefined;
   const [perdidas, setPerdidas] = useState(lerQuantidade(fields?.perdidas ?? '') ?? 0);
 
+  // A tarefa confirma uma vez só: guardada no aparelho, o formulário sai para não ser confirmada de novo
+  if (state.guardado) return <Notice tone="warning">{state.guardado}</Notice>;
+
   return (
-    <form action={formAction} className="flex flex-col gap-4">
+    <form key={state.rodada ?? 'confirmar'} action={formAction} className="flex flex-col gap-4">
       <input type="hidden" name="id" value={atribuicaoId} />
       {exigeLote && (
         <SelectField label="Lote" name="lote_id" options={lotes} defaultValue={fields?.lote_id ?? loteId ?? ''} required />

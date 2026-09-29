@@ -8,7 +8,7 @@ import { toUserMessage } from '@/lib/errors';
 import { type FormState, formText } from '@/lib/form-state';
 import { hojeNoViveiro } from '@/lib/datas';
 import * as lotes from '@/lib/lotes';
-import { CAUSAS_PERDA, formatQuantidade, isCausaPerda, registrarMovimento } from '@/lib/movimentos';
+import { isCausaPerda, registrarMovimento } from '@/lib/movimentos';
 import { withTransaction } from '@/lib/transaction';
 import { isUuid } from '@/lib/uuid';
 import { requirePermission } from '@/lib/auth/guards';
@@ -16,12 +16,6 @@ import { requirePermission } from '@/lib/auth/guards';
 function revalidarProducao() {
   // Ocupação, ficha, perdas e saldo pronto leem o mesmo saldo
   revalidatePath('/producao', 'layout');
-}
-
-function textoSaldo(saldo: number, encerrado: boolean): string {
-  return encerrado
-    ? 'O lote zerou e foi encerrado; o canteiro ficou livre.'
-    : `O lote fica com ${formatQuantidade(saldo)} ${saldo === 1 ? 'muda' : 'mudas'}.`;
 }
 
 /** T4.2, RF-32. */
@@ -65,69 +59,6 @@ export async function criarLoteAction(_previous: FormState, formData: FormData):
 
   revalidarProducao();
   redirect(`/producao/lotes/${id}?feito=criado`);
-}
-
-/** T4.5, RF-37, RF-38: lote, quantidade, causa e observação. Espécie, recipiente e canteiro vêm do lote. */
-export async function registrarPerdaAction(_previous: FormState, formData: FormData): Promise<FormState> {
-  const user = await requirePermission('perdas', 'C');
-  const loteId = formText(formData, 'lote_id');
-  if (!isUuid(loteId)) return { error: 'Lote inválido.' };
-  const fields = {
-    quantidade: formText(formData, 'quantidade'),
-    causa: formText(formData, 'causa'),
-    observacoes: formText(formData, 'observacoes'),
-  };
-  const quantidade = lotes.parseQuantidade(fields.quantidade);
-  if ('error' in quantidade) return { error: quantidade.error, fields };
-  if (!isCausaPerda(fields.causa)) return { error: 'Escolha a causa da perda.', fields };
-  const causa = fields.causa;
-  const observacoes = lotes.parseObservacoes(fields.observacoes);
-  if ('error' in observacoes) return { error: observacoes.error, fields };
-
-  try {
-    const { saldo, encerrado } = await withTransaction(pool, (client) =>
-      registrarMovimento(client, {
-        loteId,
-        tipo: 'perda',
-        quantidade: -quantidade.value,
-        causa,
-        observacoes: observacoes.value,
-        registradoPor: user.usuarioId,
-      }),
-    );
-    revalidarProducao();
-    return {
-      success: `Perda de ${formatQuantidade(quantidade.value)} por ${CAUSAS_PERDA[causa].toLowerCase()} registrada. ${textoSaldo(saldo, encerrado)}`,
-    };
-  } catch (error) {
-    return { error: toUserMessage(error), fields };
-  }
-}
-
-/** T4.6, RF-39: o contado passa a valer, e a diferença vira o ajuste. */
-export async function registrarContagemAction(_previous: FormState, formData: FormData): Promise<FormState> {
-  const user = await requirePermission('movimentos_lote', 'C');
-  const loteId = formText(formData, 'lote_id');
-  if (!isUuid(loteId)) return { error: 'Lote inválido.' };
-  const fields = { contado: formText(formData, 'contado'), observacoes: formText(formData, 'observacoes') };
-  const contado = lotes.parseQuantidade(fields.contado, { zero: true });
-  if ('error' in contado) return { error: contado.error, fields };
-  const observacoes = lotes.parseObservacoes(fields.observacoes);
-  if ('error' in observacoes) return { error: observacoes.error, fields };
-
-  try {
-    const resultado = await withTransaction(pool, (client) =>
-      lotes.contarLote(client, { loteId, contado: contado.value, observacoes: observacoes.value, registradoPor: user.usuarioId }),
-    );
-    if (resultado.diferenca === 0) return { success: 'A contagem bate com o saldo. Nada a ajustar.' };
-    revalidarProducao();
-    const sinal = resultado.diferenca > 0 ? 'a mais' : 'a menos';
-    return {
-      success: `Contagem registrada: ${formatQuantidade(Math.abs(resultado.diferenca))} ${sinal} que o calculado. ${textoSaldo(resultado.saldo, resultado.encerrado)}`,
-    };
-  } catch (error) {
-    return { error: toUserMessage(error), fields };
-  }
 }
 
 /** T4.7: a mesma leva muda de canteiro; o código não muda. */

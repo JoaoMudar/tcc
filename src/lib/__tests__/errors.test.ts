@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { GENERIC_MESSAGE, UserError, toUserMessage } from '../errors';
+import { GENERIC_MESSAGE, UserError, isErroDefinitivo, toUserMessage } from '../errors';
 
 function pgError(code: string, message: string) {
   return Object.assign(new Error(message), { code });
@@ -43,5 +43,19 @@ describe('toUserMessage', () => {
     expect(toUserMessage(new Error('connect ECONNREFUSED 127.0.0.1:5432'))).toBe(GENERIC_MESSAGE);
     expect(toUserMessage('string solta')).toBe(GENERIC_MESSAGE);
     expect(toUserMessage(null)).toBe(GENERIC_MESSAGE);
+  });
+});
+
+describe('isErroDefinitivo', () => {
+  it('regra de negócio e dado recusado pelo banco não se resolvem repetindo', () => {
+    expect(isErroDefinitivo(new UserError('Saldo insuficiente.'))).toBe(true);
+    expect(isErroDefinitivo(Object.assign(new Error('check'), { code: '23514' }))).toBe(true);
+  });
+
+  it('concorrência e falha de infraestrutura vão de novo', () => {
+    expect(isErroDefinitivo(Object.assign(new Error('serialização'), { code: '40001' }))).toBe(false);
+    expect(isErroDefinitivo(Object.assign(new Error('deadlock'), { code: '40P01' }))).toBe(false);
+    expect(isErroDefinitivo(new Error('ECONNRESET'))).toBe(false);
+    expect(isErroDefinitivo(Object.assign(new Error('conexão'), { code: '08006' }))).toBe(false);
   });
 });

@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { BotaoSair } from './BotaoSair';
+import { IndicadorFila } from './IndicadorFila';
 import { type NavItem, isActive } from './nav-items';
 
 interface AppNavProps {
@@ -36,6 +38,7 @@ export function AppNav({ items, userName, logoutAction }: AppNavProps) {
 
   return (
     <>
+      <IndicadorFila />
       <nav
         aria-label="Áreas do sistema"
         className="fixed inset-x-0 bottom-0 z-10 border-t border-line bg-white md:hidden"
@@ -73,11 +76,7 @@ export function AppNav({ items, userName, logoutAction }: AppNavProps) {
         </ul>
         <div className="mt-auto border-t border-line p-4">
           <p className="truncate text-sm text-muted">{userName}</p>
-          <form action={logoutAction}>
-            <button type="submit" className="mt-1 min-h-touch w-full rounded-lg text-left text-base font-semibold text-ink">
-              Sair
-            </button>
-          </form>
+          <BotaoSair logoutAction={logoutAction} aparencia="menu" />
         </div>
       </nav>
     </>
