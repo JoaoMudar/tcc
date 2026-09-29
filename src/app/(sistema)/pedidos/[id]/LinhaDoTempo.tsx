@@ -2,8 +2,18 @@ import { hojeNoViveiro } from '@/lib/datas';
 import { ROTULO_HISTORICO, type SituacaoPedido } from '@/lib/pedidos-rotulos';
 
 export interface FaseDoPedido {
+  situacaoAnterior?: SituacaoPedido | null;
   situacaoNova: SituacaoPedido;
+  observacoes?: string | null;
   criadoEm: Date;
+}
+
+/**
+ * Linha do histórico que não troca a situação: é uma nota, como a entrega
+ * marcada no planejamento da viagem (P14). Não é fase, e não leva seta.
+ */
+export function isNota(fase: FaseDoPedido): boolean {
+  return fase.situacaoAnterior === fase.situacaoNova;
 }
 
 /** 28/09, no fuso do viveiro: a hora do servidor em UTC viraria o dia seguinte depois das 21h. */
@@ -40,12 +50,24 @@ const MARCADOR: Record<SentidoDaFase, { simbolo: string; cor: string; rotulo?: s
  */
 export function LinhaDoTempo({ fases }: { fases: readonly FaseDoPedido[] }) {
   if (fases.length === 0) return null;
+  const ultimaFase = fases.findLastIndex((fase) => !isNota(fase));
   return (
     <section className="flex flex-col gap-2 rounded-xl border border-line bg-white p-4">
       <h2 className="text-sm font-bold tracking-widest text-muted uppercase">Andamento</h2>
       <ul className="flex flex-col gap-1.5 text-sm">
         {fases.map((fase, indice) => {
-          const atual = indice === fases.length - 1;
+          if (isNota(fase)) {
+            return (
+              <li key={indice} className="flex items-center gap-2 text-muted">
+                <span aria-hidden="true" className="w-4 text-center text-base leading-none">
+                  ·
+                </span>
+                <span className="tabular-nums">{diaEMes(fase.criadoEm)}</span>
+                <span>{fase.observacoes}</span>
+              </li>
+            );
+          }
+          const atual = indice === ultimaFase;
           const marcador = MARCADOR[sentidoDaFase(fase.situacaoNova, indice)];
           return (
             <li

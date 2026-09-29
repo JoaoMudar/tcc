@@ -25,6 +25,7 @@ import {
 } from '@/lib/pedidos';
 import { PERFIL_LABELS } from '@/lib/perfis';
 import { can } from '@/lib/permissions';
+import { viagensEmAndamento } from '@/lib/viagens';
 import { requirePageAccess } from '@/lib/auth/guards';
 import { CalendarioCargas } from './CalendarioCargas';
 
@@ -64,10 +65,11 @@ export default async function PedidosPage({ searchParams }: PedidosPageProps) {
   const mes = `${hoje.slice(0, 7)}-01`;
   const fimDoMes = somaDias(`${somaDias(mes, 31).slice(0, 7)}-01`, -1);
 
-  const [lista, clientes, doMes] = await Promise.all([
+  const [lista, clientes, doMes, viagens] = await Promise.all([
     listPedidos(pool, filtro),
     listClientes(pool),
     pedidosDoPeriodo(pool, somaDias(mes, -7), fimDoMes),
+    viagensEmAndamento(pool),
   ]);
   // Cancelado não entra, e o que ainda não tem preço também não: o pedido em
   // conferência ainda não é venda nenhuma, e contá-lo como zero seria o mesmo
@@ -151,6 +153,7 @@ export default async function PedidosPage({ searchParams }: PedidosPageProps) {
           <CalendarioCargas
             mes={mes}
             hoje={hoje}
+            viagens={viagens}
             pedidos={doMes.map((pedido) => ({
               ...pedido,
               diaDeCarregar: diaUtilAnterior(pedido.dataEntrega),

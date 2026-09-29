@@ -3,6 +3,8 @@ import {
   ATENCAO,
   CRITICO,
   MORTALIDADE,
+  PARTIDA_AGROLANDIA,
+  PARTIDA_ITAPEMA,
   type TipoValor,
   parametroLabel,
   sortParametros,
@@ -94,5 +96,29 @@ describe('apresentação', () => {
   it('ordena como o F1: mortalidade, atenção, crítico, e o resto no fim', () => {
     const ordenados = sortParametros([{ chave: 'a.extra' }, { chave: CRITICO }, { chave: ATENCAO }, { chave: MORTALIDADE }]);
     expect(ordenados.map((p) => p.chave)).toEqual([MORTALIDADE, ATENCAO, CRITICO, 'a.extra']);
+  });
+});
+
+describe('parâmetros de texto da viagem (P14)', () => {
+  const COM_PARTIDA = [
+    ...EXISTENTES,
+    { chave: PARTIDA_AGROLANDIA, tipoValor: 'texto' as const, descricao: 'agrolandia' },
+    { chave: PARTIDA_ITAPEMA, tipoValor: 'texto' as const, descricao: 'itapema' },
+  ];
+
+  it('aceitam endereço, sem a checagem de número inteiro', () => {
+    const resultado = validateParametros(COM_PARTIDA, {
+      ...VALIDOS,
+      [PARTIDA_AGROLANDIA]: ' Rodovia SC-302, Agrolândia, SC ',
+      [PARTIDA_ITAPEMA]: 'Itapema, SC',
+    });
+    expect(resultado).toEqual({
+      value: { ...VALIDOS, [PARTIDA_AGROLANDIA]: 'Rodovia SC-302, Agrolândia, SC', [PARTIDA_ITAPEMA]: 'Itapema, SC' },
+    });
+  });
+
+  it('não aceitam vazio', () => {
+    const resultado = validateParametros(COM_PARTIDA, { ...VALIDOS, [PARTIDA_AGROLANDIA]: ' ', [PARTIDA_ITAPEMA]: 'x' });
+    expect(resultado).toEqual({ error: '"Viagem: saída de Agrolândia" precisa ter de 1 a 500 caracteres.' });
   });
 });

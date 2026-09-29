@@ -227,8 +227,31 @@ export async function concluirCarga(
   const pedidoPronto = faltam[0].n === 0;
   if (pedidoPronto) {
     await mudarSituacao(client, carga.pedidoId, 'pronto_envio', autor, 'Todas as cargas foram separadas.');
+    await atualizarSituacaoViagem(client, carga.pedidoId);
   }
   return { numero: carga.numero, pedidoPronto };
+}
+
+/**
+ * P14: a viagem fica pronta quando todas as cargas dos pedidos dela estão
+ * prontas. Mora aqui, e não em `viagens.ts`, porque é `concluirCarga` quem a
+ * chama, e `viagens.ts` já depende deste arquivo: a volta faria um ciclo.
+ *
+ * Vale também para a carga fechada pela tela do pedido: quem conta pelo
+ * "Organizar cargas" e quem conta pela viagem chegam ao mesmo lugar.
+ */
+export async function atualizarSituacaoViagem(client: Client, pedidoId: string): Promise<boolean> {
+  const { rowCount } = await client.query(
+    `UPDATE viagens v SET situacao = 'pronta'
+      WHERE v.situacao = 'carregando'
+        AND EXISTS (SELECT 1 FROM viagens_paradas vp WHERE vp.viagem_id = v.id AND vp.pedido_id = $1)
+        AND NOT EXISTS (SELECT 1
+                          FROM viagens_paradas vp
+                          JOIN pedidos_cargas c ON c.pedido_id = vp.pedido_id
+                         WHERE vp.viagem_id = v.id AND c.situacao <> 'pronto')`,
+    [pedidoId],
+  );
+  return Boolean(rowCount);
 }
 
 /** T8.13: as cargas do pedido, com o que vai em cada uma. */
