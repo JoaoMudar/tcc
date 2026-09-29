@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { PageHeader } from '@/components/PageHeader';
-import { Button } from '@/components/ui/Button';
+import { BotaoSair } from '@/components/BotaoSair';
 import { requireUser } from '@/lib/auth/dal';
 import { visibleNavItems } from '@/lib/auth/menu';
 import { logout } from '../actions';
@@ -23,11 +23,7 @@ export default async function MaisPage() {
             {item.label}
           </Link>
         ))}
-        <form action={logout} className="mt-4">
-          <Button type="submit" variant="outline">
-            Sair
-          </Button>
-        </form>
+        <BotaoSair logoutAction={logout} />
       </div>
     </main>
   );

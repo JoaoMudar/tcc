@@ -72,3 +72,28 @@ describe('Server Actions', () => {
     for (const id of PUBLIC_ACTIONS) expect(found.has(id), id).toBe(true);
   });
 });
+
+/**
+ * A mesma cobrança para as rotas de `/api`: a fila do aparelho grava por
+ * `/api/registros` (T9.3), e rota sem sessão conferida seria porta aberta. A
+ * rota não pode usar `requireUser`, que redireciona: quem chama é `fetch`, e
+ * precisa de 401 para saber que a sessão acabou.
+ */
+describe('rotas de /api', () => {
+  const rotas = sourceFiles(path.join(process.cwd(), 'src', 'app', 'api')).filter((file) => /route\.tsx?$/.test(file));
+
+  it('existem, e o teste de fato as encontra', () => {
+    expect(rotas.length).toBeGreaterThan(0);
+  });
+
+  it('todo método exportado confere a sessão', () => {
+    const semGuard: string[] = [];
+    for (const file of rotas) {
+      const relative = path.relative(process.cwd(), file).split(path.sep).join('/');
+      for (const metodo of exportedActions(readFileSync(file, 'utf8'))) {
+        if (!/await\s+getCurrentSession\(/.test(metodo.body)) semGuard.push(`${relative}#${metodo.name}`);
+      }
+    }
+    expect(semGuard).toEqual([]);
+  });
+});

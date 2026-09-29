@@ -148,48 +148,6 @@ export async function excluirAtribuicaoAction(_previous: FormState, formData: Fo
   redirect(`/producao/agenda?semana=${semanaInicio}&feito=excluida`);
 }
 
-/** T5.5, RF-29, UC-20: o lote uma vez, a quantidade de cada um, e as mudas que morreram viram perda do lote. */
-export async function confirmarAtribuicaoAction(_previous: FormState, formData: FormData): Promise<FormState> {
-  const user = await requirePermission('confirmacao_tarefa', 'C');
-  const id = formText(formData, 'id');
-  if (!isUuid(id)) return { error: 'Tarefa inválida.' };
-  const atribuicao = await agenda.findAtribuicao(pool, id);
-  if (!atribuicao) return { error: 'Tarefa não encontrada.' };
-
-  const quantidades = Object.fromEntries(atribuicao.participantes.map((p) => [p.id, formText(formData, `quantidade_${p.id}`)]));
-  const fields: Record<string, string> = {
-    lote_id: formText(formData, 'lote_id'),
-    area_id: formText(formData, 'area_id'),
-    canteiro_id: formText(formData, 'canteiro_id'),
-    perdidas: formText(formData, 'perdidas'),
-    causa: formText(formData, 'causa'),
-    ...Object.fromEntries(Object.entries(quantidades).map(([pessoa, texto]) => [`quantidade_${pessoa}`, texto])),
-  };
-  const confirmacao = agenda.parseConfirmacao(
-    atribuicao,
-    atribuicao.participantes.map((p) => p.id),
-    { loteId: fields.lote_id, areaId: fields.area_id, canteiroId: fields.canteiro_id, quantidades, perdidas: fields.perdidas, causa: fields.causa },
-  );
-  if ('error' in confirmacao) return { error: confirmacao.error, fields };
-  if (confirmacao.value.perda) await requirePermission('perdas', 'C');
-
-  try {
-    await withTransaction(pool, (client) => agenda.confirmarAtribuicao(client, id, confirmacao.value, user.usuarioId));
-  } catch (error) {
-    return { error: toUserMessage(error), fields };
-  }
-  revalidarProducao();
-
-  const { loteId, perda } = confirmacao.value;
-  // UC-20 FA-1: a repicagem precisa do destino das mudas, e continua no formulário do lote
-  if (formText(formData, 'depois') === 'repicar' && loteId) redirect(`/producao/lotes/${loteId}?repicar=${id}`);
-  redirect(
-    perda
-      ? `/producao/agenda/${id}?feito=confirmada&perda=${perda.quantidade}&causa=${perda.causa}`
-      : `/producao/agenda/${id}?feito=confirmada`,
-  );
-}
-
 function lerSemanaDoForm(formData: FormData): string | null {
   const semana = formText(formData, 'semana');
   return isInicioDeSemana(semana) ? semana : null;

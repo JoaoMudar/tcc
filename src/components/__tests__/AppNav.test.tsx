@@ -4,6 +4,8 @@ import { NAV_ITEMS } from '../nav-items';
 
 let pathname = '/';
 vi.mock('next/navigation', () => ({ usePathname: () => pathname }));
+// O indicador da fila tem teste próprio; aqui só o menu
+vi.mock('../IndicadorFila', () => ({ IndicadorFila: () => null }));
 
 const { AppNav } = await import('../AppNav');
 

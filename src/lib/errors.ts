@@ -42,3 +42,17 @@ export function toUserMessage(error: unknown): string {
   const code = pgCode(error);
   return (code && PG_MESSAGES[code]) || GENERIC_MESSAGE;
 }
+
+// Conflito de concorrência: tentar de novo pode dar certo
+const PG_TRANSITORIOS = new Set(['40001', '40P01']);
+
+/**
+ * O erro que repetir não resolve: regra de negócio ou dado recusado pelo banco.
+ * A fila do aparelho (RNF-05) usa isto para separar o registro recusado, que
+ * espera a pessoa, do que falhou por acaso e vai sozinho na próxima tentativa.
+ */
+export function isErroDefinitivo(error: unknown): boolean {
+  if (error instanceof UserError) return true;
+  const code = pgCode(error);
+  return code !== undefined && code in PG_MESSAGES && !PG_TRANSITORIOS.has(code);
+}
