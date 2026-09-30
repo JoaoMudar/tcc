@@ -11,8 +11,13 @@
  *
  * Recusa restaurar por cima: o destino tem de estar vazio, e não pode ser o
  * banco da DATABASE_URL (E6 §4 passo 2, "sem sobrescrever a existente").
- * O pg_restore vem de PG_BIN, ou da instalação padrão do Postgres 17 no
- * Windows, ou do PATH.
+ *
+ * O pg_restore tem de ser da versão do Neon (18) ou mais novo: o de versão
+ * anterior não lê a cópia. Dois jeitos:
+ *   - RESTAURO_DOCKER=<contêiner>: roda o pg_restore dentro de um contêiner
+ *     postgres:18, que também é o banco de destino. Não exige instalar nada.
+ *   - sem ela: PG_BIN, ou a instalação padrão do Postgres 18 ou 17 no Windows,
+ *     ou o PATH.
  */
 import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
@@ -30,12 +35,31 @@ loadEnvConfig(process.cwd());
 
 function pgRestore(): string {
   const nome = process.platform === 'win32' ? 'pg_restore.exe' : 'pg_restore';
-  const candidatos = [process.env.PG_BIN, 'C:\\Program Files\\PostgreSQL\\17\\bin'].filter(Boolean) as string[];
+  const candidatos = [process.env.PG_BIN, 'C:\\Program Files\\PostgreSQL\\18\\bin', 'C:\\Program Files\\PostgreSQL\\17\\bin'].filter(
+    Boolean,
+  ) as string[];
   for (const dir of candidatos) {
     const caminho = path.join(dir, nome);
     if (existsSync(caminho)) return caminho;
   }
   return nome;
+}
+
+const SEM_DONO = ['--no-owner', '--no-privileges'];
+
+/** Roda o pg_restore; com RESTAURO_DOCKER, dentro do contêiner, contra o banco dele. */
+function restaurar(dump: string, destino: string) {
+  const conteiner = process.env.RESTAURO_DOCKER;
+  if (!conteiner) return spawnSync(pgRestore(), [...SEM_DONO, `--dbname=${destino}`, dump], { encoding: 'utf8' });
+
+  const url = new URL(destino);
+  const copia = spawnSync('docker', ['cp', dump, `${conteiner}:/tmp/restauro.dump`], { encoding: 'utf8' });
+  if (copia.error || copia.status !== 0) throw new Error(`docker cp falhou: ${copia.error?.message ?? copia.stderr.trim()}`);
+  const banco = url.pathname.slice(1) || 'postgres';
+  const args = ['exec', conteiner, 'pg_restore', ...SEM_DONO, '-U', decodeURIComponent(url.username), '-d', banco, '/tmp/restauro.dump'];
+  const resultado = spawnSync('docker', args, { encoding: 'utf8' });
+  spawnSync('docker', ['exec', conteiner, 'rm', '-f', '/tmp/restauro.dump']);
+  return resultado;
 }
 
 function mesmoBanco(a: string, b: string | undefined): boolean {
@@ -71,10 +95,11 @@ async function main() {
     }
 
     // Sem dono nem permissão: os papéis do Neon não existem no banco de destino
-    const restauracao = spawnSync(pgRestore(), ['--no-owner', '--no-privileges', `--dbname=${destino}`, dump], {
-      encoding: 'utf8',
-    });
-    if (restauracao.error) throw new Error(`pg_restore não encontrado (${restauracao.error.message}). Defina PG_BIN.`);
+    const restauracao = restaurar(dump, destino);
+    if (restauracao.error) throw new Error(`pg_restore não encontrado (${restauracao.error.message}). Defina PG_BIN ou RESTAURO_DOCKER.`);
+    if (/unsupported version/i.test(restauracao.stderr)) {
+      throw new Error('O pg_restore é mais velho que a cópia. Use o Postgres 18 (PG_BIN) ou um contêiner postgres:18 (RESTAURO_DOCKER).');
+    }
     if (restauracao.status !== 0) {
       // O pg_restore sai com erro também por aviso ignorável; quem decide é a conferência abaixo
       console.warn(`pg_restore terminou com código ${restauracao.status}:\n${restauracao.stderr.trim()}`);
