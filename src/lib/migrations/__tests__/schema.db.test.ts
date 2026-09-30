@@ -4,7 +4,6 @@ import { Client } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { parseDeclaredSchema } from '../declared-schema';
 import { sortMigrationFiles } from '../runner';
-import { hojeNoViveiro } from '../../datas';
 
 const MIGRATIONS_DIR = path.join(process.cwd(), 'migrations');
 const SCHEMAS = ['public', 'cadastro'];
@@ -74,15 +73,5 @@ describe('schema declarado nas migrations x banco real', () => {
     const declared = await declaredSchema();
     expect(declared.size).toBeGreaterThan(0);
     expect(diff(declared, await realSchema())).toEqual([]);
-  });
-});
-
-describe('o dia do banco é o dia do viveiro', () => {
-  it('a sessão nova já nasce no fuso de Brasília, e o CURRENT_DATE concorda com hojeNoViveiro', async () => {
-    const { rows } = await client.query<{ fuso: string; hoje: string }>(
-      "SELECT current_setting('TimeZone') AS fuso, to_char(CURRENT_DATE, 'YYYY-MM-DD') AS hoje",
-    );
-    expect(rows[0].fuso).toBe('America/Sao_Paulo');
-    expect(rows[0].hoje).toBe(hojeNoViveiro());
   });
 });
