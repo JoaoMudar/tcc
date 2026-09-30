@@ -2,6 +2,7 @@ import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { Client } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { hojeNoViveiro } from '../../datas';
 import { parseDeclaredSchema } from '../declared-schema';
 import { sortMigrationFiles } from '../runner';
 
@@ -73,5 +74,24 @@ describe('schema declarado nas migrations x banco real', () => {
     const declared = await declaredSchema();
     expect(declared.size).toBeGreaterThan(0);
     expect(diff(declared, await realSchema())).toEqual([]);
+  });
+});
+
+describe('o "hoje" do banco é o dia do viveiro', () => {
+  // CURRENT_DATE segue o fuso da sessão: no Neon (UTC), das 21h à meia-noite já é amanhã
+  it('nenhuma visão usa CURRENT_DATE', async () => {
+    const { rows } = await client.query<{ visao: string }>(
+      `SELECT schemaname || '.' || viewname AS visao FROM pg_views
+        WHERE schemaname = ANY($1) AND definition ILIKE '%CURRENT_DATE%'`,
+      [SCHEMAS],
+    );
+    expect(rows.map((r) => r.visao)).toEqual([]);
+  });
+
+  it('hoje_no_viveiro() dá o mesmo dia que o aplicativo, com a sessão em UTC', async () => {
+    await client.query("SET timezone = 'UTC'");
+    const { rows } = await client.query<{ hoje: string }>("SELECT to_char(hoje_no_viveiro(), 'YYYY-MM-DD') AS hoje");
+    await client.query('RESET timezone');
+    expect(rows[0].hoje).toBe(hojeNoViveiro());
   });
 });
