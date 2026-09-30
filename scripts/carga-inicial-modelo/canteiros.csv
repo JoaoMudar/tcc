@@ -1,0 +1,6 @@
+# Uma linha por canteiro. A área é uma letra; o nome da área é opcional.
+# Capacidade em mudas, opcional: só avisa, nunca recusa lote.
+area;nome_area;canteiro;capacidade
+# A;Estufa;1;5000
+# A;Estufa;2;5000
+# B;Pleno sol;1;

@@ -28,3 +28,6 @@ next-env.d.ts
 # logs e sistema
 npm-debug.log*
 .DS_Store
+
+# carga inicial real (T10.5): nome e telefone de gente, fora do repositório público
+/carga-inicial/
