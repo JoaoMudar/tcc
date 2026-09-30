@@ -3,17 +3,6 @@
 Uma entrada por migration nova, como pede o `CLAUDE.md`. As migrations até `20260901000008` são o
 schema inicial em português e estão descritas no `C8`.
 
-## 30/09/2026 · `20260930000002_fuso_do_banco.sql`
-
-- **O banco conta o dia no fuso do viveiro.** `ALTER DATABASE ... SET timezone TO
-  'America/Sao_Paulo'`. As visões de situação do lote e de vencimento de etapa usam
-  `CURRENT_DATE`, e o Neon e o Postgres do CI rodam em UTC: das 21h à meia-noite o atraso saía com
-  um dia a mais do que o aplicativo mostra. Os `DEFAULT CURRENT_DATE` de `lotes.data_plantio` e
-  `movimentos_lote.data_movimento` também passam a cair no dia certo.
-- Compatível: nenhuma tabela, coluna ou visão muda. Vale para conexão aberta depois da migration.
-- Restauração: o `pg_restore` num banco novo não traz o `ALTER DATABASE`, e a `_migrations`
-  restaurada já registra esta migration; repetir o comando à mão no banco restaurado.
-
 ## 30/09/2026 · `20260930000001_envios_recebidos.sql`
 
 - **A chave de idempotência do registro feito sem conexão** (RNF-05, UC-20 FA-3). Tabela nova
