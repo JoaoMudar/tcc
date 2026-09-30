@@ -41,6 +41,8 @@ só o que o sistema usa: nome, fixo ou diarista, turno. Nada de saúde, salário
 
 ## Passo 2. Juntar as Fases 9 e 10 no `master`
 
+> Feito em 29/09/2026.
+
 O agendamento do backup **só roda a partir da branch padrão**, então o workflow novo precisa estar
 no `master`.
 
@@ -53,9 +55,9 @@ no `master`.
 
 ## Passo 3. Configurar a cópia diária do banco (T10.1)
 
-1. **Confira a versão do Postgres no Neon.** Console do Neon > SQL Editor > `SHOW server_version;`.
-   O workflow usa `pg_dump` 17. Se aparecer 16 ou 17, está certo. Se aparecer 18, troque as duas
-   ocorrências de `postgres:17` em `.github/workflows/backup.yml` por `postgres:18`.
+1. ~~Conferir a versão do Postgres no Neon.~~ Feito em 29/09/2026: é a **18.6**. O workflow do
+   backup e o CI passaram a usar `postgres:18`, na branch `fix/backup-postgres-18`. **Faça o merge
+   dela antes do item 5**, senão o `pg_dump` 17 recusa o servidor 18.
 2. **Pegue a URL de conexão direta.** Console do Neon > Connection Details > desligue "Connection
    pooling". A URL certa **não** tem `-pooler` no host. (A da Vercel tem, e o `pg_dump` não funciona
    com ela.)
@@ -85,16 +87,22 @@ no `master`.
 
 1. Baixe a cópia mais recente: `gh run list --workflow Backup` para pegar o número da execução, e
    `gh run download <número>`. Vem uma pasta `viveiro-AAAA-MM-DD/` com o arquivo `.dump.cifrado`.
-2. Crie um banco vazio no Postgres local (PowerShell):
+2. **A cópia é do Postgres 18 e o seu local é o 17**, e o `pg_restore` 17 não lê cópia do 18. O
+   jeito mais simples é restaurar num contêiner `postgres:18` descartável, que também é a "instância
+   nova" que o E6 pede. Abra o Docker Desktop e rode (PowerShell):
    ```
-   & "C:\Program Files\PostgreSQL\17\bin\psql.exe" -U postgres -c "CREATE DATABASE viveiro_restaurado"
+   docker run -d --name viveiro-restauro -e POSTGRES_PASSWORD=restauro -p 5433:5432 postgres:18
    ```
-3. Restaure (PowerShell, na raiz do projeto):
+   A alternativa sem Docker é instalar o Postgres 18 (instalador da EDB) e restaurar num banco vazio
+   dele; o script acha o `pg_restore` 18 sozinho em `C:\Program Files\PostgreSQL\18\bin`.
+3. Restaure (PowerShell, na raiz do projeto), trocando `<senha>` por `restauro`:
    ```
    $env:BACKUP_PASSPHRASE = 'a frase do passo 3'
-   $env:DESTINO_DATABASE_URL = 'postgresql://postgres:<senha>@localhost:5432/viveiro_restaurado'
+   $env:RESTAURO_DOCKER = 'viveiro-restauro'
+   $env:DESTINO_DATABASE_URL = 'postgresql://postgres:<senha>@localhost:5433/postgres'
    npm run backup:restaurar -- --arquivo .\viveiro-AAAA-MM-DD\viveiro-AAAA-MM-DD.dump.cifrado
    ```
+   Com `RESTAURO_DOCKER`, o `pg_restore` roda dentro do contêiner.
    O destino vai por variável, e não por argumento, porque o npm ecoa os argumentos no terminal com a
    senha junto. O script recusa banco que não esteja vazio e recusa o banco da `DATABASE_URL`.
 4. Ele imprime as contagens, se o saldo de todo lote bate com os movimentos, as migrations e **o
@@ -104,8 +112,7 @@ no `master`.
 6. Anote o resultado na tabela "Registro dos testes" do
    [`E6`](engenharia/E-qualidade/E6-plano-backup-recuperacao.md) §5 (data, momento restaurado, tempo,
    resultado), e marque o T10.1 no [`P1`](../plans/P1-sistema-reduzido.md).
-7. Apague o banco de ensaio: `psql -U postgres -c "DROP DATABASE viveiro_restaurado"`, e apague o
-   arquivo baixado.
+7. Apague o contêiner (`docker rm -f viveiro-restauro`) e o arquivo baixado.
 
 Repita a cada seis meses e depois de qualquer mudança de infraestrutura (E6 §5).
 
