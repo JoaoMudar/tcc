@@ -1,0 +1,4 @@
+# Os funcionários de campo. Vínculo: fixo ou diarista. Telefone opcional, com DDD.
+# Só nome, telefone e vínculo: nada de saúde, salário ou avaliação (E5).
+nome;telefone;vinculo
+# Fulano da Silva;(47) 99999-0000;fixo
