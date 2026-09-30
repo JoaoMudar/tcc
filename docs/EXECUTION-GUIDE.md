@@ -30,10 +30,8 @@ viveiro-mudar/
 
 | | Fase | Estado |
 |---|---|---|
-| 🟡 | **Fase 0** Fundação técnica | na `master`: projeto, banco, migrations, `test:db`, hook, CI (obrigatório no PR) e casca prontos; falta publicar na Vercel com Neon |
-| ⬜ | **Fases 1 a 3** Acesso, Configurações e Cadastro único | modelo no banco, nenhuma tela |
-| ⬜ | **Fases 4 a 7** Lotes, agenda, protocolo e mapa | lote e agenda no banco; protocolo só especificado |
-| ⬜ | **Fases 8 a 10** Comercial, PWA e operação | pedido no banco, nenhuma tela |
+| ✅ | **Fases 0 a 9** Fundação, acesso, configurações, cadastro, lotes, agenda, protocolo, mapa, comercial e PWA | implementadas, com teste unitário e contra Postgres real |
+| 🟡 | **Fase 10** Pronto para operar | ferramentas prontas em 29/09/2026 (cópia, restauração, retenção, carga inicial, ponta a ponta); faltam os passos manuais de [`fase-10-passo-a-passo.md`](fase-10-passo-a-passo.md) |
 
 **Em 14/09/2026 o código recomeçou do zero neste repositório.** O que as versões anteriores deste
 guia davam como pronto era o aplicativo antigo em inglês, noutro repositório, e não é herdado.
@@ -42,24 +40,6 @@ guia davam como pronto era o aplicativo antigo em inglês, noutro repositório, 
 cotação e superfície pública saíram da especificação, e com eles a maior parte do que este guia
 listava como não iniciado. O que restou está detalhado, tarefa a tarefa, em
 [`plans/P1-sistema-reduzido.md`](../plans/P1-sistema-reduzido.md).
-
-## Ordem recomendada a partir daqui
-
-A ordem tem um motivo concreto: **o Cadastro único alimenta as outras duas áreas e não consome
-nada**, e o mapa de lotes depende das duas fontes de pendência, a tarefa lançada na agenda e a
-etapa que o protocolo ainda sugere. Construir o mapa antes produz uma tela que mostra todo lote como
-saudável, que é o contrário do que ela existe para fazer.
-
-```
-1. Fase 1  - areas e canteiros, tipos de tarefa, Configuracoes
-2. Fase 2  - lote, movimentos, perda, contagem, saldo disponivel
-3. Fase 3  - agenda da semana, confirmacao, protocolo e o motor de ordens
-4. Fase 4  - mapa de lotes, preco no item, confirmacao do pedido
-```
-
-As fases 2 e 3 podem correr em paralelo depois da 1: a agenda depende de pessoas e tipos de
-tarefa, e o lote depende de espécie e canteiro, e as duas coisas saem da Fase 1. O detalhamento
-por tarefa está em [`plans/P1-sistema-reduzido.md`](../plans/P1-sistema-reduzido.md).
 
 ## Como conduzir uma sessão
 
@@ -85,6 +65,11 @@ por tarefa está em [`plans/P1-sistema-reduzido.md`](../plans/P1-sistema-reduzid
 | `npm run db:migrate:status` | mostra o que está pendente |
 | `npm run db:refresh-local` | espelha o Neon num Postgres local descartável |
 | `npm run db:seed-admin` | cria o usuário administrador |
+| `npm run test:db` | roda a suíte contra Postgres real |
+| `npm run db:carga -- --pasta carga-inicial` | ensaia a carga inicial das planilhas; `--gravar` grava |
+| `npm run db:conferir` | contagens e saldo de cada lote contra a soma dos movimentos |
+| `npm run db:retencao` | apaga registro de acesso com mais de 12 meses e sessão expirada |
+| `npm run backup:restaurar -- --arquivo <cópia>` | restaura uma cópia num banco vazio (`DESTINO_DATABASE_URL`) e cronometra |
 | `npm run docs:tcc` | regenera `docs/engenharia/word/` com os diagramas em PNG |
 
 ## Bancos
@@ -111,11 +96,3 @@ por tarefa está em [`plans/P1-sistema-reduzido.md`](../plans/P1-sistema-reduzid
 > `/api/fotos/[id]`).
 
 Toda migration aplicada no local precisa ser aplicada também no Neon antes do deploy.
-
-## Trabalho de campo em paralelo
-
-Parte de cada plano não depende de código, é levantamento que a equipe faz no viveiro, na
-seção "Dados que a Equipe de Campo Precisa Levantar" de cada plan file. O levantamento de
-custos do P1 é o mais crítico de todos: é a dependência-raiz do indicador IND-02 e, por
-tabela, de toda a análise de margem
-([`E3`, risco R-01](engenharia/E-qualidade/E3-analise-de-riscos.md)).

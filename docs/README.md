@@ -28,6 +28,7 @@
 | Arquivo | Conteúdo |
 |---------|----------|
 | [`contexto-projeto.md`](contexto-projeto.md) | Histórico, as três áreas, o que a redução de escopo cortou e princípios de formulário de campo. **É a fonte única do roadmap.** |
+| [`fase-10-passo-a-passo.md`](fase-10-passo-a-passo.md) | O que falta para operar (Fase 10): backup, restauração, carga inicial, casos do E2 no navegador, avaliação de usabilidade, e a revisão contra E4 e E5. |
 | [`funcionarios-viveiro-mudar.md`](funcionarios-viveiro-mudar.md) | A equipe e os perfis de acesso. |
 | [`processo-de-desenvolvimento.md`](processo-de-desenvolvimento.md) | Texto do TCC sobre o processo: roteiro por fases, Claude Code, GitHub, testes e migrations. Conferido em 14/09/2026. |
 

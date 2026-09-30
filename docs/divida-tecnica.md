@@ -37,6 +37,12 @@ escrever código novo.
 
 ## 1. Backup do banco não é automático: **prioridade máxima**
 
+> **Atualização de 29/09/2026 (T10.1).** A cópia automática existe: `.github/workflows/backup.yml`,
+> diária, cifrada e fora do Neon, e o procedimento de restauração virou o comando
+> `npm run backup:restaurar`, ensaiado contra o banco local. **Falta a primeira restauração de uma
+> cópia de produção**, que depende de cadastrar os dois segredos do workflow. Até ela acontecer,
+> este item continua aberto. Ver [`E6`](engenharia/E-qualidade/E6-plano-backup-recuperacao.md) §5.
+
 **Estado:** [`engenharia/E-qualidade/E6-plano-backup-recuperacao.md`](engenharia/E-qualidade/E6-plano-backup-recuperacao.md)
 descreve o procedimento (§3.1 "Cópia automatizada do banco"), mas **nada o executa**. Hoje a única
 cópia dos dados de produção é o próprio Neon.

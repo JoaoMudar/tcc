@@ -52,7 +52,7 @@ processo em tempo real. Um dia sem o sistema adia registros, que a fila local do
 preserva: e não interrompe a produção de mudas nem a expedição.
 
 **Retenção de 30 dias** é dimensionada pelo modo de falha mais provável, que **não é o desastre**. É
-a corrupção silenciosa: uma importação de extrato equivocada, uma exclusão em massa por engano, um
+a corrupção silenciosa: uma carga inicial com planilha errada, uma exclusão em massa por engano, um
 erro de migração. Esse tipo de falha é percebido dias depois, e a cópia de ontem já a contém. Trinta
 dias cobrem o intervalo entre o erro e sua percepção.
 
@@ -62,19 +62,31 @@ dias cobrem o intervalo entre o erro e sua percepção.
 
 ### 3.1 Cópia automatizada do banco
 
-Cópia diária automática mantida pelo serviço gerenciado de banco de dados, com retenção de 30 dias.
-Sendo automática e externa à aplicação, não depende de ninguém lembrar de executá-la: o que é
-decisivo numa organização sem administrador de sistemas.
+Cópia diária automática, feita **fora do provedor do banco**, com retenção de 30 dias. Sendo
+automática e externa à aplicação, não depende de ninguém lembrar de executá-la, o que é decisivo
+numa organização sem administrador de sistemas.
 
-Complementarmente, **exportação mensal completa armazenada fora do provedor**. Esta é a cópia que
-protege contra o modo de falha que a cópia do próprio provedor não cobre: perda da conta,
-encerramento do serviço ou indisponibilidade prolongada do fornecedor. Uma cópia que vive apenas
-dentro do sistema que ela deveria substituir não é cópia de segurança.
+**Como está implementada** (T10.1, em 29/09/2026). Um workflow agendado do GitHub Actions
+(`.github/workflows/backup.yml`) roda às 03:00 de Brasília, extrai o banco com `pg_dump` na mesma
+versão do servidor, confere que a cópia é legível com `pg_restore --list`, cifra o arquivo com
+AES-256-GCM (`src/lib/cifra-backup.ts`) e o guarda como artefato. A cópia de todo dia 1º fica 90
+dias, o máximo que o serviço admite, e cumpre o papel da exportação mensal. **A cifra é obrigatória
+porque o repositório é público**: o artefato de um repositório público pode ser baixado por qualquer
+conta autenticada, e a cópia leva documento, endereço e resumo de senha. A frase da cifra fica
+guardada fora do GitHub, e sem ela nenhuma cópia se abre.
+
+Uma cópia que vive apenas dentro do sistema que ela deveria substituir não é cópia de segurança. O
+histórico de restauração do próprio provedor continua existindo e serve à reversão de horas, mas
+não protege contra a perda da conta nem contra o encerramento do serviço.
+
+O mesmo workflow aplica a retenção do [`E5`](E5-mapeamento-lgpd.md) §2.3 e confere, todo dia, que
+o saldo de cada lote é a soma dos seus movimentos (RN-21). Divergência faz o workflow falhar, e a
+falha chega por correio eletrônico.
 
 ### 3.2 Fotografias das espécies
 
-Armazenadas junto ao código, e portanto versionadas e replicadas com ele. Não dependem do backup do
-banco.
+Guardadas no próprio banco, em `especies_fotos`, desde a migration
+`20260811000001_species_photos.sql`. Entram, portanto, na mesma cópia diária que os demais dados.
 
 ### 3.3 Código e estrutura do banco
 
@@ -88,7 +100,6 @@ recuperação precisa restaurar **dados**, nunca esquema.
 |---|---|
 | Fila local de sincronização nos dispositivos | Transitória por natureza. Seu conteúdo é enviado em minutos, e sua perda equivale à perda de um registro não enviado |
 | Sessões ativas | Reconstituíveis por nova autenticação. Restaurá-las seria restaurar credencial antiga |
-| Arquivos de extrato originais | Rebaixáveis do banco a qualquer momento. A informação relevante já está nos lançamentos |
 
 ---
 
@@ -124,11 +135,22 @@ controle: e o momento de descobrir que ela não funciona não pode ser o do desa
 |---|---|
 | **Periodicidade** | Semestral, e obrigatoriamente após qualquer alteração relevante de infraestrutura |
 | **Escopo** | Procedimento completo da seção 4, em instância descartável |
-| **Critério de aprovação** | Sistema operante, contagens compatíveis e **saldo do último mês fechado coincidente com o extrato** |
+| **Critério de aprovação** | Sistema operante, contagens compatíveis, **nenhum lote com saldo diferente da soma dos movimentos** e a contagem de três canteiros coincidente com o saldo |
 | **Registro** | Data, momento restaurado, tempo decorrido e resultado |
 
 O tempo decorrido no teste é o que valida (ou refuta) o RTO declarado de 8 horas. Um objetivo de
 recuperação nunca medido é uma intenção.
+
+**O teste é um comando.** `npm run backup:restaurar -- --arquivo <cópia>` decifra a cópia,
+restaura num banco vazio (e recusa o banco em uso), executa os passos 3 e 6 da seção 4 e imprime o
+tempo gasto. O passo 4, a contagem física, continua sendo de gente.
+
+### Registro dos testes
+
+| Data | Momento restaurado | Origem | Tempo | Resultado |
+|---|---|---|---|---|
+| 29/09/2026 | Banco local de desenvolvimento, no mesmo dia | Ensaio do procedimento, sem o passo 4 | menos de 1 minuto | Aprovado: contagens compatíveis, saldos iguais à soma dos movimentos, migrations em dia |
+| *pendente* | Primeira cópia do banco de produção | Artefato do workflow | | |
 
 ---
 

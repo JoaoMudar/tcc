@@ -132,8 +132,11 @@ cumpre parte dessa transparência ao exibir ao próprio usuário os dados regist
 
 Registrá-las é preferível a declarar conformidade que não existe:
 
-1. **Não há rotina de eliminação por prazo de retenção.** Os prazos estão declarados neste documento;
-   sua aplicação é manual.
+1. **A rotina de eliminação cobre só o registro de acesso.** Desde 29/09/2026 o registro de
+   tentativas de autenticação com mais de 12 meses e a sessão expirada são apagados todo dia, pelo
+   mesmo workflow da cópia de segurança (`npm run db:retencao`, T10.2). Os prazos de cliente e de
+   funcionário dependem do fim de uma relação que o sistema não registra, e sua aplicação continua
+   manual.
 2. **Não há aviso de privacidade apresentado aos titulares.** Clientes e fornecedores não são
    informados formalmente sobre o tratamento, e os **funcionários sem login** são o caso mais
    grave, porque não há tela pela qual informá-los (§2.4).

@@ -95,6 +95,12 @@ Fase 1 (acesso e cadastro) ─┬─> Fase 2 (lotes) ─┬─> Fase 4 (mapa e p
 e canteiro, e o pedido referencia pessoa. **O mapa é o último a funcionar**, porque depende das duas
 fontes de pendência, a tarefa lançada na agenda e a etapa que o protocolo ainda sugere.
 
+**Estado em 29/09/2026.** As Fases 0 a 9 do `P1` estão implementadas, e a Fase 10 (pronto para
+operar) está em andamento: cópia diária cifrada, retenção, conferência diária do saldo, carga
+inicial por planilha e o teste ponta a ponta dos três fluxos existem; faltam a primeira restauração
+de uma cópia do banco de produção, a carga com os dados reais, a execução manual dos casos do `E2`
+que dependem de navegador e a avaliação de usabilidade do `F3`.
+
 ## Formulários de campo (princípios de UX)
 - Máximo 5 campos por tela.
 - Dropdowns com opções pré-definidas (nunca campo aberto para categorias).

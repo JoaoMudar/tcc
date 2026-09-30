@@ -200,14 +200,14 @@ celular) aguarda execução manual no navegador.*
 
 ## Fase 10: Pronto para operar
 
-- [ ] **T10.1** Backup automático fora do Neon e **uma restauração cronometrada** (RNF-13, [`E6`](../docs/engenharia/E-qualidade/E6-plano-backup-recuperacao.md))
-- [ ] **T10.2** Revisão contra `E5` (LGPD) e `E4` (ameaças) (RNF-20)
-- [ ] **T10.3** Testes ponta a ponta dos três fluxos: lote e perda; semana montada e fechada; pedido com saldo
-- [ ] **T10.4** Varredura dos requisitos de campo: até cinco campos, lista fechada, alvo de toque, confirmação visual e vocabulário do `A2`
-- [ ] **T10.5** Carga inicial real: espécies, recipientes, áreas, canteiros, pessoas e os três usuários
+- [ ] **T10.1** Backup automático fora do Neon e **uma restauração cronometrada** (RNF-13, [`E6`](../docs/engenharia/E-qualidade/E6-plano-backup-recuperacao.md)). *Em 29/09/2026: `.github/workflows/backup.yml` copia, cifra (AES-256-GCM, o repositório é público) e guarda como artefato por 30 dias, a do dia 1º por 90; `npm run backup:restaurar` restaura em banco vazio, confere e cronometra, ensaiado contra o banco local. Falta cadastrar os segredos e restaurar uma cópia de produção ([`fase-10-passo-a-passo.md`](../docs/fase-10-passo-a-passo.md), passos 3 e 4)*
+- [x] **T10.2** Revisão contra `E5` (LGPD) e `E4` (ameaças) (RNF-20). *Anexo A do passo a passo. Os onze controles do E4 conferidos no código; retenção de 12 meses do registro de acesso agora automática (`src/lib/manutencao.ts`). **Achado fora do E4**: `docs/funcionarios-viveiro-mudar.md`, com dado de saúde de funcionário, está no repositório público (passo 1)*
+- [x] **T10.3** Testes ponta a ponta dos três fluxos: lote e perda; semana montada e fechada; pedido com saldo. *`ponta-a-ponta.db.test.ts`, contra Postgres real e sobre o mesmo lote, pelas funções que as telas chamam, com a soma dos movimentos conferida a cada passo. Não passa pelo navegador: esse lado fica com os casos do passo 7*
+- [x] **T10.4** Varredura dos requisitos de campo: até cinco campos, lista fechada, alvo de toque, confirmação visual e vocabulário do `A2`. *`requisitos-campo.test.tsx` (TA-21, TA-22, TA-55, TA-56). Dois achados para decisão: a confirmação com três ou mais participantes passa de cinco campos, e há alvos de 32 a 44 px nas telas de planejar pedido (passo 6)*
+- [ ] **T10.5** Carga inicial real: espécies, recipientes, áreas, canteiros, pessoas e os três usuários. *Ferramenta pronta: `npm run db:carga`, CSV do Excel, tudo ou nada e idempotente. Falta preencher as planilhas e gravar (passo 5)*
 - [ ] **T10.6** Todos os casos do `E2` executados, e a conferência de rastreabilidade limpa
 - [ ] **T10.7** Avaliação de usabilidade do `F3` com chefia e gerência
-- [ ] **T10.8** Atualizar `EXECUTION-GUIDE`, `divida-tecnica` e `contexto-projeto` com o estado real
+- [x] **T10.8** Atualizar `EXECUTION-GUIDE`, `divida-tecnica` e `contexto-projeto` com o estado real. *Em 29/09/2026; atualizar de novo ao fechar a fase*
 
 ---
 
