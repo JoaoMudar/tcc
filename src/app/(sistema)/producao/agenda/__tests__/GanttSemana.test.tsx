@@ -1,265 +1,487 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { AtribuicaoResumo, LinhaGrade } from '@/lib/agenda';
-import type { Turno } from '@/lib/turnos';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { AtribuicaoResumo } from '@/lib/agenda';
+import { ANA, GILBERTO, JOAO, MANHA, SEMANA, TARDE, tarefa } from './fixtures';
 
-vi.mock('../actions', () => ({ reagendarAtribuicaoAction: vi.fn(async () => ({})) }));
+const push = vi.fn();
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push, refresh: vi.fn() }) }));
+vi.mock('../actions', () => ({
+  reagendarAtribuicaoAction: vi.fn(async () => ({ success: 'Tarefa remarcada.' })),
+  promoverAtribuicaoAction: vi.fn(async () => ({ success: 'Tarefa em destaque.' })),
+}));
+// O formulário do lançamento tem a sua própria bateria; aqui só importa para onde ele aponta
+vi.mock('../NovaTarefaModal', () => ({
+  NovaTarefaModal: ({
+    ponto,
+  }: {
+    ponto: { dia: string; turnoId: string; participanteId: string | null; horaInicio?: string | null; horaFim?: string | null };
+  }) => (
+    <div role="dialog" aria-label="Lançar tarefa">
+      {ponto.dia} {ponto.turnoId} {ponto.participanteId} {ponto.horaInicio ?? 'sem-hora'} {ponto.horaFim ?? 'sem-hora'}
+    </div>
+  ),
+}));
 
-const { reagendarAtribuicaoAction } = await import('../actions');
-const { GanttSemana } = await import('../GanttSemana');
+const { promoverAtribuicaoAction, reagendarAtribuicaoAction } = await import('../actions');
+const { GanttSemana, HOVER_EXPAND } = await import('../GanttSemana');
 
-const SEGUNDA = '2026-09-14';
-const TERCA = '2026-09-15';
-const DIAS = [SEGUNDA, TERCA];
+const TERCA = '2026-09-29';
+const DIAS = [SEMANA, TERCA];
+const OPCOES = { funcionarios: [], tipos: [], turnos: [], dias: [], lotes: [], especies: [], recipientes: [] };
+const TITULO = /Encher saquinhos/;
 
-const MANHA: Turno = { id: 'turno-manha', nome: 'manha', inicio: '07:00', fim: '11:00', ativo: true };
-const TARDE: Turno = { id: 'turno-tarde', nome: 'tarde', inicio: '13:00', fim: '17:00', ativo: true };
-const TURNOS = [MANHA, TARDE];
-
-function tarefa(over: Partial<AtribuicaoResumo> = {}): AtribuicaoResumo {
-  return {
-    id: 'a1',
-    semanaId: 's1',
-    semanaInicio: SEGUNDA,
-    semanaSituacao: 'aberta',
-    data: SEGUNDA,
-    turnoId: MANHA.id,
-    turno: 'manha',
-    horaInicio: null,
-    horaFim: null,
-    tipoTarefaId: 't1',
-    tipo: 'Semeadura',
-    eQuantitativa: false,
-    exigeLote: false,
-    exigeEspecie: false,
-    exigeRecipiente: false,
-    exigeArea: false,
-    unidadeMedida: 'un',
-    especieId: null,
-    especie: null,
-    recipienteId: null,
-    recipiente: null,
-    loteId: null,
-    loteCodigo: null,
-    areaId: null,
-    area: null,
-    canteiroId: null,
-    canteiro: null,
-    quantidadePlanejada: null,
-    eRecorrente: false,
-    situacao: 'confirmada',
-    observacoes: null,
-    participantes: [],
-    ...over,
-  };
+function montar(atribuicoes: AtribuicaoResumo[] = [tarefa()], props: Partial<Parameters<typeof GanttSemana>[0]> = {}) {
+  return render(
+    <GanttSemana
+      atribuicoes={atribuicoes}
+      funcionarios={[GILBERTO, JOAO, ANA]}
+      dias={DIAS}
+      turnos={[MANHA, TARDE]}
+      hoje={SEMANA}
+      semana={SEMANA}
+      anterior="/producao?dia=2026-09-21"
+      proxima="/producao?dia=2026-10-05"
+      podeArrastar
+      {...props}
+    />,
+  );
 }
 
-function linha(porDia: Record<string, AtribuicaoResumo[]>, nome = 'Rogério'): LinhaGrade {
-  return { pessoa: { id: `p-${nome}`, nome }, porDia };
+/** A área de dias da linha de uma pessoa, que é o que o arrasto procura sob o ponteiro. */
+function linhaDe(id: string): Element {
+  return document.querySelector(`[data-pessoa="${id}"]`)!;
 }
 
-function montar(grade: LinhaGrade[], props: { podeArrastar?: boolean } = {}) {
-  return render(<GanttSemana grade={grade} dias={DIAS} turnos={TURNOS} hoje={SEGUNDA} semana={SEGUNDA} {...props} />);
+function enviado(chamada = 0): Record<string, FormDataEntryValue> {
+  const dados = vi.mocked(reagendarAtribuicaoAction).mock.calls[chamada][1] as FormData;
+  return Object.fromEntries(dados.entries());
+}
+
+function estilo(link: Element): CSSStyleDeclaration {
+  return (link.parentElement as HTMLElement).style;
+}
+
+/** Irrigação das 08:30 às 09:30, dentro da tarefa da manhã inteira: mais curta, fica na faixa de baixo. */
+const IRRIGACAO = { id: 'a2', tipo: 'Irrigação', horaInicio: '08:30', horaFim: '09:30' };
+
+/**
+ * No jsdom toda caixa mede zero: cada coluna de dia vale 1px. O eixo tem as
+ * 07:30–11:30 e as 13:30–17:30, oito horas úteis, e o almoço não ocupa largura:
+ * 0.25 da coluna é 09:30, 0.5 é o divisor, e logo depois já é a tarde.
+ */
+async function arrastar(alvo: Element, ate: { clientX: number; linha?: Element }) {
+  const original = document.elementFromPoint;
+  document.elementFromPoint = () => ate.linha ?? null;
+  fireEvent.pointerDown(alvo, { button: 0, clientX: 0, pointerId: 1 });
+  fireEvent.pointerMove(window, { clientX: ate.clientX, pointerId: 1 });
+  await act(async () => fireEvent.pointerUp(window, { clientX: ate.clientX, pointerId: 1 }));
+  document.elementFromPoint = original;
 }
 
 beforeEach(() => {
   vi.clearAllMocks();
 });
 
-describe('GanttSemana (T5.1, RF-26, RNF-14)', () => {
-  it('desenha uma barra por tarefa, com o tipo legível', () => {
-    montar([linha({ [SEGUNDA]: [tarefa()] })]);
-    expect(screen.getByRole('link', { name: /Semeadura/ })).toHaveTextContent('Semeadura');
+afterEach(() => vi.useRealTimers());
+
+describe('GanttSemana: desenho (T5.1, RNF-14)', () => {
+  it('a barra traz o título, a faixa e o fundo da categoria, e leva à ficha', () => {
+    montar();
+    const barra = screen.getByRole('link', { name: TITULO });
+    expect(barra).toHaveAttribute('href', '/producao/agenda/a1');
+    expect(barra.querySelector('.bg-orange-800')).not.toBeNull();
+    expect(barra.className).toContain('bg-orange-800/[0.08]');
   });
 
-  it('separa os dias com régua, e tinge a coluna de hoje', () => {
-    const { container } = montar([linha({ [SEGUNDA]: [tarefa()] })]);
-    const colunas = (nome: string) => Array.from(container.querySelectorAll(`[aria-label="${nome}"]`));
-
-    const [segunda] = colunas('Segunda');
-    const [terca] = colunas('Terça');
-    expect(segunda.className).toContain('border-r');
-    expect(terca.className).toContain('border-r');
-    // Hoje é a segunda: só ela vem tingida.
-    expect(segunda.className).toContain('bg-brand-light/25');
-    expect(terca.className).not.toContain('bg-brand-light/25');
+  it('o almoço não ocupa largura: a manhã é a primeira metade e a tarde a segunda, sem tracejado (RN-12)', () => {
+    montar([tarefa(), tarefa({ id: 'a2', turnoId: TARDE.id, turno: 'tarde' })]);
+    const [manha, tarde] = screen.getAllByRole('link', { name: TITULO });
+    expect(estilo(manha).left).toBe('0%');
+    expect(estilo(manha).width).toBe('50%');
+    expect(estilo(tarde).left).toBe('50%');
+    expect(manha.className).not.toContain('border-dashed');
   });
 
-  it('não desenha marca de hora sobre a régua do dia', () => {
-    const { container } = montar([linha({ [SEGUNDA]: [tarefa()] })]);
-    const marcas = Array.from(container.querySelectorAll<HTMLElement>('[aria-label="Segunda"] .w-px'));
-
-    expect(marcas.length).toBeGreaterThan(0);
-    for (const marca of marcas) {
-      expect(marca.style.left).not.toBe('0%');
-      expect(marca.style.left).not.toBe('100%');
-    }
+  it('com hora, a barra ocupa a hora e mostra o horário; sem hora, mostra o turno no mesmo lugar', () => {
+    montar([tarefa({ horaInicio: '07:30', horaFim: '08:30' }), tarefa({ id: 'a2', data: TERCA })]);
+    const [comHora, semHora] = screen.getAllByRole('link', { name: TITULO });
+    expect(comHora).toHaveTextContent('07:30–08:30');
+    expect(estilo(comHora).width).toBe('12.5%');
+    expect(semHora).toHaveTextContent('Manhã');
+    expect(semHora).toHaveAttribute('title', expect.stringContaining('sem hora marcada'));
   });
 
-  it('diz o estado no rótulo, para a cor não ser o único sinal', () => {
-    montar([linha({ [SEGUNDA]: [tarefa({ situacao: 'nao_confirmada' })] })]);
-    expect(screen.getByLabelText('Semeadura, Segunda, Manhã, Presumida')).toBeInTheDocument();
+  it('o título nunca quebra no meio da palavra', () => {
+    montar();
+    const titulo = within(screen.getByRole('link', { name: TITULO })).getByText(TITULO);
+    expect(titulo.className).toContain('[word-break:normal]');
+    expect(titulo.className).toContain('[overflow-wrap:normal]');
+    expect(titulo.className).not.toMatch(/break-all|break-words|wrap-anywhere/);
   });
 
-  it('deriva parcial da soma abaixo do planejado (RF-29)', () => {
-    montar([
-      linha({
-        [SEGUNDA]: [
-          tarefa({ eQuantitativa: true, quantidadePlanejada: 100, participantes: [{ id: 'p1', nome: 'Ana', quantidade: 40 }] }),
-        ],
-      }),
-    ]);
-    expect(screen.getByLabelText(/Parcial$/)).toBeInTheDocument();
+  it('o ícone de estado só aparece fora do planejado', () => {
+    montar([tarefa(), tarefa({ id: 'a2', data: TERCA, situacao: 'nao_confirmada' })]);
+    expect(screen.queryByRole('img', { name: 'Planejada' })).toBeNull();
+    expect(screen.getByRole('img', { name: 'Presumida' })).toBeInTheDocument();
   });
 
-  it('empilha duas tarefas sobrepostas em sub-linhas, sem esconder nenhuma (RF-26, TA-26)', () => {
-    montar([
-      linha({
-        [SEGUNDA]: [tarefa({ id: 'a1', tipo: 'Semeadura' }), tarefa({ id: 'a2', tipo: 'Irrigação' })],
-      }),
-    ]);
-    expect(screen.getByRole('link', { name: /Semeadura/ })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Irrigação/ })).toBeInTheDocument();
+  it('a régua fora de foco numera só as horas pares, sem a hora do almoço, e mostra todas as pessoas', () => {
+    montar([]);
+    expect(screen.getAllByText('8').length).toBeGreaterThan(0);
+    expect(screen.queryByText('9')).toBeNull();
+    expect(screen.queryByText('12')).toBeNull();
+    expect(screen.getByText('Ana')).toBeInTheDocument();
+    expect(screen.getAllByText('Sem tarefa na semana')).toHaveLength(3);
   });
 
-  it('posiciona a barra pela hora dentro do eixo do dia', () => {
-    const { container } = montar([
-      linha({
-        [SEGUNDA]: [tarefa({ id: 'a1', tipo: 'Semeadura' }), tarefa({ id: 'a2', tipo: 'Adubação', turnoId: TARDE.id, turno: 'tarde' })],
-      }),
-    ]);
-    const caixa = (rotulo: string) => container.querySelector(`a[aria-label*="${rotulo}"]`)!.parentElement as HTMLElement;
-    // O eixo vai das 07h às 17h: a manhã ocupa os primeiros 40%, a tarde os últimos 40%
-    expect(caixa('Manhã').style.left).toBe('0%');
-    expect(caixa('Manhã').style.width).toBe('40%');
-    expect(caixa('Tarde').style.left).toBe('60%');
-    expect(caixa('Tarde').style.width).toBe('40%');
+  it('não há mais o parágrafo de instruções sob a grade', () => {
+    montar([tarefa()], { opcoes: OPCOES });
+    expect(screen.queryByText(/Clique em qualquer vazio/)).toBeNull();
+    expect(screen.queryByText(/arraste-a para cima/)).toBeNull();
   });
 
-  it('mostra a hora só na tarefa que a tem (RN-12)', () => {
-    montar([linha({ [SEGUNDA]: [tarefa({ tipo: 'Irrigação', horaInicio: '07:00', horaFim: '08:00' })] })]);
-    expect(screen.getByRole('link', { name: /Irrigação/ })).toHaveTextContent('07:00 às 08:00');
-  });
-
-  it('nomeia a linha das tarefas sem ninguém escalado', () => {
-    montar([{ pessoa: null, porDia: { [SEGUNDA]: [tarefa()] } }]);
-    expect(screen.getByText('Sem ninguém')).toBeInTheDocument();
-  });
-
-  it('traz a legenda dos estados', () => {
-    const { container } = montar([linha({ [SEGUNDA]: [tarefa()] })]);
-    const legenda = container.querySelector('ul') as HTMLElement;
-    for (const rotulo of ['Feita', 'Parcial', 'Presumida', 'Não feita']) {
-      expect(within(legenda).getByText(rotulo)).toBeInTheDocument();
-    }
+  it('a barra de ocupação mostra o quanto da jornada a pessoa tem no dia', () => {
+    montar([tarefa(), tarefa(IRRIGACAO)]);
+    // A manhã inteira (4h) mais a irrigação (1h), numa jornada de 8h
+    expect(within(linhaDe(GILBERTO.id) as HTMLElement).getByRole('img', { name: 'Ocupação: 5h00 de 8h00' })).toHaveAttribute('title', '5h00 / 8h00');
   });
 });
 
-describe('eixo de hora', () => {
-  it('numera as horas cheias da janela no cabeçalho do dia', () => {
-    montar([linha({ [SEGUNDA]: [tarefa()] })]);
-    const cabecalho = screen.getByRole('link', { name: /SEG/ }).parentElement as HTMLElement;
-    expect(within(cabecalho).getByText('7')).toBeInTheDocument();
-    expect(within(cabecalho).getByText('12')).toBeInTheDocument();
-    expect(within(cabecalho).getByText('17')).toBeInTheDocument();
+describe('GanttSemana: sobreposição em duas faixas (RF-26)', () => {
+  it('a linha não cresce: a mais longa fica em cima com 60%, e a outra embaixo com 40%', () => {
+    montar([tarefa(), tarefa(IRRIGACAO)]);
+    expect((linhaDe(GILBERTO.id) as HTMLElement).style.height).toBe('60px');
+    // A manhã sai antes, durante (em cima) e depois da irrigação
+    const principais = screen.getAllByRole('link', { name: /^Encher saquinhos.*Planejada$/ });
+    expect(principais.map((b) => [estilo(b).left, estilo(b).height])).toEqual([
+      ['0%', '100%'],
+      ['12.5%', '60%'],
+      ['25%', '100%'],
+    ]);
+    const irrigar = screen.getByRole('link', { name: /^Irrigação.*faixa de baixo/ });
+    expect(estilo(irrigar)).toMatchObject({ top: '60%', height: '40%', left: '12.5%' });
+  });
+
+  it('a secundária mostra só o título, sem horário', () => {
+    montar([tarefa(), tarefa(IRRIGACAO)]);
+    const irrigar = screen.getByRole('link', { name: /^Irrigação.*faixa de baixo/ });
+    expect(irrigar).toHaveTextContent(/^Irrigação$/);
+  });
+
+  it('a escolhida à mão fica em cima, mesmo sendo a mais curta', () => {
+    montar([tarefa(), tarefa({ ...IRRIGACAO, prioridadeEm: '2026-09-21T12:00:00.000000Z' })]);
+    expect(screen.getByRole('link', { name: /Encher saquinhos.*faixa de baixo/ })).toBeInTheDocument();
+    expect(estilo(screen.getByRole('link', { name: /^Irrigação.*Planejada$/ })).height).toBe('60%');
+  });
+
+  it('"Tornar principal" na secundária grava a escolha', async () => {
+    montar([tarefa(), tarefa(IRRIGACAO)]);
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Tornar principal: Irrigação' })));
+    expect(promoverAtribuicaoAction).toHaveBeenCalledTimes(1);
+    expect(Object.fromEntries((vi.mocked(promoverAtribuicaoAction).mock.calls[0][1] as FormData).entries())).toEqual({ id: 'a2' });
+  });
+
+  it('Shift com seta para cima na secundária também a torna principal (RNF-03)', async () => {
+    montar([tarefa(), tarefa(IRRIGACAO)]);
+    await act(async () => fireEvent.keyDown(screen.getByRole('link', { name: /^Irrigação.*faixa de baixo/ }), { key: 'ArrowUp', shiftKey: true }));
+    expect(promoverAtribuicaoAction).toHaveBeenCalledTimes(1);
+  });
+
+  it('sem permissão, não há "Tornar principal"', () => {
+    montar([tarefa(), tarefa(IRRIGACAO)], { podeArrastar: false });
+    expect(screen.queryByRole('button', { name: /Tornar principal/ })).toBeNull();
+  });
+
+  it('a terceira que não cabe vira "+1", que abre a lista com o "Tornar principal" dela', async () => {
+    montar([tarefa(), tarefa(IRRIGACAO), tarefa({ id: 'a3', tipo: 'Adubar', categoria: 'manutencao', horaInicio: '08:45', horaFim: '09:15' })]);
+    fireEvent.click(screen.getByRole('button', { name: 'Mais 1 tarefa neste horário' }));
+    const lista = screen.getByRole('dialog', { name: 'Tarefas no mesmo horário' });
+    expect(within(lista).getByRole('link', { name: /Adubar/ })).toHaveAttribute('href', '/producao/agenda/a3');
+    await act(async () => fireEvent.click(within(lista).getByRole('button', { name: 'Tornar principal' })));
+    expect(Object.fromEntries((vi.mocked(promoverAtribuicaoAction).mock.calls[0][1] as FormData).entries())).toEqual({ id: 'a3' });
+  });
+
+  it('a que termina às 9h45 e a que começa às 9h45 se encostam, sem recuo entre elas', () => {
+    montar([
+      tarefa({ horaInicio: '09:00', horaFim: '09:45' }),
+      tarefa({ ...IRRIGACAO, horaInicio: '09:45', horaFim: '10:30' }),
+    ]);
+    const antes = screen.getByRole('link', { name: /^Encher saquinhos/ });
+    const depois = screen.getByRole('link', { name: /^Irrigação/ });
+    expect(antes.parentElement).not.toHaveClass('pr-0.5');
+    expect(antes).toHaveClass('rounded-r-none');
+    expect(depois.parentElement).not.toHaveClass('pl-0.5');
+    expect(depois).toHaveClass('rounded-l-none');
+  });
+
+  it('a alça de duração só fica na borda real da tarefa cortada', () => {
+    montar([tarefa(), tarefa(IRRIGACAO)]);
+    expect(screen.getAllByLabelText(/Mudar o início de Encher/)).toHaveLength(1);
+    expect(screen.getAllByLabelText(/Mudar o fim de Encher/)).toHaveLength(1);
   });
 });
 
-describe('arrastar para remarcar (RNF-14, RNF-03)', () => {
-  const planejada = (over: Partial<AtribuicaoResumo> = {}) =>
-    tarefa({ situacao: 'planejada', horaInicio: '07:00', horaFim: '08:00', ...over });
+describe('GanttSemana: o dia sob o mouse cresce', () => {
+  const colunasDa = (id: string) => (linhaDe(id) as HTMLElement).style.gridTemplateColumns;
+  const celula = (id: string, nome: string) => within(linhaDe(id) as HTMLElement).getByLabelText(nome);
 
-  it('sem permissão de alterar, a barra não tem borda para puxar', () => {
-    montar([linha({ [SEGUNDA]: [planejada()] })], { podeArrastar: false });
-    expect(screen.queryByLabelText(/Mudar o início/)).not.toBeInTheDocument();
+  it('só depois de 150ms parado, e a grade toda junto; sair da grade devolve', () => {
+    vi.useFakeTimers();
+    montar();
+    fireEvent.pointerEnter(celula(GILBERTO.id, 'Terça'));
+    act(() => vi.advanceTimersByTime(100));
+    expect(colunasDa(GILBERTO.id)).not.toContain(`${HOVER_EXPAND}fr`);
+    act(() => vi.advanceTimersByTime(60));
+    expect(colunasDa(GILBERTO.id)).toBe(`minmax(0, 1fr) minmax(0, ${HOVER_EXPAND}fr)`);
+    expect(colunasDa(JOAO.id)).toBe(colunasDa(GILBERTO.id));
+
+    fireEvent.pointerLeave(linhaDe(GILBERTO.id).parentElement!.parentElement!);
+    expect(colunasDa(GILBERTO.id)).toBe('minmax(0, 1fr) minmax(0, 1fr)');
   });
 
-  it('a tarefa que já aconteceu não se remaneja, mesmo com permissão', () => {
-    montar([linha({ [SEGUNDA]: [planejada({ situacao: 'confirmada' })] })], { podeArrastar: true });
-    expect(screen.queryByLabelText(/Mudar o início/)).not.toBeInTheDocument();
+  it('no dia em foco a régua numera todas as horas', () => {
+    vi.useFakeTimers();
+    montar([]);
+    expect(screen.queryByText('9')).toBeNull();
+    fireEvent.pointerEnter(celula(GILBERTO.id, 'Segunda'));
+    act(() => vi.advanceTimersByTime(150));
+    expect(screen.getByText('9')).toBeInTheDocument();
   });
 
-  it('a planejada ganha as duas bordas quando se pode alterar', () => {
-    montar([linha({ [SEGUNDA]: [planejada()] })], { podeArrastar: true });
-    expect(screen.getByLabelText('Mudar o início de Semeadura')).toBeInTheDocument();
-    expect(screen.getByLabelText('Mudar o fim de Semeadura')).toBeInTheDocument();
+  it('durante o arrasto as larguras ficam paradas', () => {
+    vi.useFakeTimers();
+    montar([tarefa({ horaInicio: '07:30', horaFim: '08:30' })]);
+    fireEvent.pointerDown(screen.getByRole('link', { name: TITULO }), { button: 0, clientX: 0, pointerId: 1 });
+    fireEvent.pointerEnter(celula(GILBERTO.id, 'Terça'));
+    act(() => vi.advanceTimersByTime(300));
+    expect(colunasDa(GILBERTO.id)).toBe('minmax(0, 1fr) minmax(0, 1fr)');
+    fireEvent.keyDown(window, { key: 'Escape' });
   });
 
-  it('shift com a seta remarca pelo teclado, e manda o turno junto (RNF-03)', async () => {
-    montar([linha({ [SEGUNDA]: [planejada()] })], { podeArrastar: true });
-    fireEvent.keyDown(screen.getByRole('link', { name: /Semeadura/ }), { key: 'ArrowRight', shiftKey: true });
+  it('o arrasto mede o dia pela largura real da célula, e não por colunas iguais', async () => {
+    montar([tarefa({ horaInicio: '07:30', horaFim: '08:30' })]);
+    // Segunda em foco: 1.6px; terça: 1px
+    const [segunda, terca] = [celula(GILBERTO.id, 'Segunda'), celula(GILBERTO.id, 'Terça')];
+    const caixa = (left: number, width: number) => () => ({ left, width, top: 0, height: 60, right: left + width, bottom: 60, x: left, y: 0, toJSON: () => ({}) });
+    segunda.getBoundingClientRect = caixa(0, 1.6);
+    terca.getBoundingClientRect = caixa(1.6, 1);
+    await arrastar(screen.getByRole('link', { name: TITULO }), { clientX: 1.85, linha: linhaDe(GILBERTO.id) });
+    expect(enviado()).toMatchObject({ data: TERCA, hora_inicio: '09:30', hora_fim: '10:30' });
+  });
+});
 
-    expect(reagendarAtribuicaoAction).toHaveBeenCalledTimes(1);
-    const dados = vi.mocked(reagendarAtribuicaoAction).mock.calls[0][1] as FormData;
-    expect(Object.fromEntries(dados.entries())).toEqual({
-      id: 'a1',
-      data: SEGUNDA,
-      turno_id: MANHA.id,
-      hora_inicio: '07:15',
-      hora_fim: '08:15',
+describe('GanttSemana: lançar no vazio (RF-26)', () => {
+  /** A célula com 100px: oito horas úteis, cada pixel vale 4,8 minutos. */
+  function clicarEm(botao: Element, clientX: number) {
+    botao.getBoundingClientRect = () => ({ left: 0, width: 100, top: 0, height: 60, right: 100, bottom: 60, x: 0, y: 0, toJSON: () => ({}) });
+    fireEvent.click(botao, { clientX, detail: 1 });
+  }
+
+  it('o clique no turno vazio lança já com pessoa, dia e turno, sem hora', () => {
+    montar([tarefa()], { opcoes: OPCOES });
+    clicarEm(screen.getByRole('button', { name: 'Lançar tarefa: João, Terça' }), 70);
+    expect(screen.getByRole('dialog', { name: 'Lançar tarefa' })).toHaveTextContent(`${TERCA} ${TARDE.id} ${JOAO.id} sem-hora sem-hora`);
+  });
+
+  it('ao lado de uma tarefa marcada, a nova ocupa o resto livre do turno', () => {
+    montar([tarefa({ horaInicio: '08:00', horaFim: '09:00' })], { opcoes: OPCOES });
+    // 40px = 10:42, à direita da tarefa das 8 às 9
+    clicarEm(screen.getByRole('button', { name: 'Lançar tarefa: Gilberto, Segunda' }), 40);
+    expect(screen.getByRole('dialog', { name: 'Lançar tarefa' })).toHaveTextContent(`${SEMANA} ${MANHA.id} ${GILBERTO.id} 09:00 11:30`);
+  });
+
+  it('o mouse sobre o vazio mostra a faixa de quinze minutos com o "+"', () => {
+    montar([], { opcoes: OPCOES });
+    const botao = screen.getByRole('button', { name: 'Lançar tarefa: Ana, Segunda' });
+    botao.getBoundingClientRect = () => ({ left: 0, width: 100, top: 0, height: 60, right: 100, bottom: 60, x: 0, y: 0, toJSON: () => ({}) });
+    fireEvent.pointerMove(botao, { clientX: 25 });
+    expect(botao.parentElement).toHaveTextContent('+');
+    fireEvent.pointerLeave(botao);
+    expect(botao.parentElement).not.toHaveTextContent('+');
+  });
+
+  it('pelo teclado, o botão lança no começo do dia', () => {
+    montar([], { opcoes: OPCOES });
+    fireEvent.click(screen.getByRole('button', { name: 'Lançar tarefa: Ana, Segunda' }));
+    expect(screen.getByRole('dialog', { name: 'Lançar tarefa' })).toHaveTextContent(`${SEMANA} ${MANHA.id} ${ANA.id} sem-hora`);
+  });
+
+  it('sem as listas do formulário não há onde clicar', () => {
+    montar();
+    expect(screen.queryByRole('button', { name: /Lançar tarefa/ })).toBeNull();
+  });
+});
+
+describe('GanttSemana: arrastar (RNF-14, RN-61)', () => {
+  it('sem permissão, ou tarefa já feita, a barra não tem borda para puxar', () => {
+    const { unmount } = montar([tarefa()], { podeArrastar: false });
+    expect(screen.queryByLabelText(/Mudar o início/)).toBeNull();
+    unmount();
+    montar([tarefa({ situacao: 'confirmada' })]);
+    expect(screen.queryByLabelText(/Mudar o início/)).toBeNull();
+  });
+
+  it('puxar a borda do fim declara a hora', async () => {
+    montar([tarefa({ horaInicio: '07:30', horaFim: '08:30' })]);
+    // 0.25 da coluna = 07:30 + 2h
+    await arrastar(screen.getByLabelText(/Mudar o fim/), { clientX: 0.25 });
+    expect(enviado()).toEqual({ id: 'a1', data: SEMANA, turno_id: MANHA.id, hora_inicio: '07:30', hora_fim: '09:30' });
+  });
+
+  it('o balão mostra o horário durante o arrasto, e a pessoa nova ao trocar de linha', () => {
+    montar([tarefa({ horaInicio: '07:30', horaFim: '08:30' })]);
+    const original = document.elementFromPoint;
+    document.elementFromPoint = () => linhaDe(JOAO.id);
+    fireEvent.pointerDown(screen.getByRole('link', { name: TITULO }), { button: 0, clientX: 0, pointerId: 1 });
+    fireEvent.pointerMove(window, { clientX: 0.25, pointerId: 1 });
+    const fantasma = within(linhaDe(JOAO.id) as HTMLElement).getByRole('link', { name: TITULO });
+    expect(fantasma.parentElement).toHaveTextContent('09:30–10:30→ João');
+    // O lugar de origem fica apagado, para o olho medir quanto andou
+    expect(linhaDe(GILBERTO.id).querySelector('.opacity-40')).not.toBeNull();
+    fireEvent.keyDown(window, { key: 'Escape' });
+    document.elementFromPoint = original;
+  });
+
+  it('arrastar para outro dia na mesma hora não inventa hora', async () => {
+    montar();
+    await arrastar(screen.getByRole('link', { name: TITULO }), { clientX: 1, linha: linhaDe(GILBERTO.id) });
+    expect(enviado()).toEqual({ id: 'a1', data: TERCA, turno_id: MANHA.id, hora_inicio: '', hora_fim: '' });
+  });
+
+  it('passado o divisor já é a tarde, e perto do começo dela a barra se imanta; com aviso e desfazer', async () => {
+    montar([tarefa({ horaInicio: '07:30', horaFim: '08:30' })]);
+    // 0.51 da coluna = 13:35, a cinco minutos do começo da tarde
+    await arrastar(screen.getByRole('link', { name: TITULO }), { clientX: 0.51, linha: linhaDe(GILBERTO.id) });
+    expect(enviado()).toMatchObject({ turno_id: TARDE.id, hora_inicio: '13:30', hora_fim: '14:30' });
+
+    const aviso = screen.getAllByRole('status').find((el) => el.textContent?.includes('remarcada'))!;
+    await act(async () => fireEvent.click(within(aviso).getByRole('button', { name: 'Desfazer' })));
+    expect(enviado(1)).toMatchObject({ turno_id: MANHA.id, hora_inicio: '07:30', hora_fim: '08:30' });
+  });
+
+  it('Ctrl+Z desfaz enquanto o aviso está na tela', async () => {
+    montar([tarefa({ horaInicio: '07:30', horaFim: '08:30' })]);
+    await arrastar(screen.getByRole('link', { name: TITULO }), { clientX: 0.25, linha: linhaDe(GILBERTO.id) });
+    await act(async () => fireEvent.keyDown(document.body, { key: 'z', ctrlKey: true }));
+    expect(reagendarAtribuicaoAction).toHaveBeenCalledTimes(2);
+    expect(enviado(1)).toMatchObject({ hora_inicio: '07:30', hora_fim: '08:30' });
+  });
+
+  it('soltar na linha de outra pessoa troca quem faz', async () => {
+    montar();
+    await arrastar(screen.getByRole('link', { name: TITULO }), { clientX: 0, linha: linhaDe(JOAO.id) });
+    expect(enviado()).toMatchObject({ data: SEMANA, sai: GILBERTO.id, entra: JOAO.id, hora_inicio: '' });
+  });
+
+  it('não põe na tarefa quem já está nela', async () => {
+    montar([tarefa({ participantes: [{ ...GILBERTO, quantidade: null }, { ...JOAO, quantidade: null }] })]);
+    const [doGilberto] = screen.getAllByRole('link', { name: TITULO });
+    await arrastar(doGilberto, { clientX: 0, linha: linhaDe(JOAO.id) });
+    expect(reagendarAtribuicaoAction).not.toHaveBeenCalled();
+    expect(screen.getByRole('alert')).toHaveTextContent('João já está nesta tarefa');
+  });
+
+  it('soltar sem sair do lugar não chama o servidor', async () => {
+    montar();
+    await arrastar(screen.getByRole('link', { name: TITULO }), { clientX: 0, linha: linhaDe(GILBERTO.id) });
+    expect(reagendarAtribuicaoAction).not.toHaveBeenCalled();
+  });
+
+  it('shift com a seta remarca pelo teclado, sem trocar de semana (RNF-03)', async () => {
+    montar([tarefa({ horaInicio: '07:30', horaFim: '08:30' })]);
+    await act(async () => fireEvent.keyDown(screen.getByRole('link', { name: TITULO }), { key: 'ArrowRight', shiftKey: true }));
+    expect(enviado()).toEqual({ id: 'a1', data: SEMANA, turno_id: MANHA.id, hora_inicio: '07:45', hora_fim: '08:45' });
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  describe('a tarefa do grupo anda junta', () => {
+    const DO_GRUPO = { horaInicio: '07:30', horaFim: '08:30', participantes: [{ ...GILBERTO, quantidade: null }, { ...JOAO, quantidade: null }] };
+
+    /** Pega a barra e leva o ponteiro, sem soltar: é o desenho no meio do gesto. */
+    function pegarEMover(alvo: Element, ate: { clientX: number; linha: Element }) {
+      document.elementFromPoint = () => ate.linha;
+      fireEvent.pointerDown(alvo, { button: 0, clientX: 0, pointerId: 1 });
+      fireEvent.pointerMove(window, { clientX: ate.clientX, pointerId: 1 });
+    }
+
+    it('a cópia do colega vai para o dia e a hora novos durante o arrasto, não só no soltar', async () => {
+      montar([tarefa(DO_GRUPO)]);
+      const original = document.elementFromPoint;
+      const [doGilberto] = screen.getAllByRole('link', { name: TITULO });
+      // 1.51 = terça, 13:35, imantada nas 13:30
+      pegarEMover(doGilberto, { clientX: 1.51, linha: linhaDe(GILBERTO.id) });
+
+      const doJoao = within(linhaDe(JOAO.id) as HTMLElement).getByRole('link', { name: TITULO });
+      expect(doJoao.closest('[aria-label="Terça"]')).not.toBeNull();
+      expect(estilo(doJoao).left).toBe('50%');
+
+      await act(async () => fireEvent.pointerUp(window, { clientX: 1.51, pointerId: 1 }));
+      document.elementFromPoint = original;
+      expect(reagendarAtribuicaoAction).toHaveBeenCalledTimes(1);
+    });
+
+    it('levada para a linha de um colega, a linha dele mostra a tarefa uma vez só', () => {
+      montar([tarefa(DO_GRUPO)]);
+      const original = document.elementFromPoint;
+      const [doGilberto] = screen.getAllByRole('link', { name: TITULO });
+      pegarEMover(doGilberto, { clientX: 0, linha: linhaDe(JOAO.id) });
+      expect(within(linhaDe(JOAO.id) as HTMLElement).getAllByRole('link', { name: TITULO })).toHaveLength(1);
+      fireEvent.keyDown(window, { key: 'Escape' });
+      document.elementFromPoint = original;
     });
   });
 
-  it('alt com a seta muda só a duração, e o início fica onde estava', async () => {
-    montar([linha({ [SEGUNDA]: [planejada()] })], { podeArrastar: true });
-    fireEvent.keyDown(screen.getByRole('link', { name: /Semeadura/ }), { key: 'ArrowRight', altKey: true });
+  describe('a secundária também tem a borda para puxar', () => {
+    /** 08:00 às 09:00, dentro de uma irrigação das 07:30 às 11:30: é a mais curta, e fica embaixo. */
+    const CRUZADAS = [tarefa({ horaInicio: '08:00', horaFim: '09:00' }), tarefa({ id: 'a2', tipo: 'Irrigação', horaInicio: '07:30', horaFim: '11:30' })];
 
-    const dados = vi.mocked(reagendarAtribuicaoAction).mock.calls[0][1] as FormData;
-    expect(dados.get('hora_inicio')).toBe('07:00');
-    expect(dados.get('hora_fim')).toBe('08:15');
+    it('puxar o fim da secundária muda a duração, sem torná-la principal', async () => {
+      montar(CRUZADAS);
+      expect(screen.getByRole('link', { name: /Encher saquinhos.*faixa de baixo/ })).toBeInTheDocument();
+      expect(screen.getByLabelText(/Mudar o início de Encher/)).toBeInTheDocument();
+      // 0.25 da coluna = 09:30
+      await arrastar(screen.getByLabelText(/Mudar o fim de Encher/), { clientX: 0.25 });
+      expect(enviado()).toEqual({ id: 'a1', data: SEMANA, turno_id: MANHA.id, hora_inicio: '08:00', hora_fim: '09:30' });
+      expect(promoverAtribuicaoAction).not.toHaveBeenCalled();
+    });
+
+    it('sem permissão, a secundária não tem borda', () => {
+      montar(CRUZADAS, { podeArrastar: false });
+      expect(screen.queryByLabelText(/Mudar o fim de Encher/)).toBeNull();
+    });
   });
 
-  it('seta sem modificador não remarca: é navegação', () => {
-    montar([linha({ [SEGUNDA]: [planejada()] })], { podeArrastar: true });
-    fireEvent.keyDown(screen.getByRole('link', { name: /Semeadura/ }), { key: 'ArrowRight' });
-    expect(reagendarAtribuicaoAction).not.toHaveBeenCalled();
+  it('atalhos: ← e → trocam de semana, T volta para hoje', () => {
+    montar();
+    fireEvent.keyDown(document.body, { key: 'ArrowLeft' });
+    fireEvent.keyDown(document.body, { key: 't' });
+    expect(push).toHaveBeenNthCalledWith(1, '/producao?dia=2026-09-21', { scroll: false });
+    expect(push).toHaveBeenNthCalledWith(2, '/producao', { scroll: false });
+  });
+});
+
+describe('GanttSemana: linha do agora e sem balões de instrução', () => {
+  it('a linha do agora aparece só na coluna de hoje, na hora corrente', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 8, 28, 9, 30));
+    montar([]);
+    const linhas = linhaDe(GILBERTO.id).querySelectorAll<HTMLElement>('[data-agora]');
+    expect(linhas).toHaveLength(1);
+    expect(linhas[0].closest('[aria-label="Segunda"]')).not.toBeNull();
+    expect(linhas[0].style.left).toBe('25%');
   });
 
-  it('arrastar a barra para outro dia remarca, sem quebrar o estado otimista', async () => {
-    // No jsdom toda caixa mede zero: a coluna vale 1px, e um clientX por dia
-    montar([linha({ [SEGUNDA]: [planejada()] })], { podeArrastar: true });
-    const barra = screen.getByRole('link', { name: /Semeadura/ });
-
-    fireEvent.pointerDown(barra, { button: 0, clientX: 0, pointerId: 1 });
-    fireEvent.pointerMove(window, { clientX: 1, pointerId: 1 });
-    fireEvent.pointerUp(window, { clientX: 1, pointerId: 1 });
-
-    expect(reagendarAtribuicaoAction).toHaveBeenCalledTimes(1);
-    const dados = vi.mocked(reagendarAtribuicaoAction).mock.calls[0][1] as FormData;
-    expect(dados.get('data')).toBe(TERCA);
-    expect(dados.get('hora_inicio')).toBe('07:00');
-    expect(dados.get('hora_fim')).toBe('08:00');
+  it('em outra semana não há linha do agora', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 8, 28, 9, 30));
+    montar([], { hoje: '2026-10-01' });
+    expect(document.querySelector('[data-agora]')).toBeNull();
   });
 
-  it('soltar sem ter saído do lugar não chama o servidor', () => {
-    montar([linha({ [SEGUNDA]: [planejada()] })], { podeArrastar: true });
-    const barra = screen.getByRole('link', { name: /Semeadura/ });
-
-    fireEvent.pointerDown(barra, { button: 0, clientX: 0, pointerId: 1 });
-    fireEvent.pointerUp(window, { clientX: 0, pointerId: 1 });
-
-    expect(reagendarAtribuicaoAction).not.toHaveBeenCalled();
-  });
-
-  it('a etiqueta mostra a hora e o minuto enquanto se arrasta, e some ao soltar', () => {
-    montar([linha({ [SEGUNDA]: [planejada()] })], { podeArrastar: true });
-    const barra = screen.getByRole('link', { name: /Semeadura/ });
-    expect(screen.queryByText('07:15\u201308:15')).not.toBeInTheDocument();
-
-    fireEvent.pointerDown(barra, { button: 0, clientX: 0, pointerId: 1 });
-    fireEvent.pointerMove(window, { clientX: 0.025, pointerId: 1 });
-    // A etiqueta na barra, e o mesmo texto na região viva
-    expect(screen.getAllByText('07:15\u201308:15')).toHaveLength(2);
-    // O mesmo horário para quem não vê a etiqueta (RNF-03)
-    expect(screen.getByRole('status')).toHaveTextContent('07:15\u201308:15');
-
-    fireEvent.pointerUp(window, { clientX: 0.025, pointerId: 1 });
-    // Solta a barra: a etiqueta sai, e só o anúncio guarda o horário
-    expect(screen.getAllByText('07:15\u201308:15')).toHaveLength(1);
-  });
-
-  it('sem as listas do formulário, clicar no vazio não lança nada', () => {
-    montar([linha({ [TERCA]: [planejada({ data: TERCA })] })], { podeArrastar: true });
-    expect(screen.queryByLabelText(/Lançar tarefa em/)).not.toBeInTheDocument();
+  it('nenhum balão de instrução nem tooltip de "clique para lançar" na grade', () => {
+    montar([tarefa(), tarefa({ id: 'a2', data: TERCA })], { opcoes: OPCOES });
+    expect(screen.queryByRole('note')).toBeNull();
+    expect(screen.queryByText(/Arraste para remarcar/)).toBeNull();
+    expect(document.querySelector('[title="Clique para lançar tarefa aqui"]')).toBeNull();
   });
 });

@@ -1,17 +1,12 @@
 import Link from 'next/link';
 import { PageHeader } from '@/components/PageHeader';
 import { Notice } from '@/components/ui/Notice';
-import { type AtribuicaoResumo, findSemana, listAgendaDia } from '@/lib/agenda';
-import { formatData, hojeNoViveiro, isDataIso, somaDias } from '@/lib/datas';
-import pool from '@/lib/db';
-import { type Perfil, type Recurso, can } from '@/lib/permissions';
-import { inicioDaSemana, nomeDia } from '@/lib/semanas';
-import { formatDuracao, jornadaDiaria, listTurnos, turnoLabel } from '@/lib/turnos';
+import { hojeNoViveiro, isDataIso } from '@/lib/datas';
+import { type Recurso, can } from '@/lib/permissions';
 import { requirePageAccess } from '@/lib/auth/guards';
 import { MapaProducao } from './MapaProducao';
 import { ProducaoAbas } from './ProducaoAbas';
 import { AgendaDaSemana } from './agenda/AgendaDaSemana';
-import { AtribuicaoCartao } from './agenda/AtribuicaoCartao';
 
 const SECOES: readonly { href: string; title: string; description: string; recurso: Recurso }[] = [
   {
@@ -36,7 +31,7 @@ const FEITO: Record<string, string> = {
 
 /**
  * T5.7, 2 · Produção: a agenda e o mapa, em abas, e as demais rotinas abaixo. A
- * agenda é uma tela só: o dia em cima e a semana dele embaixo, sem trocar de escala.
+ * agenda é uma tela só: a semana inteira no computador, e o dia dela no celular.
  */
 export default async function ProducaoPage({ searchParams }: ProducaoPageProps) {
   const { dia: diaPedido, aba, feito } = await searchParams;
@@ -57,7 +52,6 @@ export default async function ProducaoPage({ searchParams }: ProducaoPageProps) 
         ) : (
           <>
             {feito && FEITO[feito] && <Notice tone="success">{FEITO[feito]}</Notice>}
-            <AgendaDoDia dia={dia} hoje={hoje} perfil={user.perfil} />
             <AgendaDaSemana dia={dia} hoje={hoje} perfil={user.perfil} />
           </>
         )}
@@ -77,69 +71,5 @@ export default async function ProducaoPage({ searchParams }: ProducaoPageProps) 
         </div>
       </div>
     </main>
-  );
-}
-
-async function AgendaDoDia({ dia, hoje, perfil }: { dia: string; hoje: string; perfil: Perfil }) {
-  const semanaInicio = inicioDaSemana(dia);
-  const [semana, turnos, atribuicoes] = await Promise.all([findSemana(pool, semanaInicio), listTurnos(pool), listAgendaDia(pool, dia)]);
-  const ativos = turnos.filter((turno) => turno.ativo);
-  // O turno desativado continua aparecendo no dia em que tem tarefa
-  const grupos = turnos
-    .map((turno) => ({ turno, tarefas: atribuicoes.filter((a) => a.turnoId === turno.id) }))
-    .filter(({ turno, tarefas }) => turno.ativo || tarefas.length > 0);
-  const podeLancar = can(perfil, 'agenda', 'C') && semana?.situacao !== 'fechada';
-
-  return (
-    <>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-bold text-ink">
-          {nomeDia(dia)}, {formatData(dia)}
-        </h2>
-        <nav aria-label="Trocar de dia" className="flex items-center gap-1 text-base font-semibold text-brand-dark">
-          <Link href={`/producao?dia=${somaDias(dia, -1)}`} className="inline-flex min-h-touch items-center px-3">
-            ← Anterior
-          </Link>
-          {dia !== hoje && (
-            <Link href="/producao" className="inline-flex min-h-touch items-center px-3">
-              Hoje
-            </Link>
-          )}
-          <Link href={`/producao?dia=${somaDias(dia, 1)}`} className="inline-flex min-h-touch items-center px-3">
-            Próximo →
-          </Link>
-        </nav>
-      </div>
-
-      {/* TA-12: a jornada padrão sai do período de trabalho cadastrado, e não de constante */}
-      <p className="-mt-2 text-sm text-muted">
-        Jornada padrão {formatDuracao(jornadaDiaria(turnos))}
-        {ativos.map((turno) => ` · ${turnoLabel(turno.nome)} ${turno.inicio} às ${turno.fim}`).join('')}
-      </p>
-
-      {podeLancar && (
-        <Link
-          href={`/producao/agenda/nova?semana=${semanaInicio}&dia=${dia}`}
-          className="inline-flex min-h-touch items-center justify-center rounded-xl bg-brand px-5 text-base font-bold text-white active:bg-brand-dark md:self-start"
-        >
-          + Lançar tarefa
-        </Link>
-      )}
-
-      <div className="grid gap-4 md:grid-cols-2">
-        {grupos.map(({ turno, tarefas }) => (
-          <section key={turno.id} className="flex flex-col gap-2">
-            <h3 className="text-sm font-bold tracking-widest text-muted uppercase">
-              {turnoLabel(turno.nome)} · {turno.inicio} às {turno.fim}
-            </h3>
-            {tarefas.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-line p-3 text-base text-muted">Nada lançado.</p>
-            ) : (
-              tarefas.map((tarefa: AtribuicaoResumo) => <AtribuicaoCartao key={tarefa.id} atribuicao={tarefa} />)
-            )}
-          </section>
-        ))}
-      </div>
-    </>
   );
 }

@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { Pool, type PoolClient } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
+  promoverAtribuicao,
   type AtribuicaoInput,
   type ConfirmacaoInput,
   type ReagendamentoInput,
@@ -182,6 +183,18 @@ describe('agenda da semana contra Postgres', () => {
     expect(await findAtribuicao(pool, ids.encher)).toMatchObject({ turnoId: manha, horaInicio: null, horaFim: null });
   });
 
+  it('RF-26: a precedência nasce nula (segue a regra), e tornar principal a grava; a escolha mais recente vence', async () => {
+    const [primeira] = await criar({ semana: S4, dias: [S4], participantes: [valdir] });
+    const [segunda] = await criar({ semana: S4, dias: [S4], participantes: [valdir] });
+    const em = async (id: string) => (await findAtribuicao(pool, id))!.prioridadeEm;
+    expect(await em(primeira)).toBeNull();
+    expect(await em(segunda)).toBeNull();
+
+    await tx((client) => promoverAtribuicao(client, segunda));
+    await tx((client) => promoverAtribuicao(client, primeira));
+    expect((await em(primeira))! > (await em(segunda))!).toBe(true);
+  });
+
   it('TA-68: arrastar remarca dia, turno e hora, e recusa o que sai da semana ou já aconteceu', async () => {
     // Semana só deste caso: acrescentar tarefa a S1 mudaria a contagem da cópia em TA-29
     const [id] = await criar({ semana: S4, dias: [S4], participantes: [valdir] });
@@ -205,6 +218,22 @@ describe('agenda da semana contra Postgres', () => {
     // O que já aconteceu não se remaneja
     await confirmar(id);
     await expect(reagendar()).rejects.toThrow('não se altera');
+  });
+
+  it('RN-61: arrastar para a linha de outra pessoa troca quem faz, e recusa quem já está', async () => {
+    const [id] = await criar({ semana: S4, dias: [S4], participantes: [valdir, jaison] });
+    const mover = (troca: ReagendamentoInput['troca']) =>
+      tx((client) => reagendarAtribuicao(client, id, { data: S4, turnoId: manha, horaInicio: null, horaFim: null, troca }));
+
+    await mover({ sai: valdir, entra: rogerio });
+    const grupo = (await findAtribuicao(pool, id))!.participantes.map((p) => p.id);
+    expect(grupo).toHaveLength(2);
+    expect(grupo).toEqual(expect.arrayContaining([jaison, rogerio]));
+
+    await expect(mover({ sai: rogerio, entra: jaison })).rejects.toThrow('já está nesta tarefa');
+    await expect(mover({ sai: valdir, entra: amelia })).rejects.toThrow('não está mais nesta tarefa');
+    await expect(mover({ sai: null, entra: amelia })).rejects.toThrow('já tem gente escalada');
+    await expect(mover({ sai: rogerio, entra: cleusa })).rejects.toThrow('funcionário ativo');
   });
 
   it('TA-28: o banco é a segunda barreira contra fim sem início', async () => {

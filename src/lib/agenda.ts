@@ -15,7 +15,7 @@ import { type ResultadoMovimento, registrarMovimento, travarLote } from './movim
 import { concluirEtapa } from './protocolos';
 import { diasDaSemana, isInicioDeSemana, rotuloSemana } from './semanas';
 import type { Db } from './sql';
-import type { Declaracoes } from './tipos-tarefa';
+import type { CategoriaTarefa, Declaracoes } from './tipos-tarefa';
 import { parseHora } from './turnos';
 import { isUuid } from './uuid';
 
@@ -165,6 +165,10 @@ export interface ReagendamentoBruto {
   turnoId: string;
   horaInicio: string;
   horaFim: string;
+  /** Quem sai do grupo: a pessoa da linha de onde o card foi arrastado. */
+  sai?: string;
+  /** Quem entra: a pessoa da linha onde o card foi solto. */
+  entra?: string;
 }
 
 export interface ReagendamentoInput {
@@ -172,21 +176,33 @@ export interface ReagendamentoInput {
   turnoId: string;
   horaInicio: string | null;
   horaFim: string | null;
+  /** A troca de pessoa do arrasto. Sem ela, o grupo fica como está. */
+  troca?: { sai: string | null; entra: string } | null;
 }
 
 /**
- * O arrasto na agenda da semana (tela larga, RNF-14). Mexe só em quando a tarefa
- * acontece: dia, turno e hora. Tudo o mais continua no formulário, inclusive
- * quem faz, porque a tarefa é de um grupo e soltar a barra numa pessoa não diz
- * se ela substitui o grupo ou entra nele.
+ * O arrasto na agenda da semana (tela larga, RNF-14): dia, turno e hora, e quem
+ * faz. A tarefa é de um grupo, e soltar o card na linha de outra pessoa
+ * **substitui**: quem estava na linha de origem sai, quem está na de destino
+ * entra (RN-61). O card vindo da linha "Sem ninguém" não tem quem sair, e só
+ * acrescenta. Tirar alguém sem pôr ninguém continua no formulário.
  */
 export function parseReagendamento(bruto: ReagendamentoBruto): Resultado<ReagendamentoInput> {
   if (!isDataIso(bruto.data)) return { error: 'Dia inválido.' };
   if (!isUuid(bruto.turnoId)) return { error: 'Escolha o turno. Toda tarefa tem turno, mesmo a que tem hora marcada.' };
   const horario = parseHorario(bruto.horaInicio, bruto.horaFim);
   if ('error' in horario) return horario;
+
+  const sai = (bruto.sai ?? '').trim();
+  const entra = (bruto.entra ?? '').trim();
+  let troca: ReagendamentoInput['troca'] = null;
+  if (entra !== '' || sai !== '') {
+    if (!isUuid(entra)) return { error: 'Solte a tarefa na linha de uma pessoa.' };
+    if (sai !== '' && !isUuid(sai)) return { error: 'Pessoa de origem inválida.' };
+    if (sai !== entra) troca = { sai: sai === '' ? null : sai, entra };
+  }
   return {
-    value: { data: bruto.data, turnoId: bruto.turnoId, horaInicio: horario.value.inicio, horaFim: horario.value.fim },
+    value: { data: bruto.data, turnoId: bruto.turnoId, horaInicio: horario.value.inicio, horaFim: horario.value.fim, troca },
   };
 }
 
@@ -313,6 +329,8 @@ export interface AtribuicaoResumo {
   exigeRecipiente: boolean;
   exigeArea: boolean;
   unidadeMedida: UnidadeTarefa;
+  /** Dá a cor do card na agenda: uma cor por categoria, e nada mais (RNF-04). */
+  categoria: CategoriaTarefa;
   especieId: string | null;
   especie: string | null;
   recipienteId: string | null;
@@ -327,6 +345,12 @@ export interface AtribuicaoResumo {
   eRecorrente: boolean;
   situacao: SituacaoAtribuicao;
   observacoes: string | null;
+  /**
+   * Quando a gerência escolheu esta tarefa como a principal onde duas se cruzam
+   * na grade (RF-26): ISO em UTC com microssegundos, para a ordem de texto ser a
+   * ordem do tempo. Nula segue a regra: a mais longa fica em cima.
+   */
+  prioridadeEm: string | null;
   participantes: Participante[];
 }
 
@@ -336,12 +360,13 @@ const SELECT_ATRIBUICAO = `
          to_char(a.hora_inicio, 'HH24:MI') AS "horaInicio", to_char(a.hora_fim, 'HH24:MI') AS "horaFim",
          a.tipo_tarefa_id AS "tipoTarefaId", tt.nome AS tipo, tt.e_quantitativa AS "eQuantitativa",
          tt.exige_lote AS "exigeLote", tt.exige_especie AS "exigeEspecie", tt.exige_recipiente AS "exigeRecipiente",
-         tt.exige_area AS "exigeArea", tt.unidade_medida AS "unidadeMedida",
+         tt.exige_area AS "exigeArea", tt.unidade_medida AS "unidadeMedida", tt.categoria,
          a.especie_id AS "especieId", ${nomeEspecieSql('e')} AS especie,
          a.recipiente_id AS "recipienteId", r.nome AS recipiente,
          a.lote_id AS "loteId", l.codigo AS "loteCodigo",
          a.area_id AS "areaId", ar.letra AS area, a.canteiro_id AS "canteiroId", ac.letra || '-' || c.numero AS canteiro,
          a.quantidade_planejada::float8 AS "quantidadePlanejada", a.e_recorrente AS "eRecorrente", a.situacao, a.observacoes,
+         to_char(a.prioridade_em AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS "prioridadeEm",
          COALESCE((SELECT json_agg(json_build_object('id', p.pessoa_id, 'nome', pe.nome, 'quantidade', p.quantidade_feita::float8)
                                    ORDER BY pe.nome)
                      FROM atribuicoes_participantes p
@@ -403,34 +428,7 @@ export async function resumoFechamento(db: Db, semanaId: string): Promise<Resumo
   return rows[0];
 }
 
-export interface LinhaGrade {
-  /** `null` na linha das tarefas sem ninguém escalado. */
-  pessoa: Funcionario | null;
-  porDia: Record<string, AtribuicaoResumo[]>;
-}
-
-/**
- * T5.1: uma linha por pessoa, e a tarefa do grupo aparece na linha de cada um.
- * Funcionário inativo some da grade, mas não da semana em que trabalhou.
- */
-export function montarGrade(funcionarios: readonly Funcionario[], atribuicoes: readonly AtribuicaoResumo[]): LinhaGrade[] {
-  const linhas = new Map<string, LinhaGrade>(funcionarios.map((f) => [f.id, { pessoa: f, porDia: {} }]));
-  const semNinguem: LinhaGrade = { pessoa: null, porDia: {} };
-  const colocar = (linha: LinhaGrade, a: AtribuicaoResumo) => {
-    linha.porDia[a.data] = [...(linha.porDia[a.data] ?? []), a];
-  };
-
-  for (const atribuicao of atribuicoes) {
-    if (atribuicao.participantes.length === 0) colocar(semNinguem, atribuicao);
-    for (const p of atribuicao.participantes) {
-      if (!linhas.has(p.id)) linhas.set(p.id, { pessoa: { id: p.id, nome: p.nome }, porDia: {} });
-      colocar(linhas.get(p.id)!, atribuicao);
-    }
-  }
-
-  const grade = [...linhas.values()].sort((a, b) => a.pessoa!.nome.localeCompare(b.pessoa!.nome, 'pt-BR'));
-  return Object.keys(semNinguem.porDia).length > 0 ? [...grade, semNinguem] : grade;
-}
+export { type LinhaGrade, montarGrade } from './agenda-linhas';
 
 // ------------------------------------------------------------
 // Escrita
@@ -762,8 +760,9 @@ export async function atualizarAtribuicao(client: Client, id: string, input: Atr
 }
 
 /**
- * Remarca a tarefa arrastada: dia, turno e hora, dentro da mesma semana. Só a
- * planejada, pelo mesmo motivo da alteração: o que já aconteceu não se remaneja.
+ * Remarca a tarefa arrastada: dia, turno e hora, dentro da mesma semana, e troca
+ * a pessoa quando o card mudou de linha. Só a planejada, pelo mesmo motivo da
+ * alteração: o que já aconteceu não se remaneja.
  */
 export async function reagendarAtribuicao(client: Client, id: string, input: ReagendamentoInput): Promise<{ semanaInicio: string }> {
   const atribuicao = await travarAtribuicao(client, id);
@@ -775,6 +774,8 @@ export async function reagendarAtribuicao(client: Client, id: string, input: Rea
   const { rows } = await client.query<{ ativo: boolean }>('SELECT ativo FROM turnos_trabalho WHERE id = $1', [input.turnoId]);
   if (rows[0]?.ativo !== true) throw new UserError('Escolha um turno em uso.');
 
+  if (input.troca) await trocarParticipante(client, id, input.troca);
+
   await client.query('UPDATE atribuicoes SET data_trabalho = $2, turno_id = $3, hora_inicio = $4, hora_fim = $5 WHERE id = $1', [
     id,
     input.data,
@@ -783,6 +784,49 @@ export async function reagendarAtribuicao(client: Client, id: string, input: Rea
     input.horaFim,
   ]);
   return { semanaInicio: atribuicao.semana.inicio };
+}
+
+/**
+ * RF-26: torna a tarefa a principal na grade da semana. É só desenho, e por isso
+ * vale para qualquer situação; a semana fechada, como tudo nela, não se altera.
+ */
+export async function promoverAtribuicao(client: Client, id: string): Promise<{ semanaInicio: string }> {
+  const atribuicao = await travarAtribuicao(client, id);
+  recusarSeFechada(atribuicao.semana);
+  await client.query('UPDATE atribuicoes SET prioridade_em = clock_timestamp() WHERE id = $1', [id]);
+  return { semanaInicio: atribuicao.semana.inicio };
+}
+
+/** RN-61: quem entra substitui quem sai. Entrar quem já está somaria nada, e sair quem não está, menos ainda. */
+async function trocarParticipante(client: Client, id: string, troca: { sai: string | null; entra: string }): Promise<void> {
+  const { rows: grupo } = await client.query<{ pessoaId: string; nome: string }>(
+    `SELECT p.pessoa_id AS "pessoaId", pe.nome
+       FROM atribuicoes_participantes p
+       JOIN cadastro.pessoas pe ON pe.id = p.pessoa_id
+      WHERE p.atribuicao_id = $1`,
+    [id],
+  );
+  const naTarefa = grupo.find((p) => p.pessoaId === troca.entra);
+  if (naTarefa) throw new UserError(`${naTarefa.nome} já está nesta tarefa.`);
+  if (troca.sai && !grupo.some((p) => p.pessoaId === troca.sai)) {
+    throw new UserError('A pessoa de origem não está mais nesta tarefa. Recarregue a agenda.');
+  }
+  if (!troca.sai && grupo.length > 0) {
+    throw new UserError('Esta tarefa já tem gente escalada: arraste a partir da linha de quem sai.');
+  }
+  const { rows: funcionario } = await client.query<{ id: string }>(
+    `SELECT pe.id
+       FROM cadastro.pessoas pe
+       JOIN cadastro.pessoas_papeis pp ON pp.pessoa_id = pe.id AND pp.papel = 'funcionario' AND pp.ativo
+      WHERE pe.id = $1 AND pe.ativa`,
+    [troca.entra],
+  );
+  if (!funcionario[0]) throw new UserError('Escolha um funcionário ativo.');
+
+  if (troca.sai) {
+    await client.query('DELETE FROM atribuicoes_participantes WHERE atribuicao_id = $1 AND pessoa_id = $2', [id, troca.sai]);
+  }
+  await client.query('INSERT INTO atribuicoes_participantes (atribuicao_id, pessoa_id) VALUES ($1, $2)', [id, troca.entra]);
 }
 
 export async function excluirAtribuicao(client: Client, id: string): Promise<{ data: string }> {

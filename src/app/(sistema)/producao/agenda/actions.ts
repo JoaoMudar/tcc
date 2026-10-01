@@ -109,8 +109,8 @@ export async function atualizarAtribuicaoAction(_previous: FormState, formData: 
 }
 
 /**
- * O arrasto na linha do tempo da semana (RNF-14). Não redireciona: a grade fica
- * onde está, e quem conta o que mudou é a própria barra no lugar novo.
+ * O arrasto na grade da semana (RNF-14). Não redireciona: a grade fica onde
+ * está, e quem conta o que mudou é o próprio card no lugar novo.
  */
 export async function reagendarAtribuicaoAction(_previous: FormState, formData: FormData): Promise<FormState> {
   await requirePermission('agenda', 'A');
@@ -121,6 +121,8 @@ export async function reagendarAtribuicaoAction(_previous: FormState, formData: 
     turnoId: formText(formData, 'turno_id'),
     horaInicio: formText(formData, 'hora_inicio'),
     horaFim: formText(formData, 'hora_fim'),
+    sai: formText(formData, 'sai'),
+    entra: formText(formData, 'entra'),
   });
   if ('error' in resultado) return { error: resultado.error };
 
@@ -131,6 +133,20 @@ export async function reagendarAtribuicaoAction(_previous: FormState, formData: 
   }
   revalidarProducao();
   return { success: 'Tarefa remarcada.' };
+}
+
+/** RF-26: a tarefa coberta, arrastada para cima na grade, passa a aparecer por inteiro. */
+export async function promoverAtribuicaoAction(_previous: FormState, formData: FormData): Promise<FormState> {
+  await requirePermission('agenda', 'A');
+  const id = formText(formData, 'id');
+  if (!isUuid(id)) return { error: 'Tarefa inválida.' };
+  try {
+    await withTransaction(pool, (client) => agenda.promoverAtribuicao(client, id));
+  } catch (error) {
+    return { error: toUserMessage(error) };
+  }
+  revalidarProducao();
+  return { success: 'Tarefa em destaque.' };
 }
 
 export async function excluirAtribuicaoAction(_previous: FormState, formData: FormData): Promise<FormState> {

@@ -170,3 +170,27 @@ export function detalhesAtribuicao(a: DetalhesAtribuicao): string[] {
     a.quantidadePlanejada !== null && `Previsto ${formatQuantidadeMedida(a.quantidadePlanejada, a.unidadeMedida)}`,
   ].filter((parte): parte is string => typeof parte === 'string' && parte !== '');
 }
+
+export interface ConfirmavelInput {
+  situacao: SituacaoAtribuicao;
+  semanaSituacao: SituacaoSemana;
+  eQuantitativa: boolean;
+  exigeLote: boolean;
+  loteId: string | null;
+  participantes: readonly unknown[];
+}
+
+/**
+ * O toque único da agenda do celular (RF-29, RNF-14): só quando a confirmação não
+ * tem nada a perguntar. A quantitativa pede um número por pessoa, e a que exige
+ * lote sem tê-lo pede o lote: essas abrem a ficha, onde está o formulário.
+ */
+export function confirmavelNumToque(a: ConfirmavelInput): boolean {
+  return (
+    a.situacao === 'planejada' &&
+    a.semanaSituacao === 'aberta' &&
+    a.participantes.length > 0 &&
+    !a.eQuantitativa &&
+    (!a.exigeLote || a.loteId !== null)
+  );
+}

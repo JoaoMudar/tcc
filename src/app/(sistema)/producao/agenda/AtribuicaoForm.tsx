@@ -35,6 +35,8 @@ interface AtribuicaoFormProps {
   inicial: Readonly<Record<string, string>>;
   /** Presente na alteração: um dia só, e a mesma tarefa. */
   atribuicaoId?: string;
+  /** O clique no Gantt já disse o dia e o turno: o formulário não pergunta de novo. */
+  fixos?: { dia: string; turnoId: string };
 }
 
 function comNenhum(opcoes: readonly SelectOption[], rotulo: string): SelectOption[] {
@@ -46,7 +48,7 @@ function comNenhum(opcoes: readonly SelectOption[], rotulo: string): SelectOptio
  * tipo de tarefa declarar. Hora (RN-12), recorrência e observação ficam em
  * "Mais detalhes", e a área só se registra na confirmação (RF-30, UC-20).
  */
-export function AtribuicaoForm({ semana, opcoes, inicial, atribuicaoId }: AtribuicaoFormProps) {
+export function AtribuicaoForm({ semana, opcoes, inicial, atribuicaoId, fixos }: AtribuicaoFormProps) {
   const editando = atribuicaoId !== undefined;
   const [state, formAction, pending] = useActionState(editando ? atualizarAtribuicaoAction : criarAtribuicaoAction, EMPTY_FORM_STATE);
   const valores = state.error && state.fields ? state.fields : inicial;
@@ -71,16 +73,25 @@ export function AtribuicaoForm({ semana, opcoes, inicial, atribuicaoId }: Atribu
         onChange={(event) => setTipoId(event.target.value)}
         required
       />
-      <EscolhaMultipla
-        legenda={editando ? 'Dia' : 'Dias'}
-        name="dias"
-        obrigatorio
-        tipo={editando ? 'radio' : 'checkbox'}
-        colunas={3}
-        opcoes={opcoes.dias}
-        marcados={lista('dias')}
-      />
-      <EscolhaMultipla legenda="Turno" obrigatorio name="turno_id" tipo="radio" opcoes={opcoes.turnos} marcados={lista('turno_id')} />
+      {fixos ? (
+        <>
+          <input type="hidden" name="dias" value={fixos.dia} />
+          <input type="hidden" name="turno_id" value={fixos.turnoId} />
+        </>
+      ) : (
+        <>
+          <EscolhaMultipla
+            legenda={editando ? 'Dia' : 'Dias'}
+            name="dias"
+            obrigatorio
+            tipo={editando ? 'radio' : 'checkbox'}
+            colunas={3}
+            opcoes={opcoes.dias}
+            marcados={lista('dias')}
+          />
+          <EscolhaMultipla legenda="Turno" obrigatorio name="turno_id" tipo="radio" opcoes={opcoes.turnos} marcados={lista('turno_id')} />
+        </>
+      )}
 
       {tipo?.exigeLote && (
         <SelectField
