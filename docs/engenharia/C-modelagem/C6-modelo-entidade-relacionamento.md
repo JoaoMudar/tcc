@@ -513,6 +513,7 @@ erDiagram
     boolean e_recorrente
     text    situacao
     text    observacoes
+    timestamptz prioridade_em
   }
   atribuicoes_participantes {
     uuid    atribuicao_id FK

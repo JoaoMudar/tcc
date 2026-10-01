@@ -122,39 +122,83 @@ Rogério e Amélia aparecem **na mesma célula** de segunda e terça: é uma tar
 não duas tarefas.
 
 **A grade mostra de segunda a sexta.** O sábado quase sempre fica vazio, e uma coluna vazia rouba
-largura das cinco que o viveiro usa de verdade. Ele não deixou de existir: continua no formulário,
-na lista do celular e na agenda do dia, e quando a semana tem tarefa nele a própria grade avisa, com
-o atalho para abrir aquele dia.
+largura das cinco que se usam de verdade. Ele não deixou de existir: continua no formulário e na
+lista do celular, e quando a semana tem tarefa nele a grade lista essas tarefas logo abaixo, cada
+uma com o atalho para a ficha.
 
-**Na tela de computador a semana se monta com a mão, e não só pelo formulário.** O dia é uma linha
-do tempo de verdade, das sete às cinco, com os turnos marcados ao fundo e uma linha fina de hora em
-hora, numerada no cabeçalho: sem isso a barra não diz a olho se começa às oito ou às nove.
-Arrastar a barra de uma tarefa planejada a remarca, e ela leva junto o dia, o turno e a hora; puxar
-a borda muda quando começa ou quando termina. Clicar num ponto vazio abre o lançamento já apontando para aquele dia e
-aquela hora, sem sair da semana. Enquanto a barra anda, uma etiqueta colada nela mostra o horário
-que está sendo produzido, de quinze em quinze minutos, e o mesmo texto é anunciado a quem usa leitor
-de tela. Quem prefere o teclado faz o mesmo com Shift e as setas para remarcar, e Alt e as setas
-para mudar a duração.
+**Na tela de computador a semana é uma linha do tempo por pessoa.** Cada dia é um eixo de hora de
+verdade, mas só da jornada: o almoço não ocupa largura e vira um divisor fino entre manhã e tarde
+(a tarefa que o atravessa segue inteira por cima dele). Uma linha clara marca cada hora, e o
+cabeçalho numera só as pares; os turnos e os horários deles estão na linha da jornada, acima da
+grade. **O dia sob o mouse cresce** depois de uma pausa curta, e os outros encolhem: nele o
+cabeçalho numera todas as horas e os títulos cabem inteiros. Durante o arrasto as larguras ficam
+paradas, para a posição do mouse não mudar de hora no meio do gesto.
 
-Três limites valem a pena dizer, porque são decisão e não falta. **Só a tarefa planejada se
-arrasta**: a que já foi confirmada aconteceu, e o que aconteceu não se remaneja. **A semana fechada
-não se move**, nem por arrasto nem por clique. E **arrastar não troca a pessoa**: a tarefa é de um
-grupo, e soltar a barra na faixa de alguém não diria se é para substituir o grupo ou para entrar
-nele, então trocar quem faz continua no formulário.
+A tarefa é uma barra com o desenho de cartão: uma faixa fina à esquerda e um fundo bem claro, os
+dois com a cor da categoria, que é a única coisa que a cor diz. O que cabe no cartão depende só da
+largura dele: a partir de 110 pixels, o nome em até duas linhas e o horário (ou o turno, na tarefa
+sem hora); de 48 a 110, o nome numa linha, com reticências; abaixo disso, só a faixa, e o nome vai
+para o lado de fora, em cinza, quando há espaço livre à direita. O nome nunca é cortado no meio da
+palavra, e passar o mouse mostra nome e horário. A conclusão aparece como ícone no canto, e só
+quando foge do planejado (feita, parcial, presumida ou não feita). A tarefa sem hora marcada ocupa o
+turno inteiro, porque o turno é a unidade da agenda (RN-12), com a mesma borda das outras. O dia de
+hoje tem fundo próprio e uma linha vermelha na hora corrente, e a pessoa sem tarefa na semana é
+marcada em âmbar. No pé de cada dia, uma linha fina mostra quanto da jornada a pessoa já tem
+("7h15 / 9h" no mouse), e fica em alerta quando passa dela.
 
-No celular a agenda vira **lista**: um dia por tela, uma linha por pessoa, deslizando entre os
-dias. A grade completa não cabe e **não deve ser espremida**, e é por isso que a redução troca de
-desenho em vez de encolher o mesmo. Montar a semana inteira, esse é gesto de mesa, e é por isso que
-o arrasto existe só lá.
+A semana se monta com a mão, e não só pelo formulário. Passar o mouse num vazio mostra um "+" na faixa
+de quinze minutos sob ele, e clicar em qualquer vazio da linha de uma pessoa abre o lançamento **sem perguntar dia nem turno**, porque o clique já disse os dois, e com a
+pessoa já marcada. No turno livre a tarefa nasce sem hora; no turno que já tem tarefa, nasce com a
+hora do pedaço livre onde se clicou (com uma tarefa das 8h às 9h, o clique à direita propõe das 9h
+ao fim da manhã), e a hora pode ser mudada no formulário.
+
+Duas tarefas ao mesmo tempo para a mesma pessoa (RF-26) não dobram a altura da linha: **no trecho em
+que se cruzam, a linha se divide em duas faixas**. A principal fica com a de cima (60% da altura) e
+a outra com a de baixo (40%), só com o nome; fora do cruzamento cada uma volta à altura toda. A
+principal é a de maior duração, e no empate a que começa primeiro: a manhã inteira com uma tarefa
+das 8h às 9h aparece como manhã em cima e a tarefa das 8h às 9h embaixo, só nesse trecho. O botão
+"Tornar principal", na faixa de baixo (ou Shift e seta para cima, com o foco nela), inverte as duas,
+e a escolha fica gravada. Com três ou mais ao mesmo tempo, a terceira em diante não cabe na altura e
+vira um "+N" que abre a lista delas. O corte é só do desenho: os horários não mudam. A tarefa da
+faixa de baixo também tem a borda para puxar, nas pontas que são dela.
+
+Arrastar a barra de uma tarefa planejada a remarca no dia e na
+hora, de quinze em quinze minutos, e puxar a borda muda quando ela começa ou termina. Perto (menos de
+dez minutos) do começo ou do fim de um turno, a barra se imanta nele. Durante o gesto o lugar de
+origem fica apagado e um balão acima da barra mostra o horário que ela vai ganhar e, ao passar para
+a linha de outra pessoa, o nome dela. A tarefa de
+um grupo aparece na linha de cada pessoa, e as cópias andam juntas durante o arrasto. A tarefa que
+só mudou de dia continua sem hora. Soltar a barra na linha de outra pessoa troca quem faz: quem
+estava na linha de origem sai do grupo e quem está na de destino entra (RN-61). Cada mudança
+aparece na hora, com um aviso discreto que oferece desfazer por cinco segundos (Ctrl+Z faz o mesmo),
+e clicar na barra abre a ficha da tarefa. A tela não traz parágrafo de instruções: o cursor de
+arrastar, a borda que aparece no mouse e o "+" do vazio se explicam sozinhos, e na primeira visita
+um balão aponta para um cartão uma única vez. Com o foco numa barra, Shift e as setas a remarcam, e Alt e as setas mudam a duração; fora
+dela, as setas trocam de semana e a tecla T volta para hoje.
+
+Quatro limites valem a pena dizer, porque são decisão e não falta. **Só a tarefa planejada se
+arrasta**: a que já foi confirmada aconteceu, e o que aconteceu não se remaneja. A semana fechada
+não se move, nem por arrasto nem por clique. Soltar a barra na linha de quem já está na tarefa é
+recusado, porque não haveria quem trocar. E tirar alguém do grupo sem pôr ninguém no lugar continua
+no formulário, porque o arrasto sempre leva a tarefa para alguém.
+
+No celular a agenda vira **lista de um dia**: um seletor dos dias da semana no alto, uma seção por
+pessoa, e deslizar para os lados troca o dia. A grade completa não cabe e não deve ser espremida, e
+é por isso que a redução troca de desenho em vez de encolher o mesmo. Ao lado de cada tarefa fica um
+quadrado de 44 pixels que **marca feito num toque** quando a confirmação não tem nada a perguntar.
+A tarefa quantitativa, ou a que exige lote e ainda não o tem, leva à ficha, onde está o formulário.
+O toque passa pela mesma fila do aparelho da confirmação, e sem rede fica guardado. Montar a semana
+inteira é gesto de mesa, e é por isso que o arrasto existe só no computador.
 
 Cadastrar uma tarefa são **3 toques**: pessoas, tipo de tarefa e turno. Hora, espécie, recipiente
 e lote só aparecem se a tarefa tiver hora ou se o tipo de tarefa os exigir.
 
 ### A agenda do dia (confirmação)
 
-É a **primeira aba da tela inicial da Produção**; a segunda é o mapa de produção
+A agenda é a **primeira aba da tela inicial da Produção**; a segunda é o mapa de produção
 ([`04`](04-lotes-e-canteiros.md)). São as duas perguntas que se faz ao entrar no módulo: *quem está
-fazendo o quê hoje* e *como está o viveiro*.
+fazendo o quê hoje* e *como está o viveiro*. No computador a aba abre na semana, com o dia de hoje
+destacado; no celular abre no dia, que é onde se confirma.
 
 **Confirmar é marcar que foi feita**, e informar a quantidade de cada participante quando o tipo de
 tarefa for quantitativo por unidade. Tarefa não quantitativa confirma sem pedir número nenhum.

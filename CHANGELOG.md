@@ -3,6 +3,32 @@
 Uma entrada por migration nova, como pede o `CLAUDE.md`. As migrations até `20260901000008` são o
 schema inicial em português e estão descritas no `C8`.
 
+## 01/10/2026 · `20261001000002_atribuicoes_prioridade_opcional.sql`
+
+- **A precedência de desenho vira escolha manual** (RF-26). `atribuicoes.prioridade_em` perde o
+  NOT NULL e o padrão, e todas as linhas voltam a nulo. Nula segue a regra calculada na tela: onde
+  duas tarefas da mesma pessoa se cruzam, a de maior duração fica com a faixa de cima (60% da
+  altura) e a outra com a de baixo (40%); no empate, a que começa primeiro. "Tornar principal"
+  grava o valor, e entre duas escolhidas a mais recente vence.
+- Compatível: quem grava a coluna continua gravando; quem lê precisa aceitar nulo.
+- Na mesma alteração, fora do banco: o Gantt da semana comprime o almoço num divisor, o dia sob o
+  mouse se expande, o card adapta o conteúdo à largura sem quebrar palavra, a borda tracejada sai,
+  e entram a linha do agora, o balão de horário no arrasto, o ímã nas bordas da jornada, a barra
+  de ocupação por pessoa e dia e o Ctrl+Z. O parágrafo de instruções sob a grade sai.
+
+## 01/10/2026 · `20261001000001_atribuicoes_prioridade.sql`
+
+- **A tarefa ganha a precedência de desenho na grade da semana** (RF-26). Coluna nova
+  `atribuicoes.prioridade_em` (timestamptz, NOT NULL, padrão `now()`), preenchida com `criado_em`
+  nas linhas existentes. Onde duas tarefas da mesma pessoa se cruzam, a de valor maior aparece
+  inteira e a outra minimizada embaixo; arrastar a minimizada para cima renova o valor dela.
+- Compatível: a coluna tem padrão, e quem não a conhece segue gravando sem ela.
+- Na mesma alteração, fora do banco: a linha da pessoa no Gantt deixa de crescer com a
+  sobreposição, e qualquer ponto vazio da grade lança tarefa, já com a hora livre do turno quando
+  ele tem outra tarefa.
+- Depois, ainda fora do banco: no arrasto, a tarefa de um grupo se move ao mesmo tempo na linha de
+  cada pessoa, e a barra minimizada ganha a borda para mudar a duração.
+
 ## 30/09/2026 · `20260930000003_semana_aberta_fechada.sql`
 
 - **A semana passa a ter dois estados, `aberta` e `fechada`.** `rascunho` e `publicada` viram

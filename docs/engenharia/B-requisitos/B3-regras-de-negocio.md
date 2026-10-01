@@ -185,6 +185,7 @@ e já se diz "fiz tantos saquinhos hoje". Apague o sistema e os enunciados sobre
 | **RN-27** | Na classificação, as mudas mortas viram perda do lote no mesmo registro | Derivação | `rotinas/2-producao` | RF-29 | - |
 | **RN-28** | A ocupação do canteiro é a soma dos saldos dos lotes abertos nele | Derivação | `rotinas/2-producao` | RF-33, RF-44 | - |
 | **RN-29** | A tarefa recorrente já aparece preenchida na cópia da semana | Fato | `rotinas/2-producao` | RF-27 | - |
+| **RN-61** | Remanejar a tarefa de uma pessoa para outra substitui a primeira pela segunda no grupo, e não acrescenta: quem já está na tarefa não entra de novo | Restrição | `rotinas/2-producao` | RF-26 | - |
 
 ### 3.3 Área C: Protocolo de atividades por lote
 
@@ -260,17 +261,17 @@ sem que a causa aparecesse em tela nenhuma.
 | Área | Regras | Quantidade |
 |---|---|---:|
 | A: Domínio e produto | RN-01 a RN-07 | 7 |
-| B: Produção, lote e trabalho | RN-08 a RN-29 | 22 |
+| B: Produção, lote e trabalho | RN-08 a RN-29, RN-61 | 23 |
 | C: Protocolo de atividades por lote | RN-30 a RN-41 | 12 |
 | D: Cliente e pedido | RN-42 a RN-50 | 9 |
 | E: Acesso e responsabilidade | RN-51 a RN-52 | 2 |
 | F: Conferência e carga | RN-53 a RN-60 | 8 |
-| **Total** | | **60** |
+| **Total** | | **61** |
 
 | Tipo | Quantidade |
 |---|---:|
 | Fato | 29 |
-| Restrição | 20 |
+| Restrição | 21 |
 | Derivação | 10 |
 | Acionamento | 1 |
 
@@ -308,7 +309,7 @@ negócio e estão justificados na seção 6.
 | RF-23 | RN-31 |
 | RF-24 | RN-35 |
 | RF-25 | RN-36 |
-| RF-26 | RN-12, RN-25 |
+| RF-26 | RN-12, RN-25, RN-61 |
 | RF-27 | RN-29 |
 | RF-28 | RN-13 |
 | RF-29 | RN-23, RN-24, RN-27 |
@@ -451,7 +452,7 @@ não dependa de abrir outro arquivo. **Não editar aqui**: a fonte é o `B2`.
 | RF-23 | O sistema deve permitir que cada etapa do protocolo declare o seu evento de referência: a criação do lote ou a conclusão de uma etapa específica do mesmo protocolo | D | DOM |
 | RF-24 | O sistema deve permitir ligar e desligar o alerta de atraso por etapa do protocolo, e sobrescrever nela a janela de aviso padrão | D | OP |
 | RF-25 | O sistema deve permitir, no cadastro da espécie, sobrescrever o tempo em dias de uma etapa específica do protocolo | DV | DOM |
-| RF-26 | O sistema deve permitir montar a agenda da semana atribuindo, por funcionário e por dia, o tipo de tarefa e o turno, manhã ou tarde, admitindo a mesma tarefa para mais de um funcionário e mais de uma tarefa no mesmo turno com grupos diferentes, e deve permitir declarar a hora de início e de fim da tarefa que tiver hora marcada, sem exigi-la das demais; na apresentação em tela larga (RNF-14) a montagem deve ser direta, arrastando a tarefa planejada para remarcá-la e puxando a borda dela para declarar a duração, e lançando tarefa nova no ponto da grade em que se clicar | D | EN, OP |
+| RF-26 | O sistema deve permitir montar a agenda da semana atribuindo, por funcionário e por dia, o tipo de tarefa e o turno, manhã ou tarde, admitindo a mesma tarefa para mais de um funcionário e mais de uma tarefa no mesmo turno com grupos diferentes, e deve permitir declarar a hora de início e de fim da tarefa que tiver hora marcada, sem exigi-la das demais; na apresentação em tela larga (RNF-14) a montagem deve ser direta, numa linha do tempo por pessoa: arrastando a tarefa planejada para remarcá-la no dia e na hora, ou para a linha de outra pessoa, que então substitui a de origem no grupo, puxando a borda dela para declarar a duração, e lançando tarefa nova no turno vazio em que se clicar, sem perguntar de novo a pessoa, o dia e o turno | D | EN, OP |
 | RF-27 | O sistema deve permitir copiar a agenda da semana anterior e marcar tarefas como recorrentes, que passam a nascer preenchidas na cópia | D | OP |
 | RF-28 | O sistema deve controlar a situação da semana (aberta e fechada) e impedir alteração depois do fechamento | D | ORG |
 | RF-29 | O sistema deve permitir confirmar a atribuição como realizada, apresentando os campos que o tipo de tarefa exigir, o lote uma vez para a tarefa e a quantidade uma vez por participante, exigindo o lote quando o tipo declarar lote específico e pedindo a quantidade apenas quando o tipo for quantitativo por unidade | D | OP |

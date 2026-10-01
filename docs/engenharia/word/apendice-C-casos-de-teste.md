@@ -210,9 +210,11 @@ requisitos de prioridade *deve ter* sem verificação correspondente.
 | **TA-65** | RF-39 | Lote com saldo calculado diferente do real | 1. Registrar contagem física do lote com a quantidade real<br>2. Consultar o histórico de movimentos | O saldo passa a ser o contado, e o movimento de ajuste aparece no histórico | Não executado |
 | **TA-66** | RF-41 | Perdas registradas em datas distintas | 1. Filtrar as perdas por um intervalo de datas | Retorna somente os registros do intervalo | Não executado |
 | **TA-67** | RF-18 | Cliente cadastrado com nome, telefone e documento | 1. Buscar por parte do nome<br>2. Buscar pelo telefone<br>3. Buscar pelo documento | As três buscas retornam o mesmo cliente | Não executado |
-| **TA-68** | RF-26, RNF-14 | Semana aberta, em tela de computador, com tarefa planejada na manhã de segunda | 1. Arrastar a barra da tarefa para a tarde de quarta<br>2. Puxar a borda direita dela para uma hora adiante<br>3. Recarregar a página | A tarefa passa a constar em quarta, no turno da tarde, com a hora de início e de fim que o arrasto declarou, e continua assim depois de recarregar | Não executado |
-| **TA-69** | RF-26, RNF-14 | Semana aberta, em tela de computador | 1. Clicar num ponto vazio da faixa de uma pessoa, à tarde de quinta<br>2. Preencher o tipo de tarefa e confirmar | O lançamento abre já apontando para quinta, o turno da tarde e a hora do ponto clicado, e a tarefa nasce ali | Não executado |
-| **TA-70** | RF-28, RF-26 | Semana fechada, em tela de computador | 1. Tentar arrastar a barra de uma tarefa da semana<br>2. Tentar clicar no vazio da grade | Nada se move e nada é lançado: a semana fechada não se altera | Não executado |
+| **TA-68** | RF-26, RNF-14 | Semana aberta, em tela de computador, com tarefa planejada de uma pessoa na manhã de segunda, sem hora marcada | 1. Arrastar a barra da tarefa para a tarde de quarta, na mesma linha<br>2. Puxar a borda direita dela para uma hora adiante<br>3. Recarregar a página | A tarefa passa a constar em quarta, no turno da tarde, com a hora de início e de fim que o arrasto declarou, e continua assim depois de recarregar | Não executado |
+| **TA-69** | RF-26, RNF-14 | Semana aberta, em tela de computador | 1. Clicar no turno da tarde de quinta, na linha de uma pessoa<br>2. Preencher o tipo de tarefa e confirmar | O lançamento abre sem perguntar dia nem turno, com a pessoa já marcada, e a tarefa nasce na quinta à tarde, sem hora, ocupando o turno inteiro | Não executado |
+| **TA-70** | RF-28, RF-26 | Semana fechada, em tela de computador | 1. Tentar arrastar a barra de uma tarefa da semana<br>2. Clicar no turno vazio de uma pessoa | Nada se move e nada é lançado: a semana fechada não se altera | Não executado |
+| **TA-79** | RF-26, RNF-14 | Semana aberta, em tela de computador, com tarefa planejada de duas pessoas, A e B | 1. Arrastar a barra da linha de A para a linha de C<br>2. Arrastar a mesma barra da linha de C para a linha de B<br>3. Desfazer o primeiro movimento pelo aviso | Depois do passo 1 o grupo é B e C, e A saiu (RN-61); o passo 2 é recusado, porque B já está na tarefa; desfazer volta o grupo para A e B | Não executado |
+| **TA-80** | RF-29, RNF-14 | Celular, semana aberta, com uma tarefa não quantitativa e uma quantitativa no dia | 1. Tocar no quadrado da tarefa não quantitativa<br>2. Tocar no quadrado da quantitativa<br>3. Repetir o passo 1 em outra tarefa, sem rede | A primeira fica confirmada com um toque, sem sair da lista; a quantitativa abre a ficha com o campo de quantidade; sem rede, o toque fica guardado no aparelho e vai quando a rede voltar | Não executado |
 
 > **TA-64 confronta o número do sistema com uma apuração manual independente.** É o que valida a
 > decisão de manter o saldo disponível como quantidade derivada, e não como entidade armazenada:
@@ -237,8 +239,8 @@ requisitos de prioridade *deve ter* sem verificação correspondente.
 | Mapa de lotes | 2 | RF-44, RF-45 |
 | Clientes e pedidos | 14 | RF-15, RF-17, RF-54, RF-55, RF-57, RF-58, RF-59, RF-60, RF-61, RF-62, RF-63, RF-64 |
 | Requisitos não funcionais | 7 | RNF-01, RNF-02, RNF-05, RNF-06, RNF-08, RNF-09, RNF-11, RNF-14 |
-| Casos acrescentados pela matriz de rastreabilidade | 9 | RF-05, RF-11, RF-18, RF-26, RF-28, RF-39, RF-41, RF-43, RF-56, RNF-14 |
-| **Total** | **78** | **59 dos 59 requisitos de prioridade *deve ter*** |
+| Casos acrescentados pela matriz de rastreabilidade | 11 | RF-05, RF-11, RF-18, RF-26, RF-28, RF-29, RF-39, RF-41, RF-43, RF-56, RNF-14 |
+| **Total** | **80** | **59 dos 59 requisitos de prioridade *deve ter*** |
 
 **Todos os requisitos de prioridade *deve ter* têm caso de aceite.**
 

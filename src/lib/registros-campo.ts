@@ -150,8 +150,11 @@ async function confirmarTarefa(campos: Campos, envio: Envio, user: SessionUser):
 
   const { loteId, perda } = confirmacao.value;
   // UC-20 FA-1: a repicagem precisa do destino das mudas, e continua no formulário do lote
+  // O toque único da agenda do celular fica onde está: a lista se atualiza sozinha
   const destino =
-    campo(campos, 'depois') === 'repicar' && loteId
+    campo(campos, 'depois') === 'ficar'
+      ? undefined
+      : campo(campos, 'depois') === 'repicar' && loteId
       ? `/producao/lotes/${loteId}?repicar=${id}`
       : perda
         ? `/producao/agenda/${id}?feito=confirmada&perda=${perda.quantidade}&causa=${perda.causa}`

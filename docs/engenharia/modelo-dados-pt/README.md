@@ -57,7 +57,7 @@ node scripts/mede-figuras.mjs
 | 11 | `fig11-cadastros-viveiro` | Cadastros: área, canteiro e turno de trabalho | 12,5 pt |
 | 12 | `fig12-cadastros-pessoas` | Cadastros: identidade única e papéis | 7,3 pt |
 | 13 | `fig13-cadastros-tarefa-protocolo` | Cadastros: tipo de tarefa e protocolo de atividades | 7,5 pt |
-| 14 | `fig14-producao-agenda` | Produção: semana, atribuição e participantes | 8,8 pt |
+| 14 | `fig14-producao-agenda` | Produção: semana, atribuição e participantes | 8,5 pt |
 | 15 | `fig15-producao-lote` | Produção: o lote e seus movimentos | 8,7 pt |
 | 16 | `fig16-producao-protocolo-do-lote` | Produção: o lote seguindo o protocolo | 21,1 pt |
 | 17 | `fig17-comercial-pedido` | Comercial: pedido, item e a disponibilidade conferida | 6,7 pt |

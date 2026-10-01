@@ -204,5 +204,10 @@ describe('confirmação de tarefa (T5.5)', () => {
     expect(
       await processarRegistro('confirmacao_tarefa', CHAVE, { id: TAREFA, lote_id: LOTE, depois: 'repicar' }, gerencia),
     ).toMatchObject({ destino: `/producao/lotes/${LOTE}?repicar=${TAREFA}` });
+    // O toque único da agenda do celular fica na lista
+    tarefaNoBanco();
+    const fica = await processarRegistro('confirmacao_tarefa', CHAVE, { id: TAREFA, lote_id: LOTE, depois: 'ficar' }, gerencia);
+    expect(fica).toMatchObject({ status: 'gravado' });
+    expect(fica).not.toHaveProperty('destino', expect.any(String));
   });
 });

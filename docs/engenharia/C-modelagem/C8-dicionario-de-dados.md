@@ -750,6 +750,7 @@ marcada declara a sua em `hora_inicio` / `hora_fim`.
 | `vencimento_protocolo` | date | ○ | | Vencimento que esta ordem representa, congelado na geração. Distingue-se de `data_trabalho`, que a gerência pode remarcar |
 | `situacao` | text | ● | | `planejada`, `confirmada`, `nao_confirmada`, `cancelada`: a segunda é a que a gerência marca ao registrar que a tarefa foi feita, a terceira é a que o fechamento assume como realizada (RN-14), e a quarta é a ordem que o encerramento do lote invalidou (RN-38) |
 | `observacoes` | text | ○ | | Observação livre; único campo aberto da agenda |
+| `prioridade_em` | timestamptz | ○ | | Escolha manual da tarefa principal na grade da semana (RF-26): onde duas tarefas da mesma pessoa se cruzam, a principal fica com a faixa de cima (60% da altura) e a outra com a de baixo. Nula segue a regra: a de maior duração, e no empate a que começa primeiro. É gravada quando a gerência usa "Tornar principal", e entre duas escolhidas a mais recente vence. Nenhuma regra de negócio a lê, e os horários não mudam |
 
 > **`pessoa_id` saiu para `atribuicoes_participantes`.** Quem executa deixou de ser coluna e virou lista:
 > uma tarefa admite vários executores (RN-25). Ver a entidade para o porquê.

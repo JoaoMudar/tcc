@@ -61,6 +61,7 @@ Fonte: Elaborado pelo autor (2026).
 | RN-27 | Na classificação, as mudas mortas viram perda do lote no mesmo registro. |
 | RN-28 | A ocupação do canteiro é a soma dos saldos dos lotes abertos nele. |
 | RN-29 | A tarefa recorrente já aparece preenchida na cópia da semana. |
+| RN-61 | Remanejar a tarefa de uma pessoa para outra substitui a primeira pela segunda no grupo, e não acrescenta: quem já está na tarefa não entra de novo. |
 
 Fonte: Elaborado pelo autor (2026).
 
@@ -121,11 +122,11 @@ Fonte: Elaborado pelo autor (2026).
 | Área | Regras | Quantidade |
 |---|---|---:|
 | Domínio e produto | RN-01, RN-02, RN-03, RN-04, RN-05, RN-06, RN-07 | 7 |
-| Produção, lote e trabalho | RN-08, RN-09, RN-10, RN-11, RN-12, RN-13, RN-14, RN-15, RN-16, RN-17, RN-18, RN-19, RN-20, RN-21, RN-22, RN-23, RN-24, RN-25, RN-26, RN-27, RN-28, RN-29 | 22 |
+| Produção, lote e trabalho | RN-08, RN-09, RN-10, RN-11, RN-12, RN-13, RN-14, RN-15, RN-16, RN-17, RN-18, RN-19, RN-20, RN-21, RN-22, RN-23, RN-24, RN-25, RN-26, RN-27, RN-28, RN-29, RN-61 | 23 |
 | Protocolo de atividades por lote | RN-30, RN-31, RN-32, RN-33, RN-34, RN-35, RN-36, RN-37, RN-38, RN-39, RN-40, RN-41 | 12 |
 | Cliente e pedido | RN-42, RN-43, RN-44, RN-45, RN-46, RN-47, RN-48, RN-49, RN-50 | 9 |
 | Acesso e responsabilidade | RN-51, RN-52, RN-53, RN-54, RN-55, RN-56, RN-57, RN-58, RN-59, RN-60 | 10 |
-| **Total** | | **60** |
+| **Total** | | **61** |
 
 Fonte: Elaborado pelo autor (2026).
 
@@ -162,7 +163,7 @@ Fonte: Elaborado pelo autor (2026).
 | RF-23 | Evento de referência da etapa | O sistema deve permitir que cada etapa do protocolo declare o seu evento de referência: a criação do lote ou a conclusão de uma etapa específica do mesmo protocolo. | RN-31 |
 | RF-24 | Alerta e janela de aviso por etapa | O sistema deve permitir ligar e desligar o alerta de atraso por etapa do protocolo, e sobrescrever nela a janela de aviso padrão. | RN-35 |
 | RF-25 | Tempo de etapa customizado por espécie | O sistema deve permitir, no cadastro da espécie, sobrescrever o tempo em dias de uma etapa específica do protocolo. | RN-36 |
-| RF-26 | Montagem da agenda da semana | O sistema deve permitir montar a agenda da semana atribuindo, por funcionário e por dia, o tipo de tarefa e o turno, manhã ou tarde, admitindo a mesma tarefa para mais de um funcionário e mais de uma tarefa no mesmo turno com grupos diferentes, e deve permitir declarar a hora de início e de fim da tarefa que tiver hora marcada, sem exigi-la das demais; na apresentação em tela larga (RNF-14) a montagem deve ser direta, arrastando a tarefa planejada para remarcá-la e puxando a borda dela para declarar a duração, e lançando tarefa nova no ponto da grade em que se clicar. | RN-12, RN-25 |
+| RF-26 | Montagem da agenda da semana | O sistema deve permitir montar a agenda da semana atribuindo, por funcionário e por dia, o tipo de tarefa e o turno, manhã ou tarde, admitindo a mesma tarefa para mais de um funcionário e mais de uma tarefa no mesmo turno com grupos diferentes, e deve permitir declarar a hora de início e de fim da tarefa que tiver hora marcada, sem exigi-la das demais; na apresentação em tela larga (RNF-14) a montagem deve ser direta, numa linha do tempo por pessoa: arrastando a tarefa planejada para remarcá-la no dia e na hora, ou para a linha de outra pessoa, que então substitui a de origem no grupo, puxando a borda dela para declarar a duração, e lançando tarefa nova no turno vazio em que se clicar, sem perguntar de novo a pessoa, o dia e o turno. | RN-12, RN-25, RN-61 |
 | RF-27 | Cópia da semana e tarefa recorrente | O sistema deve permitir copiar a agenda da semana anterior e marcar tarefas como recorrentes, que passam a nascer preenchidas na cópia. | RN-29 |
 | RF-28 | Situação da semana | O sistema deve controlar a situação da semana (aberta e fechada) e impedir alteração depois do fechamento. | RN-13 |
 | RF-29 | Confirmação da tarefa realizada | O sistema deve permitir confirmar a atribuição como realizada, apresentando os campos que o tipo de tarefa exigir, o lote uma vez para a tarefa e a quantidade uma vez por participante, exigindo o lote quando o tipo declarar lote específico e pedindo a quantidade apenas quando o tipo for quantitativo por unidade. | RN-23, RN-24, RN-27 |
