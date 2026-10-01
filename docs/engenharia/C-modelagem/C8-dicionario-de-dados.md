@@ -815,6 +815,11 @@ decorre: `saudavel`, `atencao` ou `critico`. É o que pinta o mapa de produção
 > **É visão e não coluna** (RF-45): situação gravada envelhece sozinha, e o lote marcado como saudável ontem
 > continuaria saudável hoje, que é o contrário do que a tela mostra.
 
+> **"Hoje" é o dia do viveiro, e não o do banco.** As duas visões medem o atraso com a função
+> `hoje_no_viveiro()`, que lê o relógio no fuso `America/Sao_Paulo`. O `CURRENT_DATE` segue o fuso da
+> sessão, e o Neon roda em UTC: das 21h à meia-noite ele já está no dia seguinte, e o lote apareceria
+> com um dia de atraso a mais (migration `20260930000002`).
+
 > **A mais antiga manda.** Havendo três pendências no mesmo lote, quem determina a cor é a que
 > espera há mais tempo, e é ela que aparece ao apontar o lote (RF-45): resolvê-la é a providência
 > que o mapa está pedindo. Isso vale entre as duas fontes: a etapa vencida em abril manda sobre a
