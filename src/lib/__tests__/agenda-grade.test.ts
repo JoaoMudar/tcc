@@ -15,6 +15,10 @@ import {
   posicaoPercentual,
   redimensionarFaixa,
   sobrepor,
+  agruparPorTarefa,
+  faixaDoTexto,
+  faixaVertical,
+  recortePerfil,
   ancoraProxima,
   ancorasDaJornada,
   comparaPrecedencia,
@@ -366,5 +370,82 @@ describe('opcoesDeHora (painel do celular, de quinze em quinze)', () => {
 
   it('ignora o turno desativado', () => {
     expect(opcoesDeHora([MANHA_MEIA, { ...TARDE_MEIA, ativo: false }]).at(-1)).toBe('12:30');
+  });
+});
+
+describe('agruparPorTarefa, recortePerfil e faixaDoTexto: a tarefa cruzada é um card só', () => {
+  interface T {
+    id: string;
+    faixa: Faixa;
+    prioridadeEm: string | null;
+  }
+  const t = (id: string, inicio: number, fim: number, prioridadeEm: string | null = null): T => ({ id, faixa: faixa(inicio, fim), prioridadeEm });
+  const barras = (itens: T[]) => agruparPorTarefa(sobrepor(itens, (i) => i.faixa, comparaPrecedencia));
+  const eixo = { inicio: 420, fim: 660 };
+  const semRecuo = { inicio: 0, fim: 0, topo: 0, base: 0 };
+
+  it('a longa cruzada pela curta vira uma barra, com três degraus', () => {
+    const [manha, oito] = barras([t('manha', 420, 660), t('oito', 480, 540)]);
+    expect(manha.item.id).toBe('manha');
+    expect(manha.faixa).toMatchObject({ inicio: 420, fim: 660 });
+    expect(manha.perfil.map((d) => [d.inicio, d.fim, d.camada, d.camadas])).toEqual([
+      [420, 480, 0, 1],
+      [480, 540, 0, 2],
+      [540, 660, 0, 1],
+    ]);
+    expect(oito.perfil.map((d) => [d.camada, d.camadas])).toEqual([[1, 2]]);
+  });
+
+  it('o pedaço em que ela foi para o "+N" vira degrau de altura zero, sem quebrar o card', () => {
+    // b, escolhida à mão, passa à frente de c no meio, e c vai para o "+N" ali
+    const c = barras([t('a', 420, 660), t('b', 480, 540, '2026-09-21T12:00:00.000000Z'), t('c', 450, 600)]).find((b) => b.item.id === 'c')!;
+    expect(c.perfil.map((d) => [d.inicio, d.fim, d.camada])).toEqual([
+      [450, 480, 1],
+      [480, 540, -1],
+      [540, 600, 1],
+    ]);
+    expect(faixaVertical(-1, 0)).toEqual({ topo: 100, altura: 0 });
+  });
+
+  it('sem cruzamento, nada a recortar', () => {
+    const [so] = barras([t('so', 420, 540)]);
+    expect(recortePerfil(so.faixa, so.perfil, eixo, semRecuo)).toBeUndefined();
+  });
+
+  it('o recorte tira a parte de baixo só no trecho cruzado', () => {
+    const [manha, oito] = barras([t('manha', 420, 660), t('oito', 480, 540)]);
+    expect(recortePerfil(manha.faixa, manha.perfil, eixo, semRecuo)).toBe(
+      'polygon(' +
+        [
+          'calc(0% + 0px) calc(0% + 0px)',
+          'calc(25% + 0px) calc(0% + 0px)',
+          'calc(25% + 0px) calc(0% + 0px)',
+          'calc(50% + 0px) calc(0% + 0px)',
+          'calc(50% + 0px) calc(0% + 0px)',
+          'calc(100% + 0px) calc(0% + 0px)',
+          'calc(100% + 0px) calc(100% + 0px)',
+          'calc(50% + 0px) calc(100% + 0px)',
+          'calc(50% + 0px) calc(60% + -1px)',
+          'calc(25% + 0px) calc(60% + -1px)',
+          'calc(25% + 0px) calc(100% + 0px)',
+          'calc(0% + 0px) calc(100% + 0px)',
+        ].join(', ') +
+        ')',
+    );
+    expect(recortePerfil(oito.faixa, oito.perfil, eixo, semRecuo)).toContain('calc(0% + 0px) calc(60% + 1px)');
+  });
+
+  it('o recuo do card entra no calc, para o degrau cair no minuto certo', () => {
+    const [manha] = barras([t('manha', 420, 660), t('oito', 480, 540)]);
+    // 25% da caixa, com 2px de recuo de cada lado: 25% do card mais 0.25 × 4 − 2 px
+    expect(recortePerfil(manha.faixa, manha.perfil, eixo, { inicio: 2, fim: 2, topo: 2, base: 2 })).toContain('calc(25% + -1px) calc(60% + -0.6px)');
+  });
+
+  it('o texto fica na altura que nenhum cruzamento corta', () => {
+    const [manha, oito] = barras([t('manha', 420, 660), t('oito', 480, 540)]);
+    expect(faixaDoTexto(manha.perfil)).toEqual({ topo: 0, altura: 60 });
+    expect(faixaDoTexto(oito.perfil)).toEqual({ topo: 60, altura: 40 });
+    const [so] = barras([t('so', 420, 540)]);
+    expect(faixaDoTexto(so.perfil)).toEqual({ topo: 0, altura: 100 });
   });
 });
