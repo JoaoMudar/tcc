@@ -25,8 +25,8 @@ import { withTransaction } from '../transaction';
 const pool = new Pool({ connectionString: process.env.TEST_DATABASE_URL });
 const prefixo = `pp${randomUUID().slice(0, 6)}`;
 const tx = <T>(fn: (client: PoolClient) => Promise<T>) => withTransaction(pool, fn);
-// Segunda-feira longe das semanas das outras suítes
-const SEMANA = '2032-03-01';
+// Segunda-feira longe das semanas das outras suítes (a envios.db usa 01/03, e esta a fecha)
+const SEMANA = '2032-03-08';
 
 let gerencia: string;
 let chefia: string;

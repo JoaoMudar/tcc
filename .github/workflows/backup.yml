@@ -51,15 +51,15 @@ jobs:
           test -n "$BACKUP_DATABASE_URL" || { echo "Falta o segredo BACKUP_DATABASE_URL"; exit 1; }
           test -n "$BACKUP_PASSPHRASE" || { echo "Falta o segredo BACKUP_PASSPHRASE"; exit 1; }
 
-      # pg_dump da mesma versão do Neon (17), pela imagem oficial: o do Ubuntu é mais velho e recusa
+      # pg_dump da mesma versão do Neon (18), pela imagem oficial: o do Ubuntu é mais velho e recusa
       - name: Copiar o banco
         run: |
           set -euo pipefail
           mkdir -p copia
-          docker run --rm -e BACKUP_DATABASE_URL -v "$PWD/copia:/copia" postgres:17 \
+          docker run --rm -e BACKUP_DATABASE_URL -v "$PWD/copia:/copia" postgres:18 \
             sh -c 'pg_dump --format=custom --no-owner --no-privileges --file=/copia/viveiro.dump "$BACKUP_DATABASE_URL" && chmod 644 /copia/viveiro.dump'
           # A cópia que o pg_restore não lê não é cópia: falha aqui, e não no dia da restauração
-          docker run --rm -v "$PWD/copia:/copia" postgres:17 pg_restore --list /copia/viveiro.dump > /dev/null
+          docker run --rm -v "$PWD/copia:/copia" postgres:18 pg_restore --list /copia/viveiro.dump > /dev/null
           echo "Cópia de $(du -h copia/viveiro.dump | cut -f1)"
 
       - name: Cifrar
