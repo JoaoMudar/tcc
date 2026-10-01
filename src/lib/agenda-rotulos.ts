@@ -40,17 +40,16 @@ export function lerQuantidadeMedida(text: string, unidade: UnidadeTarefa): numbe
   return numero < MAXIMO ? numero : null;
 }
 
+/** RF-28: a semana nasce aberta no primeiro lançamento, e fechada não se altera (RN-13). */
 export const SITUACOES_SEMANA = {
-  rascunho: 'Rascunho',
-  publicada: 'Publicada',
+  aberta: 'Aberta',
   fechada: 'Fechada',
 } as const;
 
 export type SituacaoSemana = keyof typeof SITUACOES_SEMANA;
 
 export const TOM_SEMANA: Record<SituacaoSemana, PillTone> = {
-  rascunho: 'amber',
-  publicada: 'blue',
+  aberta: 'green',
   fechada: 'neutral',
 };
 
