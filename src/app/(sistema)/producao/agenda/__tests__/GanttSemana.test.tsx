@@ -151,15 +151,28 @@ describe('GanttSemana: sobreposição em duas faixas (RF-26)', () => {
   it('a linha não cresce: a mais longa fica em cima com 60%, e a outra embaixo com 40%', () => {
     montar([tarefa(), tarefa(IRRIGACAO)]);
     expect((linhaDe(GILBERTO.id) as HTMLElement).style.height).toBe('60px');
-    // A manhã sai antes, durante (em cima) e depois da irrigação
+    // A manhã é um card só, do começo ao fim, recortado embaixo só durante a irrigação
     const principais = screen.getAllByRole('link', { name: /^Encher saquinhos.*Planejada$/ });
-    expect(principais.map((b) => [estilo(b).left, estilo(b).height])).toEqual([
-      ['0%', '100%'],
-      ['12.5%', '60%'],
-      ['25%', '100%'],
-    ]);
+    expect(principais).toHaveLength(1);
+    expect(estilo(principais[0])).toMatchObject({ left: '0%', width: '50%' });
+    const recorte = principais[0].getAttribute('data-recorte');
+    expect(recorte).toContain('calc(25% + -1px) calc(60% + -0.6px)');
+    expect(recorte).toContain('calc(50% + 0px) calc(60% + -0.6px)');
     const irrigar = screen.getByRole('link', { name: /^Irrigação.*faixa de baixo/ });
-    expect(estilo(irrigar)).toMatchObject({ top: '60%', height: '40%', left: '12.5%' });
+    expect(estilo(irrigar)).toMatchObject({ left: '12.5%', width: '12.5%' });
+    expect(irrigar.getAttribute('data-recorte')).toContain('calc(60% + 1.4px)');
+  });
+
+  it('a tarefa longa cruzada por outra é um card só, com um título e uma faixa de cor', () => {
+    montar([
+      tarefa({ tipo: 'Adubar', turnoId: MANHA.id, horaInicio: '07:30', horaFim: '17:30' }),
+      tarefa({ id: 'a2', tipo: 'Semear', horaInicio: '09:30', horaFim: '10:30' }),
+    ]);
+    const adubar = screen.getAllByRole('link', { name: /^Adubar/ });
+    expect(adubar).toHaveLength(1);
+    expect(adubar[0].querySelectorAll('.bg-orange-800')).toHaveLength(1);
+    expect(screen.getAllByText('Adubar')).toHaveLength(1);
+    expect(screen.getByRole('link', { name: /^Semear.*faixa de baixo/ })).toBeInTheDocument();
   });
 
   it('a secundária mostra só o título, sem horário', () => {
@@ -171,7 +184,8 @@ describe('GanttSemana: sobreposição em duas faixas (RF-26)', () => {
   it('a escolhida à mão fica em cima, mesmo sendo a mais curta', () => {
     montar([tarefa(), tarefa({ ...IRRIGACAO, prioridadeEm: '2026-09-21T12:00:00.000000Z' })]);
     expect(screen.getByRole('link', { name: /Encher saquinhos.*faixa de baixo/ })).toBeInTheDocument();
-    expect(estilo(screen.getByRole('link', { name: /^Irrigação.*Planejada$/ })).height).toBe('60%');
+    // A irrigação, só no seu horário, fica com a faixa de cima: o recorte a corta em 60%
+    expect(screen.getByRole('link', { name: /^Irrigação.*Planejada$/ }).getAttribute('data-recorte')).toContain('calc(60% + -0.6px)');
   });
 
   it('"Tornar principal" na secundária grava a escolha', async () => {

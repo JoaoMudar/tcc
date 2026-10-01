@@ -4,14 +4,19 @@ import Link from 'next/link';
 import { type MouseEvent, startTransition, useCallback, useEffect, useMemo, useOptimistic, useRef, useState } from 'react';
 import type { AtribuicaoResumo, Funcionario } from '@/lib/agenda';
 import {
+  type Barra,
+  type Degrau,
   type Eixo,
   type Faixa,
   type Trecho,
+  OVERLAP_SECONDARY,
   PASSO_MINUTOS,
+  agruparPorTarefa,
   ancorasDaJornada,
   comparaPrecedencia,
   duracaoUtil,
   faixaDaBarra,
+  faixaVertical,
   formatMinuto,
   janelaDoDia,
   marcasDeHora,
@@ -56,9 +61,6 @@ interface GanttSemanaProps {
 
 /** Altura da linha da pessoa, em pixels. É fixa: a sobreposição divide a altura, e não a aumenta (RF-26). */
 const ALTURA_LINHA = 60;
-/** Onde duas tarefas se cruzam, a principal fica com a faixa de cima e as secundárias dividem a de baixo. */
-export const OVERLAP_MAIN = 0.6;
-export const OVERLAP_SECONDARY = 0.4;
 /** Abaixo disto a faixa secundária não comporta uma linha de texto, e a tarefa vai para o "+N". */
 const ALTURA_MINIMA_FAIXA = 16;
 const MAX_CAMADAS = 1 + Math.floor((ALTURA_LINHA * OVERLAP_SECONDARY) / ALTURA_MINIMA_FAIXA);
@@ -304,7 +306,7 @@ export function GanttSemana({
   const arrastavel = (a: AtribuicaoResumo) => podeArrastar && a.situacao === 'planejada' && a.semanaSituacao === 'aberta';
   const linhas = grade.map((linha) => {
     const chave = linha.pessoa?.id ?? null;
-    return { linha, chave, porDia: dias.map((dia) => trechosDe(chave, dia, linha.porDia[dia] ?? [])) };
+    return { linha, chave, porDia: dias.map((dia) => agruparPorTarefa(trechosDe(chave, dia, linha.porDia[dia] ?? []))) };
   });
 
   return (
@@ -356,7 +358,7 @@ export function GanttSemana({
                 >
                   {dias.map((dia, indice) => {
                     const doDia = linha.porDia[dia] ?? [];
-                    const trechos = porDia[indice];
+                    const barras = porDia[indice];
                     const sombra =
                       sessao?.modo === 'mover' && emArrasto && dia === sessao.diaOriginal && chave === sessao.pessoaOriginal ? sessao.faixaOriginal : null;
                     const miraAqui = mira && mira.pessoa === chave && mira.dia === dia ? mira.minuto : null;
@@ -384,23 +386,20 @@ export function GanttSemana({
                         )}
                         {miraAqui !== null && !sessao && <Mira minuto={miraAqui} janela={janela} />}
                         {sombra && emArrasto && <SombraOriginal faixa={sombra} janela={janela} categoria={emArrasto.categoria} />}
-                        {trechos.map((trecho) => {
-                          const ehSessao = sessao?.id === trecho.item.id && sessao.pessoa === chave && sessao.dia === dia;
+                        {barras.map((barra) => {
+                          const ehSessao = sessao?.id === barra.item.id && sessao.pessoa === chave && sessao.dia === dia;
                           return (
                             <BarraTarefa
-                              key={`${trecho.item.id}-${trecho.camada}-${trecho.faixa.inicio}`}
-                              atribuicao={trecho.item}
-                              alvo={{ id: trecho.item.id, dia, faixa: trecho.completa, pessoa: chave }}
-                              desenho={trecho.faixa}
-                              camada={trecho.camada}
-                              alcas={{ inicio: trecho.bordaInicio, fim: trecho.bordaFim }}
-                              ocultas={trecho.ocultas}
+                              key={barra.item.id}
+                              atribuicao={barra.item}
+                              alvo={{ id: barra.item.id, dia, faixa: barra.completa, pessoa: chave }}
+                              desenho={barra.faixa}
+                              perfil={barra.perfil}
                               janela={janela}
-                              livreDepois={livreDepois(trecho, trechos, janela)}
-                              encosta={encostas(trecho, trechos)}
-                              {...alturaDoTrecho(trecho)}
-                              arrastavel={arrastavel(trecho.item)}
-                              promovivel={podeArrastar && trecho.item.semanaSituacao === 'aberta'}
+                              livreDepois={livreDepois(barra, barras, janela)}
+                              encosta={encostas(barra, barras)}
+                              arrastavel={arrastavel(barra.item)}
+                              promovivel={podeArrastar && barra.item.semanaSituacao === 'aberta'}
                               emArrasto={ehSessao}
                               destino={ehSessao && sessao.pessoa !== sessao.pessoaOriginal ? nomeDe(sessao.pessoa) : null}
                               onPromover={promover}
@@ -432,39 +431,34 @@ export function GanttSemana({
   );
 }
 
-/**
- * Onde o trecho desenha na altura da linha, em porcentagem: sozinho, a altura
- * toda; cruzado, a principal na faixa de cima e as secundárias dividindo a de baixo.
- */
-function alturaDoTrecho(trecho: Trecho<unknown>): { topo: number; altura: number } {
-  if (trecho.camadas <= 1) return { topo: 0, altura: 100 };
-  const principal = OVERLAP_MAIN * 100;
-  if (trecho.camada === 0) return { topo: 0, altura: principal };
-  const altura = (OVERLAP_SECONDARY * 100) / (trecho.camadas - 1);
-  return { topo: principal + (trecho.camada - 1) * altura, altura };
+/** Dois degraus que dividem alguma altura da linha. */
+function mesmaAltura(um: Degrau<unknown>, outro: Degrau<unknown>): boolean {
+  const a = faixaVertical(um.camada, um.camadas);
+  const b = faixaVertical(outro.camada, outro.camadas);
+  return a.topo < b.topo + b.altura && b.topo < a.topo + a.altura;
 }
 
 /**
- * Os lados em que o trecho encosta em outro na mesma altura: a que termina às
+ * Os lados em que a barra encosta em outra na mesma altura: a que termina às
  * 9h45 e a que começa às 9h45 se tocam, sem o recuo que sugere um vão de tempo.
  */
-function encostas(trecho: Trecho<unknown>, todos: readonly Trecho<unknown>[]): { inicio: boolean; fim: boolean } {
-  const { topo, altura } = alturaDoTrecho(trecho);
-  const mesmaAltura = (outro: Trecho<unknown>) => {
-    const o = alturaDoTrecho(outro);
-    return o.topo < topo + altura && topo < o.topo + o.altura;
-  };
-  const vizinhos = todos.filter((outro) => outro !== trecho && mesmaAltura(outro));
+function encostas(barra: Barra<unknown>, todas: readonly Barra<unknown>[]): { inicio: boolean; fim: boolean } {
+  const primeiro = barra.perfil[0];
+  const ultimo = barra.perfil[barra.perfil.length - 1];
+  const outras = todas.filter((outra) => outra !== barra);
   return {
-    inicio: vizinhos.some((outro) => outro.faixa.fim === trecho.faixa.inicio),
-    fim: vizinhos.some((outro) => outro.faixa.inicio === trecho.faixa.fim),
+    inicio: outras.some((outra) => {
+      const fim = outra.perfil[outra.perfil.length - 1];
+      return fim.fim === primeiro.inicio && mesmaAltura(fim, primeiro);
+    }),
+    fim: outras.some((outra) => outra.perfil[0].inicio === ultimo.fim && mesmaAltura(outra.perfil[0], ultimo)),
   };
 }
 
-/** Os minutos de eixo livres à direita do trecho, até o próximo que começa ou o fim do dia. */
-function livreDepois(trecho: Trecho<unknown>, todos: readonly Trecho<unknown>[], janela: Eixo): number {
-  const proximo = todos.reduce((menor, t) => (t.faixa.inicio >= trecho.faixa.fim ? Math.min(menor, t.faixa.inicio) : menor), janela.fim);
-  return duracaoUtil({ inicio: trecho.faixa.fim, fim: proximo }, janela);
+/** Os minutos de eixo livres à direita da barra, até a próxima que começa ou o fim do dia. */
+function livreDepois(barra: Barra<unknown>, todas: readonly Barra<unknown>[], janela: Eixo): number {
+  const proximo = todas.reduce((menor, b) => (b.faixa.inicio >= barra.faixa.fim ? Math.min(menor, b.faixa.inicio) : menor), janela.fim);
+  return duracaoUtil({ inicio: barra.faixa.fim, fim: proximo }, janela);
 }
 
 /** O almoço: um divisor fino entre manhã e tarde, no lugar da largura que ele ocupava. */
