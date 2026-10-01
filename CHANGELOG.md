@@ -41,6 +41,13 @@ schema inicial em português e estão descritas no `C8`.
 - Na mesma alteração, fora do banco: saem os botões "Abrir semana" e "Publicar", e o seletor
   Dia/Semana. A aba Agenda de `/producao` mostra o dia em cima e a semana dele embaixo;
   `/producao/agenda` redireciona para lá.
+## 30/09/2026 · `20260930000002_dia_do_viveiro_nas_visoes.sql`
+
+- **O "hoje" das visões é o dia do viveiro.** Função nova `hoje_no_viveiro()` (o dia em
+  `America/Sao_Paulo`), no lugar de `CURRENT_DATE` em `situacao_lote` e `lotes_etapas_vencimento`.
+  Com o banco em UTC (Neon), das 21h à meia-noite o atraso saía com um dia a mais. O padrão de
+  `movimentos_lote.data_movimento` passa a usar a mesma função.
+- Compatível: as visões mantêm as mesmas colunas (`CREATE OR REPLACE`).
 
 ## 30/09/2026 · `20260930000001_envios_recebidos.sql`
 
