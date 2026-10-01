@@ -28,8 +28,9 @@ quatro módulos do sistema, com o Acesso à frente por atravessar os quatro.
   acompanha: `especies.ativa` e `cadastro.pessoas.ativa`.
 - **As três são convenção, e não obrigação**, e a tabela que foge dela declara o atributo (ou a
   ausência dele) na sua própria linha. Quem só registra fato consumado não tem `atualizado_em`, porque
-  não se altera: é o caso de `sessoes`, `eventos_login`, `movimentos_lote` e
-  `especies_nomes_populares`. As duas tabelas de ligação, `cadastro.pessoas_papeis` e
+  não se altera: é o caso de `sessoes`, `eventos_login`, `movimentos_lote`,
+  `especies_nomes_populares` e `envios_recebidos`, que também não tem `id`, porque a chave gerada no
+  aparelho já identifica a linha. As duas tabelas de ligação, `cadastro.pessoas_papeis` e
   `atribuicoes_participantes`, também não têm `id`: a chave é o par que as define, e é ela que impede a
   linha repetida. E `ativo` só existe onde há catálogo a arquivar.
 - Nome de entidade fora do esquema `public` vem qualificado (`cadastro.pessoas`), na coluna Chave inclusive.
@@ -42,7 +43,7 @@ quatro módulos do sistema, com o Acesso à frente por atravessar os quatro.
 ## Recorte implementado
 
 Este dicionário descreve o **modelo especificado**, que desde 18/09/2026 é também o construído: as
-31 entidades existem no banco, mais as visões `situacao_lote` e `lotes_etapas_vencimento`. Até
+34 entidades existem no banco, mais as visões `situacao_lote` e `lotes_etapas_vencimento`. Até
 aquela data as quatro entidades do protocolo estavam especificadas e não implementadas, e a
 distinção era registrada entidade por entidade. Não era defeito de modelagem: o modelo responde à especificação completa de requisitos, e
 a construção segue a priorização declarada em
@@ -53,13 +54,14 @@ a construção segue a priorização declarada em
 | *(transversal)* Acesso e configurações | 4 | 0 |
 | 1 · Cadastro único | 12 | 3 |
 | 2 · Produção | 5 | 1 |
-| 3 · Comercial | 6 | 0 |
-| **Total** | **27** | **4** |
+| 3 · Comercial | 8 | 0 |
+| **Total** | **29** | **4** |
 
 As quatro entidades que o Comercial ganhou em 21/09/2026, `pedidos_historico`,
 `pedidos_itens_especies_permitidas`, `pedidos_cargas` e `pedidos_cargas_itens`, nasceram já no
 banco, pelas migrations `20260921000001` e `20260921000002`. Nenhuma delas passou pela condição de
 especificada e não implementada, e é por isso que a coluna da direita continua zerada nesta linha.
+O mesmo vale para `viagens` e `viagens_paradas`, de 29/09/2026 (migration `20260929000001`).
 
 As 3 do Cadastro único são as do **protocolo de atividades**: `protocolos`, `protocolos_etapas` e
 `especies_protocolos_tempos`. A 1 da Produção é
@@ -122,6 +124,23 @@ UC-22 FA-2.
 | `ip` | text | ○ | | Endereço de origem |
 | `agente_usuario` | text | ○ | | Dispositivo e navegador |
 
+## `envios_recebidos`: chave do registro feito sem conexão
+
+O registro de campo (perda, contagem e confirmação de tarefa) pode ser feito sem rede: o aparelho
+o guarda numa fila e envia quando a rede volta (RNF-05). Reenviar é da natureza da fila, porque a
+resposta pode se perder depois de o servidor ter gravado. A chave é gerada no aparelho e gravada na
+mesma transação do registro; chave já vista devolve a resposta guardada, sem gravar de novo
+(UC-20 FA-3). Registro recusado desfaz a chave junto, e o reenvio encontra a mesma recusa. Só fato
+consumado: sem `id`, sem `atualizado_em` e sem `ativo`.
+
+| Atributo | Tipo | Ob. | Chave | Descrição |
+|---|---|:--:|:--:|---|
+| `chave` | uuid | ● | PK | Gerada no aparelho, e não pelo banco: é ela que identifica o reenvio |
+| `tipo` | text | ● | | Lista fechada: `perda`, `contagem`, `confirmacao_tarefa` |
+| `usuario_id` | uuid | ● | FK → `usuarios` | Quem enviou. Chave repetida com outro usuário ou outro tipo é recusada, e não devolve a resposta alheia |
+| `resposta` | jsonb | ● | | O que o servidor respondeu da primeira vez (mensagem e, na confirmação, o destino da tela) |
+| `recebido_em` | timestamptz | ● | | Momento da primeira gravação |
+
 ## `parametros`: parâmetro do sistema
 
 Parâmetro escalar em chave e valor tipado. Existe para tirar do código e da variável de ambiente
@@ -147,6 +166,10 @@ exige uma implantação.
 > **`valor` é texto e `tipo_valor` diz como lê-lo.** A alternativa, uma coluna por tipo, deixaria
 > três nulas em toda linha. O tipo declarado é o que permite a tela de configurações apresentar o
 > campo certo e validar antes de gravar.
+
+> **Duas chaves da viagem de entrega** (RF-64): `comercial.viagem_partida_agrolandia` e
+> `comercial.viagem_partida_itapema`, de `tipo_valor` `texto`, os dois endereços de onde o caminhão
+> pode sair. A rota oferece os dois e aceita um terceiro digitado.
 
 > **Duas chaves novas com o protocolo de atividades, ainda não implementadas:**
 > `producao.protocolo_janela_aviso_pct` (padrão 20), o percentual final do intervalo em que a etapa
@@ -294,7 +317,14 @@ exige uma implantação.
 | `cidade` | text | ○ | | Município |
 | `uf` | char(2) | ○ | | Unidade federativa |
 | `cep` | text | ○ | | CEP |
+| `lat` | numeric(9,6) | ○ | | Latitude que o serviço de mapas achou para este texto. Restrição: nula junto com `lng` |
+| `lng` | numeric(9,6) | ○ | | Longitude, idem |
+| `geocodificado_em` | timestamptz | ○ | | Quando o serviço foi consultado. **Preenchido com `lat` nula: o serviço procurou e não achou** |
 | `criado_em`, `atualizado_em` | timestamptz | ● | | Criação e alteração |
+
+> **A coordenada vale para o texto de quando foi consultada.** O gatilho
+> `pessoas_enderecos_zera_coordenada` apaga as três colunas quando logradouro, cidade, UF ou CEP
+> mudam. Guardá-la evita consultar o serviço de mapas a cada viagem para o mesmo cliente (RF-64).
 
 > **A entidade existe porque uma pessoa tem mais de um endereço, e o de entrega pode não ser o de
 > cobrança** (RN-49). É `tipo` que os distingue, e a tabela não impõe endereço único por tipo: a
@@ -671,14 +701,16 @@ turno admite duas tarefas com grupos diferentes (RN-25).
 ## `semanas`: semana de trabalho
 
 A semana é a unidade real de decisão do viveiro (RF-26, RF-28). Fechada, não se altera: sem isso
-o custo do período mudaria depois de apurado (RN-13).
+o custo do período mudaria depois de apurado (RN-13). **Nasce aberta no primeiro lançamento, e o
+único ato sobre ela é fechar.** Até 30/09/2026 havia também `rascunho` e `publicada`, e a coluna
+`publicada_por`; saíram na migration `20260930000003`, porque quem monta a semana e quem a lê são
+os mesmos três perfis, e publicar não tinha público.
 
 | Atributo | Tipo | Ob. | Chave | Descrição |
 |---|---|:--:|:--:|---|
 | `id` | uuid | ● | PK | Identificador |
 | `inicio_semana` | date | ● | UK | Segunda-feira da semana; única |
-| `situacao` | text | ● | | `rascunho`, `publicada`, `fechada` |
-| `publicada_por` | uuid | ○ | FK → `usuarios` | Quem publicou a semana para a equipe |
+| `situacao` | text | ● | | `aberta` (padrão), `fechada` |
 | `fechada_em` | timestamptz | ○ | | Momento do fechamento; a partir dele a semana é imutável |
 
 ## `atribuicoes`: atribuição de tarefa
@@ -909,8 +941,10 @@ e a situação que dele decorre (RF-51, RF-52).
 | `alterado_por` | uuid | ● | FK → `usuarios` | Quem assinou a mudança (RN-52) |
 | `observacoes` | text | ○ | | Motivo do cancelamento, resumo da conferência, o que a transição precisar dizer em uma linha |
 
-**Restrição:** `situacao_nova` diferente de `situacao_anterior`. Linha que não muda nada não é
-histórico, e entraria só para poluir a ficha.
+**Restrição:** `situacao_nova` diferente de `situacao_anterior`, **ou** `observacoes` preenchida.
+Linha que não muda nada não é histórico, e entraria só para poluir a ficha. Desde 29/09/2026 a
+linha sem troca de situação entra quando traz observação: é a nota da data de entrega marcada no
+planejamento da viagem (RN-59), que muda o pedido sem mudar a situação.
 
 > **A tabela existe desde 21/09/2026, e a decisão anterior era de não a ter.** O argumento de então
 > valia para duas transições feitas pela mesma pessoa, quem mudou o quê se resolvia perguntando. Com
@@ -928,27 +962,55 @@ histórico, e entraria só para poluir a ficha.
 | `id` | uuid | ● | PK | Identificador |
 | `pedido_id` | uuid | ● | FK → `pedidos` | Pedido |
 | `especie_id` | uuid | ○ | FK → `especies` | Espécie. **Nula apenas no item genérico**, que é o pedido sem escolha de espécie |
-| `recipiente_id` | uuid | ● | FK → `recipientes` | Recipiente solicitado. No genérico, o recipiente mínimo aceito |
-| `quantidade` | integer | ● | | Quantidade pedida. Restrição: maior que zero |
-| `preco_unitario` | numeric(10,2) | ● | | **Preço unitário informado por quem registra** (RF-55, RN-50). Restrição: maior que zero |
+| `recipiente_id` | uuid | ○ | FK → `recipientes` | Recipiente solicitado. No genérico, o recipiente mínimo aceito. **Nulo é "o cliente não disse o tamanho"**: a conferência responde em qual existe, e a aprovação o exige |
+| `quantidade` | integer | ○ | | Quantidade pedida. **Nula é "o cliente ainda não disse quantas"**: a conferência responde quantas existem, a chefia a preenche na negociação e a aprovação a exige, trava que é do código (`confirmarPedido`). No genérico, nula faz dele uma lista montada: os filhos passam a ser itens de venda, cada um com seu preço. Restrição: maior que zero quando existe |
+| `altura_m` | numeric(4,2) | ○ | | Altura da muda pedida, em metros (RF-54). Nula é "o cliente não pediu altura". Restrição: maior que zero e até 20 |
+| `preco_unitario` | numeric(10,2) | ○ | | **Preço unitário informado por quem registra, depois da conferência** (RF-55, RN-50). Nulo é "ainda não precificado". Restrição: maior que zero quando existe |
 | `disponivel` | boolean | ○ | | O que a conferência respondeu. **Nulo é "ninguém conferiu ainda"** (RF-59) |
-| `quantidade_disponivel` | integer | ○ | | Quantas existem, quando `disponivel` é falso. Zero significa indisponível (RN-54) |
-| `recipiente_disponivel_id` | uuid | ○ | FK → `recipientes` | Recipiente em que a muda foi encontrada, que pode diferir do pedido |
+| `quantidade_disponivel` | integer | ○ | | Quantas existem: quando `disponivel` é falso no item com quantidade, ou quando o item veio sem quantidade e a gerência contou. Zero significa indisponível (RN-54). No item sem quantidade, nula com `disponivel` verdadeiro é "tem, sem número" |
+| `recipiente_disponivel_id` | uuid | ○ | FK → `recipientes` | Recipiente em que a muda foi encontrada, que pode diferir do pedido. Obrigatório, pelo código, quando o item veio sem recipiente e a resposta tem muda |
+| `altura_disponivel_m` | numeric(4,2) | ○ | | Altura em que a muda existe, em metros, quando difere da pedida ("Tem parte", P12). A aprovação a copia para `altura_m`. Restrição: maior que zero e até 20, e só com muda |
 | `observacoes_disponibilidade` | text | ○ | | Observação da gerência sobre o item |
 | `generico` | boolean | ● | | Item pedido sem escolha de espécie (RF-60) |
 | `item_pai_id` | uuid | ○ | FK → `pedidos_itens` | Item genérico que este filho compõe. Nulo no item de topo |
-| `especificacao` | text | ○ | | O que o cliente pediu, em texto. Só no item genérico |
+| `especificacao` | text | ○ | | Observação do item genérico: o que o cliente pediu, em texto. Só no item genérico, e opcional |
+| `complementa_item_id` | uuid | ○ | FK → `pedidos_itens` | Item que este completa em outro recipiente, no "Tem parte" com o "+" (P13). Nasce da mesma espécie, já respondido e sem preço, que a chefia digita. **Nulo é "item pedido pelo cliente"**. Apagado junto com o item que completa (`ON DELETE CASCADE`) |
 
-**Restrições:** item genérico não tem espécie, e item não genérico tem; item genérico não tem pai, o
-que mantém a composição em um nível só; `quantidade_disponivel` vai de zero até `quantidade` menos
-um, e só existe quando `disponivel` é falso; `recipiente_disponivel_id` só existe com
-`quantidade_disponivel` maior que zero.
+**Restrições:** a altura, quando existe, vai de zero exclusive até 20 metros; item genérico não tem
+espécie, e item não genérico tem; só o item genérico tem `especificacao`; item genérico não tem pai, o
+que mantém a composição em um nível só. A resposta da conferência tem três formas: nenhuma (as duas
+colunas nulas); no item com quantidade, `disponivel` verdadeiro sem número ou falso com
+`quantidade_disponivel` de zero até `quantidade` menos um; no item sem quantidade,
+`quantidade_disponivel` de zero em diante, com `disponivel` verdadeiro exatamente quando ela passa de
+zero, ou `disponivel` verdadeiro sem número ("tem", sem contar). O genérico composto fica verdadeiro e
+sem número, com ou sem quantidade; o genérico em "Tem parte" com falta usa a forma do item com
+quantidade, falso com a soma da composição. `recipiente_disponivel_id` e `altura_disponivel_m` não
+existem quando `quantidade_disponivel` é zero. O complemento (`complementa_item_id`) é item com
+espécie e de topo: não é genérico nem filho, e não completa a si mesmo.
 
 > **O preço é digitado, e o sistema não o calcula.** Não há referência a tabela de preço, piso
 > mínimo nem margem: o valor é o que foi negociado na conversa com o cliente, e ao sistema cabe
 > guardá-lo. O total do item e o do pedido são derivados de `quantidade` por `preco_unitario`, e não
-> materializados. **O total soma apenas os itens de topo**, porque o filho do genérico herda o preço
-> do pai e contá-los juntos dobraria a venda.
+> materializados. **O total soma os itens vendáveis**: o item de topo com espécie, o genérico com
+> quantidade e o filho do genérico sem quantidade. O filho do genérico com quantidade herda o preço
+> do pai e contá-los juntos dobraria a venda; o genérico sem quantidade é uma lista montada pela
+> gerência, e são os filhos dele que têm preço.
+
+> **O preço entra depois da conferência, e por isso a coluna é opcional.** Quem registra o pedido
+> está no meio de uma conversa e anota espécie, recipiente e quantidade; o valor se fecha quando a
+> gerência já disse o que existe no pátio, porque é a conferência que determina quantas mudas serão
+> vendidas e em que recipiente. Nulo é "ainda não precificado", e não "de graça": a aprovação do
+> pedido recusa item vendável sem preço, quantidade ou recipiente, e é essa recusa que impede uma venda de ser registrada sem
+> valor. Enquanto faltar preço em algum item, o total do pedido também não existe: uma soma parcial
+> anunciaria uma venda menor que a verdadeira, e é justamente esse número que a chefia olha para
+> aprovar.
+
+> **A altura é parte do que foi combinado, e por isso mora no item.** O cliente não pede só a
+> espécie e o recipiente: pede "ipê de 1,20". Guardá-la aqui, e não na observação do pedido, é o que
+> permite a conferência saber qual muda separar quando o mesmo par espécie e recipiente tem levas de
+> tamanhos diferentes. Ela é opcional porque o recipiente já determina o porte na maior parte das
+> vendas, e o limite de 20 metros não é regra de negócio: é defesa contra a quantidade digitada no
+> campo errado. O filho do item genérico herda a altura do pai, pela mesma razão que herda o preço.
 
 > **A disponibilidade conferida não é o saldo, e a distinção é o ponto.** O saldo que a tela exibe
 > ao lado do item (RF-56) continua somado dos lotes prontos a cada consulta, e guardá-lo aqui
@@ -1004,12 +1066,52 @@ linhas de tabelas diferentes.
 > galpão volta para a chefia editar o pedido, e registrar a divergência é a evolução natural desta
 > tabela, não o estado dela.
 
+## `viagens`: viagem de entrega do dia
+
+| Atributo | Tipo | Ob. | Chave | Descrição |
+|---|---|:--:|:--:|---|
+| `id` | uuid | ● | PK | Identificador |
+| `data` | date | ● | | Dia da entrega |
+| `partida_descricao` | text | ● | | Endereço de onde o caminhão sai, em texto. Nasce com o de `comercial.viagem_partida_agrolandia` |
+| `partida_lat`, `partida_lng` | numeric(9,6) | ○ | | Coordenada da partida achada pelo serviço de mapas. Restrição: nulas juntas |
+| `situacao` | varchar(20) | ● | | `montando`, `roteirizando`, `carregando` ou `pronta`. **É também a etapa em que o planejamento parou** |
+| `sugerir_ordem` | boolean | ● | | Verdadeiro quando as entregas mudaram desde a última sugestão de ordem. A ordem arrumada à mão o desliga |
+| `distancia_m` | integer | ○ | | Distância da rota sugerida, em metros. Nula sem o serviço de mapas, ou depois de a ordem mudar à mão |
+| `duracao_s` | integer | ○ | | Tempo estimado da rota sugerida, em segundos, idem |
+| `criado_por` | uuid | ● | FK → `usuarios` | Quem começou o planejamento (RN-52) |
+| `criado_em`, `atualizado_em` | timestamptz | ● | | Criação e alteração |
+
+> **A viagem organiza as cargas, e não as substitui** (RF-63). O que se separa e confere continua
+> sendo `pedidos_cargas`, uma por pedido, criada quando o carregamento começa. A viagem fica
+> `pronta` quando todas as cargas dos pedidos dela estão prontas (RN-60).
+
+## `viagens_paradas`: parada da viagem
+
+| Atributo | Tipo | Ob. | Chave | Descrição |
+|---|---|:--:|:--:|---|
+| `id` | uuid | ● | PK | Identificador |
+| `viagem_id` | uuid | ● | FK → `viagens` | Viagem. Apagada a viagem, as paradas vão junto |
+| `ordem` | integer | ● | UK com `viagem_id` | Posição na rota, a partir de 1. Unicidade **deferível**, porque reordenar troca posições |
+| `pedido_id` | uuid | ○ | FK → `pedidos`, UK com `viagem_id` | Pedido entregue nesta parada. **Nulo na parada avulsa** |
+| `descricao` | text | ○ | | O que é a parada avulsa ("abastecer") |
+| `endereco` | text | ○ | | Endereço da parada avulsa. Na entrega, o endereço vem do cadastro do cliente |
+| `lat`, `lng` | numeric(9,6) | ○ | | Coordenada da parada avulsa. Restrição: nulas juntas |
+| `criado_em` | timestamptz | ● | | Criação |
+
+**Restrições:** `pedido_id` ou `descricao` preenchido; `ordem` maior que zero. Um pedido só está em
+uma viagem que ainda não ficou pronta, garantido pela aplicação com o pedido travado, porque a
+verificação atravessa a situação da viagem (RN-59).
+
+> **A ordem de carregamento não é coluna.** É a inversa de `ordem`, entre as paradas com pedido
+> (RN-60), e se deriva na leitura: guardá-la seria um segundo número a divergir do primeiro a cada
+> arraste.
+
 ## Resumo
 
 | Área | Entidades | Observação |
 |---|---:|---|
-| *(transversal)* Acesso e configurações | 4 | `usuarios`, `sessoes`, `eventos_login` e `parametros`, os parâmetros do sistema |
+| *(transversal)* Acesso e configurações | 5 | `usuarios`, `sessoes`, `eventos_login`, `parametros`, os parâmetros do sistema, e `envios_recebidos`, a chave do registro feito sem conexão |
 | 1 · Cadastro único | 15 | catálogo (`especies`, `especies_nomes_populares`, `especies_fotos`, `recipientes`, `insumos`), endereço do viveiro (`areas`, `canteiros`), trabalho (`tipos_tarefa`, `turnos_trabalho`), protocolo (`protocolos`, `protocolos_etapas`, `especies_protocolos_tempos`) e o esquema `cadastro` (`pessoas`, `pessoas_papeis`, `pessoas_enderecos`) |
 | 2 · Produção | 6 | `semanas`, `atribuicoes`, `atribuicoes_participantes`, `lotes`, `movimentos_lote`, `lotes_etapas` |
-| 3 · Comercial | 6 | `pedidos`, `pedidos_itens`, `pedidos_historico`, `pedidos_itens_especies_permitidas`, `pedidos_cargas` e `pedidos_cargas_itens` |
-| **Total** | **31** | mais `situacao_lote` e `lotes_etapas_vencimento`, que são visões e não tabelas |
+| 3 · Comercial | 8 | `pedidos`, `pedidos_itens`, `pedidos_historico`, `pedidos_itens_especies_permitidas`, `pedidos_cargas`, `pedidos_cargas_itens`, `viagens` e `viagens_paradas` |
+| **Total** | **34** | mais `situacao_lote` e `lotes_etapas_vencimento`, que são visões e não tabelas |

@@ -186,7 +186,7 @@ automático. Os que pedem gente, celular ou navegador:
 | TA-49 | Concluir um pedido com cliente novo pelo cadastro rápido, sem sair da tela | celular |
 | TA-57 | Todas as rotinas de campo no celular, sem rolagem horizontal | celular |
 | TA-58 | O viveiro inteiro no mapa no computador, e em lista no celular | os dois |
-| TA-69, TA-70 | Clicar e arrastar na grade da semana, publicada e fechada | computador |
+| TA-69, TA-70 | Clicar e arrastar na grade da semana, aberta e fechada | computador |
 | TA-71 a TA-78 | Conferência, genérico, aprovação, cargas, calendário e viagem | celular e computador |
 | TA-23, TA-59 | Registrar perda em modo avião, recarregar, voltar a rede | celular |
 | TA-60, TA-61 | Inspeção: bundle sem SQL nem matriz (`npm run build`), senha e sessão só em resumo no banco | computador |

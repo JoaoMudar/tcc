@@ -283,7 +283,7 @@ function resumo(id: string, data: string, participantes: { id: string; nome: str
     id,
     semanaId: 's',
     semanaInicio: SEMANA,
-    semanaSituacao: 'rascunho',
+    semanaSituacao: 'aberta',
     data,
     turnoId: TURNO,
     turno: 'manha',

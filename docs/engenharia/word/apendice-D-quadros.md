@@ -95,7 +95,7 @@ Fonte: Elaborado pelo autor (2026).
 | RN-47 | Os dados pessoais de clientes e funcionários seguem a Lei nº 13.709/2018. |
 | RN-48 | Aprovar o pedido trava o item, que depois disso não muda em espécie, quantidade nem preço. |
 | RN-49 | Uma pessoa pode ter mais de um endereço. |
-| RN-50 | O preço é combinado com o cliente e registrado no pedido. |
+| RN-50 | O preço é combinado com o cliente e registrado no pedido depois da conferência de disponibilidade, e o pedido não é aprovado enquanto faltar o preço de algum item. |
 
 Fonte: Elaborado pelo autor (2026).
 
@@ -106,11 +106,13 @@ Fonte: Elaborado pelo autor (2026).
 | RN-51 | O perfil do usuário (chefia, gerência ou administrador) define o que ele pode ver e fazer. |
 | RN-52 | Todo registro guarda quem o fez. |
 | RN-53 | O pedido percorre oito situações, cadastrado, verificando, verificado, pendente de alteração, aprovado, separando, pronto para envio e cancelado, e cada uma delas espera por um perfil determinado. |
-| RN-54 | O item conferido está disponível por inteiro, disponível em parte ou indisponível. A parte informada vai de uma muda até uma a menos que a pedida, e exige dizer em que recipiente ela está. |
-| RN-55 | A composição do item pedido sem espécie soma exatamente a quantidade dele, e só admite espécie que o cliente aceite. |
+| RN-54 | O item conferido está disponível por inteiro, disponível em parte ou indisponível. A parte difere do pedido em ao menos um atributo que o cliente especificou: quantidade menor, de uma muda até uma a menos que a pedida, outro recipiente ou outra altura. A parte pode ser completada em outro recipiente, que vira item próprio e sem preço, e as duas linhas somam no máximo a quantidade pedida. |
+| RN-55 | A composição do item pedido sem espécie, quando ele tem quantidade, soma exatamente essa quantidade na resposta por inteiro e no máximo essa quantidade na resposta em parte, e só admite espécie que o cliente aceite. |
 | RN-56 | O item pedido sem espécie não vai na carga, e sim as espécies que o compõem. A soma de um item nas cargas reproduz a quantidade dele. |
 | RN-57 | A carga fica pronta quando todos os itens dela foram separados, e o pedido fica pronto para envio quando todas as cargas estão prontas. |
 | RN-58 | O dia de carregar é o dia útil anterior à data de entrega, de segunda a sexta-feira. |
+| RN-59 | Só entra na viagem de entrega o pedido de aprovado para cima (aprovado, separando ou pronto para envio) que nunca esteve em outra viagem, e entrar nela marca a data de entrega do pedido para o dia da viagem. |
+| RN-60 | Os itens da viagem são carregados na ordem inversa das entregas: a última entrega vai para o fundo do caminhão e a primeira fica perto da porta. A viagem fica pronta quando todas as cargas dos pedidos dela estão prontas. |
 
 Fonte: Elaborado pelo autor (2026).
 
@@ -122,8 +124,8 @@ Fonte: Elaborado pelo autor (2026).
 | Produção, lote e trabalho | RN-08, RN-09, RN-10, RN-11, RN-12, RN-13, RN-14, RN-15, RN-16, RN-17, RN-18, RN-19, RN-20, RN-21, RN-22, RN-23, RN-24, RN-25, RN-26, RN-27, RN-28, RN-29 | 22 |
 | Protocolo de atividades por lote | RN-30, RN-31, RN-32, RN-33, RN-34, RN-35, RN-36, RN-37, RN-38, RN-39, RN-40, RN-41 | 12 |
 | Cliente e pedido | RN-42, RN-43, RN-44, RN-45, RN-46, RN-47, RN-48, RN-49, RN-50 | 9 |
-| Acesso e responsabilidade | RN-51, RN-52, RN-53, RN-54, RN-55, RN-56, RN-57, RN-58 | 8 |
-| **Total** | | **58** |
+| Acesso e responsabilidade | RN-51, RN-52, RN-53, RN-54, RN-55, RN-56, RN-57, RN-58, RN-59, RN-60 | 10 |
+| **Total** | | **60** |
 
 Fonte: Elaborado pelo autor (2026).
 
@@ -162,7 +164,7 @@ Fonte: Elaborado pelo autor (2026).
 | RF-25 | Tempo de etapa customizado por espécie | O sistema deve permitir, no cadastro da espécie, sobrescrever o tempo em dias de uma etapa específica do protocolo. | RN-36 |
 | RF-26 | Montagem da agenda da semana | O sistema deve permitir montar a agenda da semana atribuindo, por funcionário e por dia, o tipo de tarefa e o turno, manhã ou tarde, admitindo a mesma tarefa para mais de um funcionário e mais de uma tarefa no mesmo turno com grupos diferentes, e deve permitir declarar a hora de início e de fim da tarefa que tiver hora marcada, sem exigi-la das demais; na apresentação em tela larga (RNF-14) a montagem deve ser direta, arrastando a tarefa planejada para remarcá-la e puxando a borda dela para declarar a duração, e lançando tarefa nova no ponto da grade em que se clicar. | RN-12, RN-25 |
 | RF-27 | Cópia da semana e tarefa recorrente | O sistema deve permitir copiar a agenda da semana anterior e marcar tarefas como recorrentes, que passam a nascer preenchidas na cópia. | RN-29 |
-| RF-28 | Situação da semana | O sistema deve controlar a situação da semana (rascunho, publicada e fechada) e impedir alteração depois do fechamento. | RN-13 |
+| RF-28 | Situação da semana | O sistema deve controlar a situação da semana (aberta e fechada) e impedir alteração depois do fechamento. | RN-13 |
 | RF-29 | Confirmação da tarefa realizada | O sistema deve permitir confirmar a atribuição como realizada, apresentando os campos que o tipo de tarefa exigir, o lote uma vez para a tarefa e a quantidade uma vez por participante, exigindo o lote quando o tipo declarar lote específico e pedindo a quantidade apenas quando o tipo for quantitativo por unidade. | RN-23, RN-24, RN-27 |
 | RF-30 | Área ou canteiro da tarefa sem lote | O sistema deve permitir registrar a área ou o canteiro da tarefa cujo tipo declarar área, e dispensá-los quando o lote os determinar. | RN-24 |
 | RF-31 | Tarefa não confirmada assumida no fechamento | O sistema deve assumir como realizada, ao fechar a semana, a tarefa planejada que não foi confirmada, registrando essa condição. | RN-14 |
@@ -188,15 +190,17 @@ Fonte: Elaborado pelo autor (2026).
 | RF-51 | Ficha do lote com etapas e vencimentos | O sistema deve apresentar, no lote, as etapas do protocolo com a data da última execução, o próximo vencimento e a situação de cada uma. | RN-40 |
 | RF-52 | Etapa em atenção e em atraso | O sistema deve apresentar a etapa em atenção dentro da janela de aviso e em atraso depois do vencimento, e sem indicação de situação quando o alerta da etapa estiver desligado. | RN-35 |
 | RF-53 | Encerramento do protocolo do lote | O sistema deve encerrar o protocolo do lote quando ele se encerra por saldo zero, por expedição total ou por divisão, deixando de sugerir etapas dele e cancelando as tarefas ainda não confirmadas sem removê-las. | RN-38 |
-| RF-54 | Registro de pedido com cliente, canal e itens | O sistema deve permitir registrar pedido com cliente, canal de venda e itens compostos por espécie, recipiente e quantidade. | RN-01, RN-04, RN-42, RN-46 |
-| RF-55 | Preço unitário informado no item | O sistema deve registrar o preço unitário informado em cada item do pedido, e apresentar o total do item e o do pedido. | RN-50 |
+| RF-54 | Registro de pedido com cliente, canal e itens | O sistema deve permitir registrar pedido com cliente, canal de venda e itens identificados pela espécie ou marcados como genéricos, sem espécie escolhida e com observação opcional do que o cliente pediu, com recipiente, quantidade e altura opcionais no cadastro (exigidos na aprovação), montando os itens um a um ou a partir da lista de texto que o cliente enviou, sempre com revisão de quem registra. | RN-01, RN-04, RN-42, RN-46 |
+| RF-55 | Preço unitário informado no item | O sistema deve registrar, depois da conferência de disponibilidade, o preço unitário de cada item vendido e a quantidade combinada, limitada à que a conferência confirmou, e apresentar o total do item e o do pedido. | RN-50 |
 | RF-56 | Saldo disponível ao lado do item | O sistema deve apresentar, ao lado de cada item do pedido, a quantidade de muda pronta que a produção tem daquela espécie e recipiente. | RN-06, RN-08 |
 | RF-57 | Situação do pedido | O sistema deve controlar a situação do pedido ao longo das oito situações que vão do cadastro ao pronto para envio, impedindo alteração de item depois da aprovação. | RN-48, RN-53 |
 | RF-58 | Listagem de pedidos com filtro | O sistema deve listar os pedidos com filtro por cliente, canal e período. | RN-42 |
-| RF-59 | Disponibilidade conferida item a item | O sistema deve registrar, para cada item do pedido, a disponibilidade conferida no viveiro, que pode ser total, parcial com a quantidade encontrada e o recipiente em que ela está, ou nenhuma. | RN-54 |
-| RF-60 | Composição do item pedido sem espécie | O sistema deve permitir compor em espécies o item que o cliente pediu sem escolher espécie, respeitando as espécies que ele aceita. | RN-55 |
+| RF-59 | Disponibilidade conferida item a item | O sistema deve registrar, para cada item do pedido, a disponibilidade conferida no viveiro, que pode ser total, parcial ou nenhuma; a parcial registra, do que o cliente especificou (quantidade, recipiente, altura), o que foi encontrado; no item cadastrado sem recipiente, a resposta com muda registra em que recipiente ela está, e no item sem quantidade, opcionalmente, quantas existem. | RN-54 |
+| RF-60 | Composição do item pedido sem espécie | O sistema deve permitir compor em espécies o item que o cliente pediu sem escolher espécie, respeitando as espécies que ele aceita; sem quantidade no item, a composição é uma lista montada, e cada espécie dela é vendida com preço próprio. | RN-55 |
 | RF-61 | Cargas do pedido e separação dos itens | O sistema deve permitir organizar o pedido aprovado em cargas e registrar a separação de cada item em cada carga. | RN-56, RN-57 |
 | RF-62 | Dia de carregar e calendário de entregas | O sistema deve apresentar o dia de carregamento de cada pedido e o calendário de entregas e carregamentos do mês. | RN-58 |
+| RF-63 | Viagem de entrega do dia | O sistema deve permitir planejar a viagem de entrega de um dia, reunindo nela pedidos de aprovado para cima, marcando em cada um a data de entrega da viagem e retomando o planejamento na etapa em que ele parou. | RN-59 |
+| RF-64 | Rota da viagem e ordem de carregamento | O sistema deve sugerir a ordem das paradas da viagem a partir do endereço de saída, permitir reordená-las e acrescentar parada sem pedido, abrir o trajeto num serviço de mapas e apresentar a separação dos itens na ordem inversa das entregas. | RN-60 |
 
 Fonte: Elaborado pelo autor (2026).
 
@@ -248,13 +252,13 @@ Fonte: Elaborado pelo autor (2026).
 
 | Origem | RF: Qtd. | RF: % | RNF: Qtd. | RNF: % |
 |---|---:|---:|---:|---:|
-| Observação participante (OP) | 25 | 36,2 | 0 | 0,0 |
-| Entrevista (EN) | 14 | 20,3 | 0 | 0,0 |
-| Análise documental (AD) | 2 | 2,9 | 0 | 0,0 |
-| Estudo do domínio (DOM) | 6 | 8,7 | 1 | 7,1 |
-| Exigência legal (LEG) | 2 | 2,9 | 3 | 21,4 |
-| Política do projeto (ORG) | 20 | 29,0 | 10 | 71,4 |
-| **Total de menções** | **69** | | **14** | |
+| Observação participante (OP) | 27 | 38,0 | 0 | 0,0 |
+| Entrevista (EN) | 14 | 19,7 | 0 | 0,0 |
+| Análise documental (AD) | 2 | 2,8 | 0 | 0,0 |
+| Estudo do domínio (DOM) | 6 | 8,5 | 1 | 7,1 |
+| Exigência legal (LEG) | 2 | 2,8 | 3 | 21,4 |
+| Política do projeto (ORG) | 20 | 28,2 | 10 | 71,4 |
+| **Total de menções** | **71** | | **14** | |
 
 Fonte: Elaborado pelo autor (2026).
 

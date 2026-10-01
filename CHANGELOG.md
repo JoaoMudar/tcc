@@ -3,6 +3,19 @@
 Uma entrada por migration nova, como pede o `CLAUDE.md`. As migrations até `20260901000008` são o
 schema inicial em português e estão descritas no `C8`.
 
+## 30/09/2026 · `20260930000003_semana_aberta_fechada.sql`
+
+- **A semana passa a ter dois estados, `aberta` e `fechada`.** `rascunho` e `publicada` viram
+  `aberta`; o padrão de `semanas.situacao` passa a ser `aberta`, e a constraint
+  `semanas_situacao_valida` aceita só os dois. Sai a coluna `publicada_por` (e a relação
+  `usuarios` → `semanas`): publicar não tinha público, e abrir era redundante, porque o primeiro
+  lançamento já cria a semana.
+- **Não é compatível**: código que grave `rascunho` ou `publicada`, ou leia `publicada_por`, falha.
+  A migration converte as linhas existentes antes de prender a constraint nova.
+- Na mesma alteração, fora do banco: saem os botões "Abrir semana" e "Publicar", e o seletor
+  Dia/Semana. A aba Agenda de `/producao` mostra o dia em cima e a semana dele embaixo;
+  `/producao/agenda` redireciona para lá.
+
 ## 30/09/2026 · `20260930000001_envios_recebidos.sql`
 
 - **A chave de idempotência do registro feito sem conexão** (RNF-05, UC-20 FA-3). Tabela nova

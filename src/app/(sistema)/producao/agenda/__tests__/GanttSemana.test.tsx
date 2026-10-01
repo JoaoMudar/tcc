@@ -21,7 +21,7 @@ function tarefa(over: Partial<AtribuicaoResumo> = {}): AtribuicaoResumo {
     id: 'a1',
     semanaId: 's1',
     semanaInicio: SEGUNDA,
-    semanaSituacao: 'publicada',
+    semanaSituacao: 'aberta',
     data: SEGUNDA,
     turnoId: MANHA.id,
     turno: 'manha',

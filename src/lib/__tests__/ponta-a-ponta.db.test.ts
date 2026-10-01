@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { Pool, type PoolClient } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { abrirSemana, confirmarAtribuicao, criarAtribuicoes, fecharSemana, findAtribuicao, publicarSemana, type AtribuicaoInput } from '../agenda';
+import { abrirSemana, confirmarAtribuicao, criarAtribuicoes, fecharSemana, findAtribuicao, type AtribuicaoInput } from '../agenda';
 import { insertArea, insertCanteiro } from '../areas';
 import { hojeNoViveiro } from '../datas';
 import { saldoPronto } from '../estoque';
@@ -150,7 +150,7 @@ describe('fluxo 1: lote e perda', () => {
 describe('fluxo 2: semana montada e fechada', () => {
   const ids: Record<string, string> = {};
 
-  it('a gerência monta a semana, publica e confirma a tarefa do lote com as que morreram', async () => {
+  it('a gerência monta a semana e confirma a tarefa do lote com as que morreram', async () => {
     const { rows } = await pool.query<{ id: string }>("SELECT id FROM turnos_trabalho WHERE nome = 'manha'");
     const manha = rows[0].id;
 
@@ -159,7 +159,6 @@ describe('fluxo 2: semana montada e fechada', () => {
     [ids.manejo] = await tx((client) =>
       criarAtribuicoes(client, tarefa({ turnoId: manha, tipoTarefaId: manejo, participantes: [amelia], loteId: lote })),
     );
-    await tx((client) => publicarSemana(client, SEMANA, gerencia));
 
     await tx((client) =>
       confirmarAtribuicao(

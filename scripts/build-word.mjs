@@ -196,7 +196,7 @@ if (!SEM_IMG) {
   for (const { arquivo, fonte } of pendentes) {
     const tmp = `${IMG}/.tmp.mmd`;
     writeFileSync(tmp, fonte);
-    execFileSync('npx', ['-y', '@mermaid-js/mermaid-cli', '-i', tmp, '-o', `${IMG}/${arquivo}`, '-w', '1400', '-b', 'white'], {
+    execFileSync('npx', ['-y', '@mermaid-js/mermaid-cli@11', '-i', tmp, '-o', `${IMG}/${arquivo}`, '-w', '1400', '-b', 'white'], {
       stdio: 'ignore',
       shell: process.platform === 'win32',
     });

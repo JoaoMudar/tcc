@@ -121,13 +121,13 @@ export default async function AtribuicaoPage({ params, searchParams }: Atribuica
             <div>
               <dt className="text-sm text-muted">Semana</dt>
               <dd>
-                <Link href={`/producao/agenda?semana=${a.semanaInicio}`} className="font-semibold text-brand-dark underline">
+                <Link href={`/producao?dia=${a.semanaInicio}`} className="font-semibold text-brand-dark underline">
                   {rotuloSemana(a.semanaInicio)}
                 </Link>
               </dd>
             </div>
           </dl>
-          {a.eRecorrente && <p className="text-sm text-muted">Repete toda semana: vem junto quando a semana seguinte é aberta.</p>}
+          {a.eRecorrente && <p className="text-sm text-muted">Repete toda semana: vem junto no primeiro lançamento da semana seguinte.</p>}
           {a.observacoes && <p className="text-base text-muted">{a.observacoes}</p>}
         </section>
 

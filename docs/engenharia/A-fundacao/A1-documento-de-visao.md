@@ -66,7 +66,7 @@ Derivados dos objetivos específicos do trabalho:
 | # | Objetivo | Verificação |
 |---|---|---|
 | **OP-1** | Estruturar um cadastro único de espécies, recipientes, insumos, pessoas e endereços do viveiro, hoje inexistente | Cadastro persistido e consultável, reaproveitado pela produção e pelo comercial |
-| **OP-2** | Organizar o trabalho da semana, atribuindo tarefas por pessoa, por dia e por turno | Semana montada, publicada e fechada, com o realizado distinguível do planejado |
+| **OP-2** | Organizar o trabalho da semana, atribuindo tarefas por pessoa, por dia e por turno | Semana montada e fechada, com o realizado distinguível do planejado |
 | **OP-3** | Registrar a leva de mudas como lote endereçado a um canteiro, com todo movimento que altera seu saldo | Saldo do lote reconstituível a partir dos seus movimentos |
 | **OP-4** | Tornar o estado do viveiro visível numa tela só, com atraso de tarefa, mortalidade e ocupação | Mapa de lotes exibindo as três leituras sobre dado real |
 | **OP-5** | Registrar o pedido no sistema, ligado ao que a produção efetivamente tem pronto | Pedido registrado exibindo, por item, o saldo disponível da espécie e do recipiente |
@@ -201,7 +201,7 @@ Verificáveis. O detalhamento de cada verificação está em
 | # | Critério | Como se verifica |
 |---|---|---|
 | **CS-1** | O cadastro único alimenta as três áreas sem redigitação | Uma espécie cadastrada uma vez aparece na tarefa, no lote e no item de pedido |
-| **CS-2** | A semana de trabalho percorre o ciclo completo dentro do sistema | Semana montada, publicada, apontada e fechada, com o realizado distinguível do planejado |
+| **CS-2** | A semana de trabalho percorre o ciclo completo dentro do sistema | Semana montada, apontada e fechada, com o realizado distinguível do planejado |
 | **CS-3** | Registro de perda do lote executável sem treinamento formal | A gerência conclui o registro de uma perda sem auxílio, em observação assistida |
 | **CS-4** | Dados persistem e sobrevivem a falha de conexão | Registro feito sem rede aparece no sistema após reconexão |
 | **CS-5** | O saldo do lote é reconstituível | A soma dos movimentos do lote reproduz o saldo exibido, sem divergência |

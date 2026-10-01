@@ -18,7 +18,6 @@ import {
   listAgendaDia,
   listAgendaSemana,
   listFuncionarios,
-  publicarSemana,
   reagendarAtribuicao,
   resumoFechamento,
 } from '../agenda';
@@ -163,7 +162,7 @@ describe('agenda da semana contra Postgres', () => {
     expect(nomes).not.toContain(cleusa);
   });
 
-  it('TA-26: duas tarefas no mesmo turno, cada uma com o seu grupo, e a semana nasce em rascunho', async () => {
+  it('TA-26: duas tarefas no mesmo turno, cada uma com o seu grupo, e a semana nasce aberta', async () => {
     [ids.encher] = await criar({ tipoTarefaId: encher, participantes: [rogerio, amelia], recipienteId: tubete, quantidadePlanejada: 500 });
     [ids.irrigar] = await criar({ tipoTarefaId: irrigar, participantes: [jaison] });
 
@@ -172,7 +171,7 @@ describe('agenda da semana contra Postgres', () => {
     expect(doDia.every((a) => a.turnoId === manha)).toBe(true);
     expect(doDia.find((a) => a.id === ids.encher)!.participantes.map((p) => p.id).sort()).toEqual([rogerio, amelia].sort());
     expect(doDia.find((a) => a.id === ids.irrigar)!.participantes.map((p) => p.id)).toEqual([jaison]);
-    expect(await findSemana(pool, S1)).toMatchObject({ situacao: 'rascunho', fechadaEm: null });
+    expect(await findSemana(pool, S1)).toMatchObject({ situacao: 'aberta', fechadaEm: null });
   });
 
   it('TA-27: a tarefa com hora a guarda, a sem hora é aceita, e as duas têm turno; vários dias de uma vez', async () => {
@@ -302,7 +301,7 @@ describe('agenda da semana contra Postgres', () => {
     expect(await findAtribuicao(pool, id)).toMatchObject({ data: '2030-01-11', turnoId: tarde, participantes: [expect.objectContaining({ id: jaison })] });
     await expect(tx((client) => atualizarAtribuicao(client, id, tarefa({ semana: S2, dias: [S2] })))).rejects.toThrow('mesma semana');
 
-    expect(await tx((client) => excluirAtribuicao(client, id))).toEqual({ semanaInicio: S1 });
+    expect(await tx((client) => excluirAtribuicao(client, id))).toEqual({ data: '2030-01-11' });
     expect(await findAtribuicao(pool, id)).toBeNull();
   });
 
@@ -347,10 +346,7 @@ describe('agenda da semana contra Postgres', () => {
       [semana.id, '2030-01-11', tarde, irrigar],
     );
 
-    await expect(tx((client) => fecharSemana(client, S1))).rejects.toThrow('Publique a semana');
-    await tx((client) => publicarSemana(client, S1, usuario));
-    await expect(tx((client) => publicarSemana(client, S1, usuario))).rejects.toThrow('já está publicada');
-
+    // A semana aberta fecha direto: não há publicação antes (RF-28)
     const antes = await resumoFechamento(pool, semana.id);
     expect(antes.semConfirmacao).toBeGreaterThan(0);
     expect(antes.semNinguem).toBe(1);

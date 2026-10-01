@@ -711,14 +711,16 @@ turno admite duas tarefas com grupos diferentes (RN-25).
 ## `semanas`: semana de trabalho
 
 A semana é a unidade real de decisão do viveiro (RF-26, RF-28). Fechada, não se altera: sem isso
-o custo do período mudaria depois de apurado (RN-13).
+o custo do período mudaria depois de apurado (RN-13). **Nasce aberta no primeiro lançamento, e o
+único ato sobre ela é fechar.** Até 30/09/2026 havia também `rascunho` e `publicada`, e a coluna
+`publicada_por`; saíram na migration `20260930000003`, porque quem monta a semana e quem a lê são
+os mesmos três perfis, e publicar não tinha público.
 
 | Atributo | Tipo | Ob. | Chave | Descrição |
 |---|---|:--:|:--:|---|
 | `id` | uuid | ● | PK | Identificador |
 | `inicio_semana` | date | ● | UK | Segunda-feira da semana; única |
-| `situacao` | text | ● | | `rascunho`, `publicada`, `fechada` |
-| `publicada_por` | uuid | ○ | FK → `usuarios` | Quem publicou a semana para a equipe |
+| `situacao` | text | ● | | `aberta` (padrão), `fechada` |
 | `fechada_em` | timestamptz | ○ | | Momento do fechamento; a partir dele a semana é imutável |
 
 ## `atribuicoes`: atribuição de tarefa

@@ -3,7 +3,6 @@ erDiagram
     uuid        id PK
     date        inicio_semana UK
     text        situacao
-    uuid        publicada_por FK
     timestamptz fechada_em
   }
   atribuicoes {
@@ -33,7 +32,6 @@ erDiagram
   turnos_trabalho {}
   tipos_tarefa {}
   pessoas {}
-  usuarios {}
   lotes {}
   lotes_etapas {}
   movimentos_lote {}
@@ -46,4 +44,3 @@ erDiagram
   pessoas         ||--o{ atribuicoes_participantes : "executa"
   lotes           ||--o{ atribuicoes : "recebe trabalho de"
   lotes_etapas    ||--o{ atribuicoes : "sugere"
-  usuarios        ||--o{ semanas : "publica"

@@ -492,7 +492,6 @@ erDiagram
     uuid        id PK
     date        inicio_semana UK
     text        situacao
-    uuid        publicada_por FK
     timestamptz fechada_em 
   }
   atribuicoes {
@@ -590,7 +589,6 @@ erDiagram
   areas      ||--o{ atribuicoes : "localiza"
   canteiros       ||--o{ atribuicoes : "localiza"
   pessoas    ||--o{ atribuicoes_participantes : "executa"
-  usuarios      ||--o{ semanas : "publica"
   protocolos_etapas ||--o{ lotes_etapas : "materializa-se em"
   usuarios      ||--o{ movimentos_lote : "registra"
 ```

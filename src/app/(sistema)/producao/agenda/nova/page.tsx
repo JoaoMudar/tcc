@@ -41,7 +41,7 @@ export default async function NovaAtribuicaoPage({ searchParams }: NovaAtribuica
     <main>
       <PageHeader area="2 · Produção" title={`Lançar tarefa · ${rotuloSemana(inicio)}`} />
       <div className="mx-auto flex max-w-md flex-col gap-4 p-4 md:p-8">
-        <Link href={`/producao/agenda?semana=${inicio}`} className="text-base font-semibold text-brand-dark">
+        <Link href={`/producao?dia=${diaInicial || inicio}`} className="text-base font-semibold text-brand-dark">
           Voltar
         </Link>
         {semana?.situacao === 'fechada' ? (

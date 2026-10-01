@@ -92,13 +92,14 @@ um rendimento que ninguém teve.
 
 ## As telas
 
-### A agenda na escala de semana (planejamento)
+### A semana, abaixo do dia (planejamento)
 
-**Não é uma tela própria**: é a mesma agenda da entrada da Produção, com o botão de escala em
-*Semana*. É tela de computador, por RNF-14.
+**Não é uma tela própria, e não há botão de escala**: a agenda da entrada da Produção mostra o dia
+em cima e, logo abaixo, a semana desse dia. Clicar num dia da semana troca o dia de cima. A grade é
+de computador, por RNF-14; no celular a semana vira lista por dia.
 
 ```
-Semana de 10/08 a 15/08   [ Dia | Semana ]   [Copiar semana passada] [Publicar]
+Semana de 10/08 a 15/08  [Aberta]      [Copiar semana passada] [Fechar a semana]
 
               SEG        TER        QUA        QUI        SEX
               7  9  11 7  9  11 7  9  11 7  9  11 7  9  11
@@ -164,12 +165,16 @@ deles é planejado e confirmado por quem coordena, de um aparelho só.
 ## O ciclo da semana
 
 ```
-rascunho  ->  publicada  ->  fechada
-   |             |              |
-monta-se      a equipe       não se altera mais
-              trabalha       o que ficou sem confirmação entra
-                             como realizado, MARCADO de não confirmado
+aberta                        ->  fechada
+   |                                 |
+nasce no primeiro lançamento      não se altera mais
+(ou no "Copiar semana passada");  o que ficou sem confirmação entra
+monta-se e a equipe trabalha      como realizado, MARCADO de não confirmado
 ```
+
+**Não há abrir nem publicar.** Abrir era redundante, porque o primeiro lançamento já cria a semana,
+com as tarefas recorrentes da anterior. Publicar não tinha público, porque os seis colaboradores de
+campo não acessam o sistema. Sobra o ato que separa o feito do suposto, que é fechar.
 
 **A marca existe para que a suposição não se disfarce de medição** (RN-14). A alternativa, uma
 agenda com buracos, não distingue o trabalho que não foi feito do que ninguém teve tempo de
@@ -185,7 +190,7 @@ esquecimento que o protocolo existe para denunciar.
 |---|---|
 | `tipos_tarefa` | catálogo de tipos de tarefa: nome, categoria, quantitativa por unidade?, lote específico?, exige espécie?, exige recipiente?. Vive nos [Cadastros](../1-cadastros/00-visao-geral.md) |
 | `turnos_trabalho` | o período de trabalho: hora de início e fim de cada turno |
-| `semanas` | a semana: `inicio_semana`, `situacao` (rascunho, publicada, fechada) |
+| `semanas` | a semana: `inicio_semana`, `situacao` (aberta, fechada) |
 | `atribuicoes` | a célula da grade: data, turno, **hora de início e fim quando a tarefa a tem**, tipo de tarefa, espécie?, recipiente?, lote?, área?, canteiro?, quantidade planejada, situação |
 | `atribuicoes_participantes` | o grupo escalado, e quanto cada um fez |
 

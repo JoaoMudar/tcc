@@ -18,17 +18,16 @@ export default async function FecharSemanaPage({ searchParams }: FecharSemanaPag
   const { semana: semanaPedida } = await searchParams;
   const inicio = lerSemana(semanaPedida, hojeNoViveiro());
   const semana = await findSemana(pool, inicio);
-  const resumo = semana?.situacao === 'publicada' ? await resumoFechamento(pool, semana.id) : null;
+  const resumo = semana?.situacao === 'aberta' ? await resumoFechamento(pool, semana.id) : null;
 
   return (
     <main>
       <PageHeader area="2 · Produção" title={`Fechar a semana · ${rotuloSemana(inicio)}`} />
       <div className="mx-auto flex max-w-md flex-col gap-4 p-4 md:p-8">
-        <Link href={`/producao/agenda?semana=${inicio}`} className="text-base font-semibold text-brand-dark">
+        <Link href={`/producao?dia=${inicio}`} className="text-base font-semibold text-brand-dark">
           Voltar
         </Link>
-        {!semana && <Notice tone="info">Esta semana ainda não foi aberta.</Notice>}
-        {semana?.situacao === 'rascunho' && <Notice tone="info">Publique a semana antes de fechá-la.</Notice>}
+        {!semana && <Notice tone="info">Esta semana não tem nenhuma tarefa lançada.</Notice>}
         {semana?.situacao === 'fechada' && <Notice tone="info">Esta semana já está fechada.</Notice>}
         {semana && resumo && (
           <>

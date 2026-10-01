@@ -649,7 +649,7 @@ async function copiarDaSemana(client: Client, origemInicio: string, destinoId: s
 }
 
 /**
- * Cria a semana em rascunho, já com as tarefas recorrentes da anterior (RN-29).
+ * Cria a semana aberta, já com as tarefas recorrentes da anterior (RN-29).
  * Semana que já existe volta como está, sem copiar de novo.
  */
 export async function abrirSemana(client: Client, inicio: string): Promise<{ id: string; criada: boolean; recorrentes: number }> {
@@ -686,22 +686,13 @@ export async function copiarSemanaAnterior(client: Client, inicio: string): Prom
   return { copiadas, recorrentes: aberta.recorrentes };
 }
 
-/** T5.3: rascunho vira publicada. */
-export async function publicarSemana(client: Client, inicio: string, usuarioId: string): Promise<void> {
-  const semana = await travarSemana(client, 'inicio_semana', inicio);
-  recusarSeFechada(semana);
-  if (semana.situacao === 'publicada') throw new UserError('A semana já está publicada.');
-  await client.query("UPDATE semanas SET situacao = 'publicada', publicada_por = $2 WHERE id = $1", [semana.id, usuarioId]);
-}
-
 /**
- * T5.6, RF-31, RN-14: fecha a semana publicada. A planejada com gente escalada é
+ * T5.6, RF-31, RN-14: fecha a semana aberta. A planejada com gente escalada é
  * assumida como realizada, marcada de não confirmada; a sem ninguém fica pendente.
  */
 export async function fecharSemana(client: Client, inicio: string): Promise<{ naoConfirmadas: number }> {
   const semana = await travarSemana(client, 'inicio_semana', inicio);
   if (semana.situacao === 'fechada') throw new UserError('A semana já está fechada.');
-  if (semana.situacao === 'rascunho') throw new UserError('Publique a semana antes de fechá-la.');
   const { rowCount } = await client.query(
     `UPDATE atribuicoes a SET situacao = 'nao_confirmada'
       WHERE a.semana_id = $1 AND a.situacao = 'planejada'
@@ -794,12 +785,12 @@ export async function reagendarAtribuicao(client: Client, id: string, input: Rea
   return { semanaInicio: atribuicao.semana.inicio };
 }
 
-export async function excluirAtribuicao(client: Client, id: string): Promise<{ semanaInicio: string }> {
+export async function excluirAtribuicao(client: Client, id: string): Promise<{ data: string }> {
   const atribuicao = await travarAtribuicao(client, id);
   recusarSeFechada(atribuicao.semana);
   recusarSeNaoPlanejada(atribuicao);
   await client.query('DELETE FROM atribuicoes WHERE id = $1', [id]);
-  return { semanaInicio: atribuicao.semana.inicio };
+  return { data: atribuicao.dataTrabalho };
 }
 
 /**

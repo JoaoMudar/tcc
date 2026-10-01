@@ -229,7 +229,7 @@ informação que se quer: esconder o atraso seria o mesmo que não ter o módulo
 
 ### Em que semana a ordem cai, e com quem
 
-A ordem entra na **semana do seu vencimento**, e o sistema abre essa semana em rascunho se ela ainda
+A ordem entra na **semana do seu vencimento**, e o sistema cria essa semana, aberta, se ela ainda
 não existir. Se a semana do vencimento já estiver **fechada**, a ordem entra na semana aberta
 corrente, porque semana fechada não se altera. O que continua contando o atraso é o **vencimento**,
 e não o dia em que a ordem coube na agenda: sem essa separação, empurrar a ordem para a semana
