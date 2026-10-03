@@ -28,6 +28,7 @@ import {
   turnoParaMinuto,
   vaoParaLancar,
 } from '@/lib/agenda-grade';
+import { diasDaJanela, passoDoZoom, zoomVizinho } from '@/lib/agenda-zoom';
 import { type Mudanca, aplicarMudanca, dadosDaMudanca, montarGrade, prioridadeAgora } from '@/lib/agenda-linhas';
 import { COR_CATEGORIA } from '@/lib/cores-categoria';
 import { nomeDia, siglaDia } from '@/lib/semanas';
@@ -40,18 +41,19 @@ import { type AvisoDesfazer, ToastDesfazer } from './ToastDesfazer';
 import { promoverAtribuicaoAction, reagendarAtribuicaoAction } from './actions';
 import { ATRIBUTO_DIA, ATRIBUTO_LINHA, type Reagendamento, useArrasteBarra } from './useArrasteBarra';
 import { useAtalhosSemana } from './useAtalhosSemana';
+import { useZoomAgenda } from './ZoomAgenda';
 
 interface GanttSemanaProps {
   atribuicoes: AtribuicaoResumo[];
   funcionarios: Funcionario[];
+  /** Os dias úteis da semana: o zoom recorta deles a janela que a grade desenha. */
   dias: string[];
+  /** O dia escolhido: é o meio da janela nos zooms 3 dias e Dia. Sem ele, hoje. */
+  dia?: string;
   /** Os turnos em uso, mais o desativado que ainda tem tarefa nesta semana. */
   turnos: Turno[];
   hoje: string;
   semana: string;
-  /** Endereços dos atalhos ← e →. */
-  anterior: string;
-  proxima: string;
   /** Arrastar remarca, e exige alterar a agenda em semana aberta. */
   podeArrastar?: boolean;
   /** As listas do formulário: só chegam quando se pode lançar. */
@@ -68,6 +70,9 @@ const MAX_CAMADAS = 1 + Math.floor((ALTURA_LINHA * OVERLAP_SECONDARY) / ALTURA_M
 export const HOVER_EXPAND = 1.6;
 /** Quanto o mouse precisa parar no dia antes de ele crescer: atravessar a grade não faz nada pular. */
 const ESPERA_FOCO_MS = 150;
+/** Quanto de roda com Ctrl vale um passo de zoom, e o intervalo mínimo entre dois passos: a pinça do touchpad manda muitos eventos pequenos. */
+const LIMIAR_RODA = 60;
+const INTERVALO_RODA_MS = 250;
 const LARGURA_NOME = 'w-36';
 
 /** As colunas dos dias, com a do foco maior. Cabeçalho e linhas usam a mesma, ou desalinham. */
@@ -89,12 +94,11 @@ function colunasDaGrade(quantos: number, foco: number | null): string {
 export function GanttSemana({
   atribuicoes,
   funcionarios,
-  dias,
+  dias: diasUteis,
   turnos,
   hoje,
+  dia = hoje,
   semana,
-  anterior,
-  proxima,
   podeArrastar = false,
   opcoes,
   className = '',
@@ -109,7 +113,38 @@ export function GanttSemana({
   const [anuncio, setAnuncio] = useState('');
   const fecharAviso = useCallback(() => setAviso(null), []);
 
-  useAtalhosSemana({ anterior, proxima, hoje: '/producao' });
+  // O zoom recorta a semana; as setas do teclado andam no passo dele, como as do cabeçalho
+  const { zoom, setZoom } = useZoomAgenda();
+  const dias = useMemo(() => diasDaJanela(zoom, dia, diasUteis), [zoom, dia, diasUteis]);
+  useAtalhosSemana({
+    anterior: `/producao?dia=${passoDoZoom(zoom, dia, -1)}`,
+    proxima: `/producao?dia=${passoDoZoom(zoom, dia, 1)}`,
+    hoje: '/producao',
+  });
+
+  // Ctrl + roda sobre a grade troca o zoom. O onWheel do React é passivo e não impediria o zoom do navegador
+  const gradeRef = useRef<HTMLDivElement>(null);
+  const roda = useRef({ acumulado: 0, ultimo: -Infinity });
+  useEffect(() => {
+    const grade = gradeRef.current;
+    if (!grade) return;
+    const aoRolar = (evento: WheelEvent) => {
+      if (!evento.ctrlKey) return;
+      evento.preventDefault();
+      const estado = roda.current;
+      // Logo depois de um passo, o resto do mesmo gesto se descarta
+      if (Date.now() - estado.ultimo < INTERVALO_RODA_MS) return;
+      estado.acumulado += evento.deltaY;
+      if (Math.abs(estado.acumulado) < LIMIAR_RODA) return;
+      // Roda para cima aproxima
+      const novo = zoomVizinho(zoom, estado.acumulado < 0 ? 1 : -1);
+      estado.acumulado = 0;
+      estado.ultimo = Date.now();
+      if (novo !== zoom) setZoom(novo);
+    };
+    grade.addEventListener('wheel', aoRolar, { passive: false });
+    return () => grade.removeEventListener('wheel', aoRolar);
+  }, [zoom, setZoom]);
 
   /** A tarefa vai para o lugar novo antes da resposta; o erro a devolve e diz por quê. */
   const mandar = useCallback(
@@ -301,7 +336,8 @@ export function GanttSemana({
     if (mira?.pessoa !== pessoa || mira.dia !== dia || mira.minuto !== minuto) setMira({ pessoa, dia, minuto });
   };
 
-  const colunas = colunasDaGrade(dias.length, foco);
+  // Numa coluna só não há o que crescer
+  const colunas = colunasDaGrade(dias.length, dias.length > 1 ? foco : null);
   const transicaoColunas = 'transition-[grid-template-columns] duration-[180ms] ease-out';
   const arrastavel = (a: AtribuicaoResumo) => podeArrastar && a.situacao === 'planejada' && a.semanaSituacao === 'aberta';
   const linhas = grade.map((linha) => {
@@ -311,7 +347,7 @@ export function GanttSemana({
 
   return (
     <div className={`animate-surgir ${className}`}>
-      <div className="overflow-x-auto rounded-lg border border-line bg-white">
+      <div ref={gradeRef} className="overflow-x-auto rounded-lg border border-line bg-white">
         <div className="min-w-[56rem]" onPointerLeave={() => apontar(null)}>
           {/* Cabeçalho: o dia e as horas, todas no dia em foco */}
           <div className="flex items-end border-b border-line">
@@ -333,7 +369,7 @@ export function GanttSemana({
                     {siglaDia(dia)} {dia.slice(8)}
                   </Link>
                   <div className="relative mt-1">
-                    <ReguaDeHoras janela={janela} todas={indice === foco} />
+                    <ReguaDeHoras janela={janela} todas={zoom !== 'semana' || indice === foco} />
                     <DivisorAlmoco janela={janela} />
                     {dia === hoje && <LinhaAgora janela={janela} ponto />}
                   </div>
