@@ -1,8 +1,8 @@
 import { formatData, isDataIso, somaDias } from './datas';
 
 /**
- * A semana da agenda (RF-26): começa na segunda e a grade vai até o sábado,
- * como no F1 UC-19. Datas sempre `AAAA-MM-DD`, contadas em UTC para o fuso do
+ * A semana da agenda (RF-26): começa na segunda e vai até o domingo, que
+ * também aceita tarefa. Datas sempre `AAAA-MM-DD`, contadas em UTC para o fuso do
  * servidor não mudar o dia.
  */
 
@@ -29,14 +29,14 @@ export function isInicioDeSemana(texto: string): boolean {
   return isDataIso(texto) && inicioDaSemana(texto) === texto;
 }
 
-/** Segunda a sábado. */
+/** Segunda a domingo. */
 export function diasDaSemana(inicio: string): string[] {
-  return Array.from({ length: 6 }, (_, i) => somaDias(inicio, i));
+  return Array.from({ length: 7 }, (_, i) => somaDias(inicio, i));
 }
 
 /**
- * Segunda a sexta: é o que a grade de tela larga desenha (RNF-14). O sábado
- * continua existindo no modelo, na lista do celular e no formulário.
+ * Segunda a sexta: é o que a grade de tela larga desenha no zoom Semana (RNF-14).
+ * Sábado e domingo aparecem nos zooms 3 dias e Dia, no celular e no formulário.
  */
 export function diasUteisDaSemana(inicio: string): string[] {
   return Array.from({ length: 5 }, (_, i) => somaDias(inicio, i));
@@ -55,7 +55,7 @@ export function diaMes(iso: string): string {
   return formatData(iso).slice(0, 5);
 }
 
-/** "07/09 a 12/09". */
+/** "07/09 a 13/09". */
 export function rotuloSemana(inicio: string): string {
-  return `${diaMes(inicio)} a ${diaMes(somaDias(inicio, 5))}`;
+  return `${diaMes(inicio)} a ${diaMes(somaDias(inicio, 6))}`;
 }

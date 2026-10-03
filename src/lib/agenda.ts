@@ -116,7 +116,7 @@ export function parseAtribuicao(
   const dias = [...new Set(bruta.dias)].sort();
   if (dias.length === 0) return { error: 'Escolha ao menos um dia.' };
   const daSemana = diasDaSemana(bruta.semana);
-  if (!dias.every((dia) => daSemana.includes(dia))) return { error: 'Escolha dias desta semana, de segunda a sábado.' };
+  if (!dias.every((dia) => daSemana.includes(dia))) return { error: 'Escolha dias desta semana, de segunda a domingo.' };
 
   if (!isUuid(bruta.turnoId)) return { error: 'Escolha o turno. Toda tarefa tem turno, mesmo a que tem hora marcada.' };
   const horario = parseHorario(bruta.horaInicio, bruta.horaFim);
@@ -769,7 +769,7 @@ export async function reagendarAtribuicao(client: Client, id: string, input: Rea
   recusarSeFechada(atribuicao.semana);
   recusarSeNaoPlanejada(atribuicao);
   if (!diasDaSemana(atribuicao.semana.inicio).includes(input.data)) {
-    throw new UserError('Arraste para um dia desta semana, de segunda a sábado. Para outra semana, lance a tarefa de novo.');
+    throw new UserError('Arraste para um dia desta semana, de segunda a domingo. Para outra semana, lance a tarefa de novo.');
   }
   const { rows } = await client.query<{ ativo: boolean }>('SELECT ativo FROM turnos_trabalho WHERE id = $1', [input.turnoId]);
   if (rows[0]?.ativo !== true) throw new UserError('Escolha um turno em uso.');

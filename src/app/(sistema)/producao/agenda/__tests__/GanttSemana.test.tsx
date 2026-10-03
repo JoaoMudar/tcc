@@ -501,28 +501,36 @@ describe('GanttSemana: linha do agora e sem balões de instrução', () => {
 });
 
 describe('GanttSemana: zoom', () => {
-  const UTEIS = [SEMANA, TERCA, '2026-09-30', '2026-10-01', '2026-10-02'];
+  const DIAS_SEMANA = [SEMANA, TERCA, '2026-09-30', '2026-10-01', '2026-10-02', '2026-10-03', '2026-10-04'];
 
   function comZoom(inicial: 'semana' | '3dias' | 'dia', dia = '2026-09-30') {
     return render(
       <ZoomAgenda inicial={inicial}>
         <SeletorZoom />
-        <GanttSemana atribuicoes={[]} funcionarios={[GILBERTO]} dias={UTEIS} dia={dia} turnos={[MANHA, TARDE]} hoje={SEMANA} semana={SEMANA} />
+        <GanttSemana atribuicoes={[]} funcionarios={[GILBERTO]} dias={DIAS_SEMANA} dia={dia} turnos={[MANHA, TARDE]} hoje={SEMANA} semana={SEMANA} />
       </ZoomAgenda>,
     );
   }
 
   const colunas = () => Array.from(linhaDe(GILBERTO.id).children).map((celula) => celula.getAttribute('aria-label'));
 
-  it('a semana mostra os cinco dias, o 3 dias três em volta do dia, e o Dia só ele', () => {
+  it('a semana mostra os cinco dias úteis, o 3 dias começa no dia, e o Dia só ele', () => {
     const { unmount } = comZoom('semana');
     expect(colunas()).toEqual(['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta']);
     unmount();
     const outro = comZoom('3dias');
-    expect(colunas()).toEqual(['Terça', 'Quarta', 'Quinta']);
+    expect(colunas()).toEqual(['Quarta', 'Quinta', 'Sexta']);
     outro.unmount();
     comZoom('dia');
     expect(colunas()).toEqual(['Quarta']);
+  });
+
+  it('sábado e domingo entram na grade pelos zooms 3 dias e Dia', () => {
+    const { unmount } = comZoom('3dias', '2026-10-02');
+    expect(colunas()).toEqual(['Sexta', 'Sábado', 'Domingo']);
+    unmount();
+    comZoom('dia', '2026-10-04');
+    expect(colunas()).toEqual(['Domingo']);
   });
 
   it('o seletor troca o zoom e o guarda no cookie', () => {
@@ -549,9 +557,9 @@ describe('GanttSemana: zoom', () => {
     expect(colunas()).toHaveLength(5);
   });
 
-  it('no zoom Dia, ← e → andam um dia útil', () => {
+  it('no zoom Dia, ← e → andam um dia corrido, sábado inclusive', () => {
     comZoom('dia', '2026-10-02');
     fireEvent.keyDown(document.body, { key: 'ArrowRight' });
-    expect(push).toHaveBeenLastCalledWith('/producao?dia=2026-10-05', { scroll: false });
+    expect(push).toHaveBeenLastCalledWith('/producao?dia=2026-10-03', { scroll: false });
   });
 });
