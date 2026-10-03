@@ -46,9 +46,9 @@ import { useZoomAgenda } from './ZoomAgenda';
 interface GanttSemanaProps {
   atribuicoes: AtribuicaoResumo[];
   funcionarios: Funcionario[];
-  /** Os dias úteis da semana: o zoom recorta deles a janela que a grade desenha. */
+  /** Os dias da semana, de segunda a domingo: o zoom recorta deles a janela que a grade desenha. */
   dias: string[];
-  /** O dia escolhido: é o meio da janela nos zooms 3 dias e Dia. Sem ele, hoje. */
+  /** O dia escolhido: é onde a janela começa nos zooms 3 dias e Dia. Sem ele, hoje. */
   dia?: string;
   /** Os turnos em uso, mais o desativado que ainda tem tarefa nesta semana. */
   turnos: Turno[];
@@ -94,7 +94,7 @@ function colunasDaGrade(quantos: number, foco: number | null): string {
 export function GanttSemana({
   atribuicoes,
   funcionarios,
-  dias: diasUteis,
+  dias: diasSemana,
   turnos,
   hoje,
   dia = hoje,
@@ -115,7 +115,7 @@ export function GanttSemana({
 
   // O zoom recorta a semana; as setas do teclado andam no passo dele, como as do cabeçalho
   const { zoom, setZoom } = useZoomAgenda();
-  const dias = useMemo(() => diasDaJanela(zoom, dia, diasUteis), [zoom, dia, diasUteis]);
+  const dias = useMemo(() => diasDaJanela(zoom, dia, diasSemana), [zoom, dia, diasSemana]);
   useAtalhosSemana({
     anterior: `/producao?dia=${passoDoZoom(zoom, dia, -1)}`,
     proxima: `/producao?dia=${passoDoZoom(zoom, dia, 1)}`,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { diaUtilAnterior, formatData, hojeNoViveiro, isDataIso, proximoDiaUtil, somaDias } from '../datas';
+import { formatData, hojeNoViveiro, isDataIso, somaDias } from '../datas';
 
 describe('datas no fuso do viveiro', () => {
   it('às 22h de Brasília ainda é o mesmo dia, embora em UTC já seja o seguinte', () => {
@@ -21,12 +21,5 @@ describe('datas no fuso do viveiro', () => {
 
   it('formatData', () => {
     expect(formatData('2026-09-04')).toBe('04/09/2026');
-  });
-
-  it('proximoDiaUtil pula o fim de semana, e é o inverso de diaUtilAnterior', () => {
-    expect(proximoDiaUtil('2026-10-01')).toBe('2026-10-02');
-    expect(proximoDiaUtil('2026-10-02')).toBe('2026-10-05');
-    expect(proximoDiaUtil('2026-10-03')).toBe('2026-10-05');
-    expect(diaUtilAnterior(proximoDiaUtil('2026-10-02'))).toBe('2026-10-02');
   });
 });

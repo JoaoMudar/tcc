@@ -176,10 +176,14 @@ describe('parseAtribuicao (RF-21, RF-26, RF-30)', () => {
     expect(v.horaInicio).toBeNull();
   });
 
+  it('o domingo é da semana, e aceita tarefa', () => {
+    expect(valor(parseAtribuicao(SIMPLES, bruta({ dias: ['2026-09-20'] }))).dias).toEqual(['2026-09-20']);
+  });
+
   it('exige ao menos uma pessoa, um dia da semana e o turno', () => {
     expect(parseAtribuicao(SIMPLES, bruta({ participantes: [] }))).toEqual({ error: 'Escolha ao menos uma pessoa.' });
     expect(parseAtribuicao(SIMPLES, bruta({ dias: [] }))).toEqual({ error: 'Escolha ao menos um dia.' });
-    expect(parseAtribuicao(SIMPLES, bruta({ dias: ['2026-09-20'] }))).toEqual({ error: expect.stringContaining('dias desta semana') });
+    expect(parseAtribuicao(SIMPLES, bruta({ dias: ['2026-09-21'] }))).toEqual({ error: expect.stringContaining('dias desta semana') });
     expect(parseAtribuicao(SIMPLES, bruta({ turnoId: '' }))).toEqual({ error: expect.stringContaining('turno') });
     expect(parseAtribuicao(SIMPLES, bruta({ semana: '2026-09-15' }))).toEqual({ error: 'Semana inválida.' });
   });

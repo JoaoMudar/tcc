@@ -18,7 +18,7 @@ import { reagendarAtribuicaoAction } from './actions';
 interface AgendaDiaCelularProps {
   atribuicoes: AtribuicaoResumo[];
   funcionarios: Funcionario[];
-  /** Os dias do seletor: segunda a sexta, e o sábado só quando tem tarefa. */
+  /** Os dias do seletor: segunda a sexta, e sábado e domingo só quando têm tarefa. */
   dias: string[];
   dia: string;
   hoje: string;

@@ -2,7 +2,6 @@ import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { findSemana, listAgendaSemana, listFuncionarios } from '@/lib/agenda';
 import { COOKIE_ZOOM, lerZoom } from '@/lib/agenda-zoom';
-import { somaDias } from '@/lib/datas';
 import pool from '@/lib/db';
 import { horizonteProtocolo } from '@/lib/parametros';
 import { type Perfil, can } from '@/lib/permissions';
@@ -11,6 +10,7 @@ import { diasDaSemana, diasUteisDaSemana, inicioDaSemana, rotuloSemana } from '@
 import { formatDuracao, jornadaDiaria, listTurnos, turnoLabel } from '@/lib/turnos';
 import { AgendaDiaCelular } from './AgendaDiaCelular';
 import { CopiarSemanaForm } from './CopiarSemanaForm';
+import { ForaDaGrade } from './ForaDaGrade';
 import { GanttSemana } from './GanttSemana';
 import { MenuSemana } from './MenuSemana';
 import { NavegacaoAgenda } from './NavegacaoAgenda';
@@ -34,8 +34,8 @@ interface AgendaDaSemanaProps {
 export async function AgendaDaSemana({ dia, hoje, perfil }: AgendaDaSemanaProps) {
   const inicio = inicioDaSemana(dia);
   const dias = diasDaSemana(inicio);
-  // A grade desenha só os dias úteis; o sábado entra no celular quando tem tarefa
-  const diasNaGrade = diasUteisDaSemana(inicio);
+  // O zoom Semana desenha só os dias úteis; sábado e domingo entram no 3 dias, no Dia e, com tarefa, no celular
+  const diasUteis = diasUteisDaSemana(inicio);
 
   const [semana, funcionarios, turnos] = await Promise.all([findSemana(pool, inicio), listFuncionarios(pool), listTurnos(pool)]);
   const atribuicoes = semana ? await listAgendaSemana(pool, semana.id) : [];
@@ -43,8 +43,8 @@ export async function AgendaDaSemana({ dia, hoje, perfil }: AgendaDaSemanaProps)
   // A busca precisa alcançar o fim da semana, que pode estar além do horizonte;
   // quem recorta para a semana é sugestoesDaSemana.
   const horizonte = await horizonteProtocolo(pool);
-  // O domingo fecha a semana (é o mesmo fim que sugestoesDaSemana usa), e não o sábado da grade
-  const fimDaSemana = somaDias(inicio, 6);
+  // O domingo fecha a semana (é o mesmo fim que sugestoesDaSemana usa)
+  const fimDaSemana = dias[6];
   const diasAteOFim = Math.round((Date.parse(`${fimDaSemana}T00:00:00Z`) - Date.parse(`${hoje}T00:00:00Z`)) / 86_400_000);
   const sugestoes = sugestoesDaSemana(await listSugestoes(pool, hoje, Math.max(horizonte, diasAteOFim, 0)), inicio, hoje);
   const ativos = turnos.filter((turno) => turno.ativo);
@@ -57,8 +57,8 @@ export async function AgendaDaSemana({ dia, hoje, perfil }: AgendaDaSemanaProps)
   const podeFechar = can(perfil, 'fechamento_semana', 'A') && semana?.situacao === 'aberta';
   const podeArrastar = can(perfil, 'agenda', 'A') && !fechada;
   const podeConfirmar = can(perfil, 'confirmacao_tarefa', 'C') && !fechada;
-  const noSabado = atribuicoes.filter((a) => a.data === dias[5]);
-  const diasNoCelular = noSabado.length > 0 ? dias.slice(0, 6) : diasNaGrade;
+  const noFimDeSemana = atribuicoes.filter((a) => !diasUteis.includes(a.data));
+  const diasNoCelular = dias.filter((d) => diasUteis.includes(d) || noFimDeSemana.some((a) => a.data === d));
   // As listas do formulário só são buscadas para quem pode lançar clicando na grade
   const opcoes = podeMontar ? await carregarOpcoes(inicio) : undefined;
   const zoom = lerZoom((await cookies()).get(COOKIE_ZOOM)?.value);
@@ -109,7 +109,7 @@ export async function AgendaDaSemana({ dia, hoje, perfil }: AgendaDaSemanaProps)
             className="hidden md:block"
             atribuicoes={atribuicoes}
             funcionarios={funcionarios}
-            dias={diasNaGrade}
+            dias={dias}
             turnos={turnosNaGrade}
             dia={dia}
             hoje={hoje}
@@ -118,20 +118,7 @@ export async function AgendaDaSemana({ dia, hoje, perfil }: AgendaDaSemanaProps)
             opcoes={opcoes}
           />
         )}
-        {noSabado.length > 0 && (
-          <p className="hidden text-sm text-muted md:block">
-            No sábado, fora da grade:{' '}
-            {noSabado.map((a, indice) => (
-              <span key={a.id}>
-                {indice > 0 && ', '}
-                <Link href={`/producao/agenda/${a.id}`} className="font-medium text-brand-dark underline-offset-2 hover:underline">
-                  {a.tipo}
-                </Link>
-              </span>
-            ))}
-            .
-          </p>
-        )}
+        <ForaDaGrade atribuicoes={noFimDeSemana} />
         {atribuicoes.length > 0 && (
           <AgendaDiaCelular
             className="md:hidden"
