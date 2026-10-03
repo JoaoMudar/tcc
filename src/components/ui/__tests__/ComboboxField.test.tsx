@@ -340,4 +340,25 @@ describe("ComboboxField", () => {
     expect(screen.getByLabelText("Cliente")).toBeRequired();
     expect(screen.getByText("Espécie do item 1").className).toBe("sr-only");
   });
+  it("onDigitar recebe o texto a cada tecla, e o rótulo da opção tocada", () => {
+    const aoDigitar = vi.fn();
+    function Filtro() {
+      const [value, setValue] = useState("");
+      return (
+        <ComboboxField
+          label="Cliente"
+          options={ESPECIES}
+          value={value}
+          onChange={setValue}
+          onDigitar={aoDigitar}
+        />
+      );
+    }
+    render(<Filtro />);
+    const campo = screen.getByLabelText("Cliente");
+    fireEvent.change(campo, { target: { value: "ip" } });
+    expect(aoDigitar).toHaveBeenLastCalledWith("ip");
+    fireEvent.click(screen.getByRole("button", { name: "Ipê-roxo" }));
+    expect(aoDigitar).toHaveBeenLastCalledWith("Ipê-roxo");
+  });
 });

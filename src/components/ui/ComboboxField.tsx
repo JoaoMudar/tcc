@@ -47,6 +47,11 @@ interface ComboboxFieldProps {
    * uma opção da lista, e digitar desfaz a escolha com `onChange('')`.
    */
   opcaoFixa?: { rotulo: string; onEscolher: () => void; ativa?: boolean };
+  /**
+   * O texto do campo a cada tecla, e o rótulo da opção tocada. É para quem usa o
+   * campo como filtro, que precisa reagir antes de qualquer escolha.
+   */
+  onDigitar?: (texto: string) => void;
 }
 
 /**
@@ -72,6 +77,7 @@ export function ComboboxField({
   onCriarNova,
   rotuloCriar = (texto) => `+ Cadastrar "${texto}"`,
   opcaoFixa,
+  onDigitar,
 }: ComboboxFieldProps) {
   const id = useId();
   const hintId = hint ? `${id}-dica` : undefined;
@@ -133,11 +139,13 @@ export function ComboboxField({
     setBusca(opcao.label);
     setAberta(false);
     onChange(opcao.value);
+    onDigitar?.(opcao.label);
   }
 
   function digitar(texto: string) {
     setBusca(texto);
     setAberta(true);
+    onDigitar?.(texto);
     // Texto digitado não é escolha: enquanto não tocarem na lista, o campo vai vazio
     if (value || fixaAtiva) {
       setValorVisto("");

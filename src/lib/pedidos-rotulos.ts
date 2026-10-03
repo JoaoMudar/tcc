@@ -2,6 +2,7 @@
  * Rótulos e contas do pedido que o navegador pode receber: sem SQL e sem `pg`
  * (RNF-11, TA-60). O servidor usa os mesmos, pelas reexportações de `pedidos.ts`.
  */
+import { normalizeTexto } from './busca-opcoes';
 import { somaDias } from './datas';
 import type { Perfil } from './perfis';
 
@@ -416,6 +417,24 @@ export function resumoFaltas(itens: readonly ItemParaAprovar[]): string | null {
 /** O total que a tela imprime: "R$ 1.250,00" ou "a definir" enquanto faltar preço. */
 export function formatTotal(centavos: number | null): string {
   return centavos === null ? 'a definir' : formatMoeda(centavos);
+}
+
+/**
+ * RF-58: o filtro da lista de pedidos, que corre enquanto se digita. Com um
+ * cliente tocado na lista, vale o id: dois clientes podem ter nome parecido.
+ * Sem ele, vale o texto, em pedaços soltos e sem acento, como na busca de espécie.
+ */
+export function filtraPedidosPorCliente<T extends { clienteId: string; cliente: string }>(
+  pedidos: readonly T[],
+  filtro: { clienteId: string; texto: string },
+): T[] {
+  if (filtro.clienteId) return pedidos.filter((pedido) => pedido.clienteId === filtro.clienteId);
+  const termos = normalizeTexto(filtro.texto).split(/\s+/).filter(Boolean);
+  if (termos.length === 0) return [...pedidos];
+  return pedidos.filter((pedido) => {
+    const nome = normalizeTexto(pedido.cliente);
+    return termos.every((termo) => nome.includes(termo));
+  });
 }
 
 // ------------------------------------------------------------

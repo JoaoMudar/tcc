@@ -4,7 +4,7 @@ import path from 'node:path';
 import { Pool, type PoolClient } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { insertArea, insertCanteiro } from '../areas';
-import { hojeNoViveiro, somaDias } from '../datas';
+import { hojeNoViveiro } from '../datas';
 import { saldoPronto } from '../estoque';
 import { alterarFase, criarLote } from '../lotes';
 import { registrarMovimento } from '../movimentos';
@@ -151,7 +151,7 @@ describe('cadastro do pedido (T8.1, RF-54, RF-55)', () => {
     // 200 × 2,50 + 50 × 12,50 + 1 × 9,99
     expect(totalPedido(ficha.itens)).toBe(50_000 + 62_500 + 999);
 
-    const naLista = (await listPedidos(pool, { de: hojeNoViveiro(), ate: hojeNoViveiro(), clienteId: null, canal: null })).find(
+    const naLista = (await listPedidos(pool)).find(
       (p) => p.id === id,
     )!;
     // A lista soma no SQL, e tem de dar o mesmo que a soma dos itens
@@ -161,7 +161,7 @@ describe('cadastro do pedido (T8.1, RF-54, RF-55)', () => {
 
   it('o pedido sem preço não vale zero na carteira: o total é indefinido', async () => {
     const { id } = await novoPedido({ itens: itens().map((item) => ({ ...item, precoCentavos: null })) });
-    const naLista = (await listPedidos(pool, { de: hojeNoViveiro(), ate: hojeNoViveiro(), clienteId: null, canal: null })).find(
+    const naLista = (await listPedidos(pool)).find(
       (p) => p.id === id,
     )!;
     expect(naLista.totalCentavos).toBeNull();
@@ -281,36 +281,15 @@ describe('situação do pedido (T8.3, T8.6, RF-57)', () => {
   });
 });
 
-describe('lista com filtro (T8.4, RF-58, TA-54)', () => {
-  const hoje = hojeNoViveiro();
-  const periodoDeHoje = { de: hoje, ate: hoje };
+describe('lista da carteira (T8.4, RF-58, TA-54)', () => {
+  it('vem do mais novo ao mais antigo, sem corte de data', async () => {
+    const antigo = await novoPedido({ clienteId: outroCliente });
+    await pool.query(`UPDATE pedidos SET criado_em = now() - interval '400 days' WHERE id = $1`, [antigo.id]);
+    const novo = await novoPedido();
 
-  it('filtra por cliente', async () => {
-    const meu = await novoPedido();
-    const alheio = await novoPedido({ clienteId: outroCliente });
-    const lista = await listPedidos(pool, { ...periodoDeHoje, clienteId: cliente, canal: null });
-    const ids = lista.map((p) => p.id);
-    expect(ids).toContain(meu.id);
-    expect(ids).not.toContain(alheio.id);
-  });
-
-  it('filtra por canal', async () => {
-    const varejo = await novoPedido({ canal: 'varejo' });
-    const atacado = await novoPedido();
-    const lista = await listPedidos(pool, { ...periodoDeHoje, clienteId: null, canal: 'varejo' });
-    const ids = lista.map((p) => p.id);
-    expect(ids).toContain(varejo.id);
-    expect(ids).not.toContain(atacado.id);
-  });
-
-  it('filtra por período, e o pedido de hoje fica fora do intervalo de ontem', async () => {
-    const { id } = await novoPedido();
-    const ontem = somaDias(hoje, -1);
-    const deOntem = await listPedidos(pool, { de: somaDias(hoje, -2), ate: ontem, clienteId: null, canal: null });
-    expect(deOntem.map((p) => p.id)).not.toContain(id);
-
-    const deHoje = await listPedidos(pool, { ...periodoDeHoje, clienteId: null, canal: null });
-    expect(deHoje.map((p) => p.id)).toContain(id);
+    const ids = (await listPedidos(pool)).map((p) => p.id);
+    expect(ids).toContain(antigo.id);
+    expect(ids.indexOf(novo.id)).toBeLessThan(ids.indexOf(antigo.id));
   });
 });
 
@@ -788,7 +767,7 @@ describe('os sete jeitos de o pedido chegar (pedidos-como-chegam.md)', () => {
     const [grande, pequeno] = porQuantidade(filhos);
     const ficha = await fecharCom(id, [soPreco(grande.id, 250), soPreco(pequeno.id, 900)], false);
     expect(totalPedido(ficha.itens)).toBe(1200 * 250 + 300 * 900);
-    const lista = await listPedidos(pool, { de: '2000-01-01', ate: '2999-12-31', clienteId: cliente, canal: null });
+    const lista = await listPedidos(pool);
     expect(lista.find((p) => p.id === id)!.totalCentavos).toBe(1200 * 250 + 300 * 900);
   });
 
