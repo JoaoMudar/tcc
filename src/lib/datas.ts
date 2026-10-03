@@ -48,6 +48,13 @@ export function diaUtilAnterior(iso: string): string {
   return dia;
 }
 
+/** O simétrico de `diaUtilAnterior`: sexta leva à segunda. */
+export function proximoDiaUtil(iso: string): string {
+  let dia = somaDias(iso, 1);
+  while (diaDaSemana(dia) === 0 || diaDaSemana(dia) === 6) dia = somaDias(dia, 1);
+  return dia;
+}
+
 /** 2026-09-14 → 14/09/2026. */
 export function formatData(iso: string): string {
   const [ano, mes, dia] = iso.split('-');

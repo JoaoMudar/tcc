@@ -24,6 +24,8 @@ vi.mock('../NovaTarefaModal', () => ({
 
 const { promoverAtribuicaoAction, reagendarAtribuicaoAction } = await import('../actions');
 const { GanttSemana, HOVER_EXPAND } = await import('../GanttSemana');
+const { ZoomAgenda } = await import('../ZoomAgenda');
+const { SeletorZoom } = await import('../SeletorZoom');
 
 const TERCA = '2026-09-29';
 const DIAS = [SEMANA, TERCA];
@@ -39,8 +41,6 @@ function montar(atribuicoes: AtribuicaoResumo[] = [tarefa()], props: Partial<Par
       turnos={[MANHA, TARDE]}
       hoje={SEMANA}
       semana={SEMANA}
-      anterior="/producao?dia=2026-09-21"
-      proxima="/producao?dia=2026-10-05"
       podeArrastar
       {...props}
     />,
@@ -497,5 +497,61 @@ describe('GanttSemana: linha do agora e sem balões de instrução', () => {
     expect(screen.queryByRole('note')).toBeNull();
     expect(screen.queryByText(/Arraste para remarcar/)).toBeNull();
     expect(document.querySelector('[title="Clique para lançar tarefa aqui"]')).toBeNull();
+  });
+});
+
+describe('GanttSemana: zoom', () => {
+  const UTEIS = [SEMANA, TERCA, '2026-09-30', '2026-10-01', '2026-10-02'];
+
+  function comZoom(inicial: 'semana' | '3dias' | 'dia', dia = '2026-09-30') {
+    return render(
+      <ZoomAgenda inicial={inicial}>
+        <SeletorZoom />
+        <GanttSemana atribuicoes={[]} funcionarios={[GILBERTO]} dias={UTEIS} dia={dia} turnos={[MANHA, TARDE]} hoje={SEMANA} semana={SEMANA} />
+      </ZoomAgenda>,
+    );
+  }
+
+  const colunas = () => Array.from(linhaDe(GILBERTO.id).children).map((celula) => celula.getAttribute('aria-label'));
+
+  it('a semana mostra os cinco dias, o 3 dias três em volta do dia, e o Dia só ele', () => {
+    const { unmount } = comZoom('semana');
+    expect(colunas()).toEqual(['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta']);
+    unmount();
+    const outro = comZoom('3dias');
+    expect(colunas()).toEqual(['Terça', 'Quarta', 'Quinta']);
+    outro.unmount();
+    comZoom('dia');
+    expect(colunas()).toEqual(['Quarta']);
+  });
+
+  it('o seletor troca o zoom e o guarda no cookie', () => {
+    comZoom('semana');
+    fireEvent.click(screen.getByRole('button', { name: 'Dia' }));
+    expect(colunas()).toEqual(['Quarta']);
+    expect(screen.getByRole('button', { name: 'Dia' }).getAttribute('aria-pressed')).toBe('true');
+    expect(document.cookie).toContain('agenda_zoom=dia');
+  });
+
+  it('Ctrl + roda para cima aproxima, para baixo afasta; sem Ctrl, nada muda', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    comZoom('semana');
+    const grade = linhaDe(GILBERTO.id).closest('.overflow-x-auto')!;
+    fireEvent.wheel(grade, { deltaY: -100 });
+    expect(colunas()).toHaveLength(5);
+    fireEvent.wheel(grade, { deltaY: -100, ctrlKey: true });
+    expect(colunas()).toHaveLength(3);
+    // A pinça do touchpad manda vários eventos seguidos: só um passo por vez
+    fireEvent.wheel(grade, { deltaY: -100, ctrlKey: true });
+    expect(colunas()).toHaveLength(3);
+    vi.advanceTimersByTime(300);
+    fireEvent.wheel(grade, { deltaY: 100, ctrlKey: true });
+    expect(colunas()).toHaveLength(5);
+  });
+
+  it('no zoom Dia, ← e → andam um dia útil', () => {
+    comZoom('dia', '2026-10-02');
+    fireEvent.keyDown(document.body, { key: 'ArrowRight' });
+    expect(push).toHaveBeenLastCalledWith('/producao?dia=2026-10-05', { scroll: false });
   });
 });
