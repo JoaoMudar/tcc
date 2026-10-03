@@ -7,7 +7,7 @@ import { type SelectOption, SelectField } from '@/components/ui/SelectField';
 import { TextField } from '@/components/ui/TextField';
 import { NENHUM, type UnidadeTarefa } from '@/lib/agenda-rotulos';
 import { EMPTY_FORM_STATE } from '@/lib/form-state';
-import type { Declaracoes } from '@/lib/tipos-tarefa';
+import { CATEGORIA_TAREFA_LABELS, type CategoriaTarefa, type Declaracoes } from '@/lib/tipos-tarefa';
 import { Interruptor } from '../../cadastros/tipos-tarefa/Interruptor';
 import { EscolhaMultipla } from './EscolhaMultipla';
 import { atualizarAtribuicaoAction, criarAtribuicaoAction } from './actions';
@@ -15,6 +15,7 @@ import { atualizarAtribuicaoAction, criarAtribuicaoAction } from './actions';
 export interface TipoOpcao extends Declaracoes {
   id: string;
   nome: string;
+  categoria: CategoriaTarefa;
   unidadeMedida: UnidadeTarefa;
 }
 
@@ -68,7 +69,7 @@ export function AtribuicaoForm({ semana, opcoes, inicial, atribuicaoId, fixos }:
       <SelectField
         label="Tarefa"
         name="tipo_tarefa_id"
-        options={opcoes.tipos.map((t) => ({ value: t.id, label: t.nome }))}
+        options={opcoes.tipos.map((t) => ({ value: t.id, label: t.nome, grupo: CATEGORIA_TAREFA_LABELS[t.categoria] }))}
         defaultValue={valores.tipo_tarefa_id}
         onChange={(event) => setTipoId(event.target.value)}
         required

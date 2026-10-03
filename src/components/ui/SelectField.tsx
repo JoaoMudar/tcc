@@ -1,4 +1,4 @@
-import { useId, type SelectHTMLAttributes } from 'react';
+import { Fragment, useId, type SelectHTMLAttributes } from 'react';
 import { classeRotulo } from './marcaObrigatorio';
 
 export interface SelectOption {
@@ -6,6 +6,29 @@ export interface SelectOption {
   label: string;
   /** Linha miúda embaixo do rótulo, no `ComboboxField`: o nome científico da espécie. */
   detalhe?: string;
+  /** Título do `optgroup`: as opções seguidas com o mesmo grupo saem juntas debaixo dele. */
+  grupo?: string;
+}
+
+export type BlocoOpcoes = { grupo: string | undefined; opcoes: SelectOption[] };
+
+/** Junta as opções seguidas do mesmo grupo; a opção sem grupo forma bloco solto. */
+export function agruparOpcoes(options: readonly SelectOption[]): BlocoOpcoes[] {
+  const blocos: BlocoOpcoes[] = [];
+  for (const option of options) {
+    const ultimo = blocos.at(-1);
+    if (ultimo && ultimo.grupo === option.grupo) ultimo.opcoes.push(option);
+    else blocos.push({ grupo: option.grupo, opcoes: [option] });
+  }
+  return blocos;
+}
+
+function renderOpcoes(opcoes: readonly SelectOption[]) {
+  return opcoes.map((option) => (
+    <option key={option.value} value={option.value}>
+      {option.label}
+    </option>
+  ));
 }
 
 interface SelectFieldProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'id' | 'children'> {
@@ -47,11 +70,16 @@ export function SelectField({
         <option value="" disabled>
           {placeholder}
         </option>
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
+        {agruparOpcoes(options).map((bloco) => {
+          const key = `${bloco.grupo ?? ''}:${bloco.opcoes[0].value}`;
+          return bloco.grupo === undefined ? (
+            <Fragment key={key}>{renderOpcoes(bloco.opcoes)}</Fragment>
+          ) : (
+            <optgroup key={key} label={bloco.grupo}>
+              {renderOpcoes(bloco.opcoes)}
+            </optgroup>
+          );
+        })}
       </select>
       {error && (
         <p id={errorId} className="text-sm font-semibold text-red-700">

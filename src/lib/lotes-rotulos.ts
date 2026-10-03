@@ -68,6 +68,33 @@ export function canteiroLabel(letra: string, numero: number): string {
   return `${letra}-${numero}`;
 }
 
+interface LoteParaEscolha {
+  id: string;
+  codigo: string;
+  especie: string;
+  recipiente: string;
+  areaLetra: string;
+  canteiroNumero: number;
+  posicao: number | null;
+}
+
+/** O lote no seletor: agrupado por área e canteiro, nessa ordem, como se anda no viveiro. */
+export function opcoesDeLote(lotes: readonly LoteParaEscolha[]): { value: string; label: string; grupo: string }[] {
+  return [...lotes]
+    .sort(
+      (a, b) =>
+        a.areaLetra.localeCompare(b.areaLetra, 'pt-BR') ||
+        a.canteiroNumero - b.canteiroNumero ||
+        (a.posicao ?? Infinity) - (b.posicao ?? Infinity) ||
+        a.codigo.localeCompare(b.codigo, 'pt-BR'),
+    )
+    .map((l) => ({
+      value: l.id,
+      label: `${l.codigo} · ${l.especie} · ${l.recipiente}`,
+      grupo: `Área ${l.areaLetra} · Canteiro ${l.canteiroNumero}`,
+    }));
+}
+
 export interface CanteiroResumo {
   id: string;
   areaId: string;
