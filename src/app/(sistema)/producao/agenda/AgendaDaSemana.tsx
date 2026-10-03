@@ -6,7 +6,7 @@ import pool from '@/lib/db';
 import { horizonteProtocolo } from '@/lib/parametros';
 import { type Perfil, can } from '@/lib/permissions';
 import { listSugestoes, sugestoesDaSemana } from '@/lib/protocolos';
-import { diasDaSemana, diasUteisDaSemana, inicioDaSemana, rotuloSemana } from '@/lib/semanas';
+import { diasDaSemana, diasUteisDaSemana, inicioDaSemana, rotuloSemana, semanaJaPassou } from '@/lib/semanas';
 import { formatDuracao, jornadaDiaria, listTurnos, turnoLabel } from '@/lib/turnos';
 import { AgendaDiaCelular } from './AgendaDiaCelular';
 import { CopiarSemanaForm } from './CopiarSemanaForm';
@@ -53,8 +53,8 @@ export async function AgendaDaSemana({ dia, hoje, perfil }: AgendaDaSemanaProps)
 
   const fechada = semana?.situacao === 'fechada';
   const podeMontar = can(perfil, 'agenda', 'C') && !fechada;
-  // Semana que ainda não existe não tem o que fechar
-  const podeFechar = can(perfil, 'fechamento_semana', 'A') && semana?.situacao === 'aberta';
+  // Semana que ainda não existe não tem o que fechar, e a corrente ainda não terminou (RF-28)
+  const podeFechar = can(perfil, 'fechamento_semana', 'A') && semana?.situacao === 'aberta' && semanaJaPassou(inicio, hoje);
   const podeArrastar = can(perfil, 'agenda', 'A') && !fechada;
   const podeConfirmar = can(perfil, 'confirmacao_tarefa', 'C') && !fechada;
   const noFimDeSemana = atribuicoes.filter((a) => !diasUteis.includes(a.data));

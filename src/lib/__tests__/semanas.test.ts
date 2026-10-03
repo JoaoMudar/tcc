@@ -8,6 +8,7 @@ import {
   lerSemana,
   nomeDia,
   rotuloSemana,
+  semanaJaPassou,
   siglaDia,
 } from '../semanas';
 
@@ -46,5 +47,13 @@ describe('semana da agenda', () => {
     expect(siglaDia('2026-09-19')).toBe('SÁB');
     expect(diaMes('2026-09-14')).toBe('14/09');
     expect(rotuloSemana('2026-09-14')).toBe('14/09 a 20/09');
+  });
+
+  it('RF-28: a semana só passou depois do domingo dela', () => {
+    expect(semanaJaPassou('2026-09-14', '2026-09-14')).toBe(false);
+    expect(semanaJaPassou('2026-09-14', '2026-09-20')).toBe(false);
+    expect(semanaJaPassou('2026-09-14', '2026-09-21')).toBe(true);
+    // Qualquer dia da semana serve de referência
+    expect(semanaJaPassou('2026-09-17', '2026-09-21')).toBe(true);
   });
 });
