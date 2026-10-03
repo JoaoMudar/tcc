@@ -2,6 +2,7 @@ import { listFuncionarios } from '@/lib/agenda';
 import pool from '@/lib/db';
 import { nomeExibido, searchEspecies } from '@/lib/especies';
 import { listLotesAbertos } from '@/lib/lotes';
+import { opcoesDeLote } from '@/lib/lotes-rotulos';
 import { formatVolume, listRecipientes } from '@/lib/recipientes';
 import { diaMes, diasDaSemana, siglaDia } from '@/lib/semanas';
 import { listTiposTarefa } from '@/lib/tipos-tarefa';
@@ -22,9 +23,10 @@ export async function carregarOpcoes(semana: string): Promise<OpcoesAtribuicao &
     funcionarios: funcionarios.map((f) => ({ value: f.id, label: f.nome })),
     tipos: tipos
       .filter((t) => t.ativo)
-      .map(({ id, nome, eQuantitativa, exigeLote, exigeEspecie, exigeRecipiente, exigeArea, unidadeMedida }) => ({
+      .map(({ id, nome, categoria, eQuantitativa, exigeLote, exigeEspecie, exigeRecipiente, exigeArea, unidadeMedida }) => ({
         id,
         nome,
+        categoria,
         eQuantitativa,
         exigeLote,
         exigeEspecie,
@@ -34,7 +36,7 @@ export async function carregarOpcoes(semana: string): Promise<OpcoesAtribuicao &
       })),
     turnos: turnos.filter((t) => t.ativo).map((t) => ({ value: t.id, label: `${turnoLabel(t.nome)} · ${t.inicio}` })),
     dias: diasDaSemana(semana).map((dia) => ({ value: dia, label: `${siglaDia(dia)} ${diaMes(dia)}` })),
-    lotes: lotes.map((l) => ({ value: l.id, label: `${l.codigo} · ${l.especie} · ${l.recipiente}` })),
+    lotes: opcoesDeLote(lotes),
     especies: especies.filter((e) => e.ativa).map((e) => ({ value: e.id, label: nomeExibido(e) })),
     recipientes: recipientes
       .filter((r) => r.ativo)

@@ -100,6 +100,8 @@ describe('montarOcupacao (RF-33)', () => {
     id,
     codigo: `2026-${id}`,
     canteiroId,
+    areaLetra: 'A',
+    canteiroNumero: 1,
     posicao: null,
     especie: 'Ipê',
     recipiente: 'Tubete',

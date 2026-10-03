@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { NENHUM } from '@/lib/agenda-rotulos';
 import { AtribuicaoForm, type OpcoesAtribuicao } from '../AtribuicaoForm';
 
 vi.mock('../actions', () => ({
@@ -10,6 +11,7 @@ vi.mock('../actions', () => ({
 const SIMPLES = {
   id: 'simples',
   nome: 'Irrigação',
+  categoria: 'manutencao' as const,
   eQuantitativa: false,
   exigeLote: false,
   exigeEspecie: false,
@@ -17,15 +19,15 @@ const SIMPLES = {
   exigeArea: true,
   unidadeMedida: 'un' as const,
 };
-const COM_LOTE = { ...SIMPLES, id: 'repicagem', nome: 'Repicagem', eQuantitativa: true, exigeLote: true, exigeArea: false };
-const SEMENTE = { ...SIMPLES, id: 'semente', nome: 'Colher semente', eQuantitativa: true, exigeArea: false, unidadeMedida: 'kg' as const };
+const COM_LOTE = { ...SIMPLES, id: 'repicagem', nome: 'Repicagem', categoria: 'plantio' as const, eQuantitativa: true, exigeLote: true, exigeArea: false };
+const SEMENTE = { ...SIMPLES, id: 'semente', nome: 'Colher semente', categoria: 'semente' as const, eQuantitativa: true, exigeArea: false, unidadeMedida: 'kg' as const };
 
 const OPCOES: OpcoesAtribuicao = {
   funcionarios: [{ value: 'p1', label: 'Gilberto' }],
-  tipos: [SIMPLES, COM_LOTE, SEMENTE],
+  tipos: [SEMENTE, COM_LOTE, SIMPLES],
   turnos: [{ value: 't1', label: 'Manhã · 07:00' }],
   dias: [{ value: '2026-09-14', label: 'Seg 14/09' }],
-  lotes: [{ value: 'l1', label: 'L-1' }],
+  lotes: [{ value: 'l1', label: 'L-1', grupo: 'Área A · Canteiro 1' }],
   especies: [],
   recipientes: [],
 };
@@ -43,6 +45,21 @@ describe('AtribuicaoForm', () => {
     expect(screen.queryByLabelText(/Quantidade prevista/)).toBeNull();
     expect(container.querySelector('input[name="area_id"]')).toBeNull();
     expect(container.querySelector('details')?.open).toBe(false);
+  });
+
+  it('a tarefa aparece debaixo do título da categoria', () => {
+    formulario({});
+    const grupos = [...screen.getByLabelText(/Tarefa/).querySelectorAll('optgroup')];
+    expect(grupos.map((g) => g.label)).toEqual(['Semente', 'Plantio', 'Manutenção']);
+    expect(grupos[0].textContent).toBe('Colher semente');
+  });
+
+  it('o lote aparece debaixo da área e do canteiro, e o "escolher depois" fica solto', () => {
+    formulario({ tipo_tarefa_id: COM_LOTE.id });
+    const lote = screen.getByLabelText('Lote');
+    expect(lote.querySelector('optgroup')?.label).toBe('Área A · Canteiro 1');
+    expect(lote.querySelector('optgroup')?.textContent).toBe('L-1');
+    expect(lote.querySelector(`option[value="${NENHUM}"]`)?.parentElement).toBe(lote);
   });
 
   it('mostra só os campos que o tipo declara', () => {

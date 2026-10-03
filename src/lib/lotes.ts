@@ -428,6 +428,8 @@ export interface LoteAberto {
   id: string;
   codigo: string;
   canteiroId: string;
+  areaLetra: string;
+  canteiroNumero: number;
   posicao: number | null;
   especie: string;
   recipiente: string;
@@ -437,9 +439,11 @@ export interface LoteAberto {
 
 export async function listLotesAbertos(db: Db): Promise<LoteAberto[]> {
   const { rows } = await db.query<LoteAberto>(
-    `SELECT l.id, l.codigo, l.canteiro_id AS "canteiroId", l.posicao, ${nomeEspecieSql('e')} AS especie,
-            r.nome AS recipiente, l.fase, l.quantidade_atual AS saldo
+    `SELECT l.id, l.codigo, l.canteiro_id AS "canteiroId", a.letra AS "areaLetra", c.numero AS "canteiroNumero",
+            l.posicao, ${nomeEspecieSql('e')} AS especie, r.nome AS recipiente, l.fase, l.quantidade_atual AS saldo
        FROM lotes l
+       JOIN canteiros c ON c.id = l.canteiro_id
+       JOIN areas a ON a.id = c.area_id
        JOIN especies e ON e.id = l.especie_id
        JOIN recipientes r ON r.id = l.recipiente_id
       WHERE l.encerrado_em IS NULL

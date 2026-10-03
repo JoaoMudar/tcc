@@ -8,7 +8,7 @@ import { ESTADOS_TAREFA, TOM_ESTADO, estadoTarefa, findAtribuicao, formatHoraTar
 import { listAreas } from '@/lib/areas';
 import { formatData } from '@/lib/datas';
 import pool from '@/lib/db';
-import { CAUSAS_PERDA, formatQuantidade, isCausaPerda, lerQuantidade } from '@/lib/lotes-rotulos';
+import { CAUSAS_PERDA, formatQuantidade, isCausaPerda, lerQuantidade, opcoesDeLote } from '@/lib/lotes-rotulos';
 import { listLotesAbertos } from '@/lib/lotes';
 import { can } from '@/lib/permissions';
 import { nomeDia, rotuloSemana } from '@/lib/semanas';
@@ -166,7 +166,7 @@ export default async function AtribuicaoPage({ params, searchParams }: Atribuica
               eQuantitativa={a.eQuantitativa}
               unidadeMedida={a.unidadeMedida}
               participantes={a.participantes}
-              lotes={lotes.map((l) => ({ value: l.id, label: `${l.codigo} · ${l.especie} · ${l.recipiente}` }))}
+              lotes={opcoesDeLote(lotes)}
               areas={areas.map((area) => ({ id: area.id, letra: area.letra, canteiros: area.canteiros }))}
               loteId={a.loteId}
               areaId={a.areaId}
