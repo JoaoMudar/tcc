@@ -13,7 +13,7 @@ import { nomeEspecieSql } from './lotes';
 import { type ResultadoMovimento, registrarMovimento, travarLote } from './movimentos';
 // Seta num sentido só: `protocolos.ts` não importa daqui.
 import { concluirEtapa } from './protocolos';
-import { diasDaSemana, isInicioDeSemana, rotuloSemana } from './semanas';
+import { diasDaSemana, isInicioDeSemana, rotuloSemana, semanaJaPassou } from './semanas';
 import type { Db } from './sql';
 import type { CategoriaTarefa, Declaracoes } from './tipos-tarefa';
 import { parseHora } from './turnos';
@@ -687,8 +687,10 @@ export async function copiarSemanaAnterior(client: Client, inicio: string): Prom
 /**
  * T5.6, RF-31, RN-14: fecha a semana aberta. A planejada com gente escalada é
  * assumida como realizada, marcada de não confirmada; a sem ninguém fica pendente.
+ * Só depois do domingo dela: a semana corrente ainda tem dia por trabalhar.
  */
-export async function fecharSemana(client: Client, inicio: string): Promise<{ naoConfirmadas: number }> {
+export async function fecharSemana(client: Client, inicio: string, hoje: string): Promise<{ naoConfirmadas: number }> {
+  if (!semanaJaPassou(inicio, hoje)) throw new UserError('Só se fecha a semana que já terminou.');
   const semana = await travarSemana(client, 'inicio_semana', inicio);
   if (semana.situacao === 'fechada') throw new UserError('A semana já está fechada.');
   const { rowCount } = await client.query(

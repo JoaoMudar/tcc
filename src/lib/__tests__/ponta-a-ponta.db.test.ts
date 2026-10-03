@@ -177,7 +177,7 @@ describe('fluxo 2: semana montada e fechada', () => {
   });
 
   it('fechar a semana assume a não confirmada como feita, e depois dela nada muda', async () => {
-    const { naoConfirmadas } = await tx((client) => fecharSemana(client, SEMANA));
+    const { naoConfirmadas } = await tx((client) => fecharSemana(client, SEMANA, '2032-03-15'));
     expect(naoConfirmadas).toBe(1);
     expect((await findAtribuicao(pool, ids.irrigacao))?.situacao).toBe('nao_confirmada');
 

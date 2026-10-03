@@ -48,11 +48,16 @@ describe('ConfirmarForm', () => {
     expect(screen.queryByLabelText(/Área/)).toBeNull();
   });
 
+  it('só um botão: confirmar a tarefa, sem desvio para a repicagem', () => {
+    render(<ConfirmarForm {...BASE} exigeLote loteId="l1" />);
+    expect(screen.getAllByRole('button').map((b) => b.textContent)).toEqual(['Confirmar tarefa']);
+  });
+
   it('com rede, vai para a tela que o servidor devolveu', async () => {
-    vi.mocked(enviarGuardado).mockResolvedValue({ tipo: 'gravado', success: 'Tarefa confirmada.', destino: '/producao/agenda/atr1?feito=confirmada' });
+    vi.mocked(enviarGuardado).mockResolvedValue({ tipo: 'gravado', success: 'Tarefa confirmada.', destino: '/producao?dia=2026-09-14&feito=confirmada' });
     render(<ConfirmarForm {...BASE} />);
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar tarefa' }));
-    await vi.waitFor(() => expect(push).toHaveBeenCalledWith('/producao/agenda/atr1?feito=confirmada'));
+    await vi.waitFor(() => expect(push).toHaveBeenCalledWith('/producao?dia=2026-09-14&feito=confirmada'));
     expect(enfileirar).toHaveBeenCalledWith(
       expect.objectContaining({ tipo: 'confirmacao_tarefa', rotulo: 'Confirmação: Plantio, 14/09/2026', campos: expect.objectContaining({ id: 'atr1' }) }),
     );
@@ -61,8 +66,8 @@ describe('ConfirmarForm', () => {
   it('UC-20 FA-3: sem rede, diz na hora que guardou e tira o formulário, para não confirmar duas vezes', async () => {
     vi.mocked(enviarGuardado).mockResolvedValue({ tipo: 'sem_rede' });
     render(<ConfirmarForm {...BASE} exigeLote loteId="l1" />);
-    fireEvent.click(screen.getByRole('button', { name: 'Confirmar e registrar a repicagem' }));
-    expect(await screen.findByText(/Guardado no aparelho.*repicagem se registra na ficha do lote/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar tarefa' }));
+    expect(await screen.findByText(/Guardado no aparelho/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Confirmar tarefa' })).toBeNull();
     expect(push).not.toHaveBeenCalled();
   });

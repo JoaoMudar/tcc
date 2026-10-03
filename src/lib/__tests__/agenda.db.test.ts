@@ -379,7 +379,10 @@ describe('agenda da semana contra Postgres', () => {
     const antes = await resumoFechamento(pool, semana.id);
     expect(antes.semConfirmacao).toBeGreaterThan(0);
     expect(antes.semNinguem).toBe(1);
-    const { naoConfirmadas } = await tx((client) => fecharSemana(client, S1));
+    // A semana corrente não fecha: o domingo dela ainda não passou
+    await expect(tx((client) => fecharSemana(client, S1, '2030-01-13'))).rejects.toThrow('já terminou');
+    expect(await findSemana(pool, S1)).toMatchObject({ situacao: 'aberta' });
+    const { naoConfirmadas } = await tx((client) => fecharSemana(client, S1, '2030-01-14'));
     expect(naoConfirmadas).toBe(antes.semConfirmacao);
 
     expect(await situacao(ids.encher)).toBe('nao_confirmada');
@@ -391,7 +394,7 @@ describe('agenda da semana contra Postgres', () => {
     await expect(confirmar(orfa.id)).rejects.toThrow('está fechada');
     await expect(tx((client) => excluirAtribuicao(client, orfa.id))).rejects.toThrow('está fechada');
     await expect(tx((client) => copiarSemanaAnterior(client, S1))).rejects.toThrow('está fechada');
-    await expect(tx((client) => fecharSemana(client, S1))).rejects.toThrow('já está fechada');
+    await expect(tx((client) => fecharSemana(client, S1, '2030-01-14'))).rejects.toThrow('já está fechada');
   });
 
   it('sem nada na semana passada, não há o que copiar, e a semana não fica criada', async () => {

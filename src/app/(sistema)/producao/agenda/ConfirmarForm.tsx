@@ -30,8 +30,7 @@ interface ConfirmarFormProps {
 /**
  * T5.5, UC-20: o lote uma vez, um número por participante só se a tarefa for
  * quantitativa, e as mudas que morreram no mesmo gesto, para a perda não ser esquecida.
- * Sem rede fica no aparelho e vai depois (UC-20 FA-3); a repicagem, que precisa
- * escolher o destino das mudas no servidor, espera a rede.
+ * Sem rede fica no aparelho e vai depois (UC-20 FA-3). Confirmada, volta à agenda do dia.
  */
 export function ConfirmarForm({
   atribuicaoId,
@@ -49,8 +48,6 @@ export function ConfirmarForm({
 }: ConfirmarFormProps) {
   const [state, formAction, pending] = useRegistroCampo('confirmacao_tarefa', {
     rotulo: () => `Confirmação: ${descricao}`,
-    complementoGuardado: (campos) =>
-      campos.depois === 'repicar' ? 'A repicagem se registra na ficha do lote, com rede.' : undefined,
   });
   const fields = state.error ? state.fields : undefined;
   const [perdidas, setPerdidas] = useState(lerQuantidade(fields?.perdidas ?? '') ?? 0);
@@ -112,11 +109,6 @@ export function ConfirmarForm({
       <Button type="submit" pending={pending}>
         Confirmar tarefa
       </Button>
-      {exigeLote && (
-        <Button type="submit" name="depois" value="repicar" variant="outline" pending={pending}>
-          Confirmar e registrar a repicagem
-        </Button>
-      )}
     </form>
   );
 }

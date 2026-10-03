@@ -161,7 +161,7 @@ describe('contagem (T4.6)', () => {
 describe('confirmação de tarefa (T5.5)', () => {
   function tarefaNoBanco(exigeLote = true) {
     vi.mocked(pool.query).mockResolvedValueOnce({
-      rows: [{ id: TAREFA, exigeLote, exigeArea: false, eQuantitativa: true, unidadeMedida: 'un', participantes: [{ id: PESSOA, nome: 'Rogério', quantidade: null }] }],
+      rows: [{ id: TAREFA, data: '2026-09-14', exigeLote, exigeArea: false, eQuantitativa: true, unidadeMedida: 'un', participantes: [{ id: PESSOA, nome: 'Rogério', quantidade: null }] }],
     } as never);
   }
 
@@ -186,24 +186,20 @@ describe('confirmação de tarefa (T5.5)', () => {
     expect(pool.connect).not.toHaveBeenCalled();
   });
 
-  it('devolve o destino da tela: a tarefa, com a perda no endereço, ou a ficha do lote para a repicagem (UC-20 FA-1)', async () => {
+  it('devolve o destino da tela: a agenda do dia da tarefa, com a perda no endereço', async () => {
     bancoCom();
     const gerencia = usuario('gerencia');
     tarefaNoBanco();
     expect(await processarRegistro('confirmacao_tarefa', CHAVE, { id: TAREFA, lote_id: LOTE }, gerencia)).toEqual({
       status: 'gravado',
       success: 'Tarefa confirmada.',
-      destino: `/producao/agenda/${TAREFA}?feito=confirmada`,
+      destino: '/producao?dia=2026-09-14&feito=confirmada',
       repetido: false,
     });
     tarefaNoBanco();
     expect(
       await processarRegistro('confirmacao_tarefa', CHAVE, { id: TAREFA, lote_id: LOTE, perdidas: '12', causa: 'seca' }, gerencia),
-    ).toMatchObject({ destino: `/producao/agenda/${TAREFA}?feito=confirmada&perda=12&causa=seca` });
-    tarefaNoBanco();
-    expect(
-      await processarRegistro('confirmacao_tarefa', CHAVE, { id: TAREFA, lote_id: LOTE, depois: 'repicar' }, gerencia),
-    ).toMatchObject({ destino: `/producao/lotes/${LOTE}?repicar=${TAREFA}` });
+    ).toMatchObject({ destino: '/producao?dia=2026-09-14&feito=confirmada&perda=12&causa=seca' });
     // O toque único da agenda do celular fica na lista
     tarefaNoBanco();
     const fica = await processarRegistro('confirmacao_tarefa', CHAVE, { id: TAREFA, lote_id: LOTE, depois: 'ficar' }, gerencia);

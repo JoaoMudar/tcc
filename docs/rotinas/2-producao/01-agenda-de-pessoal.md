@@ -220,6 +220,10 @@ monta-se e a equipe trabalha      como realizado, MARCADO de não confirmado
 com as tarefas recorrentes da anterior. Publicar não tinha público, porque os seis colaboradores de
 campo não acessam o sistema. Sobra o ato que separa o feito do suposto, que é fechar.
 
+**Só se fecha a semana que já terminou**, a partir da segunda-feira seguinte. Fechar assume como
+feito o que não se confirmou, e a semana corrente ainda tem dia por trabalhar: fechá-la antes
+daria por realizada a tarefa que nem chegou o dia de fazer.
+
 **A marca existe para que a suposição não se disfarce de medição** (RN-14). A alternativa, uma
 agenda com buracos, não distingue o trabalho que não foi feito do que ninguém teve tempo de
 confirmar.
@@ -247,6 +251,7 @@ existem na agenda mesmo sem nunca terem feito login.
 ## Regras invioláveis
 
 1. **Semana fechada não muda.** Depois de fechada, correção só por lançamento na semana seguinte.
+   E só fecha depois do seu domingo.
 2. **Toda tarefa tem ao menos um responsável**, salvo a ordem recém-gerada pelo protocolo, que
    nasce sem ninguém e fica pendente até alguém pegá-la.
 3. **Tipo de tarefa vem do catálogo.** Nunca texto livre.

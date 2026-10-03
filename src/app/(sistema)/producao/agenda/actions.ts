@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import * as agenda from '@/lib/agenda';
 import pool from '@/lib/db';
+import { hojeNoViveiro } from '@/lib/datas';
 import { toUserMessage } from '@/lib/errors';
 import { type FormState, formText } from '@/lib/form-state';
 import { formatQuantidade } from '@/lib/lotes-rotulos';
@@ -190,7 +191,7 @@ export async function fecharSemanaAction(_previous: FormState, formData: FormDat
   const semana = lerSemanaDoForm(formData);
   if (!semana) return { error: 'Semana inválida.' };
   try {
-    await withTransaction(pool, (client) => agenda.fecharSemana(client, semana));
+    await withTransaction(pool, (client) => agenda.fecharSemana(client, semana, hojeNoViveiro()));
   } catch (error) {
     return { error: toUserMessage(error) };
   }

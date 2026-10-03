@@ -457,7 +457,7 @@ não dependa de abrir outro arquivo. **Não editar aqui**: a fonte é o `B2`.
 | RF-28 | O sistema deve controlar a situação da semana (aberta e fechada) e impedir alteração depois do fechamento | D | ORG |
 | RF-29 | O sistema deve permitir confirmar a atribuição como realizada, apresentando os campos que o tipo de tarefa exigir, o lote uma vez para a tarefa e a quantidade uma vez por participante, exigindo o lote quando o tipo declarar lote específico e pedindo a quantidade apenas quando o tipo for quantitativo por unidade | D | OP |
 | RF-30 | O sistema deve permitir registrar a área ou o canteiro da tarefa cujo tipo declarar área, e dispensá-los quando o lote os determinar | D | OP |
-| RF-31 | O sistema deve assumir como realizada, ao fechar a semana, a tarefa planejada que não foi confirmada, registrando essa condição | DV | ORG |
+| RF-31 | O sistema deve assumir como realizada, ao fechar a semana, a tarefa planejada que não foi confirmada, registrando essa condição; só a semana que já terminou pode ser fechada | DV | ORG |
 | RF-32 | O sistema deve permitir criar lote informando espécie, recipiente, quantidade, área e canteiro | D | OP |
 | RF-33 | O sistema deve apresentar a ocupação do viveiro por área e canteiro, indicando os lotes de cada canteiro ocupado e quais estão livres, e deve encerrar o lote quando o saldo chegar a zero, liberando o canteiro e preservando o histórico | D | EN, ORG |
 | RF-34 | O sistema deve permitir registrar repicagem transferindo parte ou todo o lote para recipiente maior, criando um lote novo que aponta para o de origem | D | DOM |

@@ -59,3 +59,12 @@ export function diaMes(iso: string): string {
 export function rotuloSemana(inicio: string): string {
   return `${diaMes(inicio)} a ${diaMes(somaDias(inicio, 6))}`;
 }
+
+/**
+ * A semana terminou: o domingo dela ficou para trás. Só a semana passada se
+ * fecha (RF-28), porque fechar assume como feito o que não se confirmou, e a
+ * semana corrente ainda tem dia por trabalhar.
+ */
+export function semanaJaPassou(inicio: string, hoje: string): boolean {
+  return somaDias(inicioDaSemana(inicio), 6) < hoje;
+}

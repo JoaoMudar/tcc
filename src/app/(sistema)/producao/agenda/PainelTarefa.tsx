@@ -29,7 +29,8 @@ const SEM_HORA = '';
 /**
  * Os detalhes da tarefa sem sair da semana: painel à direita na tela larga,
  * folha de baixo no celular. Edita só a hora, de quinze em quinze minutos; o
- * resto (tipo, grupo, lote, quantidade) continua no formulário, pelo "Alterar".
+ * resto (tipo, grupo, lote, quantidade) continua no formulário, pelo "Alterar",
+ * que abre em modal sobre a agenda; o painel sai antes, para não ficar por baixo.
  */
 export function PainelTarefa({ atribuicao: a, turnos, podeAlterar, podeConfirmar, onFechar, onMudar }: PainelTarefaProps) {
   const tituloId = useId();
@@ -184,12 +185,13 @@ export function PainelTarefa({ atribuicao: a, turnos, podeAlterar, podeConfirmar
               Feita
             </span>
           )}
-          <Link href={`/producao/agenda/${a.id}`} className="text-sm font-semibold text-brand-dark underline-offset-2 hover:underline">
+          <Link href={`/producao/agenda/${a.id}`} onClick={onFechar} className="text-sm font-semibold text-brand-dark underline-offset-2 hover:underline">
             Abrir ficha
           </Link>
           {editavel && (
             <Link
               href={`/producao/agenda/${a.id}/editar`}
+              onClick={onFechar}
               className="text-sm font-semibold text-brand-dark underline-offset-2 hover:underline"
             >
               Alterar
