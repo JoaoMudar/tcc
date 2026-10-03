@@ -1,5 +1,5 @@
 import type { PoolClient } from 'pg';
-import { isDataIso, somaDias } from './datas';
+import { isDataIso } from './datas';
 import { UserError } from './errors';
 import { nomeEspecieSql } from './lotes';
 import { lerQuantidade } from './lotes-rotulos';
@@ -13,7 +13,6 @@ import {
   SITUACOES_PEDIDO,
   type SituacaoPedido,
   centavosParaSql,
-  isCanalVenda,
   podeTransicionar,
   quantidadeConfirmada,
   resolveComplemento,
@@ -21,7 +20,6 @@ import {
   validarComposicaoGenerico,
 } from './pedidos-rotulos';
 import type { Db } from './sql';
-import { isUuid } from './uuid';
 
 export {
   CANAIS_VENDA,
@@ -33,6 +31,7 @@ export {
   alturaParaCampo,
   estadoDaResposta,
   estadoDoGenerico,
+  filtraPedidosPorCliente,
   formatAltura,
   formatMoeda,
   formatTotal,
@@ -97,30 +96,6 @@ export function parseObservacoesPedido(text: string): { error: string } | { valu
   const texto = text.trim();
   if (texto.length > 500) return { error: 'A observação pode ter até 500 caracteres.' };
   return { value: texto || null };
-}
-
-export interface FiltroPedidos {
-  de: string;
-  ate: string;
-  clienteId: string | null;
-  canal: CanalVenda | null;
-}
-
-export const PERIODO_PADRAO_DIAS = 90;
-
-/** RF-58: o filtro vem do endereço, e o que não for válido cai no padrão, os últimos 90 dias. */
-export function parseFiltroPedidos(
-  params: { de?: string; ate?: string; cliente?: string; canal?: string },
-  hoje: string,
-): FiltroPedidos {
-  const ate = params.ate && isDataIso(params.ate) ? params.ate : hoje;
-  const de = params.de && isDataIso(params.de) ? params.de : somaDias(ate, -PERIODO_PADRAO_DIAS);
-  return {
-    de: de <= ate ? de : ate,
-    ate: de <= ate ? ate : de,
-    clienteId: isUuid(params.cliente) ? params.cliente : null,
-    canal: params.canal && isCanalVenda(params.canal) ? params.canal : null,
-  };
 }
 
 export interface NovoItem {
@@ -228,11 +203,11 @@ const TOTAL_SQL = `CASE
 END::bigint`;
 
 /**
- * RF-58: pedidos do período, com cliente e canal opcionais. O período é o dia do
- * registro **no fuso do viveiro**: `criado_em` é UTC, e depois das 21h o pedido
- * de hoje cairia no filtro de amanhã.
+ * RF-58: a carteira inteira, do pedido mais novo ao mais antigo. Sem corte de
+ * data: quem procura pelo cliente quer achar também o pedido de meses atrás, e
+ * o filtro por cliente é feito na tela, enquanto se digita.
  */
-export async function listPedidos(db: Db, filtro: FiltroPedidos): Promise<PedidoResumo[]> {
+export async function listPedidos(db: Db): Promise<PedidoResumo[]> {
   const { rows } = await db.query<Omit<PedidoResumo, 'totalCentavos'> & { totalCentavos: string | null }>(
     `SELECT p.id, p.numero_pedido AS numero, p.cliente_id AS "clienteId", c.nome AS cliente,
             p.canal_venda AS canal, p.situacao, p.criado_em AS "criadoEm",
@@ -241,12 +216,8 @@ export async function listPedidos(db: Db, filtro: FiltroPedidos): Promise<Pedido
             ${TOTAL_SQL} AS "totalCentavos"
        FROM pedidos p
        JOIN cadastro.pessoas c ON c.id = p.cliente_id
-      WHERE (p.criado_em AT TIME ZONE 'America/Sao_Paulo')::date BETWEEN $1 AND $2
-        AND ($3::uuid IS NULL OR p.cliente_id = $3)
-        AND ($4::text IS NULL OR p.canal_venda = $4)
       ORDER BY p.numero_pedido DESC
       LIMIT 300`,
-    [filtro.de, filtro.ate, filtro.clienteId, filtro.canal],
   );
   // `bigint` volta do `pg` como texto, para não perder precisão que aqui não existe
   return rows.map((row) => ({ ...row, totalCentavos: row.totalCentavos === null ? null : Number(row.totalCentavos) }));
