@@ -93,6 +93,14 @@ describe('GanttSemana: desenho (T5.1, RNF-14)', () => {
     expect(barra.className).toContain('bg-orange-800/[0.08]');
   });
 
+  it('confirmada, a barra ganha a cor cheia da categoria e o título branco', () => {
+    montar([tarefa({ situacao: 'confirmada' })]);
+    const barra = screen.getByRole('link', { name: TITULO });
+    expect(barra.className).not.toContain('bg-orange-800/[0.08]');
+    expect(barra.className.split(' ')).toContain('bg-orange-800');
+    expect(within(barra).getByText(TITULO).className).toContain('text-white');
+  });
+
   it('o almoço não ocupa largura: a manhã é a primeira metade e a tarde a segunda, sem tracejado (RN-12)', () => {
     montar([tarefa(), tarefa({ id: 'a2', turnoId: TARDE.id, turno: 'tarde' })]);
     const [manha, tarde] = screen.getAllByRole('link', { name: TITULO });

@@ -20,7 +20,9 @@ export const COR_CATEGORIA: Record<CategoriaTarefa, string> = {
 
 /**
  * O fundo do card no Gantt da semana: a mesma cor, só tingida (8%), para o card
- * se agrupar com os da mesma categoria sem competir com o texto.
+ * se agrupar com os da mesma categoria sem competir com o texto. A tarefa
+ * confirmada deixa o tingido e usa a cor cheia (`COR_CATEGORIA`), com texto
+ * branco: o feito salta na grade, e o ícone continua dizendo como terminou.
  */
 export const FUNDO_CATEGORIA: Record<CategoriaTarefa, string> = {
   semente: 'bg-yellow-700/[0.08]',
