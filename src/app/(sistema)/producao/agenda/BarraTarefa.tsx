@@ -116,7 +116,9 @@ export function BarraTarefa({
 }: BarraTarefaProps) {
   const estado = estadoTarefa(a);
   const hora = formatHoraTarefa(a.horaInicio, a.horaFim)?.replace(' às ', '–');
-  const apagada = estado === 'feita' || estado === 'cancelada';
+  // Confirmada ganha a cor cheia da categoria: o que já foi feito precisa saltar aos olhos
+  const confirmada = !emArrasto && (estado === 'feita' || estado === 'parcial' || estado === 'nao_feita');
+  const apagada = estado === 'cancelada';
   const secundaria = perfil.some((d) => d.camada > 0);
   const { left, width } = posicaoPercentual(desenho, janela);
   const recuo = { inicio: encosta.inicio ? 0 : RECUO, fim: encosta.fim ? 0 : RECUO, topo: RECUO, base: RECUO };
@@ -181,8 +183,8 @@ export function BarraTarefa({
         }}
         className={`pointer-events-auto relative flex min-w-0 flex-1 gap-1 overflow-hidden rounded-md ${encosta.inicio ? 'rounded-l-none' : ''} ${
           encosta.fim ? 'rounded-r-none border-r-0' : ''
-        } border border-line pr-1 pl-2 text-left hover:border-gray-400 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-dark ${
-          FUNDO_CATEGORIA[a.categoria]
+        } border pr-1 pl-2 text-left hover:border-gray-400 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-dark ${
+          confirmada ? `${COR_CATEGORIA[a.categoria]} border-transparent` : `${FUNDO_CATEGORIA[a.categoria]} border-line`
         } ${compacto ? '' : 'items-start py-1'} ${arrastavel ? 'cursor-grab touch-none active:cursor-grabbing' : ''} ${
           emArrasto ? 'bg-white shadow-lg ring-2 ring-brand' : ''
         }`}
@@ -197,15 +199,18 @@ export function BarraTarefa({
               <span
                 className={`${SEM_QUEBRA_NA_PALAVRA} leading-tight font-medium ${embaixo ? 'text-[11px]' : 'text-xs'} ${
                   nivel === 'completo' && !compacto ? 'line-clamp-2' : 'truncate'
-                } ${apagada ? 'text-muted' : 'text-ink'} ${estado === 'cancelada' ? 'line-through' : ''}`}
+                } ${confirmada ? 'text-white' : apagada ? 'text-muted' : 'text-ink'} ${estado === 'cancelada' ? 'line-through' : ''}`}
               >
                 {a.tipo}
               </span>
               {nivel === 'completo' && !embaixo && (
-                <span className="truncate text-[11px] leading-tight text-muted tabular-nums">{hora ?? turnoLabel(a.turno)}</span>
+                <span className={`truncate text-[11px] leading-tight tabular-nums ${confirmada ? 'text-white/85' : 'text-muted'}`}>
+                  {hora ?? turnoLabel(a.turno)}
+                </span>
               )}
             </span>
-            <IconeEstado estado={estado} className="text-xs" />
+            {/* Sobre a cor cheia, o verde, o âmbar e o vermelho do ícone só leem num fundo branco */}
+            <IconeEstado estado={estado} className={`text-xs ${confirmada ? 'h-4 self-start rounded-full bg-white px-1 items-center' : ''}`} />
           </span>
         )}
 
