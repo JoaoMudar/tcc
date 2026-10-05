@@ -104,6 +104,8 @@ Fonte: Elaborado pelo autor (2026).
 | RN-48 | Aprovar o pedido trava o item, que depois disso não muda em espécie, quantidade nem preço. |
 | RN-49 | Uma pessoa pode ter mais de um endereço. |
 | RN-50 | O preço é combinado com o cliente e registrado no pedido depois da conferência de disponibilidade, e o pedido não é aprovado enquanto faltar o preço de algum item. |
+| RN-64 | O frete sugerido é o combustível da ida e da volta até o endereço de entrega do cliente, pela distância de carro a partir da saída escolhida e pelo consumo e preço do litro definidos em Configurações. O frete registrado é o digitado, mesmo que difira do sugerido. |
+| RN-65 | O peso estimado do pedido é a soma da quantidade de cada item pelo peso do recipiente cheio em que ele vai, e o item sem peso ou sem quantidade fica fora da conta e é apontado. |
 
 Fonte: Elaborado pelo autor (2026).
 
@@ -114,7 +116,7 @@ Fonte: Elaborado pelo autor (2026).
 | RN-51 | O perfil do usuário (chefia, gerência ou administrador) define o que ele pode ver e fazer. |
 | RN-52 | Todo registro guarda quem o fez. |
 | RN-53 | O pedido percorre oito situações, cadastrado, verificando, verificado, pendente de alteração, aprovado, separando, pronto para envio e cancelado, e cada uma delas espera por um perfil determinado. |
-| RN-54 | O item conferido está disponível por inteiro, disponível em parte ou indisponível. A parte difere do pedido em ao menos um atributo que o cliente especificou: quantidade menor, de uma muda até uma a menos que a pedida, outro recipiente ou outra altura. A parte pode ser completada em outro recipiente, que vira item próprio e sem preço, e as duas linhas somam no máximo a quantidade pedida. |
+| RN-54 | O item conferido está disponível por inteiro, disponível em parte ou indisponível. A parte difere do pedido em ao menos um atributo que o cliente especificou: quantidade menor, de uma muda até uma a menos que a pedida, outro recipiente ou outra altura. A parte pode ser completada em outros recipientes, cada um item próprio e sem preço, e as linhas somam no máximo a quantidade pedida. O item cadastrado sem recipiente e disponível por inteiro pode ser dividido entre recipientes, e as linhas somam exatamente a quantidade pedida. |
 | RN-55 | A composição do item pedido sem espécie, quando ele tem quantidade, soma exatamente essa quantidade na resposta por inteiro e no máximo essa quantidade na resposta em parte, e só admite espécie que o cliente aceite. |
 | RN-56 | O item pedido sem espécie não vai na carga, e sim as espécies que o compõem. A soma de um item nas cargas reproduz a quantidade dele. |
 | RN-57 | A carga fica pronta quando todos os itens dela foram separados, e o pedido fica pronto para envio quando todas as cargas estão prontas. |
@@ -131,9 +133,9 @@ Fonte: Elaborado pelo autor (2026).
 | Domínio e produto | RN-01, RN-02, RN-03, RN-04, RN-05, RN-06, RN-07, RN-62 | 8 |
 | Produção, lote e trabalho | RN-08, RN-09, RN-10, RN-11, RN-12, RN-13, RN-14, RN-15, RN-16, RN-17, RN-18, RN-19, RN-20, RN-21, RN-22, RN-23, RN-24, RN-25, RN-26, RN-27, RN-28, RN-29, RN-61 | 23 |
 | Protocolo de atividades por lote | RN-30, RN-31, RN-32, RN-33, RN-34, RN-35, RN-36, RN-37, RN-38, RN-39, RN-40, RN-41, RN-63 | 13 |
-| Cliente e pedido | RN-42, RN-43, RN-44, RN-45, RN-46, RN-47, RN-48, RN-49, RN-50 | 9 |
+| Cliente e pedido | RN-42, RN-43, RN-44, RN-45, RN-46, RN-47, RN-48, RN-49, RN-50, RN-64, RN-65 | 11 |
 | Acesso e responsabilidade | RN-51, RN-52, RN-53, RN-54, RN-55, RN-56, RN-57, RN-58, RN-59, RN-60 | 10 |
-| **Total** | | **63** |
+| **Total** | | **65** |
 
 Fonte: Elaborado pelo autor (2026).
 
@@ -153,15 +155,15 @@ Fonte: Elaborado pelo autor (2026).
 | RF-06 | Verificação de permissão a cada operação | O sistema deve verificar a permissão do perfil a cada operação, e não apenas ocultar elementos da interface. | RN-51 |
 | RF-07 | Consulta e encerramento de sessões ativas | O sistema deve permitir ao usuário visualizar e encerrar suas sessões ativas. | – |
 | RF-08 | Manutenção do período de trabalho | O sistema deve permitir manter o período de trabalho, com hora de início e de fim de cada turno, e adotá-lo como jornada padrão da agenda. | RN-12, RN-26 |
-| RF-09 | Manutenção dos parâmetros de operação | O sistema deve permitir alterar o valor dos parâmetros de operação, os limites de atenção e de atraso do lote e o limite de mortalidade, sem permitir criar nem excluir parâmetro. | RN-11, RN-26 |
+| RF-09 | Manutenção dos parâmetros de operação | O sistema deve permitir alterar o valor dos parâmetros de operação, os limites de atenção e de atraso do lote, o limite de mortalidade e o consumo e o preço do litro que sugerem o frete, sem permitir criar nem excluir parâmetro. | RN-11, RN-26, RN-64 |
 | RF-10 | Cadastro e busca de espécie | O sistema deve permitir cadastrar espécie com nome científico, nomes populares, características e fotografia, e localizá-la por qualquer um desses nomes. | RN-01, RN-02, RN-03 |
-| RF-11 | Cadastro de recipiente | O sistema deve permitir cadastrar recipientes com nome e volume. | RN-04 |
+| RF-11 | Cadastro de recipiente | O sistema deve permitir cadastrar recipientes com nome, volume e peso do recipiente cheio. | RN-04, RN-65 |
 | RF-12 | Cadastro de insumo | O sistema deve permitir cadastrar insumos com unidade de medida e categoria. | RN-07 |
 | RF-13 | Cadastro de área e canteiro | O sistema deve permitir cadastrar áreas do viveiro identificadas por letra e canteiros numerados dentro de cada área, recusando número repetido na mesma área. | RN-17 |
 | RF-14 | Identidade única de pessoa com múltiplos papéis | O sistema deve manter uma identidade única por pessoa, à qual se atribuem os papéis de cliente, fornecedor e funcionário, sem duplicar o cadastro quando a mesma pessoa exercer mais de um. | RN-45 |
 | RF-15 | Cadastro rápido de cliente | O sistema deve permitir cadastro rápido de cliente com nome e telefone, sem sair da tela de pedido. | RN-44 |
 | RF-16 | Cadastro completo de cliente | O sistema deve permitir cadastro completo de cliente com dados fiscais de pessoa física ou jurídica. | RN-43, RN-49 |
-| RF-17 | Validação de CPF e CNPJ | O sistema deve validar CPF e CNPJ informados. | RN-43 |
+| RF-17 | Validação de CPF e CNPJ | O sistema deve validar CPF, CNPJ e telefone informados, o telefone com DDD existente e o nove do celular. | RN-43 |
 | RF-18 | Busca de pessoa | O sistema deve permitir localizar pessoa por nome, telefone ou documento. | RN-45 |
 | RF-19 | Cadastro de fornecedor | O sistema deve permitir cadastrar fornecedor com contato e localização. | RN-45 |
 | RF-20 | Cadastro de funcionário | O sistema deve permitir cadastrar funcionário com contato e vínculo (fixo ou diarista), inclusive quando ele não tem acesso ao sistema. | RN-45 |
@@ -205,12 +207,13 @@ Fonte: Elaborado pelo autor (2026).
 | RF-56 | Saldo disponível ao lado do item, pela altura pedida | O sistema deve apresentar, ao lado de cada item do pedido, a quantidade de muda que a produção tem daquela espécie e recipiente com altura igual ou maior que a pedida e, quando ela não basta, a quantidade até 20 cm abaixo que pode completar o item. | RN-06, RN-62, RN-08 |
 | RF-57 | Situação do pedido | O sistema deve controlar a situação do pedido ao longo das oito situações que vão do cadastro ao pronto para envio, impedindo alteração de item depois da aprovação. | RN-48, RN-53 |
 | RF-58 | Listagem de pedidos com filtro | O sistema deve listar os pedidos do mais recente ao mais antigo, com filtro por cliente que se aplica enquanto se digita. | RN-42 |
-| RF-59 | Disponibilidade conferida item a item | O sistema deve registrar, para cada item do pedido, a disponibilidade conferida no viveiro, que pode ser total, parcial ou nenhuma; a parcial registra, do que o cliente especificou (quantidade, recipiente, altura), o que foi encontrado; no item cadastrado sem recipiente, a resposta com muda registra em que recipiente ela está, e no item sem quantidade, opcionalmente, quantas existem. | RN-54 |
+| RF-59 | Disponibilidade conferida item a item | O sistema deve registrar, para cada item do pedido, a disponibilidade conferida no viveiro, que pode ser total, parcial ou nenhuma; a parcial registra, do que o cliente especificou (quantidade, recipiente, altura), o que foi encontrado; no item cadastrado sem recipiente, a resposta com muda registra em que recipiente ela está, ou em quantos recipientes ela se divide, e no item sem quantidade, opcionalmente, quantas existem. | RN-54 |
 | RF-60 | Composição do item pedido sem espécie | O sistema deve permitir compor em espécies o item que o cliente pediu sem escolher espécie, respeitando as espécies que ele aceita; sem quantidade no item, a composição é uma lista montada, e cada espécie dela é vendida com preço próprio. | RN-55 |
 | RF-61 | Cargas do pedido e separação dos itens | O sistema deve permitir organizar o pedido aprovado em cargas e registrar a separação de cada item em cada carga. | RN-56, RN-57 |
 | RF-62 | Dia de carregar e calendário de entregas | O sistema deve apresentar o dia de carregamento de cada pedido e o calendário de entregas e carregamentos do mês. | RN-58 |
-| RF-63 | Viagem de entrega do dia | O sistema deve permitir planejar a viagem de entrega de um dia, reunindo nela pedidos de aprovado para cima, marcando em cada um a data de entrega da viagem e retomando o planejamento na etapa em que ele parou. | RN-59 |
-| RF-64 | Rota da viagem e ordem de carregamento | O sistema deve sugerir a ordem das paradas da viagem a partir do endereço de saída, permitir reordená-las e acrescentar parada sem pedido, abrir o trajeto num serviço de mapas e apresentar a separação dos itens na ordem inversa das entregas. | RN-60 |
+| RF-63 | Viagem de entrega do dia | O sistema deve permitir planejar a viagem de entrega de um dia, reunindo nela pedidos de aprovado para cima, marcando em cada um a data de entrega da viagem, retomando o planejamento na etapa em que ele parou e permitindo voltar a uma etapa anterior, mesmo do carregamento, sem desfazer as cargas. | RN-59 |
+| RF-64 | Rota da viagem e ordem de carregamento | O sistema deve sugerir a ordem das paradas da viagem a partir do endereço de saída, permitir reordená-las e acrescentar parada sem pedido, completar na própria rota o endereço de entrega que falta ao cliente, digitado ou pela localização que ele enviou, abrir o trajeto num serviço de mapas e apresentar a separação dos itens na ordem inversa das entregas. | RN-60 |
+| RF-67 | Total, frete e peso do pedido | O sistema deve apresentar, no fechamento do pedido, a soma das mudas, o frete, o total e o peso estimado da carga, sugerindo o frete pela distância de ida e volta a partir da saída escolhida e registrando o valor que for digitado. | RN-64, RN-65 |
 
 Fonte: Elaborado pelo autor (2026).
 
@@ -262,13 +265,13 @@ Fonte: Elaborado pelo autor (2026).
 
 | Origem | RF: Qtd. | RF: % | RNF: Qtd. | RNF: % |
 |---|---:|---:|---:|---:|
-| Observação participante (OP) | 29 | 39,7 | 0 | 0,0 |
-| Entrevista (EN) | 14 | 19,2 | 0 | 0,0 |
+| Observação participante (OP) | 30 | 40,5 | 0 | 0,0 |
+| Entrevista (EN) | 14 | 18,9 | 0 | 0,0 |
 | Análise documental (AD) | 2 | 2,7 | 0 | 0,0 |
-| Estudo do domínio (DOM) | 6 | 8,2 | 1 | 7,1 |
+| Estudo do domínio (DOM) | 6 | 8,1 | 1 | 7,1 |
 | Exigência legal (LEG) | 2 | 2,7 | 3 | 21,4 |
-| Política do projeto (ORG) | 20 | 27,4 | 10 | 71,4 |
-| **Total de menções** | **73** | | **14** | |
+| Política do projeto (ORG) | 20 | 27,0 | 10 | 71,4 |
+| **Total de menções** | **74** | | **14** | |
 
 Fonte: Elaborado pelo autor (2026).
 

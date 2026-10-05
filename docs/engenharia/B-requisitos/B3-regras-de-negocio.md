@@ -219,6 +219,8 @@ e já se diz "fiz tantos saquinhos hoje". Apague o sistema e os enunciados sobre
 | **RN-48** | Aprovar o pedido trava o item, que depois disso não muda em espécie, quantidade nem preço | Fato | `rotinas/3-comercial` | RF-57 | - |
 | **RN-49** | Uma pessoa pode ter mais de um endereço | Fato | `rotinas/1-cadastros` | RF-16 | - |
 | **RN-50** | O preço é combinado com o cliente e registrado no pedido depois da conferência de disponibilidade, e o pedido não é aprovado enquanto faltar o preço de algum item | Fato | `A1` §6 | RF-55 | - |
+| **RN-64** | O frete sugerido é o combustível da ida e da volta até o endereço de entrega do cliente, pela distância de carro a partir da saída escolhida e pelo consumo e preço do litro definidos em Configurações. O frete registrado é o digitado, mesmo que difira do sugerido | Derivação | `rotinas/3-comercial` | RF-67, RF-09 | - |
+| **RN-65** | O peso estimado do pedido é a soma da quantidade de cada item pelo peso do recipiente cheio em que ele vai, e o item sem peso ou sem quantidade fica fora da conta e é apontado | Derivação | `rotinas/3-comercial` | RF-67, RF-11 | - |
 
 ### 3.5 Área E: Acesso e responsabilidade
 
@@ -232,7 +234,7 @@ e já se diz "fiz tantos saquinhos hoje". Apague o sistema e os enunciados sobre
 | ID | Regra | Tipo | Origem | Realiza | Restringe |
 |---|---|---|---|---|---|
 | **RN-53** | O pedido percorre oito situações, cadastrado, verificando, verificado, pendente de alteração, aprovado, separando, pronto para envio e cancelado, e cada uma delas espera por um perfil determinado | Fato | `rotinas/3-comercial` | RF-57 | - |
-| **RN-54** | O item conferido está disponível por inteiro, disponível em parte ou indisponível. A parte difere do pedido em ao menos um atributo que o cliente especificou: quantidade menor, de uma muda até uma a menos que a pedida, outro recipiente ou outra altura. A parte pode ser completada em outro recipiente, que vira item próprio e sem preço, e as duas linhas somam no máximo a quantidade pedida | Restrição | `rotinas/3-comercial` | RF-59 | - |
+| **RN-54** | O item conferido está disponível por inteiro, disponível em parte ou indisponível. A parte difere do pedido em ao menos um atributo que o cliente especificou: quantidade menor, de uma muda até uma a menos que a pedida, outro recipiente ou outra altura. A parte pode ser completada em outros recipientes, cada um item próprio e sem preço, e as linhas somam no máximo a quantidade pedida. O item cadastrado sem recipiente e disponível por inteiro pode ser dividido entre recipientes, e as linhas somam exatamente a quantidade pedida | Restrição | `rotinas/3-comercial` | RF-59 | - |
 | **RN-55** | A composição do item pedido sem espécie, quando ele tem quantidade, soma exatamente essa quantidade na resposta por inteiro e no máximo essa quantidade na resposta em parte, e só admite espécie que o cliente aceite | Restrição | `rotinas/3-comercial` | RF-60 | - |
 | **RN-56** | O item pedido sem espécie não vai na carga, e sim as espécies que o compõem. A soma de um item nas cargas reproduz a quantidade dele | Restrição | `rotinas/3-comercial` | RF-61 | - |
 | **RN-57** | A carga fica pronta quando todos os itens dela foram separados, e o pedido fica pronto para envio quando todas as cargas estão prontas | Fato | `rotinas/3-comercial` | RF-61 | - |
@@ -265,23 +267,23 @@ sem que a causa aparecesse em tela nenhuma.
 | A: Domínio e produto | RN-01 a RN-07, RN-62 | 8 |
 | B: Produção, lote e trabalho | RN-08 a RN-29, RN-61 | 23 |
 | C: Protocolo de atividades por lote | RN-30 a RN-41, RN-63 | 13 |
-| D: Cliente e pedido | RN-42 a RN-50 | 9 |
+| D: Cliente e pedido | RN-42 a RN-50, RN-64, RN-65 | 11 |
 | E: Acesso e responsabilidade | RN-51 a RN-52 | 2 |
 | F: Conferência e carga | RN-53 a RN-60 | 8 |
-| **Total** | | **63** |
+| **Total** | | **65** |
 
 | Tipo | Quantidade |
 |---|---:|
 | Fato | 30 |
 | Restrição | 21 |
-| Derivação | 11 |
+| Derivação | 13 |
 | Acionamento | 1 |
 
 ---
 
 ## 4. Rastreabilidade inversa: requisito funcional → regra que o origina
 
-Os 66 requisitos funcionais de `B2`. Quatro não decorrem de regra de
+Os 67 requisitos funcionais de `B2`. Quatro não decorrem de regra de
 negócio e estão justificados na seção 6.
 
 | RF | Regras que o originam |
@@ -294,9 +296,9 @@ negócio e estão justificados na seção 6.
 | RF-06 | RN-51 |
 | RF-07 | - |
 | RF-08 | RN-12, RN-26 |
-| RF-09 | RN-11, RN-26 |
+| RF-09 | RN-11, RN-26, RN-64 |
 | RF-10 | RN-01, RN-02, RN-03 |
-| RF-11 | RN-04 |
+| RF-11 | RN-04, RN-65 |
 | RF-12 | RN-07 |
 | RF-13 | RN-17 |
 | RF-14 | RN-45 |
@@ -352,6 +354,7 @@ negócio e estão justificados na seção 6.
 | RF-62 | RN-58 |
 | RF-63 | RN-59 |
 | RF-64 | RN-60 |
+| RF-67 | RN-64, RN-65 |
 ## 5. Rastreabilidade inversa: requisito não funcional → origem
 
 Os requisitos não funcionais deste projeto **não decorrem de regra de negócio**, e sim das
@@ -439,15 +442,15 @@ não dependa de abrir outro arquivo. **Não editar aqui**: a fonte é o `B2`.
 | RF-06 | O sistema deve verificar a permissão do perfil a cada operação, e não apenas ocultar elementos da interface | D | ORG |
 | RF-07 | O sistema deve permitir ao usuário visualizar e encerrar suas sessões ativas | DV | ORG |
 | RF-08 | O sistema deve permitir manter o período de trabalho, com hora de início e de fim de cada turno, e adotá-lo como jornada padrão da agenda | D | EN |
-| RF-09 | O sistema deve permitir alterar o valor dos parâmetros de operação, os limites de atenção e de atraso do lote e o limite de mortalidade, sem permitir criar nem excluir parâmetro | D | ORG |
+| RF-09 | O sistema deve permitir alterar o valor dos parâmetros de operação, os limites de atenção e de atraso do lote, o limite de mortalidade e o consumo e o preço do litro que sugerem o frete, sem permitir criar nem excluir parâmetro | D | ORG |
 | RF-10 | O sistema deve permitir cadastrar espécie com nome científico, nomes populares, características e fotografia, e localizá-la por qualquer um desses nomes | D | EN, DOM, OP |
-| RF-11 | O sistema deve permitir cadastrar recipientes com nome e volume | D | EN |
+| RF-11 | O sistema deve permitir cadastrar recipientes com nome, volume e peso do recipiente cheio | D | EN |
 | RF-12 | O sistema deve permitir cadastrar insumos com unidade de medida e categoria | D | AD |
 | RF-13 | O sistema deve permitir cadastrar áreas do viveiro identificadas por letra e canteiros numerados dentro de cada área, recusando número repetido na mesma área | D | OP |
 | RF-14 | O sistema deve manter uma identidade única por pessoa, à qual se atribuem os papéis de cliente, fornecedor e funcionário, sem duplicar o cadastro quando a mesma pessoa exercer mais de um | D | ORG |
 | RF-15 | O sistema deve permitir cadastro rápido de cliente com nome e telefone, sem sair da tela de pedido | D | OP |
 | RF-16 | O sistema deve permitir cadastro completo de cliente com dados fiscais de pessoa física ou jurídica | D | LEG, AD |
-| RF-17 | O sistema deve validar CPF e CNPJ informados | D | LEG |
+| RF-17 | O sistema deve validar CPF, CNPJ e telefone informados, o telefone com DDD existente e o nove do celular | D | LEG |
 | RF-18 | O sistema deve permitir localizar pessoa por nome, telefone ou documento | D | OP |
 | RF-19 | O sistema deve permitir cadastrar fornecedor com contato e localização | DV | EN |
 | RF-20 | O sistema deve permitir cadastrar funcionário com contato e vínculo (fixo ou diarista), inclusive quando ele não tem acesso ao sistema | D | EN |
@@ -491,12 +494,13 @@ não dependa de abrir outro arquivo. **Não editar aqui**: a fonte é o `B2`.
 | RF-56 | O sistema deve apresentar, ao lado de cada item do pedido, a quantidade de muda que a produção tem daquela espécie e recipiente com altura igual ou maior que a pedida e, quando ela não basta, a quantidade até 20 cm abaixo que pode completar o item | D | OP |
 | RF-57 | O sistema deve controlar a situação do pedido ao longo das oito situações que vão do cadastro ao pronto para envio, impedindo alteração de item depois da aprovação | D | ORG |
 | RF-58 | O sistema deve listar os pedidos do mais recente ao mais antigo, com filtro por cliente que se aplica enquanto se digita | D | OP |
-| RF-59 | O sistema deve registrar, para cada item do pedido, a disponibilidade conferida no viveiro, que pode ser total, parcial ou nenhuma; a parcial registra, do que o cliente especificou (quantidade, recipiente, altura), o que foi encontrado; no item cadastrado sem recipiente, a resposta com muda registra em que recipiente ela está, e no item sem quantidade, opcionalmente, quantas existem | D | OP |
+| RF-59 | O sistema deve registrar, para cada item do pedido, a disponibilidade conferida no viveiro, que pode ser total, parcial ou nenhuma; a parcial registra, do que o cliente especificou (quantidade, recipiente, altura), o que foi encontrado; no item cadastrado sem recipiente, a resposta com muda registra em que recipiente ela está, ou em quantos recipientes ela se divide, e no item sem quantidade, opcionalmente, quantas existem | D | OP |
 | RF-60 | O sistema deve permitir compor em espécies o item que o cliente pediu sem escolher espécie, respeitando as espécies que ele aceita; sem quantidade no item, a composição é uma lista montada, e cada espécie dela é vendida com preço próprio | D | OP |
 | RF-61 | O sistema deve permitir organizar o pedido aprovado em cargas e registrar a separação de cada item em cada carga | D | OP |
 | RF-62 | O sistema deve apresentar o dia de carregamento de cada pedido e o calendário de entregas e carregamentos do mês | D | OP |
-| RF-63 | O sistema deve permitir planejar a viagem de entrega de um dia, reunindo nela pedidos de aprovado para cima, marcando em cada um a data de entrega da viagem e retomando o planejamento na etapa em que ele parou | D | OP |
-| RF-64 | O sistema deve sugerir a ordem das paradas da viagem a partir do endereço de saída, permitir reordená-las e acrescentar parada sem pedido, abrir o trajeto num serviço de mapas e apresentar a separação dos itens na ordem inversa das entregas | D | OP |
+| RF-63 | O sistema deve permitir planejar a viagem de entrega de um dia, reunindo nela pedidos de aprovado para cima, marcando em cada um a data de entrega da viagem, retomando o planejamento na etapa em que ele parou e permitindo voltar a uma etapa anterior, mesmo do carregamento, sem desfazer as cargas | D | OP |
+| RF-64 | O sistema deve sugerir a ordem das paradas da viagem a partir do endereço de saída, permitir reordená-las e acrescentar parada sem pedido, completar na própria rota o endereço de entrega que falta ao cliente, digitado ou pela localização que ele enviou, abrir o trajeto num serviço de mapas e apresentar a separação dos itens na ordem inversa das entregas | D | OP |
+| RF-67 | O sistema deve apresentar, no fechamento do pedido, a soma das mudas, o frete, o total e o peso estimado da carga, sugerindo o frete pela distância de ida e volta a partir da saída escolhida e registrando o valor que for digitado | D | OP |
 
 ### 7.2 Requisitos não funcionais
 

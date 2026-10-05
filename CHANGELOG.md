@@ -3,6 +3,28 @@
 Uma entrada por migration nova, como pede o `CLAUDE.md`. As migrations até `20260901000008` são o
 schema inicial em português e estão descritas no `C8`.
 
+## 05/10/2026 · `20261005000001_pedido_frete_e_peso.sql`
+
+- **`recipientes.peso_kg`** (RN-65): o peso aproximado do recipiente cheio de substrato, com a
+  muda, em kg, maior que zero. É a base do peso estimado do pedido, que é derivado e não tem coluna.
+- **`pedidos.frete`, `frete_origem` e `frete_distancia_km`** (RF-67, RN-64): o frete combinado, em
+  reais, com zero ou mais; a saída de onde foi sugerido (`agrolandia` ou `itapema`); e a distância
+  de ida da última sugestão. O frete gravado é o digitado, mesmo que difira do sugerido.
+- **Parâmetros novos** `comercial.frete_km_por_litro` (17) e `comercial.frete_preco_litro` (7),
+  numéricos, editáveis em Configurações. O preço do litro passa a vir do insumo gasolina quando o
+  insumo tiver preço.
+- **O gatilho `pessoas_enderecos_zera_coordenada` passa a preservar a coordenada gravada junto do
+  texto**: só zera quando o texto muda e a coordenada não. É o que deixa a localização colada do
+  WhatsApp chegar com o endereço novo no mesmo gesto.
+- Compatível: colunas novas nuláveis, parâmetros novos, e a função do gatilho trocada com o mesmo
+  nome.
+- Na mesma alteração, fora do banco: telefone conferido ao sair do campo (DDD existente e nove do
+  celular); o item com recipiente a definir se divide em vários recipientes na conferência, e "Tem
+  parte" completa com quantas linhas forem precisas; a ficha ganha a linha final com mudas, frete,
+  total e peso; o planejar pedido volta do carregamento e tem os passos do cabeçalho clicáveis; o
+  endereço de entrega que falta se completa na rota, digitado ou pela localização do WhatsApp; e
+  salvar o cadastro da pessoa com o mesmo endereço deixa de apagar a coordenada guardada.
+
 ## 04/10/2026 · `20261004000001_lotes_etapas_acoes.sql`
 
 - **Tabela nova `lotes_etapas_acoes`** (RF-66): o histórico do que a gerência faz com a etapa do

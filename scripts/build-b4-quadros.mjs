@@ -83,6 +83,7 @@ const NOME = {
   'RF-64': 'Rota da viagem e ordem de carregamento',
   'RF-65': 'Altura atual da muda do lote',
   'RF-66': 'Postergar e concluir o que pede providência',
+  'RF-67': 'Total, frete e peso do pedido',
 };
 
 // ---------------------------------------------------------------- leitura

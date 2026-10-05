@@ -151,7 +151,7 @@ informação comercial legítima.
 |---|---|
 | **Ator principal** | Chefia |
 | **Objetivo** | Decidir sobre o pedido já conferido, fixando o que vai ser vendido |
-| **Requisitos** | RF-57, RF-55 |
+| **Requisitos** | RF-57, RF-55, RF-67 |
 | **Frequência** | Diária |
 | **Pré-condições** | Pedido no estado *verificado*, com ao menos um item |
 | **Pós-condições** | Pedido *aprovado*; itens não admitem mais alteração |
@@ -160,7 +160,7 @@ informação comercial legítima.
 
 1. A chefia abre um pedido verificado.
 2. O sistema apresenta os itens com espécie, recipiente, quantidade, preço unitário e total, indicando o que a gerência encontrou em cada um.
-3. A chefia informa o preço de cada item vendido e, quando o cliente leva menos do que a conferência confirmou, a quantidade combinada, e o sistema apresenta o total do pedido.
+3. A chefia informa o preço de cada item vendido e, quando o cliente leva menos do que a conferência confirmou, a quantidade combinada. Informa também o frete, que o sistema sugere pela distância até o endereço de entrega, e o sistema apresenta a soma das mudas, o frete, o total do pedido e o peso estimado da carga.
 4. A chefia responde se o pedido sai com nota fiscal e aprova o pedido.
 5. O sistema retira os itens que a conferência deu por indisponíveis.
 6. O sistema ajusta os itens encontrados em parte para a quantidade e o recipiente que existem.
@@ -192,6 +192,12 @@ No passo 3, o cliente leva menos do que existe, desiste de um item ou prefere o 
 gerência achou a muda. A chefia baixa a quantidade, zera o item ou escolhe entre o recipiente
 pedido e o conferido, e o pedido continua *verificado*. Pedir mais do que a conferência confirmou,
 ou outro recipiente, devolve o pedido à conferência, pelo caminho de FE-2.
+
+### FA-4: Frete sem sugestão
+
+No passo 3, o cliente não tem endereço de entrega, o endereço não é achado no mapa ou o serviço de
+mapas não responde. O sistema informa o motivo, não sugere valor, e a chefia digita o frete
+combinado. O pedido segue sem nenhuma outra consequência.
 
 ### FE-4: Item incompleto
 

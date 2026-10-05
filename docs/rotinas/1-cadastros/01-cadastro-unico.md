@@ -66,6 +66,18 @@ O nome abre a ficha, que mostra a identidade e o histórico dos dois lados, e n�
 
 A busca localiza por nome, telefone ou documento, e indica os papéis (RF-18).
 
+**O telefone é conferido enquanto se digita** (RF-17), desde 05/10/2026. Ao sair do campo, o número
+é conferido: dez ou onze dígitos, DDD que existe, celular de onze dígitos começando em 9, e fixo de
+dez começando de 2 a 5. O número de dez dígitos que começa de 6 a 9 é celular sem o nove da frente,
+e o aviso diz isso. Com o aviso na tela, cada tecla confere de novo, e ele some assim que o número
+fica certo; o número certo vai para a máscara, como (47) 99612-4408. Vale no cadastro completo e
+no cliente rápido do pedido.
+
+**O endereço de entrega aceita a localização do WhatsApp.** O cliente que manda a localização em
+vez do endereço tem o ponto colado no campo "Localização do WhatsApp", e a ficha mostra o ponto
+guardado com o link para conferir no mapa. Salvar o cadastro com o mesmo texto de endereço mantém o
+ponto; mudar o texto o apaga, porque ele era do endereço de antes.
+
 **O papel não se esconde; a ficha fiscal, sim.** Pessoas é um recurso só na matriz de acesso, e
 separar a leitura de cliente da de fornecedor exigiria uma permissão por papel sobre a mesma linha
 (`D4` §2, nota 2). O que a gerência não lê é CPF, CNPJ e endereço, que é a única restrição de

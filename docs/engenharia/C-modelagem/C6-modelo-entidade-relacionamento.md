@@ -300,6 +300,7 @@ erDiagram
     uuid    id PK
     text    nome UK
     numeric volume_litros
+    numeric peso_kg
     boolean ativo
   }
   insumos {
@@ -721,6 +722,9 @@ erDiagram
     date    data_entrega
     text    observacoes
     boolean precisa_nota
+    numeric frete
+    text    frete_origem
+    numeric frete_distancia_km
     uuid    criado_por FK
   }
   pedidos_itens {
@@ -886,8 +890,15 @@ número.
 
 **A coordenada fica no endereço, e não na parada** (`pessoas_enderecos.lat`, `lng`,
 `geocodificado_em`). O endereço do cliente não muda entre uma viagem e outra, e cada consulta ao
-serviço de mapas custa cota. Um gatilho apaga as três colunas quando o texto do endereço muda, e
-`geocodificado_em` preenchido com a coordenada nula registra que o serviço procurou e não achou.
+serviço de mapas custa cota. Um gatilho apaga as três colunas quando o texto do endereço muda sem
+que a coordenada mude junto, e `geocodificado_em` preenchido com a coordenada nula registra que o
+serviço procurou e não achou. A localização que o cliente envia pelo WhatsApp entra na mesma
+coluna, gravada junto com o texto, e por isso o gatilho a preserva.
+
+**O frete é atributo do pedido, e o peso não é atributo de ninguém** (RF-67). O frete é um valor
+só por carga, combinado com o cliente, e fica em `pedidos.frete`, com a saída de onde foi sugerido.
+O peso estimado é derivado: quantidade de cada item vezes `recipientes.peso_kg`, o peso do
+recipiente cheio, e gravá-lo deixaria um número a corrigir toda vez que um item mudasse.
 
 ---
 

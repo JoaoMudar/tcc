@@ -137,7 +137,7 @@ sistema, e não um catálogo.
 | ID | Requisito | Ator | Prior. | Origem | Verificação |
 |---|---|---|---|---|---|
 | **RF-08** | O sistema deve permitir manter o período de trabalho, com hora de início e de fim de cada turno, e adotá-lo como jornada padrão da agenda | Chefia | D | EN | Alterar o horário do turno altera a jornada exibida na agenda |
-| **RF-09** | O sistema deve permitir alterar o valor dos parâmetros de operação, os limites de atenção e de atraso do lote e o limite de mortalidade, sem permitir criar nem excluir parâmetro | Chefia | D | ORG | O valor alterado passa a valer na tela seguinte; não há ação de criar nem de excluir parâmetro |
+| **RF-09** | O sistema deve permitir alterar o valor dos parâmetros de operação, os limites de atenção e de atraso do lote, o limite de mortalidade e o consumo e o preço do litro que sugerem o frete, sem permitir criar nem excluir parâmetro | Chefia | D | ORG | O valor alterado passa a valer na tela seguinte; não há ação de criar nem de excluir parâmetro |
 
 **Ninguém cria e ninguém exclui parâmetro** (RF-09). A chave nasce com a estrutura do banco, porque
 existe código que a lê pelo nome: apagá-la não deixaria a tela vazia, deixaria a leitura sem
@@ -153,7 +153,7 @@ O que é estável e se repete, e alimenta as outras duas áreas sem consumir nad
 | ID | Requisito | Ator | Prior. | Origem | Verificação |
 |---|---|---|---|---|---|
 | **RF-10** | O sistema deve permitir cadastrar espécie com nome científico, nomes populares, características e fotografia, e localizá-la por qualquer um desses nomes | Chefia | D | EN, DOM, OP | Espécie cadastrada aparece nas demais telas; busca por nome popular regional retorna a espécie correspondente |
-| **RF-11** | O sistema deve permitir cadastrar recipientes com nome e volume | Chefia | D | EN | Recipiente cadastrado fica disponível na criação de lote e no item de pedido |
+| **RF-11** | O sistema deve permitir cadastrar recipientes com nome, volume e peso do recipiente cheio | Chefia | D | EN | Recipiente cadastrado fica disponível na criação de lote e no item de pedido, e o peso dele entra no peso estimado do pedido |
 | **RF-12** | O sistema deve permitir cadastrar insumos com unidade de medida e categoria | Chefia | D | AD | Insumo cadastrado fica disponível para associação às tarefas do viveiro |
 | **RF-13** | O sistema deve permitir cadastrar áreas do viveiro identificadas por letra e canteiros numerados dentro de cada área, recusando número repetido na mesma área | Gerência | D | OP | Área cadastrada fica disponível na escolha de canteiro; canteiro repetido na mesma área é recusado, e a numeração recomeça em cada área |
 
@@ -172,7 +172,7 @@ agenda sem nunca abrir o sistema. Quem tem login é assunto de RF-05, no Acesso.
 | **RF-14** | O sistema deve manter uma identidade única por pessoa, à qual se atribuem os papéis de cliente, fornecedor e funcionário, sem duplicar o cadastro quando a mesma pessoa exercer mais de um | - | D | ORG | Pessoa já cadastrada como fornecedor recebe o papel de cliente sem gerar segundo cadastro |
 | **RF-15** | O sistema deve permitir cadastro rápido de cliente com nome e telefone, sem sair da tela de pedido | Chefia | D | OP | Pedido conclui-se com cliente novo sem interromper o fluxo |
 | **RF-16** | O sistema deve permitir cadastro completo de cliente com dados fiscais de pessoa física ou jurídica | Chefia | D | LEG, AD | Cadastro completo comporta os dados exigidos pelo emissor de nota externo |
-| **RF-17** | O sistema deve validar CPF e CNPJ informados | - | D | LEG | Documento inválido é recusado no momento da digitação |
+| **RF-17** | O sistema deve validar CPF, CNPJ e telefone informados, o telefone com DDD existente e o nove do celular | - | D | LEG | Documento ou telefone inválido é apontado ao sair do campo, e o aviso some assim que o número fica certo |
 | **RF-18** | O sistema deve permitir localizar pessoa por nome, telefone ou documento | Chefia | D | OP | Busca retorna a pessoa por qualquer dos três, indicando os papéis que ela exerce |
 | **RF-19** | O sistema deve permitir cadastrar fornecedor com contato e localização | Chefia | DV | EN | Fornecedor cadastrado aparece na lista de pessoas com o papel correspondente |
 | **RF-20** | O sistema deve permitir cadastrar funcionário com contato e vínculo (fixo ou diarista), inclusive quando ele não tem acesso ao sistema | Chefia | D | EN | Funcionário sem usuário aparece na agenda de pessoal e no cadastro |
@@ -399,12 +399,13 @@ para dizer por quanto deveria ter sido vendido.
 | **RF-56** | O sistema deve apresentar, ao lado de cada item do pedido, a quantidade de muda que a produção tem daquela espécie e recipiente com altura igual ou maior que a pedida e, quando ela não basta, a quantidade até 20 cm abaixo que pode completar o item | Chefia | D | OP | Item de 300 mudas de 1,20 m, com 200 medidas em 1,30 m e 150 em 1,05 m, exibe 200 disponíveis, a falta de 100 e as 150 com até 20 cm a menos |
 | **RF-57** | O sistema deve controlar a situação do pedido ao longo das oito situações que vão do cadastro ao pronto para envio, impedindo alteração de item depois da aprovação | Chefia | D | ORG | Pedido aprovado recusa inclusão e alteração de item |
 | **RF-58** | O sistema deve listar os pedidos do mais recente ao mais antigo, com filtro por cliente que se aplica enquanto se digita | Chefia | D | OP | Digitar parte do nome mostra apenas os pedidos desse cliente |
-| **RF-59** | O sistema deve registrar, para cada item do pedido, a disponibilidade conferida no viveiro, que pode ser total, parcial ou nenhuma; a parcial registra, do que o cliente especificou (quantidade, recipiente, altura), o que foi encontrado; no item cadastrado sem recipiente, a resposta com muda registra em que recipiente ela está, e no item sem quantidade, opcionalmente, quantas existem | Gerência | D | OP | Item marcado como parcial guarda a quantidade, o recipiente e a altura encontrados; item sem recipiente guarda em qual está |
+| **RF-59** | O sistema deve registrar, para cada item do pedido, a disponibilidade conferida no viveiro, que pode ser total, parcial ou nenhuma; a parcial registra, do que o cliente especificou (quantidade, recipiente, altura), o que foi encontrado; no item cadastrado sem recipiente, a resposta com muda registra em que recipiente ela está, ou em quantos recipientes ela se divide, e no item sem quantidade, opcionalmente, quantas existem | Gerência | D | OP | Item marcado como parcial guarda a quantidade, o recipiente e a altura encontrados; item sem recipiente guarda em qual está; 50 mudas sem recipiente respondidas como 20 num saco e 30 noutro chegam à aprovação como dois itens |
 | **RF-60** | O sistema deve permitir compor em espécies o item que o cliente pediu sem escolher espécie, respeitando as espécies que ele aceita; sem quantidade no item, a composição é uma lista montada, e cada espécie dela é vendida com preço próprio | Gerência | D | OP | Composição que não soma exatamente a quantidade do item é recusada |
 | **RF-61** | O sistema deve permitir organizar o pedido aprovado em cargas e registrar a separação de cada item em cada carga | Gerência | D | OP | Carga com item por separar não é dada como pronta |
 | **RF-62** | O sistema deve apresentar o dia de carregamento de cada pedido e o calendário de entregas e carregamentos do mês | Gerência | D | OP | Pedido com entrega na segunda-feira aparece para carregar na sexta-feira anterior |
-| **RF-63** | O sistema deve permitir planejar a viagem de entrega de um dia, reunindo nela pedidos de aprovado para cima, marcando em cada um a data de entrega da viagem e retomando o planejamento na etapa em que ele parou | Gerência | D | OP | Pedido sem data posto na viagem de 02/10 passa a ser entregue em 02/10, com a mudança no histórico; quem sai na etapa da rota volta a ela pelo calendário |
-| **RF-64** | O sistema deve sugerir a ordem das paradas da viagem a partir do endereço de saída, permitir reordená-las e acrescentar parada sem pedido, abrir o trajeto num serviço de mapas e apresentar a separação dos itens na ordem inversa das entregas | Gerência | D | OP | Viagem com três entregas apresenta primeiro os itens da terceira; sem o serviço de mapas, a ordem continua sendo arrumada à mão |
+| **RF-63** | O sistema deve permitir planejar a viagem de entrega de um dia, reunindo nela pedidos de aprovado para cima, marcando em cada um a data de entrega da viagem, retomando o planejamento na etapa em que ele parou e permitindo voltar a uma etapa anterior, mesmo do carregamento, sem desfazer as cargas | Gerência | D | OP | Pedido sem data posto na viagem de 02/10 passa a ser entregue em 02/10, com a mudança no histórico; quem sai na etapa da rota volta a ela pelo calendário; voltar do carregamento à rota e avançar de novo mantém os itens já separados |
+| **RF-64** | O sistema deve sugerir a ordem das paradas da viagem a partir do endereço de saída, permitir reordená-las e acrescentar parada sem pedido, completar na própria rota o endereço de entrega que falta ao cliente, digitado ou pela localização que ele enviou, abrir o trajeto num serviço de mapas e apresentar a separação dos itens na ordem inversa das entregas | Gerência | D | OP | Viagem com três entregas apresenta primeiro os itens da terceira; sem o serviço de mapas, a ordem continua sendo arrumada à mão; o cliente sem endereço que recebe a localização colada deixa de ser apontado |
+| **RF-67** | O sistema deve apresentar, no fechamento do pedido, a soma das mudas, o frete, o total e o peso estimado da carga, sugerindo o frete pela distância de ida e volta a partir da saída escolhida e registrando o valor que for digitado | Chefia | D | OP | Pedido de R$ 300,00 em mudas com R$ 70,00 de frete mostra R$ 370,00 de total; frete digitado diferente do sugerido é o que fica gravado; item sem peso no recipiente é apontado fora da conta do peso |
 
 **RF-55 acontece depois de RF-59, e a ordem é a do trabalho.** Quem registra o pedido está no meio
 de uma conversa de WhatsApp e anota o que o cliente quer; o preço se fecha quando a conferência já
@@ -434,6 +435,12 @@ saem no mesmo caminhão e decide a ordem das paradas; o que se separa e confere 
 carga de cada pedido. Quem não usar a viagem organiza as cargas pedido a pedido, como antes. O
 serviço de mapas só sugere: se ele não responde, a ordem é arrumada à mão, e o planejamento nunca
 para por causa dele.
+
+**RF-67 sugere o frete e estima o peso, mas não decide nenhum dos dois.** O cliente pergunta
+quanto fica a entrega e quanto pesa a carga na mesma conversa em que fecha o preço, e a resposta
+saía de cabeça. A sugestão conta o combustível da ida e da volta, e o valor gravado é o que a chefia
+digitou, porque o frete se negocia como o preço da muda. O peso sai do recipiente cheio, e o item
+cujo recipiente ainda não tem peso aparece apontado, em vez de pesar zero sem aviso.
 
 Seis requisitos desta área são da **gerência**, e é a primeira vez que o Comercial não é só da
 chefia. A razão está em quem faz o trabalho, e não em quem decide a venda. Conferir a muda e contar
@@ -507,11 +514,11 @@ Impostos por fatores legais, regulatórios ou pelo ambiente em que o sistema ope
 
 | Prioridade | Funcionais | Não funcionais | Total |
 |---:|---:|---:|---:|
-| **D**: Deve ter | 53 | 24 | 77 |
+| **D**: Deve ter | 62 | 23 | 85 |
 | **DV**: Deveria ter | 5 | - | 5 |
 | **P**: Poderia ter | - | - | - |
 | **N**: Não agora | - | - | - |
-| **Total** | **58** | **24** | **82** |
+| **Total** | **67** | **23** | **90** |
 
 Nenhum requisito não funcional foi classificado abaixo de *deve ter*: todos decorrem de restrição do
 ambiente, de política do projeto ou de exigência legal, nenhum é preferência negociável.

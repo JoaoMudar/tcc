@@ -27,8 +27,12 @@ rotina.
 
 **Toda ação grava na hora**: pôr e tirar pedido, a saída, a ordem ao soltar o arraste, a parada
 extra e cada item separado. Não há botão "Salvar". "Sair" volta ao calendário em qualquer etapa sem
-perder nada. A seta de voltar anda uma etapa para trás; no carregamento ela some, porque as cargas
-já foram criadas, e dali só se sai.
+perder nada. A seta de voltar anda uma etapa para trás, e os passos do cabeçalho ("1 · Carga",
+"2 · Rota", "3 · Carregamento") são botões, desde 05/10/2026: o anterior volta direto a ele, e o
+seguinte faz o mesmo que o botão da etapa ("Confirmar carga", "Iniciar carregamento"), com as
+mesmas conferências. **Do carregamento também se volta.** As cargas e os itens já marcados ficam, e
+ao avançar de novo cada pedido segue com as cargas que já tem, sem ganhar outra. Só a viagem pronta
+não volta.
 
 ## As três etapas
 
@@ -65,7 +69,14 @@ já foram criadas, e dali só se sai.
 - **Parada extra**: descrição obrigatória e endereço opcional. Não tem item, e não aparece no
   carregamento.
 - Pedido **sem endereço de entrega**, ou que o serviço não achou, vai para o fim com aviso no
-  cartão, e a pessoa o posiciona à mão.
+  cartão, e a pessoa o posiciona à mão. **O cartão traz "Adicionar endereço"** (ou "Corrigir
+  endereço"), que abre o endereço de entrega do cliente ali mesmo: digitado, com as sugestões do
+  mapa, ou pela **localização que o cliente mandou pelo WhatsApp**, colada no campo próprio. O
+  campo lê o link do Google Maps, o do Apple Maps e os dois números, mostra o ponto lido com o link
+  "ver no mapa" antes de salvar, e o link curto (`maps.app.goo.gl`) é aberto pelo servidor ao
+  salvar, que só segue endereço do próprio Google Maps. Só com o ponto, a rua vem do mapa. O
+  endereço fica no cadastro do cliente, vale para as próximas entregas, e a viagem pede a ordem de
+  novo.
 - **Serviço fora do ar ou sem chave** (`ORS_API_KEY`): a ordem fica como estava, com aviso. O
   planejamento nunca para por causa do mapa.
 - **Google Maps** abre o trajeto na ordem da tela, sem chave e mesmo com o serviço de rotas fora
@@ -113,4 +124,4 @@ ela quem carrega. Os seis colaboradores de campo não entram aqui.
 ## Rastreabilidade
 
 RF-63, RF-64 · RN-59, RN-60 · [`UC-39`](../../engenharia/C-modelagem/C2-especificacao-casos-de-uso.md)
-· TA-77, TA-78.
+· TA-77, TA-78, TA-87, TA-88.

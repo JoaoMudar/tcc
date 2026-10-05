@@ -100,6 +100,15 @@ da mesma espécie (`complementa_item_id`), já respondido e sem preço: saco dif
 diferente, e a chefia o digita na negociação, como em qualquer item. Responder o item de novo apaga
 o complemento anterior, e a conferência não o conta como item a responder.
 
+**O "+" abre quantas linhas forem precisas**, desde 05/10/2026 (plano P17). "Tem parte" completa em
+dois, três ou mais recipientes, e as linhas somam no máximo a quantidade pedida. **O item cadastrado
+com o recipiente a definir se divide também em "Tem tudo"**: o cliente pediu 50 sem dizer o saco, e
+há 20 num e 30 noutro. O "+ Dividir em outro recipiente" faz a primeira linha perguntar quantas, e
+as linhas têm de somar exatamente o pedido. Fica gravado na forma que já existia, a primeira linha
+como parte e as outras como complementos, e o cartão continua verde, com o resumo "Tem tudo: 20, em
+saco 10x18 + 30, em saco 17x22". A conferência conta o item como disponível, e a aprovação leva um
+item por recipiente, cada um com o seu preço.
+
 O cartão toma a cor da resposta no toque, antes de gravar: vermelho em "Não tem", amarelo em "Tem
 parte" e verde em "Tem tudo". Branco é o que ninguém olhou.
 
@@ -152,6 +161,16 @@ grava enquanto se digita, sem botão de salvar. Quando a gerência achou a muda 
 célula do recipiente vira a escolha entre os dois. A chefia baixa a quantidade ou zera o item sem
 devolver o pedido à conferência; pedir mais do que existe, ou outro recipiente, é "Solicitar
 alteração".
+
+**A ficha fecha o pedido numa linha final** (RF-67), desde 05/10/2026: a soma das mudas, o frete,
+o total e o peso estimado da carga. O frete se sugere pela distância de carro até o endereço de
+entrega do cliente, saindo de Agrolândia ou de Itapema, ida e volta, pelo consumo (17 km/L) e pelo
+preço do litro (R$ 7,00) de Configurações (RN-64). A sugestão só vem no toque de "Sugerir frete
+pela distância", e o campo é da chefia, que digita o valor combinado mesmo que destoe da conta.
+Sem endereço de entrega, ou com o mapa fora do ar, a tela diz o motivo e o frete continua
+digitável. O peso é a soma de quantidade por peso do recipiente cheio, cadastrado em Recipientes
+(RN-65), e o item cujo recipiente não tem peso aparece contado à parte. O total da lista de pedidos
+também soma o frete.
 
 **A aprovação exige o item completo**: todo item vendido com recipiente, quantidade e preço, e todo
 item sem espécie já composto. A recusa conta o que falta por motivo, e a grade marca cada célula
@@ -254,7 +273,8 @@ carga nunca vê "tem 300 das 500", vê 300, que é o que vai no caminhão.
 `pedidos_cargas` e `pedidos_cargas_itens`, com o cliente em `cadastro.pessoas` pelo papel `cliente`
 (RN-45). Declaradas em `migrations/20260901000006_comercial_pedidos.sql`,
 `20260921000001_pedidos_fluxo_situacao.sql`, `20260921000002_pedidos_verificacao_e_cargas.sql` e
-`20260924000001_pedido_orcamento_incompleto.sql`, e
+`20260924000001_pedido_orcamento_incompleto.sql` e
+`20261005000001_pedido_frete_e_peso.sql` (o frete do pedido e o peso do recipiente cheio), e
 descritas em [`C8`](../../engenharia/C-modelagem/C8-dicionario-de-dados.md).
 
 **Não há motorista nem acompanhamento na estrada.** A carga termina quando o pedido fica pronto

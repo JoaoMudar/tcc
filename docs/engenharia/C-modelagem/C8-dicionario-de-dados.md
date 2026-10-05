@@ -182,6 +182,11 @@ exige uma implantação.
 > `comercial.viagem_partida_itapema`, de `tipo_valor` `texto`, os dois endereços de onde o caminhão
 > pode sair. A rota oferece os dois e aceita um terceiro digitado.
 
+> **Duas chaves do frete** (RN-64): `comercial.frete_km_por_litro` (padrão 17) e
+> `comercial.frete_preco_litro` (padrão 7), de `tipo_valor` `numero`, maiores que zero e com casas
+> decimais. A sugestão de frete conta o combustível da ida e da volta com elas. O preço do litro é
+> parâmetro enquanto o insumo não tiver preço (RN-07), e passa a vir do insumo gasolina quando tiver.
+
 > **Duas chaves novas com o protocolo de atividades, ainda não implementadas:**
 > `producao.protocolo_janela_aviso_pct` (padrão 20), o percentual final do intervalo em que a etapa
 > passa a avisar (RN-35), e `producao.protocolo_horizonte_dias` (padrão 14), até quantos dias à
@@ -250,6 +255,7 @@ exige uma implantação.
 | `id` | uuid | ● | PK | Identificador |
 | `nome` | text | ● | UK | Designação: tubete, 10x18, 17x22, 20x26, 28x32, balde |
 | `volume_litros` | numeric(6,3) | ○ | | Volume do recipiente |
+| `peso_kg` | numeric(6,3) | ○ | | Peso aproximado do recipiente cheio de substrato, com a muda. Base do peso estimado do pedido (RN-65). Restrição: maior que zero |
 | `ativo` | boolean | ● | | Em uso |
 
 > **O protocolo pendura-se aqui.** É o recipiente que determina o manejo (RN-30), e é dele que
@@ -328,14 +334,17 @@ exige uma implantação.
 | `cidade` | text | ○ | | Município |
 | `uf` | char(2) | ○ | | Unidade federativa |
 | `cep` | text | ○ | | CEP |
-| `lat` | numeric(9,6) | ○ | | Latitude que o serviço de mapas achou para este texto. Restrição: nula junto com `lng` |
+| `lat` | numeric(9,6) | ○ | | Latitude que o serviço de mapas achou para este texto, ou a da localização que o cliente enviou. Restrição: nula junto com `lng` |
 | `lng` | numeric(9,6) | ○ | | Longitude, idem |
 | `geocodificado_em` | timestamptz | ○ | | Quando o serviço foi consultado. **Preenchido com `lat` nula: o serviço procurou e não achou** |
 | `criado_em`, `atualizado_em` | timestamptz | ● | | Criação e alteração |
 
 > **A coordenada vale para o texto de quando foi consultada.** O gatilho
 > `pessoas_enderecos_zera_coordenada` apaga as três colunas quando logradouro, cidade, UF ou CEP
-> mudam. Guardá-la evita consultar o serviço de mapas a cada viagem para o mesmo cliente (RF-64).
+> mudam e a coordenada não muda junto. A localização colada do WhatsApp chega com o texto novo e o
+> ponto no mesmo gesto, e por isso a gravação conjunta preserva o ponto. Guardá-la evita consultar
+> o serviço de mapas a cada viagem para o mesmo cliente (RF-64). Regravar o cadastro com o mesmo
+> texto devolve ao endereço o ponto que ele tinha.
 
 > **A entidade existe porque uma pessoa tem mais de um endereço, e o de entrega pode não ser o de
 > cobrança** (RN-49). É `tipo` que os distingue, e a tabela não impõe endereço único por tipo: a
@@ -966,9 +975,16 @@ e a situação que dele decorre (RF-51, RF-52).
 | `data_entrega` | date | ○ | | Data prevista de entrega. O dia de carregar é o dia útil anterior a ela, derivado e não gravado (RN-58) |
 | `observacoes` | text | ○ | | Observações |
 | `precisa_nota` | boolean | ○ | | Se o pedido sai com nota fiscal. **Nulo enquanto a chefia não respondeu**, e a pergunta acontece na aprovação |
+| `frete` | numeric(10,2) | ○ | | Frete combinado, em reais. Nulo é "sem frete". É o valor digitado, mesmo que difira do sugerido (RN-64). Restrição: zero ou mais |
+| `frete_origem` | text | ○ | | De onde parte a conta do frete: `agrolandia` ou `itapema` |
+| `frete_distancia_km` | numeric(7,1) | ○ | | Distância de ida da última sugestão de frete. Só informa de onde veio o número. Restrição: maior que zero |
 | `criado_por` | uuid | ● | FK → `usuarios` | Autor do registro (RN-52) |
 
 **Restrição:** pedido fora de `cadastrado` não admite alteração de item (RF-57, RN-48).
+
+> **O frete é do pedido, e não de um item** (RF-67). A carga vai num caminhão só, e dividir o frete
+> entre os itens inventaria um rateio que ninguém combinou. O total do pedido é a soma dos itens
+> mais o frete, e o peso estimado sai de `recipientes.peso_kg`, sem coluna própria.
 
 > **Nulo é "ninguém perguntou ainda", e é por isso que `precisa_nota` não é `NOT NULL DEFAULT
 > false`.** Os pedidos anteriores a 21/09/2026 nunca passaram pela pergunta, e gravá-los como falso

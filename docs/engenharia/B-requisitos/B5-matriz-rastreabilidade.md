@@ -71,7 +71,7 @@ As seções seguem as **três áreas de negócio** do sistema, na mesma ordem da
 | RF-14 | UC-12 | `cadastro.pessoas`, `cadastro.pessoas_papeis` | Pessoas | TA-15 |
 | RF-15 | UC-10 | `cadastro.pessoas` | Pessoas | TA-49 |
 | RF-16 | UC-11 | `cadastro.pessoas`, `cadastro.pessoas_enderecos` | Dados fiscais de pessoa | TA-15 |
-| RF-17 | UC-11 | `cadastro.pessoas` | Dados fiscais de pessoa | TA-50 |
+| RF-17 | UC-11 | `cadastro.pessoas` | Dados fiscais de pessoa | TA-50, TA-84 |
 | RF-18 | UC-12 | `cadastro.pessoas`, `cadastro.pessoas_papeis` | Pessoas | TA-67 |
 | RF-19 | UC-13 | `cadastro.pessoas`, `cadastro.pessoas_papeis` | Pessoas | - *(DV)* |
 | RF-20 | UC-14 | `cadastro.pessoas`, `cadastro.pessoas_papeis` | Pessoas | TA-10 |
@@ -145,12 +145,13 @@ As seções seguem as **três áreas de negócio** do sistema, na mesma ordem da
 | RF-56 | UC-32 | *derivada* de `lotes` | Estoque disponível | TA-64, TA-81 |
 | RF-57 | UC-33, UC-35 | `pedidos` | Confirmação de pedido | TA-53, TA-74 |
 | RF-58 | UC-34 | `pedidos` | Pedidos | TA-54 |
-| RF-59 | UC-35 | `pedidos_itens` | Verificação de pedido | TA-71, TA-72 |
+| RF-59 | UC-35 | `pedidos_itens` | Verificação de pedido | TA-71, TA-72, TA-85 |
 | RF-60 | UC-36 | `pedidos_itens`, `pedidos_itens_especies_permitidas` | Verificação de pedido | TA-73 |
 | RF-61 | UC-37, UC-38 | `pedidos_cargas`, `pedidos_cargas_itens` | Cargas do pedido | TA-75 |
 | RF-62 | UC-38 | *derivada* de `pedidos` e `pedidos_cargas` | Cargas do pedido | TA-76 |
-| RF-63 | UC-39 | `viagens`, `viagens_paradas`, `pedidos_historico` | Cargas do pedido | TA-77 |
-| RF-64 | UC-39 | `viagens_paradas`, `pessoas_enderecos`, `pedidos_cargas_itens` | Cargas do pedido | TA-78 |
+| RF-63 | UC-39 | `viagens`, `viagens_paradas`, `pedidos_historico` | Cargas do pedido | TA-77, TA-87 |
+| RF-64 | UC-39 | `viagens_paradas`, `pessoas_enderecos`, `pedidos_cargas_itens` | Cargas do pedido | TA-78, TA-88 |
+| RF-67 | UC-33 | `pedidos`, `recipientes`, `parametros` | Confirmação de pedido | TA-86 |
 
 
 ---
@@ -276,10 +277,10 @@ ser o documento que mais diverge.
 
 | Verificação | Resultado |
 |---|---|
-| Requisitos funcionais com caso de uso | 62 de 66 |
-| Requisitos funcionais com entidade ou derivação declarada | **66 de 66** |
-| Requisitos funcionais com regra de acesso definida | **66 de 66** |
-| Requisitos de prioridade *deve ter* com teste de aceite | 61 de 61 |
+| Requisitos funcionais com caso de uso | 63 de 67 |
+| Requisitos funcionais com entidade ou derivação declarada | **67 de 67** |
+| Requisitos funcionais com regra de acesso definida | **67 de 67** |
+| Requisitos de prioridade *deve ter* com teste de aceite | 62 de 62 |
 | Requisitos *deveria ter* sem teste | 1: deliberado |
 | Casos de uso sem requisito de origem | 0 |
 | Entidades sem requisito de origem | 0 |

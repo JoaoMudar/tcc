@@ -301,7 +301,7 @@ alimenta a matriz de rastreabilidade [`B5`](../B-requisitos/B5-matriz-rastreabil
 | **UC-30** | Analisar perdas | 2 · Prod. | Gerência, Chefia | RF-41, RF-42 | - |
 | **UC-31** | Cadastrar pedido | 3 · Com. | Chefia | RF-54, RF-55 | **✔ sim** |
 | **UC-32** | Consultar disponibilidade no pedido | 3 · Com. | Chefia | RF-56 | **✔ sim** |
-| **UC-33** | Aprovar pedido | 3 · Com. | Chefia | RF-57 | **✔ sim** |
+| **UC-33** | Aprovar pedido | 3 · Com. | Chefia | RF-57, RF-67 | **✔ sim** |
 | **UC-34** | Acompanhar pedidos | 3 · Com. | Chefia | RF-58 | - |
 | **UC-35** | Conferir disponibilidade do pedido | 3 · Com. | Gerência | RF-59, RF-57 | **✔ sim** |
 | **UC-36** | Compor item pedido sem espécie | 3 · Com. | Gerência | RF-60 | **✔ sim** |
