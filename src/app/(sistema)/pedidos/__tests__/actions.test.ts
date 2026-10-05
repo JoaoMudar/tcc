@@ -379,6 +379,13 @@ describe('negociação depois da conferência (RF-55, RN-50)', () => {
     expect(client.query.mock.calls.some(([sql]) => String(sql).startsWith('DELETE FROM pedidos_itens'))).toBe(true);
   });
 
+  it('o suplente não se negocia antes de ser usado (P18)', async () => {
+    conferido({ quantidade: null, disponivel: true, quantidadeDisponivel: null, suplente: true });
+    const state = await actions.negociarItensAction({}, form({ pedido_id: PEDIDO, negociar_item_id: ITEM, negociar_preco: '2,50' }));
+    expect(state.error).toMatch(/suplente/);
+    expect(gravacoes()).toEqual([]);
+  });
+
   it('recipiente que não é o pedido nem o conferido é recusado', async () => {
     conferido();
     const state = await actions.negociarItensAction(
@@ -537,5 +544,28 @@ describe('endereço de entrega pelo frete (P17)', () => {
 
   it('a busca de endereços ignora texto curto', async () => {
     await expect(actions.buscarEnderecosDoPedidoAction('ab')).resolves.toEqual([]);
+  });
+});
+
+describe('usarSuplenteAction (P18)', () => {
+  it('o suplente vira linha do pedido na negociação', async () => {
+    emSituacao('verificado');
+    const state = await actions.usarSuplenteAction({}, form({ pedido_id: PEDIDO, item_id: ITEM }));
+    expect(state.success).toMatch(/virou linha/);
+    const update = client.query.mock.calls.find(([sql]) => String(sql).includes('SET suplente = false'));
+    expect(update?.[1]).toEqual([PEDIDO, ITEM]);
+  });
+
+  it('fora da negociação é recusado, e nada é gravado', async () => {
+    emSituacao('cadastrado');
+    const state = await actions.usarSuplenteAction({}, form({ pedido_id: PEDIDO, item_id: ITEM }));
+    expect(state.error).toMatch(/negociação/);
+    expect(client.query.mock.calls.some(([sql]) => String(sql).includes('SET suplente = false'))).toBe(false);
+  });
+
+  it('item inválido não chega ao banco', async () => {
+    const state = await actions.usarSuplenteAction({}, form({ pedido_id: PEDIDO, item_id: 'x' }));
+    expect(state.error).toBe('Item inválido.');
+    expectNoDatabase();
   });
 });

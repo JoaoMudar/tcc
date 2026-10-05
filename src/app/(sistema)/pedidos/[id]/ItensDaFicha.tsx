@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { EspecieRapida } from '@/components/EspecieRapida';
 import { GradeItens } from '@/components/pedidos/GradeItens';
 import { EnderecoDaEntrega } from '@/components/pedidos/EnderecoDaEntrega';
@@ -32,6 +32,7 @@ import {
   salvarEnderecoDoPedidoAction,
   salvarFreteAction,
   sugerirFreteAction,
+  usarSuplenteAction,
 } from '../actions';
 import { ProximoPasso, type ProximoPassoProps } from './ProximoPasso';
 
@@ -179,11 +180,14 @@ function valoresIniciais(itens: readonly ItemDaFicha[]): Record<string, ValoresN
  *
  * O próximo passo fica aqui, e não na página, porque "Aprovar" depende do que
  * está na grade agora: do que falta e de haver gravação em andamento.
+ *
+ * **O suplente não é item** (P18): sai da grade, do total e do peso, e aparece
+ * embaixo do item de que é reserva.
  */
 export function ItensDaFicha({
   pedidoId,
   modo,
-  itens,
+  itens: todos,
   saldos,
   opcoesEspecie = [],
   recipientes = [],
@@ -192,8 +196,11 @@ export function ItensDaFicha({
   frete,
   nomeCliente,
 }: ItensDaFichaProps) {
+  const itens = useMemo(() => todos.filter((item) => !item.suplente), [todos]);
+  const suplentes = useMemo(() => todos.filter((item) => item.suplente), [todos]);
   const { agendar, salvando } = useFilaDeGravacao(ATRASO_GRAVACAO_MS);
   const [erro, setErro] = useState<string | null>(null);
+  const [usandoSuplente, setUsandoSuplente] = useState(false);
 
   const registrar = useCallback((resultado: FormState) => {
     setErro(resultado.error ?? null);
@@ -329,6 +336,17 @@ export function ItensDaFicha({
     if (registrar(await negociarItensAction({}, dados))) negociacaoGravada.current = texto;
   }, [itens, pedidoId, registrar]);
 
+  // Antes do "Usar", o que está digitado vai para o banco: a página recomeça dele
+  const usarSuplente = async (itemId: string) => {
+    setUsandoSuplente(true);
+    await gravarNegociacao();
+    const dados = new FormData();
+    dados.set('pedido_id', pedidoId);
+    dados.set('item_id', itemId);
+    registrar(await usarSuplenteAction({}, dados));
+    setUsandoSuplente(false);
+  };
+
   const alterarNegociacao = (itemId: string, campo: keyof ValoresNegociacao, valor: string) => {
     valoresRef.current = { ...valoresRef.current, [itemId]: { ...valoresRef.current[itemId], [campo]: valor } };
     setValores(valoresRef.current);
@@ -441,6 +459,9 @@ export function ItensDaFicha({
           valores={modo === 'negociacao' ? valores : undefined}
           onAlterar={modo === 'negociacao' ? alterarNegociacao : undefined}
           faltaBloqueia={faltaBloqueia}
+          suplentes={suplentes}
+          onUsarSuplente={modo === 'negociacao' ? usarSuplente : undefined}
+          usandoSuplente={usandoSuplente}
         />
       )}
 

@@ -102,8 +102,8 @@ export default async function PedidoPage({ params }: PedidoPageProps) {
         <LinhaDoTempo fases={historico} />
 
         <ItensDaFicha
-          // Item tirado na negociação some da lista: a negociação recomeça do banco
-          key={modo === 'negociacao' ? pedido.itens.map((item) => item.id).join() : modo}
+          // Item tirado na negociação some da lista, e o suplente usado vira linha: a negociação recomeça do banco
+          key={modo === 'negociacao' ? pedido.itens.map((item) => `${item.id}${item.suplente ? 's' : ''}`).join() : modo}
           pedidoId={pedido.id}
           modo={modo}
           itens={pedido.itens}

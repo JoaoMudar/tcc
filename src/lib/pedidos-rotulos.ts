@@ -306,6 +306,8 @@ export interface ItemCalculavel {
   generico?: boolean;
   disponivel?: boolean | null;
   quantidadeDisponivel?: number | null;
+  /** P18: o recipiente reserva do item sem quantidade; não é linha até a chefia o usar. */
+  suplente?: boolean;
 }
 
 /**
@@ -319,8 +321,10 @@ export interface ItemCalculavel {
  *   uma lista montada pela gerência, e cada espécie dela é uma venda.
  *
  * O que a gerência disse que não tem nenhuma não é vendido: a aprovação o tira.
+ * O suplente também não (P18), até a chefia o usar.
  */
 export function itemVendavel(item: ItemCalculavel, itens: readonly ItemCalculavel[]): boolean {
+  if (item.suplente) return false;
   if (item.disponivel === false && item.quantidadeDisponivel === 0) return false;
   if (!item.itemPaiId) return !item.generico || item.quantidade !== null;
   const pai = itens.find((outro) => outro.id === item.itemPaiId);
@@ -678,10 +682,46 @@ export function resolveComplemento(
 
 type LinhaInformada = { quantidade?: number | null; recipienteId?: string | null; alturaM?: number | null };
 
-/** A resposta inteira de um item: as colunas dele e as linhas que o completam. */
+/** P18: outro recipiente em que a espécie também está, no item sem quantidade. */
+export interface SuplenteConferido {
+  recipienteId: string;
+}
+
+/** A resposta inteira de um item: as colunas dele, as linhas que o completam e os suplentes. */
 export interface RespostaConferida {
   disponibilidade: Disponibilidade;
   complementos: ComplementoConferido[];
+  suplentes: SuplenteConferido[];
+}
+
+/**
+ * P18: o item sem quantidade não se divide em linhas, porque não há soma a
+ * conferir. Os outros recipientes em que a espécie está viram **suplentes**:
+ * só o recipiente, para a chefia usar se faltar quando combinar a quantidade.
+ * A primeira linha é a resposta de sempre, com a quantidade opcional.
+ */
+function resolveComSuplentes(
+  estado: EstadoDisponibilidade,
+  item: ItemParaResponder,
+  principal: LinhaInformada,
+  linhas: readonly LinhaInformada[],
+): { error: string } | { value: RespostaConferida } {
+  const resolvida = resolveDisponibilidade(estado, item, principal);
+  if ('error' in resolvida) return resolvida;
+  const recipientePrincipal = resolvida.value.recipienteDisponivelId ?? item.recipienteId;
+
+  const suplentes: SuplenteConferido[] = [];
+  for (const linha of linhas) {
+    if (!linha.recipienteId) return { error: 'Escolha o outro recipiente em que também tem.' };
+    if (linha.recipienteId === recipientePrincipal) {
+      return { error: 'Este recipiente já é o da primeira linha: escolha outro ou tire a linha.' };
+    }
+    if (suplentes.some((outro) => outro.recipienteId === linha.recipienteId)) {
+      return { error: 'O mesmo recipiente apareceu duas vezes: tire uma das linhas.' };
+    }
+    suplentes.push({ recipienteId: linha.recipienteId });
+  }
+  return { value: { disponibilidade: resolvida.value, complementos: [], suplentes } };
 }
 
 /**
@@ -694,7 +734,8 @@ export interface RespostaConferida {
  *   pediu 50 sem dizer o saco, e o viveiro tem 20 num e 30 noutro. A soma tem de
  *   ser o pedido. A primeira linha grava como "tem 20 das 50" (a forma que o
  *   CHECK `disponibilidade_coerente` já aceita), e as outras viram complementos.
- *   Item sem quantidade não tem soma a conferir.
+ * - **Item sem quantidade não tem soma a conferir** (P18): as linhas extras são
+ *   suplentes, em qualquer resposta com muda (`resolveComSuplentes`).
  */
 export function resolveResposta(
   estado: EstadoDisponibilidade,
@@ -704,10 +745,10 @@ export function resolveResposta(
 ): { error: string } | { value: RespostaConferida } {
   if (linhas.length === 0) {
     const resolvida = resolveDisponibilidade(estado, item, principal);
-    return 'error' in resolvida ? resolvida : { value: { disponibilidade: resolvida.value, complementos: [] } };
+    return 'error' in resolvida ? resolvida : { value: { disponibilidade: resolvida.value, complementos: [], suplentes: [] } };
   }
   if (estado === 'indisponivel') return { error: 'Quem não tem não se divide em recipientes.' };
-  if (estado === 'parcial' && item.quantidade === null) return { error: 'Só se completa o item que tem quantidade pedida.' };
+  if (item.quantidade === null) return resolveComSuplentes(estado, item, principal, linhas);
   if (estado === 'disponivel' && item.recipienteId !== null) {
     return { error: 'Só se divide em recipientes o item com recipiente a definir.' };
   }
@@ -719,9 +760,9 @@ export function resolveResposta(
       return { error: 'Informe quantas estão no primeiro recipiente.' };
     }
     if (!principal.recipienteId) return { error: 'Escolha o recipiente em que a muda está.' };
-    // Com quantidade pedida, a primeira linha é "parte": as outras completam
+    // A primeira linha é "parte": as outras completam
     disponibilidade = {
-      disponivel: item.quantidade === null,
+      disponivel: false,
       quantidadeDisponivel: quantidade,
       recipienteDisponivelId: principal.recipienteId,
       alturaDisponivelM: null,
@@ -743,14 +784,12 @@ export function resolveResposta(
     complementos.push(resolvido.value);
   }
 
-  if (item.quantidade !== null) {
-    const soma = (principal.quantidade ?? 0) + complementos.reduce((total, linha) => total + linha.quantidade, 0);
-    if (soma > item.quantidade) return { error: `As linhas passam do pedido: são ${item.quantidade} mudas.` };
-    if (estado === 'disponivel' && soma < item.quantidade) {
-      return { error: `As linhas somam ${soma}, e o pedido é de ${item.quantidade} mudas. Se falta muda, use "Tem parte".` };
-    }
+  const soma = (principal.quantidade ?? 0) + complementos.reduce((total, linha) => total + linha.quantidade, 0);
+  if (soma > item.quantidade) return { error: `As linhas passam do pedido: são ${item.quantidade} mudas.` };
+  if (estado === 'disponivel' && soma < item.quantidade) {
+    return { error: `As linhas somam ${soma}, e o pedido é de ${item.quantidade} mudas. Se falta muda, use "Tem parte".` };
   }
-  return { value: { disponibilidade, complementos } };
+  return { value: { disponibilidade, complementos, suplentes: [] } };
 }
 
 /**

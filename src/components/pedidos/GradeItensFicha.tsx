@@ -33,6 +33,8 @@ export interface ItemDaFicha extends ItemParaAprovar {
   /** Peso do recipiente cheio, pedido e conferido (RN-65). Ausente é "sem peso". */
   pesoKg?: number | null;
   pesoDisponivelKg?: number | null;
+  /** O item que este completa (P13); no suplente, o item de que ele é reserva (P18). */
+  complementaItemId?: string | null;
 }
 
 /** O que a chefia digita na negociação, por item. Texto, porque os campos são controlados. */
@@ -50,6 +52,11 @@ interface GradeItensFichaProps {
   onAlterar?: (itemId: string, campo: keyof ValoresNegociacao, valor: string) => void;
   /** Na fase de aprovação a falta impede o próximo passo, e o "Definir" fica vermelho. */
   faltaBloqueia?: boolean;
+  /** P18: os outros recipientes em que a espécie do item sem quantidade também está. Fora de `itens`. */
+  suplentes?: readonly ItemDaFicha[];
+  /** Presente só na negociação: o suplente vira linha do pedido. */
+  onUsarSuplente?: (itemId: string) => void;
+  usandoSuplente?: boolean;
 }
 
 /** O recipiente pedido e o conferido, quando diferem: a chefia escolhe entre os dois. */
@@ -94,7 +101,16 @@ const CLASSE_CELULA_CAMPO =
  * Os valores mostrados já são os que a aprovação vai gravar: a quantidade que a
  * conferência achou no parcial e o recipiente conferido no lugar do pedido.
  */
-export function GradeItensFicha({ itens, saldos, valores, onAlterar, faltaBloqueia = false }: GradeItensFichaProps) {
+export function GradeItensFicha({
+  itens,
+  saldos,
+  valores,
+  onAlterar,
+  faltaBloqueia = false,
+  suplentes = [],
+  onUsarSuplente,
+  usandoSuplente = false,
+}: GradeItensFichaProps) {
   const negociando = valores !== undefined && onAlterar !== undefined;
   const comPreco = negociando || itens.some((item) => item.precoCentavos !== null);
 
@@ -183,6 +199,44 @@ export function GradeItensFicha({ itens, saldos, valores, onAlterar, faltaBloque
     </select>
   );
 
+  /**
+   * P18: o suplente não é linha: fica embaixo do item de que é reserva, com o
+   * saldo do recipiente dele, para a chefia decidir se usa quando combinar a
+   * quantidade e o primeiro recipiente não der conta.
+   */
+  const avisoSuplentes = (item: ItemDaFicha) => {
+    const doItem = suplentes.filter((suplente) => suplente.complementaItemId === item.id);
+    if (doItem.length === 0) return null;
+    return (
+      <span className="mt-1 flex flex-col gap-1.5">
+        {doItem.map((suplente) => {
+          const saldo =
+            suplente.especieId && suplente.recipienteId
+              ? saldoDoItem(saldos[chaveSaldo(suplente.especieId, suplente.recipienteId)], suplente.alturaM)
+              : undefined;
+          return (
+            <span key={suplente.id} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-amber-900">
+              <span>
+                ↳ Se faltar: também tem em <strong>{suplente.recipiente}</strong>
+                {saldo ? ` (${formatQuantidade(saldo.disponivel)} disponíveis)` : ''}
+              </span>
+              {onUsarSuplente && (
+                <button
+                  type="button"
+                  disabled={usandoSuplente}
+                  onClick={() => onUsarSuplente(suplente.id)}
+                  className="min-h-9 rounded-lg border-[1.5px] border-amber-600 bg-amber-50 px-3 text-sm font-bold text-amber-900 active:bg-amber-100 disabled:opacity-60"
+                >
+                  Usar {suplente.recipiente}
+                </button>
+              )}
+            </span>
+          );
+        })}
+      </span>
+    );
+  };
+
   const corDaLinha = (linha: (typeof linhas)[number]) =>
     linha.item.generico ? 'bg-blue-50' : linha.filho ? 'bg-gray-50' : '';
 
@@ -242,6 +296,7 @@ export function GradeItensFicha({ itens, saldos, valores, onAlterar, faltaBloque
                       {textoSaldo(linha.saldo, linha.item.quantidade)}
                     </span>
                   )}
+                  {avisoSuplentes(linha.item)}
                 </td>
                 <td className={`border-l border-line ${linha.opcoes.length > 1 ? 'p-0' : 'px-3 py-2.5'}`}>
                   {linha.opcoes.length > 1
@@ -290,6 +345,7 @@ export function GradeItensFicha({ itens, saldos, valores, onAlterar, faltaBloque
                 </span>
                 {!linha.editaQuantidade && <span className="text-base font-semibold text-ink">{textoQuantidade(linha)}</span>}
               </div>
+              {avisoSuplentes(linha.item)}
 
               {linha.edita ? (
                 <div className="grid grid-cols-2 gap-2">

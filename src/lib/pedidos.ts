@@ -142,6 +142,8 @@ export interface ItemPedido extends NovoItem {
   especificacao: string | null;
   /** O item que este completa em outro recipiente, na conferência (P13). Nulo é item pedido. */
   complementaItemId: string | null;
+  /** P18: o complemento do item sem quantidade, que só vira linha quando a chefia o usa. */
+  suplente: boolean;
   /** Peso do recipiente cheio, pedido e conferido (RN-65). Nulo é "sem peso no cadastro". */
   pesoKg: number | null;
   pesoDisponivelKg: number | null;
@@ -180,10 +182,11 @@ export interface FichaPedido extends Omit<PedidoResumo, 'itens' | 'totalCentavos
  * O item de topo com espécie; o genérico com quantidade, cujos filhos herdam o
  * preço dele; e o filho do genérico sem quantidade, que é a lista montada pela
  * gerência. O que a conferência disse que não tem nenhuma fica de fora: a
- * aprovação o tira do pedido.
+ * aprovação o tira do pedido. O suplente também (P18): não é linha até a chefia
+ * o usar.
  */
 export function itemVendavelSql(i: string): string {
-  return `(NOT (${i}.disponivel IS NOT DISTINCT FROM false AND ${i}.quantidade_disponivel IS NOT DISTINCT FROM 0)
+  return `(NOT ${i}.suplente AND NOT (${i}.disponivel IS NOT DISTINCT FROM false AND ${i}.quantidade_disponivel IS NOT DISTINCT FROM 0)
     AND CASE WHEN ${i}.item_pai_id IS NULL THEN (NOT ${i}.generico OR ${i}.quantidade IS NOT NULL)
              ELSE EXISTS (SELECT 1 FROM pedidos_itens pai WHERE pai.id = ${i}.item_pai_id AND pai.quantidade IS NULL)
         END)`;
@@ -222,7 +225,7 @@ export async function listPedidos(db: Db): Promise<PedidoResumo[]> {
     `SELECT p.id, p.numero_pedido AS numero, p.cliente_id AS "clienteId", c.nome AS cliente,
             p.canal_venda AS canal, p.situacao, p.criado_em AS "criadoEm",
             to_char(p.data_entrega, 'YYYY-MM-DD') AS "dataEntrega",
-            (SELECT COUNT(*)::int FROM pedidos_itens i WHERE i.pedido_id = p.id) AS itens,
+            (SELECT COUNT(*)::int FROM pedidos_itens i WHERE i.pedido_id = p.id AND NOT i.suplente) AS itens,
             -- O frete entra no total, e o total que é nulo continua nulo
             (${TOTAL_SQL} + ROUND(COALESCE(p.frete, 0) * 100)::bigint) AS "totalCentavos"
        FROM pedidos p
@@ -263,7 +266,7 @@ export async function listItens(db: Db, pedidoId: string): Promise<ItemPedido[]>
             i.altura_disponivel_m::float8 AS "alturaDisponivelM",
             i.observacoes_disponibilidade AS "observacoesDisponibilidade",
             i.generico, i.item_pai_id AS "itemPaiId", i.especificacao,
-            i.complementa_item_id AS "complementaItemId",
+            i.complementa_item_id AS "complementaItemId", i.suplente,
             r.peso_kg::float8 AS "pesoKg", rd.peso_kg::float8 AS "pesoDisponivelKg"
        FROM pedidos_itens i
        -- LEFT: o item genérico não tem espécie até a gerência compor
@@ -469,7 +472,8 @@ async function trocarIdentidade(client: Client, pedidoId: string, itemId: string
             quantidade_disponivel = CASE WHEN $6::boolean THEN NULL ELSE quantidade_disponivel END,
             recipiente_disponivel_id = CASE WHEN $6::boolean THEN NULL ELSE recipiente_disponivel_id END,
             altura_disponivel_m = CASE WHEN $6::boolean THEN NULL ELSE altura_disponivel_m END,
-            complementa_item_id = CASE WHEN $6::boolean THEN NULL ELSE complementa_item_id END
+            complementa_item_id = CASE WHEN $6::boolean THEN NULL ELSE complementa_item_id END,
+            suplente = suplente AND NOT $6::boolean
       WHERE id = $2 AND pedido_id = $1`,
     [pedidoId, itemId, nova.generico, nova.generico ? null : nova.especieId, especificacao, trocouEspecie],
   );
@@ -513,7 +517,8 @@ export async function atualizarItem(
             quantidade_disponivel = CASE WHEN x.mudou THEN NULL ELSE i.quantidade_disponivel END,
             recipiente_disponivel_id = CASE WHEN x.mudou THEN NULL ELSE i.recipiente_disponivel_id END,
             altura_disponivel_m = CASE WHEN x.mudou THEN NULL ELSE i.altura_disponivel_m END,
-            complementa_item_id = CASE WHEN x.mudou THEN NULL ELSE i.complementa_item_id END
+            complementa_item_id = CASE WHEN x.mudou THEN NULL ELSE i.complementa_item_id END,
+            suplente = i.suplente AND NOT x.mudou
        FROM (SELECT id, NOT generico
                     AND (quantidade IS DISTINCT FROM $3::int
                          OR altura_m IS DISTINCT FROM $4::numeric
@@ -622,6 +627,7 @@ interface ItemParaNegociar {
   quantidadeDisponivel: number | null;
   recipienteId: string | null;
   recipienteDisponivelId: string | null;
+  suplente: boolean;
 }
 
 /**
@@ -649,6 +655,27 @@ interface ItemParaNegociar {
  * atendem. Na lista montada (genérico sem quantidade) é o contrário: cada filho
  * é uma venda, com preço e quantidade próprios.
  */
+/**
+ * P18: a chefia combinou a quantidade e o primeiro recipiente não dá conta, e
+ * usa o suplente. Ele deixa de sê-lo e vira complemento comum: linha do pedido,
+ * com quantidade e preço a digitar na grade, como qualquer item.
+ */
+export async function usarSuplente(client: Client, pedidoId: string, itemId: string, autor: AutorDaMudanca): Promise<void> {
+  const pedido = await travarPedido(client, pedidoId);
+  if (!NEGOCIAVEIS.includes(pedido.situacao)) {
+    throw new UserError(
+      `O pedido ${pedido.numero} está em ${SITUACOES_PEDIDO[pedido.situacao].toLowerCase()}, ` +
+        'e o suplente se usa na negociação.',
+    );
+  }
+  if (autor.perfil === 'gerencia') throw new UserError('O suplente vira linha do pedido pela chefia.');
+  const { rowCount } = await client.query(
+    'UPDATE pedidos_itens SET suplente = false WHERE id = $2 AND pedido_id = $1 AND suplente',
+    [pedidoId, itemId],
+  );
+  if (!rowCount) throw new UserError('Este recipiente não é mais suplente neste pedido.');
+}
+
 /**
  * RN-64: o frete que a chefia combinou, gravado como o preço dos itens: na
  * negociação, e só por ela. Nulo é "sem frete". A origem fica junto, porque é
@@ -699,7 +726,7 @@ export async function negociarItens(
     const { rows } = await client.query<ItemParaNegociar>(
       `SELECT i.quantidade, i.generico, i.item_pai_id AS "itemPaiId", pai.quantidade AS "quantidadePai",
               i.disponivel, i.quantidade_disponivel AS "quantidadeDisponivel",
-              i.recipiente_id AS "recipienteId", i.recipiente_disponivel_id AS "recipienteDisponivelId"
+              i.recipiente_id AS "recipienteId", i.recipiente_disponivel_id AS "recipienteDisponivelId", i.suplente
          FROM pedidos_itens i
          LEFT JOIN pedidos_itens pai ON pai.id = i.item_pai_id
         WHERE i.id = $2 AND i.pedido_id = $1`,
@@ -712,6 +739,7 @@ export async function negociarItens(
       throw new UserError('Item não encontrado neste pedido.');
     }
 
+    if (item.suplente) throw new UserError('Este recipiente é suplente: toque em "Usar" para ele virar linha do pedido.');
     // O filho do genérico com quantidade não se negocia: preço e soma são do pai
     if (item.itemPaiId && item.quantidadePai !== null) {
       throw new UserError('Este item compõe um genérico, e se negocia pelo genérico.');
@@ -800,6 +828,9 @@ export async function confirmarPedido(
   autor: AutorDaMudanca,
   opcoes: { precisaNota?: boolean | null } = {},
 ): Promise<{ numero: number; removidos: number; ajustados: number }> {
+  // P18: o suplente que a chefia não usou não foi vendido, e não é item a contar
+  await client.query('DELETE FROM pedidos_itens WHERE pedido_id = $1 AND suplente', [pedidoId]);
+
   // Indisponível é `disponivel = false` com quantidade zero (T8.7)
   const apagados = await client.query(
     'DELETE FROM pedidos_itens WHERE pedido_id = $1 AND disponivel = false AND quantidade_disponivel = 0',
@@ -990,7 +1021,10 @@ export async function marcarDisponibilidade(
     recipienteId?: string | null;
     alturaM?: number | null;
     observacoes?: string | null;
-    /** P13, P17: as linhas que completam a resposta, cada uma em outro recipiente. Vazio é "sem complemento". */
+    /**
+     * P13, P17: as linhas que completam a resposta, cada uma em outro recipiente. Vazio é "sem complemento".
+     * No item sem quantidade, viram suplentes (P18).
+     */
     complementos?: readonly { quantidade: number | null; recipienteId: string | null; alturaM: number | null }[];
   } = {},
 ): Promise<void> {
@@ -1019,6 +1053,16 @@ export async function marcarDisponibilidade(
        SELECT pedido_id, especie_id, $3, $4, $5, false, true, id
          FROM pedidos_itens WHERE id = $2 AND pedido_id = $1`,
       [pedidoId, itemId, complemento.recipienteId, complemento.quantidade, complemento.alturaM],
+    );
+  }
+  // P18: o suplente só diz o recipiente; quantidade e preço vêm se a chefia o usar
+  for (const suplente of resolvida.value.suplentes) {
+    await client.query(
+      `INSERT INTO pedidos_itens
+         (pedido_id, especie_id, recipiente_id, altura_m, generico, disponivel, complementa_item_id, suplente)
+       SELECT pedido_id, especie_id, $3, altura_m, false, true, id, true
+         FROM pedidos_itens WHERE id = $2 AND pedido_id = $1`,
+      [pedidoId, itemId, suplente.recipienteId],
     );
   }
 

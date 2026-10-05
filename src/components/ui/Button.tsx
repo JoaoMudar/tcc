@@ -1,6 +1,6 @@
 import type { ButtonHTMLAttributes } from 'react';
 
-type Variant = 'primary' | 'secondary' | 'outline';
+type Variant = 'primary' | 'secondary' | 'outline' | 'danger';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
@@ -13,6 +13,8 @@ const VARIANTS: Record<Variant, string> = {
   primary: 'bg-brand text-white font-bold active:bg-brand-dark',
   secondary: 'bg-gray-100 text-gray-800 font-semibold active:bg-gray-200',
   outline: 'border-2 border-brand bg-white text-brand font-bold active:bg-brand-light',
+  /** Tirar, a antítese do "+": vermelho, para não ser tocado por engano. */
+  danger: 'border-2 border-red-600 bg-white text-red-700 font-bold active:bg-red-50',
 };
 
 /** Botão largo, com alvo de toque de 48px no mínimo (RNF-03). */

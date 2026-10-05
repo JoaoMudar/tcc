@@ -287,6 +287,26 @@ export async function negociarItensAction(_previous: FormState, formData: FormDa
 }
 
 /**
+ * P18: o suplente vira linha do pedido, com quantidade e preço a digitar. O
+ * guard é o da negociação, que é onde a chefia descobre que vai faltar.
+ */
+export async function usarSuplenteAction(_previous: FormState, formData: FormData): Promise<FormState> {
+  const user = await requirePermission('confirmacao_pedido', 'A');
+  const pedidoId = formText(formData, 'pedido_id');
+  const itemId = formText(formData, 'item_id');
+  if (!isUuid(pedidoId) || !isUuid(itemId)) return { error: 'Item inválido.' };
+  try {
+    await withTransaction(pool, (client) =>
+      pedidos.usarSuplente(client, pedidoId, itemId, { perfil: user.perfil, usuarioId: user.usuarioId }),
+    );
+  } catch (error) {
+    return { error: toUserMessage(error) };
+  }
+  revalidarPedidos(pedidoId);
+  return { success: 'O recipiente virou linha do pedido: digite a quantidade e o preço.' };
+}
+
+/**
  * RN-64: o frete combinado, gravado enquanto se digita, como o preço dos itens.
  * Em branco é "sem frete". O guard é o da negociação.
  */

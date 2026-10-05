@@ -289,12 +289,6 @@ describe('resolveComplemento: o "+" de "Tem parte" (P13)', () => {
       value: { quantidade: 200, recipienteId: 'saco', alturaM: 1.2 },
     });
   });
-
-  it('item sem quantidade pedida não se completa em "Tem parte"', () => {
-    expect(resolveResposta('parcial', item('R'), { quantidade: 30 }, [{ quantidade: 20, recipienteId: 'saco' }])).toEqual({
-      error: 'Só se completa o item que tem quantidade pedida.',
-    });
-  });
 });
 
 describe('resolveResposta: várias linhas (P17)', () => {
@@ -305,6 +299,7 @@ describe('resolveResposta: várias linhas (P17)', () => {
       value: {
         disponibilidade: { disponivel: true, quantidadeDisponivel: null, recipienteDisponivelId: 'saco', alturaDisponivelM: null },
         complementos: [],
+        suplentes: [],
       },
     });
   });
@@ -317,6 +312,7 @@ describe('resolveResposta: várias linhas (P17)', () => {
       value: {
         disponibilidade: { disponivel: false, quantidadeDisponivel: 200, recipienteDisponivelId: 'saco', alturaDisponivelM: null },
         complementos: [{ quantidade: 300, recipienteId: 'balde', alturaM: null }],
+        suplentes: [],
       },
     });
   });
@@ -341,16 +337,6 @@ describe('resolveResposta: várias linhas (P17)', () => {
       error: 'Informe quantas estão no primeiro recipiente.',
     });
     expect(resolveResposta('disponivel', semRecipiente, { quantidade: 200 }, [{ quantidade: 300, recipienteId: 'balde' }])).toHaveProperty('error');
-  });
-
-  it('item sem quantidade se divide em "Tem" sem teto', () => {
-    const resposta = resolveResposta('disponivel', item(''), { quantidade: 20, recipienteId: 'saco' }, [{ quantidade: 30, recipienteId: 'balde' }]);
-    expect(resposta).toEqual({
-      value: {
-        disponibilidade: { disponivel: true, quantidadeDisponivel: 20, recipienteDisponivelId: 'saco', alturaDisponivelM: null },
-        complementos: [{ quantidade: 30, recipienteId: 'balde', alturaM: null }],
-      },
-    });
   });
 
   it('"Tem parte" com três linhas, até o pedido', () => {
@@ -378,6 +364,51 @@ describe('resolveResposta: várias linhas (P17)', () => {
 
   it('"Não tem" não se divide', () => {
     expect(resolveResposta('indisponivel', semRecipiente, {}, [{ quantidade: 1, recipienteId: 'saco' }])).toHaveProperty('error');
+  });
+});
+
+describe('resolveResposta: suplentes do item sem quantidade (P18)', () => {
+  it('"Tem" com outro recipiente: a primeira linha é a resposta, e a outra é suplente, sem quantidade', () => {
+    expect(resolveResposta('disponivel', item(''), { recipienteId: 'saco' }, [{ recipienteId: 'balde' }])).toEqual({
+      value: {
+        disponibilidade: { disponivel: true, quantidadeDisponivel: null, recipienteDisponivelId: 'saco', alturaDisponivelM: null },
+        complementos: [],
+        suplentes: [{ recipienteId: 'balde' }],
+      },
+    });
+  });
+
+  it('a quantidade que vier na linha extra não vira linha nem soma', () => {
+    const resposta = resolveResposta('disponivel', item(''), { quantidade: 20, recipienteId: 'saco' }, [
+      { quantidade: 30, recipienteId: 'balde' },
+    ]);
+    expect(resposta).toHaveProperty('value.disponibilidade.quantidadeDisponivel', 20);
+    expect(resposta).toHaveProperty('value.complementos', []);
+    expect(resposta).toHaveProperty('value.suplentes', [{ recipienteId: 'balde' }]);
+  });
+
+  it('"Tem parte" de item sem quantidade também guarda suplente', () => {
+    expect(resolveResposta('parcial', item('R'), { recipienteId: 'saco' }, [{ recipienteId: 'balde' }])).toHaveProperty(
+      'value.suplentes',
+      [{ recipienteId: 'balde' }],
+    );
+  });
+
+  it('o suplente precisa de recipiente, diferente do da primeira linha e dos outros', () => {
+    expect(resolveResposta('disponivel', item(''), { recipienteId: 'saco' }, [{}])).toEqual({
+      error: 'Escolha o outro recipiente em que também tem.',
+    });
+    expect(resolveResposta('disponivel', item(''), { recipienteId: 'saco' }, [{ recipienteId: 'saco' }])).toHaveProperty('error');
+    expect(resolveResposta('disponivel', item('R'), {}, [{ recipienteId: 'tubete' }])).toHaveProperty('error');
+    expect(
+      resolveResposta('disponivel', item(''), { recipienteId: 'saco' }, [{ recipienteId: 'balde' }, { recipienteId: 'balde' }]),
+    ).toEqual({ error: 'O mesmo recipiente apareceu duas vezes: tire uma das linhas.' });
+  });
+
+  it('a primeira linha continua exigindo o recipiente', () => {
+    expect(resolveResposta('disponivel', item(''), {}, [{ recipienteId: 'balde' }])).toEqual({
+      error: 'Escolha o recipiente em que a muda está.',
+    });
   });
 });
 

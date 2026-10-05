@@ -32,6 +32,7 @@ import {
   salvarFrete,
   salvarObservacoesVerificacao,
   totalPedido,
+  usarSuplente,
 } from '../pedidos';
 import { insertClienteRapido } from '../pessoas';
 import { insertRecipiente } from '../recipientes';
@@ -1204,6 +1205,70 @@ describe('conferência por tipo de item (P12, 20260925000001)', () => {
       [20, tubete, 300],
       [30, saco, 900],
     ]);
+  });
+
+  it('P18: o item sem quantidade guarda o outro recipiente como suplente, que não é linha e sai na aprovação', async () => {
+    const { id } = await novoPedido({ itens: [{ especieId: especie, recipienteId: null, quantidade: null, precoCentavos: null }] });
+    const [item] = await listItens(pool, id);
+    await tx((c) =>
+      marcarDisponibilidade(c, id, item.id, 'disponivel', gerencia(), {
+        recipienteId: tubete,
+        complementos: [{ quantidade: null, recipienteId: saco, alturaM: null }],
+      }),
+    );
+    const suplente = (await listItens(pool, id)).find((i) => i.complementaItemId === item.id)!;
+    expect(suplente).toMatchObject({ suplente: true, recipienteId: saco, quantidade: null, precoCentavos: null });
+    // A lista conta uma espécie, e não duas
+    expect((await listPedidos(pool)).find((p) => p.id === id)?.itens).toBe(1);
+
+    const { resumo } = await tx((c) => concluirVerificacao(c, id, gerencia()));
+    expect(resumo).toBe('1 de 1 disponíveis.');
+    // O suplente não se negocia, e a falta dele não segura a aprovação
+    await expect(tx((c) => negociarItens(c, id, [soPreco(suplente.id, 900)], chefia()))).rejects.toThrow(/suplente/);
+    await tx((c) => negociarItens(c, id, [{ itemId: item.id, precoCentavos: 300, quantidade: 100, recipienteId: null }], chefia()));
+    await tx((c) => confirmarPedido(c, id, chefia()));
+    const aprovados = await listItens(pool, id);
+    expect(aprovados.map((i) => [i.quantidade, i.recipienteId, i.precoCentavos])).toEqual([[100, tubete, 300]]);
+  });
+
+  it('P18: o suplente usado vira linha, com quantidade e preço da chefia', async () => {
+    const { id } = await novoPedido({ itens: [{ especieId: especie, recipienteId: null, quantidade: null, precoCentavos: null }] });
+    const [item] = await listItens(pool, id);
+    await tx((c) =>
+      marcarDisponibilidade(c, id, item.id, 'disponivel', gerencia(), {
+        recipienteId: tubete,
+        complementos: [{ quantidade: null, recipienteId: saco, alturaM: null }],
+      }),
+    );
+    await tx((c) => concluirVerificacao(c, id, gerencia()));
+    const suplente = (await listItens(pool, id)).find((i) => i.complementaItemId === item.id)!;
+    await expect(tx((c) => usarSuplente(c, id, suplente.id, gerencia()))).rejects.toThrow(/chefia/);
+    await tx((c) => usarSuplente(c, id, suplente.id, chefia()));
+    await expect(tx((c) => usarSuplente(c, id, suplente.id, chefia()))).rejects.toThrow(/não é mais suplente/);
+
+    await tx((c) =>
+      negociarItens(
+        c,
+        id,
+        [
+          { itemId: item.id, precoCentavos: 300, quantidade: 100, recipienteId: null },
+          { itemId: suplente.id, precoCentavos: 900, quantidade: 40, recipienteId: null },
+        ],
+        chefia(),
+      ),
+    );
+    await tx((c) => confirmarPedido(c, id, chefia()));
+    const aprovados = (await listItens(pool, id)).sort((a, b) => b.quantidade! - a.quantidade!);
+    expect(aprovados.map((i) => [i.quantidade, i.recipienteId, i.precoCentavos])).toEqual([
+      [100, tubete, 300],
+      [40, saco, 900],
+    ]);
+  });
+
+  it('P18: o CHECK recusa suplente com quantidade ou sem o item que completa', async () => {
+    const { id } = await novoPedido({ itens: [{ especieId: especie, recipienteId: tubete, quantidade: 10, precoCentavos: null }] });
+    const [item] = await listItens(pool, id);
+    await expect(pool.query('UPDATE pedidos_itens SET suplente = true WHERE id = $1', [item.id])).rejects.toThrow();
   });
 
   it('responder de novo sem o "+" apaga o complemento', async () => {
