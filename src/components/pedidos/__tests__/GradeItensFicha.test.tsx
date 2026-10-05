@@ -161,12 +161,14 @@ describe('item dividido em recipientes: título com subitens', () => {
     expect(screen.getAllByText('Temos 40 de 50')[0].className).toMatch(/amber/);
   });
 
-  it('"Tem tudo" dividido: o recipiente que o cliente não disse fica a definir no título', () => {
+  it('"Tem tudo" dividido: o recipiente que o cliente não disse fica em branco no título', () => {
     const semRecipiente = { ...principal, recipienteId: null, recipiente: null };
     render(<GradeItensFicha itens={[semRecipiente, complemento]} saldos={{}} />);
-    const [titulo] = linhasDaTabela();
-    expect(titulo[1]).toBe('A definir');
-    expect(screen.queryByText('Definir')).toBeNull();
+    const [titulo, linhaPrincipal] = linhasDaTabela();
+    expect(titulo[1]).toBe('');
+    expect(linhaPrincipal[1]).toBe('Tubete');
+    expect(screen.queryByText(/definir/i)).toBeNull();
+    expect(screen.queryByText(/^Pedido:/)).toBeNull();
   });
 
   it('a parte sem complemento continua uma linha só', () => {

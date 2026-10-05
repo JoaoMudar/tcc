@@ -322,8 +322,9 @@ export function GradeItensFicha({
     <span className={`block text-sm font-semibold ${titulo.completo ? 'text-green-800' : 'text-amber-800'}`}>{titulo.temos}</span>
   );
 
-  // O que o cliente pediu: o recipiente que ele não disse fica a definir, sem cobrar nada
-  const recipientePedido = (titulo: Titulo) => titulo.item.recipiente ?? <span className="text-muted">A definir</span>;
+  // O que o cliente pediu, no celular. O recipiente que ele não disse fica em branco: quem o define é o subitem
+  const textoPedido = (titulo: Titulo) =>
+    [titulo.item.recipiente, titulo.item.alturaM ? formatAltura(titulo.item.alturaM) : null].filter(Boolean).join(' · ');
 
   return (
     <>
@@ -377,7 +378,7 @@ export function GradeItensFicha({
                     {textoTemosDo(linha.titulo)}
                     {avisoSuplentes(linha.titulo.item)}
                   </td>
-                  <td className="border-l border-line px-3 py-2.5">{recipientePedido(linha.titulo)}</td>
+                  <td className="border-l border-line px-3 py-2.5">{linha.titulo.item.recipiente}</td>
                   <td className="border-l border-line px-3 py-2.5">
                     {linha.titulo.item.alturaM ? formatAltura(linha.titulo.item.alturaM) : null}
                   </td>
@@ -440,10 +441,9 @@ export function GradeItensFicha({
                 <div className="grid grid-cols-[1fr_auto] items-start gap-x-3">
                   <span className="flex min-w-0 flex-col gap-0.5">
                     <span className="text-base font-semibold text-ink">{linha.titulo.nome}</span>
-                    <span className="flex flex-wrap items-center gap-x-1 text-sm text-muted">
-                      Pedido: {recipientePedido(linha.titulo)}
-                      {linha.titulo.item.alturaM ? <span>· {formatAltura(linha.titulo.item.alturaM)}</span> : null}
-                    </span>
+                    {textoPedido(linha.titulo) && (
+                      <span className="text-sm text-muted">Pedido: {textoPedido(linha.titulo)}</span>
+                    )}
                   </span>
                   {linha.titulo.item.quantidade !== null && (
                     <span className="text-base font-semibold text-ink">{formatQuantidade(linha.titulo.item.quantidade)}</span>
