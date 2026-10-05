@@ -30,6 +30,9 @@ export interface ItemDaFicha extends ItemParaAprovar {
   especificacao: string | null;
   disponivel: boolean | null;
   quantidadeDisponivel: number | null;
+  /** Peso do recipiente cheio, pedido e conferido (RN-65). Ausente é "sem peso". */
+  pesoKg?: number | null;
+  pesoDisponivelKg?: number | null;
 }
 
 /** O que a chefia digita na negociação, por item. Texto, porque os campos são controlados. */

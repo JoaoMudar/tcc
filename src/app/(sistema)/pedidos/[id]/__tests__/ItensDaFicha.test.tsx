@@ -1,7 +1,14 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ItemDaFicha } from '@/components/pedidos/GradeItensFicha';
-import { adicionarItemAction, atualizarItemAction, negociarItensAction, removerItemAction } from '../../actions';
+import {
+  adicionarItemAction,
+  atualizarItemAction,
+  negociarItensAction,
+  removerItemAction,
+  salvarFreteAction,
+  sugerirFreteAction,
+} from '../../actions';
 import { ATRASO_GRAVACAO_MS, ItensDaFicha } from '../ItensDaFicha';
 
 vi.mock('../../actions', () => ({
@@ -9,6 +16,8 @@ vi.mock('../../actions', () => ({
   atualizarItemAction: vi.fn(async () => ({ success: 'ok' })),
   removerItemAction: vi.fn(async () => ({ success: 'ok' })),
   negociarItensAction: vi.fn(async () => ({ success: 'Negociação salva.' })),
+  salvarFreteAction: vi.fn(async () => ({ success: 'Frete salvo.' })),
+  sugerirFreteAction: vi.fn(async () => ({ centavos: 7000, distanciaKm: 85 })),
   confirmarPedidoAction: vi.fn(async () => ({})),
   transicionarPedidoAction: vi.fn(async () => ({})),
 }));
@@ -163,5 +172,87 @@ describe('ItensDaFicha: o orçamento edita a grade do cadastro, gravando ao digi
     });
     expect(removerItemAction).toHaveBeenCalledTimes(1);
     expect(vi.mocked(removerItemAction).mock.calls[0][1].get('item_id')).toBe('b');
+  });
+});
+
+describe('ItensDaFicha: o fechamento do pedido (RF-67)', () => {
+  function negociacao(itens = [item({ precoCentavos: 300, pesoKg: 0.35 })], frete?: { centavos: number | null }) {
+    return render(
+      <ItensDaFicha
+        pedidoId="p1"
+        modo="negociacao"
+        itens={itens}
+        saldos={{}}
+        proximoPasso={{ ...PASSO, situacao: 'verificado' }}
+        frete={frete ? { centavos: frete.centavos, origem: null, distanciaKm: null } : undefined}
+      />,
+    );
+  }
+
+  it('a linha final soma as mudas, o frete e mostra o peso', () => {
+    negociacao(undefined, { centavos: 5000 });
+    const fechamento = screen.getByRole('region', { name: 'Fechamento do pedido' });
+    // 100 × R$ 3,00 = R$ 300,00; com R$ 50,00 de frete, R$ 350,00
+    expect(fechamento.textContent).toMatch(/300,00/);
+    expect(fechamento.textContent).toMatch(/350,00/);
+    expect(fechamento.textContent).toContain('≈ 35 kg');
+  });
+
+  it('o total acompanha o frete digitado, e o frete grava quando a digitação para', async () => {
+    negociacao();
+    fireEvent.change(screen.getByLabelText('Frete'), { target: { value: '80,00' } });
+    expect(screen.getByRole('region', { name: 'Fechamento do pedido' }).textContent).toMatch(/380,00/);
+    await esperarGravacao();
+    const enviado = vi.mocked(salvarFreteAction).mock.calls[0][1];
+    expect(enviado.get('frete')).toBe('80,00');
+    expect(enviado.get('frete_origem')).toBe('agrolandia');
+  });
+
+  it('"Sugerir" pede a conta da origem escolhida e preenche o campo', async () => {
+    negociacao();
+    fireEvent.click(screen.getByLabelText('Itapema'));
+    await act(async () => {
+      fireEvent.click(screen.getByText('Sugerir frete pela distância'));
+    });
+    expect(sugerirFreteAction).toHaveBeenCalledWith('p1', 'itapema');
+    expect((screen.getByLabelText('Frete') as HTMLInputElement).value).toBe('70,00');
+    expect(screen.getByText(/85 km, ida e volta/)).toBeTruthy();
+  });
+
+  it('o aviso da sugestão aparece, e o campo fica como estava', async () => {
+    vi.mocked(sugerirFreteAction).mockResolvedValueOnce({ error: 'O cliente não tem endereço de entrega. Digite o frete combinado.' });
+    negociacao();
+    await act(async () => {
+      fireEvent.click(screen.getByText('Sugerir frete pela distância'));
+    });
+    expect(screen.getByText(/não tem endereço de entrega/)).toBeTruthy();
+    expect((screen.getByLabelText('Frete') as HTMLInputElement).value).toBe('');
+  });
+
+  it('item sem peso no recipiente é avisado', () => {
+    negociacao([item({ precoCentavos: 300, pesoKg: null })]);
+    expect(screen.getByText('1 item sem peso')).toBeTruthy();
+  });
+
+  it('o peso usa o recipiente conferido, quando é nele que a muda vai', () => {
+    negociacao([
+      item({ precoCentavos: 300, pesoKg: 0.35, recipienteDisponivelId: 's', recipienteDisponivel: 'Saco', pesoDisponivelKg: 2 }),
+    ]);
+    expect(screen.getByRole('region', { name: 'Fechamento do pedido' }).textContent).toContain('≈ 200 kg');
+  });
+
+  it('na leitura, o frete não é campo', () => {
+    render(
+      <ItensDaFicha
+        pedidoId="p1"
+        modo="leitura"
+        itens={[item({ precoCentavos: 300 })]}
+        saldos={{}}
+        proximoPasso={{ ...PASSO, situacao: 'aprovado' }}
+        frete={{ centavos: null, origem: null, distanciaKm: null }}
+      />,
+    );
+    expect(screen.queryByLabelText('Frete')).toBeNull();
+    expect(screen.getByText('sem frete')).toBeTruthy();
   });
 });

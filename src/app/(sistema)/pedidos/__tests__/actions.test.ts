@@ -433,3 +433,60 @@ describe('cancelamento (T8.5)', () => {
     expect(gravou).toEqual([]);
   });
 });
+
+describe('frete do pedido (RN-64)', () => {
+  function gravouFrete() {
+    return client.query.mock.calls.filter(([sql]) => String(sql).includes('UPDATE pedidos SET frete'));
+  }
+
+  it('a chefia grava o frete digitado, em reais, com a origem', async () => {
+    emSituacao('verificado');
+    const state = await actions.salvarFreteAction({}, form({ pedido_id: PEDIDO, frete: '84,50', frete_origem: 'itapema' }));
+    expect(state.error).toBeUndefined();
+    expect(gravouFrete().map(([, valores]) => valores)).toEqual([[PEDIDO, '84.50', 'itapema']]);
+  });
+
+  it('frete em branco é "sem frete"', async () => {
+    emSituacao('verificado');
+    await actions.salvarFreteAction({}, form({ pedido_id: PEDIDO, frete: '', frete_origem: '' }));
+    expect(gravouFrete().map(([, valores]) => valores)).toEqual([[PEDIDO, null, null]]);
+  });
+
+  it('valor que não é dinheiro e origem desconhecida são recusados antes do banco', async () => {
+    expect((await actions.salvarFreteAction({}, form({ pedido_id: PEDIDO, frete: 'oitenta' }))).error).toMatch(/84,00/);
+    expect((await actions.salvarFreteAction({}, form({ pedido_id: PEDIDO, frete: '10', frete_origem: 'blumenau' }))).error).toMatch(
+      /origem/i,
+    );
+    expectNoDatabase();
+  });
+
+  it('a gerência não digita frete', async () => {
+    loggedAs('gerencia');
+    emSituacao('verificado');
+    const state = await actions.salvarFreteAction({}, form({ pedido_id: PEDIDO, frete: '50' }));
+    expect(state.error).toBeTruthy();
+    expect(gravouFrete()).toEqual([]);
+  });
+
+  it('pedido aprovado não muda o frete', async () => {
+    emSituacao('aprovado');
+    const state = await actions.salvarFreteAction({}, form({ pedido_id: PEDIDO, frete: '50' }));
+    expect(state.error).toMatch(/depois da conferência/);
+    expect(gravouFrete()).toEqual([]);
+  });
+
+  it('a sugestão recusa origem desconhecida antes do banco', async () => {
+    await expect(actions.sugerirFreteAction(PEDIDO, 'blumenau')).resolves.toEqual({ error: 'Origem do frete inválida.' });
+    expectNoDatabase();
+  });
+
+  it('cliente sem endereço de entrega: a sugestão avisa, e nada consulta o mapa', async () => {
+    vi.mocked(pool.query).mockResolvedValueOnce({
+      rows: [{ situacao: 'verificado', numero: 1, enderecoId: null, logradouro: null, cidade: null, uf: null, lat: null, lng: null }],
+      rowCount: 1,
+    } as never);
+    await expect(actions.sugerirFreteAction(PEDIDO, 'agrolandia')).resolves.toEqual({
+      error: 'O cliente não tem endereço de entrega. Digite o frete combinado.',
+    });
+  });
+});

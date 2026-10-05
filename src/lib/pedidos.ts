@@ -17,6 +17,7 @@ import {
   resolveResposta,
   validarComposicaoGenerico,
 } from './pedidos-rotulos';
+import type { OrigemFrete } from './frete';
 import type { Db } from './sql';
 
 export {
@@ -141,6 +142,9 @@ export interface ItemPedido extends NovoItem {
   especificacao: string | null;
   /** O item que este completa em outro recipiente, na conferência (P13). Nulo é item pedido. */
   complementaItemId: string | null;
+  /** Peso do recipiente cheio, pedido e conferido (RN-65). Nulo é "sem peso no cadastro". */
+  pesoKg: number | null;
+  pesoDisponivelKg: number | null;
 }
 
 export interface PedidoResumo {
@@ -161,6 +165,11 @@ export interface FichaPedido extends Omit<PedidoResumo, 'itens' | 'totalCentavos
   clienteTelefone: string | null;
   observacoes: string | null;
   criadoPor: string;
+  /** RN-64: o frete combinado, em centavos. Nulo é "sem frete". */
+  freteCentavos: number | null;
+  freteOrigem: OrigemFrete | null;
+  /** Distância de ida da última sugestão de frete, em km. */
+  freteDistanciaKm: number | null;
   itens: ItemPedido[];
 }
 
@@ -214,7 +223,8 @@ export async function listPedidos(db: Db): Promise<PedidoResumo[]> {
             p.canal_venda AS canal, p.situacao, p.criado_em AS "criadoEm",
             to_char(p.data_entrega, 'YYYY-MM-DD') AS "dataEntrega",
             (SELECT COUNT(*)::int FROM pedidos_itens i WHERE i.pedido_id = p.id) AS itens,
-            ${TOTAL_SQL} AS "totalCentavos"
+            -- O frete entra no total, e o total que é nulo continua nulo
+            (${TOTAL_SQL} + ROUND(COALESCE(p.frete, 0) * 100)::bigint) AS "totalCentavos"
        FROM pedidos p
        JOIN cadastro.pessoas c ON c.id = p.cliente_id
       ORDER BY p.numero_pedido DESC
@@ -229,7 +239,9 @@ export async function findPedido(db: Db, id: string): Promise<FichaPedido | null
     `SELECT p.id, p.numero_pedido AS numero, p.cliente_id AS "clienteId", c.nome AS cliente,
             c.telefone AS "clienteTelefone", p.canal_venda AS canal, p.situacao, p.criado_em AS "criadoEm",
             to_char(p.data_entrega, 'YYYY-MM-DD') AS "dataEntrega", p.observacoes,
-            u.nome_exibicao AS "criadoPor"
+            u.nome_exibicao AS "criadoPor",
+            ROUND(p.frete * 100)::int AS "freteCentavos", p.frete_origem AS "freteOrigem",
+            p.frete_distancia_km::float8 AS "freteDistanciaKm"
        FROM pedidos p
        JOIN cadastro.pessoas c ON c.id = p.cliente_id
        JOIN usuarios u ON u.id = p.criado_por
@@ -251,7 +263,8 @@ export async function listItens(db: Db, pedidoId: string): Promise<ItemPedido[]>
             i.altura_disponivel_m::float8 AS "alturaDisponivelM",
             i.observacoes_disponibilidade AS "observacoesDisponibilidade",
             i.generico, i.item_pai_id AS "itemPaiId", i.especificacao,
-            i.complementa_item_id AS "complementaItemId"
+            i.complementa_item_id AS "complementaItemId",
+            r.peso_kg::float8 AS "pesoKg", rd.peso_kg::float8 AS "pesoDisponivelKg"
        FROM pedidos_itens i
        -- LEFT: o item genérico não tem espécie até a gerência compor
        LEFT JOIN especies e ON e.id = i.especie_id
@@ -590,7 +603,7 @@ export async function listHistorico(db: Db, pedidoId: string): Promise<LinhaHist
 }
 
 /** As situações em que se negocia: depois da conferência, antes da aprovação. */
-const NEGOCIAVEIS: readonly SituacaoPedido[] = ['verificado', 'pendente_alteracao'];
+export const NEGOCIAVEIS: readonly SituacaoPedido[] = ['verificado', 'pendente_alteracao'];
 
 /** Uma linha da negociação. Campo nulo é "não mexe"; quantidade zero tira o item. */
 export interface LinhaNegociacao {
@@ -636,6 +649,32 @@ interface ItemParaNegociar {
  * atendem. Na lista montada (genérico sem quantidade) é o contrário: cada filho
  * é uma venda, com preço e quantidade próprios.
  */
+/**
+ * RN-64: o frete que a chefia combinou, gravado como o preço dos itens: na
+ * negociação, e só por ela. Nulo é "sem frete". A origem fica junto, porque é
+ * ela que diz de onde a sugestão foi calculada.
+ */
+export async function salvarFrete(
+  client: Client,
+  pedidoId: string,
+  frete: { centavos: number | null; origem: OrigemFrete | null },
+  autor: AutorDaMudanca,
+): Promise<void> {
+  const pedido = await travarPedido(client, pedidoId);
+  if (!NEGOCIAVEIS.includes(pedido.situacao)) {
+    throw new UserError(
+      `O pedido ${pedido.numero} está em ${SITUACOES_PEDIDO[pedido.situacao].toLowerCase()}, ` +
+        'e o frete se combina depois da conferência.',
+    );
+  }
+  if (autor.perfil === 'gerencia') throw new UserError('O frete do pedido é digitado pela chefia.');
+  await client.query('UPDATE pedidos SET frete = $2, frete_origem = COALESCE($3, frete_origem) WHERE id = $1', [
+    pedidoId,
+    frete.centavos === null ? null : centavosParaSql(frete.centavos),
+    frete.origem,
+  ]);
+}
+
 export async function negociarItens(
   client: Client,
   pedidoId: string,

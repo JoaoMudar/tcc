@@ -29,6 +29,7 @@ import {
   mudarSituacao,
   negociarItens,
   removerItem,
+  salvarFrete,
   salvarObservacoesVerificacao,
   totalPedido,
 } from '../pedidos';
@@ -157,6 +158,27 @@ describe('cadastro do pedido (T8.1, RF-54, RF-55)', () => {
     // A lista soma no SQL, e tem de dar o mesmo que a soma dos itens
     expect(naLista.totalCentavos).toBe(totalPedido(ficha.itens));
     expect(naLista.itens).toBe(3);
+  });
+
+  it('P17: o frete entra no total da carteira e volta na ficha (RN-64)', async () => {
+    const { id } = await novoPedido();
+    await pool.query("UPDATE pedidos SET situacao = 'verificado' WHERE id = $1", [id]);
+    await tx((c) => salvarFrete(c, id, { centavos: 8450, origem: 'itapema' }, chefia()));
+
+    const ficha = (await findPedido(pool, id))!;
+    expect(ficha).toMatchObject({ freteCentavos: 8450, freteOrigem: 'itapema' });
+    const naLista = (await listPedidos(pool)).find((p) => p.id === id)!;
+    expect(naLista.totalCentavos).toBe(totalPedido(ficha.itens)! + 8450);
+
+    await expect(tx((c) => salvarFrete(c, id, { centavos: 100, origem: null }, gerencia()))).rejects.toThrow(/chefia/);
+  });
+
+  it('P17: o item traz o peso do recipiente cheio (RN-65)', async () => {
+    await pool.query('UPDATE recipientes SET peso_kg = 0.35 WHERE id = $1', [tubete]);
+    const { id } = await novoPedido();
+    const item = (await listItens(pool, id)).find((i) => i.recipienteId === tubete)!;
+    expect(item.pesoKg).toBe(0.35);
+    await expect(pool.query('UPDATE recipientes SET peso_kg = 0 WHERE id = $1', [tubete])).rejects.toThrow(/peso_positivo/);
   });
 
   it('o pedido sem preço não vale zero na carteira: o total é indefinido', async () => {

@@ -8,8 +8,8 @@ sempre editável; peso do recipiente cheio, fixo no cadastro de recipientes.
 - [x] T2. Conferência: complemento vira lista; "Tem tudo" de item com recipiente a definir se divide em vários recipientes
 - [x] T3. Migration `20261005000001_pedido_frete_e_peso.sql`: `recipientes.peso_kg`, `pedidos.frete`, `frete_origem`, `frete_distancia_km`, parâmetros do frete, trigger da coordenada
 - [x] T4. Recipientes: campo de peso cheio no cadastro
-- [ ] T5. `frete.ts` (sugestão e peso), `distanciaDeCarro` no ORS, `sugerirFreteAction`
-- [ ] T6. Ficha: rodapé com subtotal, frete, total e peso; frete gravado na negociação; lista soma o frete
+- [x] T5. `frete.ts` (sugestão e peso), `distanciaDeCarro` no ORS, `sugerirFreteAction`
+- [x] T6. Ficha: rodapé com subtotal, frete, total e peso; frete gravado na negociação; lista soma o frete
 - [ ] T7. Planejar: volta do carregamento para a rota; passos do cabeçalho clicáveis
 - [ ] T8. Rota: tocar o cliente sem endereço abre o endereço de entrega; `writeEnderecos` preserva a coordenada
 - [ ] T9. Localização do WhatsApp: `lerLocalizacao`, link curto, reverse geocode; campo no cadastro
