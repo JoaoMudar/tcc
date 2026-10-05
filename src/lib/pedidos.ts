@@ -6,7 +6,6 @@ import { lerQuantidade } from './lotes-rotulos';
 import type { Perfil } from './perfis';
 import {
   type CanalVenda,
-  type ComplementoConferido,
   type EstadoDisponibilidade,
   type ItemParaResponder,
   type LinhaComposicao,
@@ -15,8 +14,8 @@ import {
   centavosParaSql,
   podeTransicionar,
   quantidadeConfirmada,
-  resolveComplemento,
   resolveDisponibilidade,
+  resolveResposta,
   validarComposicaoGenerico,
 } from './pedidos-rotulos';
 import type { Db } from './sql';
@@ -29,6 +28,7 @@ export {
   SITUACOES_PEDIDO,
   TRANSICOES,
   alturaParaCampo,
+  estadoComComplementos,
   estadoDaResposta,
   estadoDoGenerico,
   filtraPedidosPorCliente,
@@ -46,6 +46,7 @@ export {
   quantidadeConfirmada,
   resolveComplemento,
   resolveDisponibilidade,
+  resolveResposta,
   totalItem,
   totalPedido,
   transicoesDe,
@@ -55,6 +56,7 @@ export {
   type CanalVenda,
   type ComplementoConferido,
   type EstadoDaResposta,
+  type RespostaConferida,
   type EstadoDisponibilidade,
   type ItemParaResponder,
   type LinhaComposicao,
@@ -950,8 +952,8 @@ export async function marcarDisponibilidade(
     recipienteId?: string | null;
     alturaM?: number | null;
     observacoes?: string | null;
-    /** P13: a segunda linha de "Tem parte", em outro recipiente. Ausente é "sem complemento". */
-    complemento?: { quantidade: number | null; recipienteId: string | null; alturaM: number | null } | null;
+    /** P13, P17: as linhas que completam a resposta, cada uma em outro recipiente. Vazio é "sem complemento". */
+    complementos?: readonly { quantidade: number | null; recipienteId: string | null; alturaM: number | null }[];
   } = {},
 ): Promise<void> {
   await abrirOuExigirVerificacao(client, pedidoId, autor);
@@ -964,22 +966,14 @@ export async function marcarDisponibilidade(
     throw new UserError('Este item completa outro: responda no item que ele completa.');
   }
 
-  const resolvida = resolveDisponibilidade(estado, item, extras);
+  const resolvida = resolveResposta(estado, item, extras, extras.complementos ?? []);
   if ('error' in resolvida) throw new UserError(resolvida.error);
-  const { disponivel, quantidadeDisponivel, recipienteDisponivelId, alturaDisponivelM } = resolvida.value;
+  const { disponivel, quantidadeDisponivel, recipienteDisponivelId, alturaDisponivelM } = resolvida.value.disponibilidade;
 
-  let complemento: ComplementoConferido | null = null;
-  if (extras.complemento) {
-    if (estado !== 'parcial') throw new UserError('Só "Tem parte" se completa com outro recipiente.');
-    const resolvido = resolveComplemento(item, extras, extras.complemento);
-    if ('error' in resolvido) throw new UserError(resolvido.error);
-    complemento = resolvido.value;
-  }
-
-  // Responder de novo é decidir de novo, como na composição do genérico: o
-  // complemento anterior sai, e volta só se a resposta nova o trouxer
+  // Responder de novo é decidir de novo, como na composição do genérico: os
+  // complementos anteriores saem, e voltam só se a resposta nova os trouxer
   await client.query('DELETE FROM pedidos_itens WHERE complementa_item_id = $2 AND pedido_id = $1', [pedidoId, itemId]);
-  if (complemento) {
+  for (const complemento of resolvida.value.complementos) {
     // Sem preço: saco diferente tem preço diferente, e é a chefia quem o digita
     await client.query(
       `INSERT INTO pedidos_itens
@@ -1144,9 +1138,14 @@ export async function concluirVerificacao(
   const { rows } = await client.query<ResumoVerificacao>(
     `SELECT COUNT(*) FILTER (WHERE disponivel IS NULL)::int          AS pendentes,
             COUNT(*)::int                                            AS total,
-            COUNT(*) FILTER (WHERE disponivel AND NOT generico)::int AS disponiveis,
+            -- P17: "Tem tudo" dividido grava a primeira linha como parte, e é
+            -- disponível quando ela e os complementos fecham o pedido
+            COUNT(*) FILTER (WHERE NOT generico AND (disponivel OR (
+              recipiente_id IS NULL AND quantidade = quantidade_disponivel + (
+                SELECT COALESCE(SUM(c.quantidade), 0) FROM pedidos_itens c WHERE c.complementa_item_id = i.id))))::int
+                                                                     AS disponiveis,
             COUNT(*) FILTER (WHERE generico)::int                    AS genericos
-       FROM pedidos_itens
+       FROM pedidos_itens i
       -- O complemento é parte da resposta do item que ele completa, e não item conferido
       WHERE pedido_id = $1 AND item_pai_id IS NULL AND complementa_item_id IS NULL`,
     [pedidoId],

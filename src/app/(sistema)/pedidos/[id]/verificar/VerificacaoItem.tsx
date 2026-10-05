@@ -12,12 +12,11 @@ import {
   type EstadoDisponibilidade,
   type Pergunta,
   alturaParaCampo,
-  estadoDaResposta,
+  estadoComComplementos,
   formatAltura,
   parseAltura,
   perguntasDoItem,
-  resolveComplemento,
-  resolveDisponibilidade,
+  resolveResposta,
 } from '@/lib/pedidos-rotulos';
 import { marcarDisponibilidadeAction } from './actions';
 import { BotoesResposta, type Resposta } from './BotoesResposta';
@@ -41,13 +40,16 @@ export interface ItemParaConferir {
   recipienteDisponivel: string | null;
   alturaDisponivelM: number | null;
   observacoesDisponibilidade: string | null;
-  /** P13: o item que completa este em outro recipiente, gravado com "Tem parte". */
-  complemento: {
+  /**
+   * P13, P17: os itens que completam este em outros recipientes, gravados com
+   * "Tem parte" ou com "Tem tudo" dividido.
+   */
+  complementos: {
     quantidade: number | null;
     recipienteId: string | null;
     recipiente: string | null;
     alturaM: number | null;
-  } | null;
+  }[];
 }
 
 interface VerificacaoItemProps {
@@ -81,14 +83,30 @@ function camposIniciais(item: ItemParaConferir, resposta: Resposta, gravada: Est
   return { quantidade: contada ?? '', recipienteId: (mesma && item.recipienteDisponivelId) || '', altura: '' };
 }
 
-/** O complemento gravado volta aberto quando a pessoa reabre o "Tem parte". */
-function complementoInicial(item: ItemParaConferir, resposta: Resposta | null, gravada: EstadoDaResposta): Campos | null {
-  if (resposta !== 'parte' || gravada !== 'parte' || !item.complemento) return null;
-  return {
-    quantidade: item.complemento.quantidade === null ? '' : String(item.complemento.quantidade),
-    recipienteId: item.complemento.recipienteId ?? '',
-    altura: alturaParaCampo(item.complemento.alturaM),
-  };
+/** Os complementos gravados voltam abertos quando a pessoa reabre a mesma resposta. */
+function complementosIniciais(item: ItemParaConferir, resposta: Resposta | null, gravada: EstadoDaResposta): Campos[] {
+  if (resposta === null || resposta === 'nao_tem' || resposta !== gravada) return [];
+  return item.complementos.map((linha) => ({
+    quantidade: linha.quantidade === null ? '' : String(linha.quantidade),
+    recipienteId: linha.recipienteId ?? '',
+    altura: alturaParaCampo(linha.alturaM),
+  }));
+}
+
+/** "Tem tudo" dividido pergunta, em cada linha, quantas e em que recipiente. */
+const PERGUNTAS_DA_DIVISAO: readonly Pergunta[] = [
+  { campo: 'quantidade', obrigatorio: true },
+  { campo: 'recipiente', obrigatorio: true },
+];
+
+function emLinha(quantidade: number | null, recipiente: string | null, alturaM: number | null): string {
+  return [
+    quantidade === null ? null : formatQuantidade(quantidade),
+    recipiente ? `em ${recipiente}` : null,
+    alturaM === null ? null : formatAltura(alturaM),
+  ]
+    .filter(Boolean)
+    .join(', ');
 }
 
 function respostaGravada(gravada: EstadoDaResposta): Resposta | null {
@@ -101,6 +119,11 @@ function respostaGravada(gravada: EstadoDaResposta): Resposta | null {
  * única resposta que tem número e recipiente que nenhum botão mostra.
  */
 function resumoDaResposta(item: ItemParaConferir, gravada: EstadoDaResposta): string | undefined {
+  const outras = item.complementos.map((linha) => ` + ${emLinha(linha.quantidade, linha.recipiente, linha.alturaM)}`).join('');
+  // "Tem tudo" dividido: o botão cheio não diz em quais recipientes
+  if (gravada === 'tudo' && item.complementos.length > 0) {
+    return `Tem tudo: ${emLinha(item.quantidadeDisponivel, item.recipienteDisponivel, null)}${outras}`;
+  }
   if (gravada !== 'parte') return undefined;
   const emRecipiente = item.recipienteDisponivel ? `em ${item.recipienteDisponivel}` : null;
   const quantas =
@@ -110,16 +133,7 @@ function resumoDaResposta(item: ItemParaConferir, gravada: EstadoDaResposta): st
         ? formatQuantidade(item.quantidadeDisponivel)
         : `${formatQuantidade(item.quantidadeDisponivel)} de ${formatQuantidade(item.quantidade)}`;
   const partes = [quantas, emRecipiente, item.alturaDisponivelM === null ? null : formatAltura(item.alturaDisponivelM)];
-  const complemento = item.complemento
-    ? ` + ${[
-        item.complemento.quantidade === null ? null : formatQuantidade(item.complemento.quantidade),
-        item.complemento.recipiente ? `em ${item.complemento.recipiente}` : null,
-        item.complemento.alturaM === null ? null : formatAltura(item.complemento.alturaM),
-      ]
-        .filter(Boolean)
-        .join(', ')}`
-    : '';
-  return `Tem parte: ${partes.filter(Boolean).join(', ')}${complemento}`;
+  return `Tem parte: ${partes.filter(Boolean).join(', ')}${outras}`;
 }
 
 /** O que o campo diz, como número: vazio é nulo, e o que não se entende é erro. */
@@ -142,11 +156,15 @@ function lerCampos(valores: Campos): { error: string } | { value: { quantidade: 
  * tem", "Tem tudo" no item completo); com painel, cada campo grava ao sair dele.
  *
  * P13: **o cartão pinta no toque**, e "Tem parte" tem o "+", que abre uma
- * segunda linha para completar o pedido em outro recipiente.
+ * linha para completar o pedido em outro recipiente.
+ *
+ * P17: o "+" abre quantas linhas a pessoa quiser, e aparece também em "Tem
+ * tudo" quando o cliente não disse o recipiente: as 50 podem estar 20 num saco
+ * e 30 noutro.
  */
 export function VerificacaoItem({ pedidoId, item, recipientes }: VerificacaoItemProps) {
   const [state, formAction, pending] = useActionState(marcarDisponibilidadeAction, EMPTY_FORM_STATE);
-  const gravada = estadoDaResposta(item);
+  const gravada = estadoComComplementos(item, item.complementos);
   const perguntas = perguntasDoItem(item);
 
   const [aberta, setAberta] = useState<Resposta | null>(() => {
@@ -156,32 +174,33 @@ export function VerificacaoItem({ pedidoId, item, recipientes }: VerificacaoItem
   // O último botão tocado: "Não tem" não abre painel, e o cartão tem de pintar mesmo assim
   const [tocada, setTocada] = useState<Resposta | null>(null);
   const [campos, setCampos] = useState<Campos>(() => (aberta ? camposIniciais(item, aberta, gravada) : VAZIOS));
-  const [complemento, setComplemento] = useState<Campos | null>(() => complementoInicial(item, aberta, gravada));
+  const [complementos, setComplementos] = useState<Campos[]>(() => complementosIniciais(item, aberta, gravada));
   const [observacao, setObservacao] = useState(item.observacoesDisponibilidade ?? '');
   const [aviso, setAviso] = useState<string | null>(null);
   // O que já está no banco: sair do campo sem mudar nada não regrava
   const gravado = useRef<string | null>(
-    aberta && gravada === aberta ? JSON.stringify([aberta, campos, complemento, observacao]) : null,
+    aberta && gravada === aberta ? JSON.stringify([aberta, campos, complementos, observacao]) : null,
   );
 
-  function validar(resposta: Resposta, valores: Campos, extra: Campos | null): string | null {
+  function validar(resposta: Resposta, valores: Campos, extras: readonly Campos[]): string | null {
     if (resposta === 'nao_tem') return null;
     const lidos = lerCampos(valores);
     if ('error' in lidos) return lidos.error;
+    const linhas = [];
+    for (const extra of extras) {
+      const lido = lerCampos(extra);
+      if ('error' in lido) return `No complemento: ${lido.error.toLowerCase()}`;
+      linhas.push({ ...lido.value, recipienteId: extra.recipienteId || null });
+    }
     const principal = { ...lidos.value, recipienteId: valores.recipienteId || null };
-    const resolvida = resolveDisponibilidade(ESTADO_DA_RESPOSTA[resposta], item, principal);
-    if ('error' in resolvida) return resolvida.error;
-    if (!extra) return null;
-    const lidoExtra = lerCampos(extra);
-    if ('error' in lidoExtra) return `No complemento: ${lidoExtra.error.toLowerCase()}`;
-    const resolvido = resolveComplemento(item, principal, { ...lidoExtra.value, recipienteId: extra.recipienteId || null });
-    return 'error' in resolvido ? resolvido.error : null;
+    const resolvida = resolveResposta(ESTADO_DA_RESPOSTA[resposta], item, principal, linhas);
+    return 'error' in resolvida ? resolvida.error : null;
   }
 
-  function enviar(resposta: Resposta, valores: Campos, extra: Campos | null, opcoes: { silencioso?: boolean } = {}) {
-    // Só "Tem parte" se completa
-    const comComplemento = resposta === 'parte' ? extra : null;
-    const valida = validar(resposta, valores, comComplemento);
+  function enviar(resposta: Resposta, valores: Campos, extras: readonly Campos[], opcoes: { silencioso?: boolean } = {}) {
+    // "Não tem" não se completa
+    const linhas = resposta === 'nao_tem' ? [] : extras;
+    const valida = validar(resposta, valores, linhas);
     if (valida) {
       // "Nada difere" não vira aviso: o painel abre igual ao pedido, e a frase aparecia antes de a pessoa mexer
       if (!opcoes.silencioso && valida !== NADA_DIFERE) setAviso(valida);
@@ -189,7 +208,7 @@ export function VerificacaoItem({ pedidoId, item, recipientes }: VerificacaoItem
     }
     setAviso(null);
 
-    const chave = JSON.stringify([resposta, valores, comComplemento, observacao]);
+    const chave = JSON.stringify([resposta, valores, linhas, observacao]);
     // Repetir só vale se o banco já tem exatamente isto: depois de erro, vai de novo
     if (chave === gravado.current && !state.error) return;
     gravado.current = chave;
@@ -201,11 +220,11 @@ export function VerificacaoItem({ pedidoId, item, recipientes }: VerificacaoItem
     dados.set('quantidade', valores.quantidade);
     dados.set('recipiente_id', valores.recipienteId);
     dados.set('altura', valores.altura);
-    if (comComplemento) {
-      dados.set('complemento_quantidade', comComplemento.quantidade);
-      dados.set('complemento_recipiente_id', comComplemento.recipienteId);
-      dados.set('complemento_altura', comComplemento.altura);
-    }
+    linhas.forEach((linha, n) => {
+      dados.set(`complemento_${n}_quantidade`, linha.quantidade);
+      dados.set(`complemento_${n}_recipiente_id`, linha.recipienteId);
+      dados.set(`complemento_${n}_altura`, linha.altura);
+    });
     dados.set('observacoes', observacao);
     startTransition(() => formAction(dados));
   }
@@ -216,48 +235,58 @@ export function VerificacaoItem({ pedidoId, item, recipientes }: VerificacaoItem
     const pergunta = resposta === 'parte' ? perguntas.parte : resposta === 'tudo' ? perguntas.tudo : [];
     if (pergunta.length === 0) {
       setAberta(null);
-      setComplemento(null);
-      enviar(resposta, VAZIOS, null);
+      setComplementos([]);
+      enviar(resposta, VAZIOS, []);
       return;
     }
     const iniciais = camposIniciais(item, resposta, gravada);
-    const extra = complementoInicial(item, resposta, gravada);
+    const extras = complementosIniciais(item, resposta, gravada);
     setAberta(resposta);
     setCampos(iniciais);
-    setComplemento(extra);
+    setComplementos(extras);
     // "Tem" com pergunta só opcional já é resposta: grava no toque, e o número vem se vier
-    if (resposta === 'tudo') enviar(resposta, iniciais, null, { silencioso: true });
+    if (resposta === 'tudo') enviar(resposta, iniciais, extras, { silencioso: true });
   }
 
   function alterar(campo: keyof Campos, valor: string, gravar = false) {
     const proximos = { ...campos, [campo]: valor };
     setCampos(proximos);
-    if (gravar && aberta) enviar(aberta, proximos, complemento);
+    if (gravar && aberta) enviar(aberta, proximos, complementos);
   }
 
-  function alterarComplemento(campo: keyof Campos, valor: string, gravar = false) {
-    if (!complemento) return;
-    const proximo = { ...complemento, [campo]: valor };
-    setComplemento(proximo);
-    if (gravar && aberta) enviar(aberta, campos, proximo);
+  function alterarComplemento(indice: number, campo: keyof Campos, valor: string, gravar = false) {
+    const proximos = complementos.map((linha, n) => (n === indice ? { ...linha, [campo]: valor } : linha));
+    setComplementos(proximos);
+    if (gravar && aberta) enviar(aberta, campos, proximos);
   }
 
   function abrirComplemento() {
     // Já vem com o que falta para fechar o pedido: a pessoa só escolhe o recipiente
-    const principal = lerQuantidade(campos.quantidade.trim()) ?? 0;
-    const falta = item.quantidade === null ? 0 : item.quantidade - principal;
-    setComplemento({ quantidade: falta > 0 ? String(falta) : '', recipienteId: '', altura: alturaParaCampo(item.alturaM) });
+    const contadas = [campos, ...complementos].reduce((total, linha) => total + (lerQuantidade(linha.quantidade.trim()) ?? 0), 0);
+    const falta = item.quantidade === null || contadas === 0 ? 0 : item.quantidade - contadas;
+    const altura = aberta === 'tudo' ? '' : alturaParaCampo(item.alturaM);
+    setComplementos([...complementos, { quantidade: falta > 0 ? String(falta) : '', recipienteId: '', altura }]);
   }
 
-  function tirarComplemento() {
-    setComplemento(null);
-    if (aberta) enviar(aberta, campos, null);
+  function tirarComplemento(indice: number) {
+    const proximos = complementos.filter((_, n) => n !== indice);
+    setComplementos(proximos);
+    // "Tem tudo" sem divisão não pergunta quantas: o número que ficou não vale mais
+    const valores = aberta === 'tudo' && proximos.length === 0 && item.quantidade !== null ? { ...campos, quantidade: '' } : campos;
+    setCampos(valores);
+    if (aberta) enviar(aberta, valores, proximos);
   }
 
-  const lista: readonly Pergunta[] = aberta === 'parte' ? perguntas.parte : aberta === 'tudo' ? perguntas.tudo : [];
+  // "Tem tudo" só se divide quando o cliente não disse o recipiente
+  const podeDividir = aberta === 'tudo' && item.recipienteId === null;
+  const dividida = podeDividir && complementos.length > 0;
+  const basicas: readonly Pergunta[] = aberta === 'parte' ? perguntas.parte : aberta === 'tudo' ? perguntas.tudo : [];
+  // Dividido, a primeira linha também diz quantas
+  const lista = dividida && !basicas.some((p) => p.campo === 'quantidade') ? [PERGUNTAS_DA_DIVISAO[0], ...basicas] : basicas;
+  const perguntasDaLinha = aberta === 'tudo' ? PERGUNTAS_DA_DIVISAO : perguntas.parte;
   const selecionada = aberta ?? tocada ?? respostaGravada(gravada);
-  // Completar só faz sentido com quantidade pedida: sem ela, não há o que falte
-  const podeCompletar = aberta === 'parte' && item.quantidade !== null;
+  // "Tem parte" só se completa com quantidade pedida: sem ela, não há o que falte
+  const podeCompletar = (aberta === 'parte' && item.quantidade !== null) || podeDividir;
 
   return (
     <li className={`flex flex-col gap-3 rounded-xl border-2 p-4 ${COR_DO_ESTADO[selecionada ?? 'pendente']}`}>
@@ -282,26 +311,29 @@ export function VerificacaoItem({ pedidoId, item, recipientes }: VerificacaoItem
             onAlterar={alterar}
           />
 
-          {podeCompletar && complemento && (
-            <fieldset className="flex flex-col gap-3 rounded-lg border border-line p-3">
-              <legend className="px-1 text-sm font-semibold text-muted">Complemento</legend>
-              <CamposConferidos
-                perguntas={perguntas.parte}
-                valores={complemento}
-                recipientes={recipientes}
-                pedido={item}
-                prefixo="complemento_"
-                onAlterar={alterarComplemento}
-              />
-              <Button variant="secondary" onClick={tirarComplemento}>
-                Tirar complemento
-              </Button>
-            </fieldset>
-          )}
+          {podeCompletar &&
+            complementos.map((linha, n) => (
+              <fieldset key={n} className="flex flex-col gap-3 rounded-lg border border-line p-3">
+                <legend className="px-1 text-sm font-semibold text-muted">
+                  {aberta === 'tudo' ? `Outro recipiente ${n + 1}` : `Complemento ${complementos.length > 1 ? n + 1 : ''}`.trim()}
+                </legend>
+                <CamposConferidos
+                  perguntas={perguntasDaLinha}
+                  valores={linha}
+                  recipientes={recipientes}
+                  pedido={item}
+                  prefixo={`complemento_${n}_`}
+                  onAlterar={(campo, valor, gravar) => alterarComplemento(n, campo, valor, gravar)}
+                />
+                <Button variant="secondary" onClick={() => tirarComplemento(n)}>
+                  {aberta === 'tudo' ? 'Tirar este recipiente' : 'Tirar complemento'}
+                </Button>
+              </fieldset>
+            ))}
 
-          {podeCompletar && !complemento && (
+          {podeCompletar && (
             <Button variant="outline" onClick={abrirComplemento}>
-              + Completar com outro recipiente
+              {aberta === 'tudo' ? '+ Dividir em outro recipiente' : '+ Completar com outro recipiente'}
             </Button>
           )}
 
@@ -318,8 +350,8 @@ export function VerificacaoItem({ pedidoId, item, recipientes }: VerificacaoItem
           // A observação vai junto da resposta: com resposta gravada, regrava a mesma
           const resposta = respostaGravada(gravada);
           if (!resposta) return;
-          if (aberta === resposta) enviar(resposta, campos, complemento);
-          else enviar(resposta, camposIniciais(item, resposta, gravada), complementoInicial(item, resposta, gravada));
+          if (aberta === resposta) enviar(resposta, campos, complementos);
+          else enviar(resposta, camposIniciais(item, resposta, gravada), complementosIniciais(item, resposta, gravada));
         }}
       />
 

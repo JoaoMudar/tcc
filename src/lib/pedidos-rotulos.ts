@@ -654,16 +654,16 @@ export function resolveComplemento(
   principal: { quantidade?: number | null; recipienteId?: string | null; alturaM?: number | null },
   complemento: { quantidade?: number | null; recipienteId?: string | null; alturaM?: number | null },
 ): { error: string } | { value: ComplementoConferido } {
-  if (item.quantidade === null) return { error: 'Só se completa o item que tem quantidade pedida.' };
   const quantidade = complemento.quantidade ?? null;
   if (quantidade === null || quantidadeInvalida(quantidade)) {
     return { error: 'Informe quantas mudas completam, um número inteiro maior que zero.' };
   }
   if (!complemento.recipienteId) return { error: 'Escolha o recipiente do complemento.' };
 
+  // Sem quantidade pedida não há teto: o cliente não disse quantas
   const soma = (principal.quantidade ?? 0) + quantidade;
-  if (soma > item.quantidade) {
-    return { error: `As duas linhas passam do pedido: são ${item.quantidade} mudas.` };
+  if (item.quantidade !== null && soma > item.quantidade) {
+    return { error: `As linhas passam do pedido: são ${item.quantidade} mudas.` };
   }
 
   const alturaPrincipal = item.alturaM === null ? null : (principal.alturaM ?? item.alturaM);
@@ -674,6 +674,97 @@ export function resolveComplemento(
   }
 
   return { value: { quantidade, recipienteId: complemento.recipienteId, alturaM: altura } };
+}
+
+type LinhaInformada = { quantidade?: number | null; recipienteId?: string | null; alturaM?: number | null };
+
+/** A resposta inteira de um item: as colunas dele e as linhas que o completam. */
+export interface RespostaConferida {
+  disponibilidade: Disponibilidade;
+  complementos: ComplementoConferido[];
+}
+
+/**
+ * P17: a resposta com quantas linhas a pessoa abrir. Sem linha extra, é
+ * `resolveDisponibilidade`, como sempre.
+ *
+ * - **"Tem parte"** se completa com uma ou mais linhas, cada uma em outro
+ *   recipiente, e a soma vai até o pedido.
+ * - **"Tem tudo" se divide só no item com recipiente a definir**: o cliente
+ *   pediu 50 sem dizer o saco, e o viveiro tem 20 num e 30 noutro. A soma tem de
+ *   ser o pedido. A primeira linha grava como "tem 20 das 50" (a forma que o
+ *   CHECK `disponibilidade_coerente` já aceita), e as outras viram complementos.
+ *   Item sem quantidade não tem soma a conferir.
+ */
+export function resolveResposta(
+  estado: EstadoDisponibilidade,
+  item: ItemParaResponder,
+  principal: LinhaInformada,
+  linhas: readonly LinhaInformada[] = [],
+): { error: string } | { value: RespostaConferida } {
+  if (linhas.length === 0) {
+    const resolvida = resolveDisponibilidade(estado, item, principal);
+    return 'error' in resolvida ? resolvida : { value: { disponibilidade: resolvida.value, complementos: [] } };
+  }
+  if (estado === 'indisponivel') return { error: 'Quem não tem não se divide em recipientes.' };
+  if (estado === 'parcial' && item.quantidade === null) return { error: 'Só se completa o item que tem quantidade pedida.' };
+  if (estado === 'disponivel' && item.recipienteId !== null) {
+    return { error: 'Só se divide em recipientes o item com recipiente a definir.' };
+  }
+
+  let disponibilidade: Disponibilidade;
+  if (estado === 'disponivel') {
+    const quantidade = principal.quantidade ?? null;
+    if (quantidade === null || quantidadeInvalida(quantidade)) {
+      return { error: 'Informe quantas estão no primeiro recipiente.' };
+    }
+    if (!principal.recipienteId) return { error: 'Escolha o recipiente em que a muda está.' };
+    // Com quantidade pedida, a primeira linha é "parte": as outras completam
+    disponibilidade = {
+      disponivel: item.quantidade === null,
+      quantidadeDisponivel: quantidade,
+      recipienteDisponivelId: principal.recipienteId,
+      alturaDisponivelM: null,
+    };
+  } else {
+    const resolvida = resolveDisponibilidade(estado, item, principal);
+    if ('error' in resolvida) return resolvida;
+    disponibilidade = resolvida.value;
+  }
+
+  const complementos: ComplementoConferido[] = [];
+  for (const linha of linhas) {
+    const resolvido = resolveComplemento(item, principal, linha);
+    if ('error' in resolvido) return resolvido;
+    const repetida = complementos.some(
+      (outra) => outra.recipienteId === resolvido.value.recipienteId && outra.alturaM === resolvido.value.alturaM,
+    );
+    if (repetida) return { error: 'Duas linhas no mesmo recipiente: some as duas numa só.' };
+    complementos.push(resolvido.value);
+  }
+
+  if (item.quantidade !== null) {
+    const soma = (principal.quantidade ?? 0) + complementos.reduce((total, linha) => total + linha.quantidade, 0);
+    if (soma > item.quantidade) return { error: `As linhas passam do pedido: são ${item.quantidade} mudas.` };
+    if (estado === 'disponivel' && soma < item.quantidade) {
+      return { error: `As linhas somam ${soma}, e o pedido é de ${item.quantidade} mudas. Se falta muda, use "Tem parte".` };
+    }
+  }
+  return { value: { disponibilidade, complementos } };
+}
+
+/**
+ * P17: "Tem tudo" dividido grava a primeira linha como parte, e quem a lê de
+ * volta precisa somar os complementos para saber que era tudo.
+ */
+export function estadoComComplementos(
+  item: Parameters<typeof estadoDaResposta>[0] & { quantidade: number | null },
+  complementos: readonly { quantidade: number | null }[],
+): EstadoDaResposta {
+  const estado = estadoDaResposta(item);
+  if (estado !== 'parte' || item.recipienteId !== null || item.quantidade === null || complementos.length === 0) return estado;
+  const soma = (item.quantidadeDisponivel ?? 0) + complementos.reduce((total, linha) => total + (linha.quantidade ?? 0), 0);
+  return soma === item.quantidade ? 'tudo' : estado;
 }
 
 /** Como a tela pinta o item: branco é o que ainda não foi olhado. */
