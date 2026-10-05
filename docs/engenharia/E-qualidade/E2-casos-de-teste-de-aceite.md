@@ -182,6 +182,7 @@ qualquer implementação do motor tem de reproduzir.
 | **TA-71** | RF-59 | Pedido cadastrado com três itens | 1. Conferir o primeiro como disponível<br>2. Conferir o segundo como disponível em parte, em outro recipiente<br>3. Conferir o terceiro como indisponível | As três respostas ficam gravadas, e a do segundo guarda a quantidade encontrada e o recipiente | Não executado |
 | **TA-72** | RF-59 | Pedido em conferência, com um item sem resposta | 1. Enviar o pedido para a chefia | O envio é recusado, e o pedido continua em *verificando* | Não executado |
 | **TA-85** | RF-59 | Pedido com 50 mudas de uma espécie, com o recipiente a definir | 1. Responder "Tem tudo"<br>2. Dividir em outro recipiente: 20 em saco 10x18 e 30 em saco 17x22<br>3. Tentar trocar a segunda linha para 20<br>4. Voltar a 30, concluir a conferência e aprovar o pedido com preço nas duas linhas | O passo 3 é recusado, porque as linhas somam 40 e o pedido é de 50; a conferência conta o item como disponível; o pedido aprovado tem dois itens, 20 em saco 10x18 e 30 em saco 17x22, cada um com o seu preço | Não executado |
+| **TA-89** | RF-59 | Pedido com uma espécie sem quantidade e sem recipiente | 1. Responder "Tem" em saco 20x26 e, com o "+", também em saco 17x22<br>2. Concluir a conferência e abrir a ficha como chefia<br>3. Digitar a quantidade e o preço do item e tocar em "Usar Saco 17x22"<br>4. Aprovar o pedido sem preço no segundo item, e depois com ele | No passo 1 nenhuma linha pede quantidade; a ficha mostra um item só, com "Se faltar: também tem em Saco 17x22" e o saldo; o passo 3 cria a segunda linha, que a aprovação cobra; sem o "Usar", a aprovação leva só o primeiro item e apaga o suplente | Não executado |
 | **TA-73** | RF-60 | Item de quinhentas mudas pedido sem espécie, com duas espécies aceitas pelo cliente | 1. Compor com uma espécie fora das aceitas<br>2. Compor com trezentas de uma aceita e duzentas da outra | A primeira composição é recusada, e a segunda é aceita | Não executado |
 | **TA-74** | RF-57 | Pedido verificado com um item indisponível e um disponível em parte | 1. Aprovar o pedido<br>2. Conferir os itens que restaram | O indisponível sai do pedido, e o parcial passa a valer pela quantidade, pelo recipiente e pela altura encontrados | Não executado |
 | **TA-75** | RF-61 | Pedido aprovado, dividido em duas cargas | 1. Separar os itens da primeira carga e fechá-la<br>2. Separar os itens da segunda e fechá-la | O pedido só passa a *pronto para envio* ao fechar a segunda carga | Não executado |
@@ -250,10 +251,10 @@ requisitos de prioridade *deve ter* sem verificação correspondente.
 | Agenda da semana | 9 | RF-26, RF-27, RF-28, RF-29, RF-30, RF-31 |
 | Protocolo de atividades por lote | 14 | RF-22, RF-23, RF-24, RF-25, RF-40, RF-46, RF-47, RF-48, RF-49, RF-50, RF-51, RF-52, RF-53, RF-66 |
 | Mapa de lotes | 2 | RF-44, RF-45 |
-| Clientes e pedidos | 19 | RF-15, RF-17, RF-54, RF-55, RF-57, RF-58, RF-59, RF-60, RF-61, RF-62, RF-63, RF-64, RF-67 |
+| Clientes e pedidos | 20 | RF-15, RF-17, RF-54, RF-55, RF-57, RF-58, RF-59, RF-60, RF-61, RF-62, RF-63, RF-64, RF-67 |
 | Requisitos não funcionais | 7 | RNF-01, RNF-02, RNF-05, RNF-06, RNF-08, RNF-09, RNF-11, RNF-14 |
 | Casos acrescentados pela matriz de rastreabilidade | 12 | RF-05, RF-11, RF-18, RF-26, RF-28, RF-29, RF-39, RF-41, RF-43, RF-56, RF-65, RNF-14 |
-| **Total** | **88** | **62 dos 62 requisitos de prioridade *deve ter*** |
+| **Total** | **89** | **62 dos 62 requisitos de prioridade *deve ter*** |
 
 **Todos os requisitos de prioridade *deve ter* têm caso de aceite.**
 

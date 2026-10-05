@@ -1035,6 +1035,7 @@ planejamento da viagem (RN-59), que muda o pedido sem mudar a situação.
 | `item_pai_id` | uuid | ○ | FK → `pedidos_itens` | Item genérico que este filho compõe. Nulo no item de topo |
 | `especificacao` | text | ○ | | Observação do item genérico: o que o cliente pediu, em texto. Só no item genérico, e opcional |
 | `complementa_item_id` | uuid | ○ | FK → `pedidos_itens` | Item que este completa em outro recipiente, no "Tem parte" com o "+" (P13). Nasce da mesma espécie, já respondido e sem preço, que a chefia digita. **Nulo é "item pedido pelo cliente"**. Apagado junto com o item que completa (`ON DELETE CASCADE`) |
+| `suplente` | boolean | ● | | Complemento do item sem quantidade (P18): outro recipiente em que a espécie também está, guardado para o caso de faltar quando a chefia combinar a quantidade. **Não é linha do orçamento** até a chefia o usar, quando perde a marca; o que sobra é apagado na aprovação. Padrão falso |
 
 **Restrições:** a altura, quando existe, vai de zero exclusive até 20 metros; item genérico não tem
 espécie, e item não genérico tem; só o item genérico tem `especificacao`; item genérico não tem pai, o
@@ -1046,7 +1047,8 @@ zero, ou `disponivel` verdadeiro sem número ("tem", sem contar). O genérico co
 sem número, com ou sem quantidade; o genérico em "Tem parte" com falta usa a forma do item com
 quantidade, falso com a soma da composição. `recipiente_disponivel_id` e `altura_disponivel_m` não
 existem quando `quantidade_disponivel` é zero. O complemento (`complementa_item_id`) é item com
-espécie e de topo: não é genérico nem filho, e não completa a si mesmo.
+espécie e de topo: não é genérico nem filho, e não completa a si mesmo. O suplente é complemento sem
+quantidade e sem preço.
 
 > **O preço é digitado, e o sistema não o calcula.** Não há referência a tabela de preço, piso
 > mínimo nem margem: o valor é o que foi negociado na conversa com o cliente, e ao sistema cabe

@@ -145,7 +145,7 @@ As seções seguem as **três áreas de negócio** do sistema, na mesma ordem da
 | RF-56 | UC-32 | *derivada* de `lotes` | Estoque disponível | TA-64, TA-81 |
 | RF-57 | UC-33, UC-35 | `pedidos` | Confirmação de pedido | TA-53, TA-74 |
 | RF-58 | UC-34 | `pedidos` | Pedidos | TA-54 |
-| RF-59 | UC-35 | `pedidos_itens` | Verificação de pedido | TA-71, TA-72, TA-85 |
+| RF-59 | UC-35 | `pedidos_itens` | Verificação de pedido | TA-71, TA-72, TA-85, TA-89 |
 | RF-60 | UC-36 | `pedidos_itens`, `pedidos_itens_especies_permitidas` | Verificação de pedido | TA-73 |
 | RF-61 | UC-37, UC-38 | `pedidos_cargas`, `pedidos_cargas_itens` | Cargas do pedido | TA-75 |
 | RF-62 | UC-38 | *derivada* de `pedidos` e `pedidos_cargas` | Cargas do pedido | TA-76 |

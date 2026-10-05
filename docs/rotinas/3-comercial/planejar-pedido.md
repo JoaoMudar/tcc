@@ -39,7 +39,7 @@ não volta.
 ### 1. Carga
 
 - No topo, fixos, os pedidos já na carga: cliente, cidade e logradouro, e um item por linha
-  (`Ipê-amarelo · 300 · 1,20 m`), com "Tirar" em cada pedido.
+  (`Ipê-amarelo · 300 · 1,20 m`), com um X vermelho em cada pedido para tirá-lo, a antítese do "+" verde que o põe.
 - Abaixo, duas listas: **Marcados para este dia** e **Em aberto**, de qualquer data ou sem data.
 - **Entra pedido de aprovado para cima** (RN-59): *aprovado*, *separando* ou *pronto para envio*. O
   cartão do que já está separando ou pronto diz a situação.

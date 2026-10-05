@@ -3,6 +3,19 @@
 Uma entrada por migration nova, como pede o `CLAUDE.md`. As migrations até `20260901000008` são o
 schema inicial em português e estão descritas no `C8`.
 
+## 06/10/2026 · `20261006000001_pedido_item_suplente.sql`
+
+- **`pedidos_itens.suplente`** (RF-59, RN-54): booleano, falso por padrão. Marca o complemento do
+  item sem quantidade, que guarda outro recipiente em que a espécie também está. Não é linha do
+  orçamento: não pede quantidade nem preço, não entra no total nem no peso, e é apagado na
+  aprovação se a chefia não o usar. Usado, perde a marca e vira complemento comum.
+- **CHECK `pedidos_itens_suplente_sem_linha`**: o suplente aponta para o item que completa, e não
+  tem quantidade nem preço.
+- Compatível: coluna nova com padrão falso, e nenhuma linha muda de sentido.
+- Na mesma alteração, fora do banco: o cadastro de recipientes grava ao digitar, sem botão, com
+  volume e peso na máscara de três casas; o pedido sai da carga, no planejar, por um X vermelho; e
+  os botões de tirar da conferência ficam vermelhos.
+
 ## 05/10/2026 · `20261005000001_pedido_frete_e_peso.sql`
 
 - **`recipientes.peso_kg`** (RN-65): o peso aproximado do recipiente cheio de substrato, com a

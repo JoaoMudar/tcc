@@ -744,6 +744,7 @@ erDiagram
     uuid    item_pai_id FK
     text    especificacao
     uuid    complementa_item_id FK
+    boolean suplente
   }
   pedidos_historico {
     uuid    id PK
@@ -855,9 +856,11 @@ O saco pedido nem sempre tem a quantidade toda, e a gerência oferece completar 
 em 17x22 + 200 em 20x26"). A segunda linha não cabe nas colunas de conferência do item, que guardam
 uma resposta só, e vira um item da mesma espécie, de topo, já respondido e sem preço: saco
 diferente tem preço diferente, e é a chefia quem o digita. Não é composição: o complemento é venda
-própria, e o total o soma. Cada item tem no máximo um complemento, e o complemento não tem outro;
-a regra está em `marcarDisponibilidade`, que apaga o anterior a cada resposta. A restrição
-`pedidos_itens_complemento_especifico` impede o complemento genérico ou filho.
+própria, e o total o soma. Desde o P17 um item pode ter vários complementos, e o complemento não tem
+outro; a regra está em `marcarDisponibilidade`, que apaga os anteriores a cada resposta. A restrição
+`pedidos_itens_complemento_especifico` impede o complemento genérico ou filho. **No item sem
+quantidade, o complemento é suplente** (`suplente`, P18): não há soma a fechar, e o outro recipiente
+fica guardado sem quantidade nem preço, fora do total, até a chefia usá-lo ou a aprovação apagá-lo.
 
 **O item pode nascer sem recipiente**, e a aresta com `recipientes` é por isso de zero ou um. O
 cliente que pergunta "tem ipê?" não disse o tamanho; a conferência responde em qual recipiente a

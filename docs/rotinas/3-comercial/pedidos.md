@@ -109,6 +109,17 @@ como parte e as outras como complementos, e o cartão continua verde, com o resu
 saco 10x18 + 30, em saco 17x22". A conferência conta o item como disponível, e a aprovação leva um
 item por recipiente, cada um com o seu preço.
 
+**O item sem quantidade não se divide, e guarda suplentes**, desde 06/10/2026 (plano P18, migration
+`20261006000001`). Antes, a espécie pedida sem quantidade e achada em dois sacos virava dois itens
+no orçamento, cada um pedindo quantidade e preço, e o mesmo pedido saía com uma linha ou com duas
+conforme a gerência tivesse usado o "+". Agora o "+" desse item se chama "+ Também tem em outro
+recipiente" e pergunta só o recipiente. A primeira linha é o item do orçamento, e as outras ficam
+gravadas como suplentes (`suplente`), sem quantidade nem preço. Na ficha, o suplente aparece embaixo
+do item, com o saldo do recipiente dele ("Se faltar: também tem em 17x22"). Quando a chefia combina a
+quantidade e o primeiro saco não dá conta, ela toca em "Usar 17x22", e o suplente vira item, com
+quantidade e preço a digitar. O suplente que ninguém usou é apagado na aprovação. O item com
+quantidade segue a regra de antes, porque ali as linhas somam o pedido e cada uma é venda.
+
 O cartão toma a cor da resposta no toque, antes de gravar: vermelho em "Não tem", amarelo em "Tem
 parte" e verde em "Tem tudo". Branco é o que ninguém olhou.
 
