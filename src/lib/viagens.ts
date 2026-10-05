@@ -49,6 +49,8 @@ export interface ParadaDaViagem {
   pedidoId: string | null;
   numero: number | null;
   cliente: string | null;
+  /** O cliente da entrega: é nele que o endereço que falta se completa (P17). */
+  clienteId: string | null;
   cidade: string | null;
   logradouro: string | null;
   /** O endereço de entrega em uma linha; na parada avulsa, o que foi digitado. */
@@ -149,7 +151,7 @@ type LinhaParada = Omit<ParadaDaViagem, 'itens' | 'endereco'> & {
 async function linhasDasParadas(db: Db, viagemId: string): Promise<LinhaParada[]> {
   const { rows } = await db.query<LinhaParada>(
     `SELECT vp.id, vp.ordem, vp.pedido_id AS "pedidoId", p.numero_pedido AS numero, c.nome AS cliente,
-            vp.descricao, vp.endereco AS "enderecoAvulso",
+            c.id AS "clienteId", vp.descricao, vp.endereco AS "enderecoAvulso",
             e.id AS "enderecoId", e.logradouro, e.cidade, e.uf,
             COALESCE(vp.lat, e.lat)::float8 AS lat, COALESCE(vp.lng, e.lng)::float8 AS lng,
             (e.geocodificado_em IS NOT NULL AND e.lat IS NULL) AS "naoAchado"
@@ -451,6 +453,77 @@ export async function removerParada(client: Client, viagemId: string, paradaId: 
   if (!rows[0]) throw new UserError('Parada não encontrada.');
   await renumerar(client, viagemId, rows[0].ordem);
   await esquecerRota(client, viagemId, { sugerirDeNovo: false });
+}
+
+/** O endereço de entrega como chega da Tela 2: o texto, e o ponto quando se sabe. */
+export interface EnderecoDeEntrega {
+  logradouro: string;
+  /** Nulos mantêm o que o cadastro já tem. */
+  cidade: string | null;
+  uf: string | null;
+  cep: string | null;
+  ponto: Coordenada | null;
+}
+
+/**
+ * P17: o endereço de entrega que falta, completado na Tela 2 sem sair da
+ * viagem. Grava no cadastro do cliente, que é onde o endereço mora (o pedido
+ * não tem endereço próprio), e só de cliente com entrega nesta viagem: a
+ * permissão de planejar não é a de editar cadastro qualquer.
+ *
+ * Com o ponto (escolhido na lista, ou a localização colada do WhatsApp), a
+ * coordenada é gravada junto, e o mapa não precisa procurar o texto. Sem ele,
+ * a coordenada que existia só cai se o texto mudou, e quem a procura de novo é
+ * a sugestão de ordem, que a viagem passa a pedir.
+ */
+export async function salvarEnderecoDeEntrega(
+  client: Client,
+  viagemId: string,
+  clienteId: string,
+  endereco: EnderecoDeEntrega,
+): Promise<void> {
+  const viagem = await travarViagem(client, viagemId);
+  exigirEtapa(viagem, 'roteirizando', 'O endereço se completa na etapa da rota.');
+  const { rowCount } = await client.query(
+    `SELECT 1 FROM viagens_paradas vp JOIN pedidos p ON p.id = vp.pedido_id
+      WHERE vp.viagem_id = $1 AND p.cliente_id = $2`,
+    [viagemId, clienteId],
+  );
+  if (!rowCount) throw new UserError('Este cliente não tem entrega nesta viagem.');
+
+  const { rows } = await client.query<{ id: string }>(
+    `SELECT id FROM cadastro.pessoas_enderecos
+      WHERE pessoa_id = $1 AND tipo = 'entrega'
+      ORDER BY criado_em, id LIMIT 1 FOR UPDATE`,
+    [clienteId],
+  );
+  const { logradouro, cidade, uf, cep, ponto } = endereco;
+  if (!rows[0]) {
+    await client.query(
+      `INSERT INTO cadastro.pessoas_enderecos (pessoa_id, tipo, logradouro, cidade, uf, cep, lat, lng, geocodificado_em)
+       VALUES ($1, 'entrega', $2, $3, $4, $5, $6, $7, CASE WHEN $6::numeric IS NULL THEN NULL ELSE NOW() END)`,
+      [clienteId, logradouro, cidade, uf, cep, ponto?.lat ?? null, ponto?.lng ?? null],
+    );
+  } else if (ponto) {
+    await client.query(
+      `UPDATE cadastro.pessoas_enderecos
+          SET logradouro = $2, cidade = COALESCE($3, cidade), uf = COALESCE($4, uf), cep = COALESCE($5, cep),
+              lat = $6, lng = $7, geocodificado_em = NOW()
+        WHERE id = $1`,
+      [rows[0].id, logradouro, cidade, uf, cep, ponto.lat, ponto.lng],
+    );
+  } else {
+    // O texto mudou: o gatilho apaga a coordenada velha. O "não achado" também
+    // cai, para a sugestão procurar o texto novo em vez de repetir o aviso
+    await client.query(
+      `UPDATE cadastro.pessoas_enderecos
+          SET logradouro = $2, cidade = COALESCE($3, cidade), uf = COALESCE($4, uf), cep = COALESCE($5, cep),
+              geocodificado_em = CASE WHEN lat IS NULL THEN NULL ELSE geocodificado_em END
+        WHERE id = $1`,
+      [rows[0].id, logradouro, cidade, uf, cep],
+    );
+  }
+  await esquecerRota(client, viagemId, { sugerirDeNovo: true });
 }
 
 /** Tela 1 ↔ Tela 2: "Confirmar carga" e a seta de voltar. */

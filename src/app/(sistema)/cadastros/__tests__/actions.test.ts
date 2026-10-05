@@ -427,6 +427,26 @@ describe('pessoas (RF-14 a RF-17)', () => {
     expectNoDatabase();
   });
 
+  it('P17: localização colada que não se lê volta com a mensagem, sem tocar o banco', async () => {
+    loggedAs('chefia');
+    const valores = { ...PESSOA, endereco_entrega_localizacao: 'perto do posto' };
+    const state = await pessoas.savePessoaAction({}, form(valores));
+    expect(state.error).toMatch(/Endereço de entrega: não deu para ler a localização/);
+    expectNoDatabase();
+  });
+
+  it('P17: a localização colada sem endereço vira o endereço de entrega, com o ponto', async () => {
+    loggedAs('chefia');
+    client.query.mockImplementation(async (sql: string) =>
+      sql.includes('INSERT INTO cadastro.pessoas ') ? { rows: [{ id: ID }] } : { rows: [], rowCount: 1 },
+    );
+    await pessoas
+      .savePessoaAction({}, form({ ...PESSOA, confirmar_novo: '1', endereco_entrega_localizacao: '-27.05, -49.52' }))
+      .catch(() => undefined); // o cadastro novo redireciona para a ficha
+    const [[, valores]] = client.query.mock.calls.filter(([sql]) => String(sql).includes('INSERT INTO cadastro.pessoas_enderecos'));
+    expect(valores.slice(1, 8)).toEqual(['entrega', 'Localização enviada pelo WhatsApp', null, null, null, -27.05, -49.52]);
+  });
+
   it('RF-14: telefone já cadastrado devolve quem tem o número, sem criar', async () => {
     loggedAs('chefia');
     vi.mocked(pool.query).mockResolvedValue({ rows: [{ id: ID, nome: 'Marlene Cardoso' }] } as never);

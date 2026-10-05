@@ -12,7 +12,7 @@ import {
 } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useActionState, useId, useState, useTransition } from 'react';
+import { useActionState, useCallback, useId, useState, useTransition } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Notice } from '@/components/ui/Notice';
 import { CampoEndereco } from '@/components/ui/CampoEndereco';
@@ -28,12 +28,14 @@ import {
   salvarOrdemAction,
   sugerirOrdemAction,
 } from './actions';
+import { EnderecoDaEntrega } from './EnderecoDaEntrega';
 
 export interface ParadaNaRota {
   id: string;
   pedidoId: string | null;
   numero: number | null;
   cliente: string | null;
+  clienteId: string | null;
   cidade: string | null;
   descricao: string | null;
   endereco: string | null;
@@ -75,11 +77,13 @@ interface CartaoProps {
   ultimo: boolean;
   onMover: (sentido: -1 | 1) => void;
   remover: (formData: FormData) => void;
+  /** P17: abre o endereço de entrega do cliente, quando ele falta ou não foi achado. */
+  onEndereco: () => void;
   data: string;
   viagemId: string;
 }
 
-function CartaoDaParada({ parada, marca, primeiro, ultimo, onMover, remover, data, viagemId }: CartaoProps) {
+function CartaoDaParada({ parada, marca, primeiro, ultimo, onMover, remover, onEndereco, data, viagemId }: CartaoProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: parada.id });
   const entrega = parada.pedidoId !== null;
   const aviso = !entrega
@@ -111,6 +115,15 @@ function CartaoDaParada({ parada, marca, primeiro, ultimo, onMover, remover, dat
             : ['Parada extra', parada.endereco].filter(Boolean).join(' · ')}
         </span>
         {aviso && <span className="text-sm font-semibold text-amber-800">{aviso}</span>}
+        {aviso && parada.clienteId && (
+          <button
+            type="button"
+            onClick={onEndereco}
+            className="mt-1 flex min-h-11 items-center self-start rounded-lg border-[1.5px] border-amber-600 bg-amber-50 px-3 text-sm font-bold text-amber-900 active:bg-amber-100"
+          >
+            {parada.endereco ? 'Corrigir endereço' : 'Adicionar endereço'}
+          </button>
+        )}
       </span>
       {!entrega && (
         <form action={remover}>
@@ -176,6 +189,8 @@ export function RotaDaViagem({ data, viagemId, partida, paradas, distancia, avis
   );
   const [remocao, removerParada] = useActionState(removerParadaAction, EMPTY_FORM_STATE);
   const [inicio, iniciar, iniciando] = useActionState(iniciarCarregamentoAction, EMPTY_FORM_STATE);
+  const [semEndereco, setSemEndereco] = useState<ParadaNaRota | null>(null);
+  const fecharEndereco = useCallback(() => setSemEndereco(null), []);
 
   // Mouse e toque separados: no toque, só pressionar e segurar vira arraste, e
   // rolar a lista com o dedo continua rolando
@@ -294,6 +309,7 @@ export function RotaDaViagem({ data, viagemId, partida, paradas, distancia, avis
                       ultimo={indice === naOrdem.length - 1}
                       onMover={(sentido) => gravar(moverNaLista(ordem, indice, indice + sentido))}
                       remover={removerParada}
+                      onEndereco={() => setSemEndereco(parada)}
                       data={data}
                       viagemId={viagemId}
                     />
@@ -348,6 +364,16 @@ export function RotaDaViagem({ data, viagemId, partida, paradas, distancia, avis
           </Button>
         </form>
       </div>
+
+      {semEndereco?.clienteId && (
+        <EnderecoDaEntrega
+          data={data}
+          viagemId={viagemId}
+          cliente={{ id: semEndereco.clienteId, nome: semEndereco.cliente ?? '' }}
+          endereco={semEndereco.endereco}
+          onFechar={fecharEndereco}
+        />
+      )}
 
       <div className="border-t border-line bg-white px-4 pt-3 pb-5">
         <form action={iniciar}>

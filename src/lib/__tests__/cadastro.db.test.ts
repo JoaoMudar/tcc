@@ -175,6 +175,45 @@ describe('recipientes, insumos e tipos de tarefa contra Postgres real', () => {
   });
 });
 
+describe('P17: a coordenada do endereço sobrevive ao salvar a pessoa', () => {
+  const base: PessoaFields = {
+    tipo: 'pf',
+    nome: `${prefixo} Cliente com ponto`,
+    telefone: null,
+    email: null,
+    observacoes: null,
+    ativa: true,
+    papeis: [{ papel: 'cliente', tipoVinculo: null }],
+    enderecos: [{ tipo: 'entrega', logradouro: 'Estrada Geral', cidade: 'Ibirama', uf: 'SC', cep: null }],
+  };
+
+  async function ponto(id: string) {
+    const { rows } = await pool.query(
+      "SELECT lat::float8 AS lat, lng::float8 AS lng FROM cadastro.pessoas_enderecos WHERE pessoa_id = $1 AND tipo = 'entrega'",
+      [id],
+    );
+    return rows[0];
+  }
+
+  it('o ponto colado é gravado, fica ao salvar de novo e cai quando o texto muda', async () => {
+    const criada = await withTransaction(pool, (client) =>
+      savePessoa(client, null, { ...base, enderecos: [{ ...base.enderecos[0], lat: -27.05, lng: -49.52 }] }, null),
+    );
+    const id = (criada as { id: string }).id;
+    expect(await ponto(id)).toEqual({ lat: -27.05, lng: -49.52 });
+
+    // Salvar o telefone não pode apagar o ponto da entrega
+    await withTransaction(pool, (client) => savePessoa(client, id, { ...base, telefone: '47996124408' }, null));
+    expect(await ponto(id)).toEqual({ lat: -27.05, lng: -49.52 });
+    expect((await findPessoa(pool, id, false))?.enderecos[0]).toMatchObject({ lat: -27.05, lng: -49.52 });
+
+    await withTransaction(pool, (client) =>
+      savePessoa(client, id, { ...base, enderecos: [{ ...base.enderecos[0], logradouro: 'Rua Nova, 10' }] }, null),
+    );
+    expect(await ponto(id)).toEqual({ lat: null, lng: null });
+  });
+});
+
 describe('pessoas contra Postgres real', () => {
   const fornecedor: PessoaFields = {
     tipo: 'pj',
