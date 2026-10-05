@@ -55,3 +55,15 @@ export function resumoAgendamento(etapa: {
   if (etapa.tipoAgendamento === 'sequencial') return `Uma vez, ${primeira}`;
   return `${primeira}, e repete a cada ${etapa.intervaloDias} dias`;
 }
+
+/** RF-66: o maior adiamento de uma vez. Mais que isso é rever o protocolo, e não adiar. */
+export const MAX_DIAS_ADIAMENTO = 90;
+
+/** Os dias digitados para adiar, ou o motivo de recusa. */
+export function parseDiasAdiamento(valor: string): { value: number } | { error: string } {
+  const dias = Number(valor.trim());
+  if (!Number.isInteger(dias) || dias < 1 || dias > MAX_DIAS_ADIAMENTO) {
+    return { error: `Informe de 1 a ${MAX_DIAS_ADIAMENTO} dias.` };
+  }
+  return { value: dias };
+}

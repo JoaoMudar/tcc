@@ -1,4 +1,5 @@
-import { somaDias } from './datas';
+import { diasEntre, somaDias } from './datas';
+import { UserError } from './errors';
 import { type Fase, FASES_EDITAVEIS } from './lotes-rotulos';
 import {
   type SituacaoEtapa,
@@ -668,6 +669,93 @@ export async function concluirEtapa(
   );
 
   return { faseAvancada };
+}
+
+/** A ocorrência que está por vir, e quando ela vence, com a etapa travada; recusa a que não vence nada. */
+async function travarOcorrencia(client: Db, loteId: string, protocoloEtapaId: string): Promise<{ ocorrencia: number; vencimento: string }> {
+  const { rows } = await client.query<{ ocorrencia: number; vencimento: string }>(
+    `SELECT le.ocorrencias + 1 AS ocorrencia, to_char(v.proximo_vencimento, 'YYYY-MM-DD') AS vencimento
+       FROM lotes_etapas le
+       JOIN lotes_etapas_vencimento v ON v.lote_id = le.lote_id AND v.protocolo_etapa_id = le.protocolo_etapa_id
+      WHERE le.lote_id = $1 AND le.protocolo_etapa_id = $2
+      FOR UPDATE OF le`,
+    [loteId, protocoloEtapaId],
+  );
+  if (!rows[0]) throw new UserError('Esta etapa não está vencendo nada agora. Recarregue a agenda.');
+  return rows[0];
+}
+
+/**
+ * RF-66, RN-63: adia a etapa X dias a partir de hoje, ou do vencimento se ele
+ * ainda não chegou. Não mexe em data nenhuma: grava a ação, e a visão soma os
+ * dias ao vencimento da ocorrência que está por vir. Vencida, a linha leva junto
+ * o atraso até hoje, e é por isso que `dias` é o deslocamento real do vencimento.
+ * Concluída a etapa, a ocorrência muda e o adiamento deixa de contar sozinho.
+ */
+export async function adiarEtapa(
+  client: Db,
+  loteId: string,
+  protocoloEtapaId: string,
+  dias: number,
+  hoje: string,
+  registradoPor: string,
+): Promise<{ vencimento: string }> {
+  const { ocorrencia, vencimento } = await travarOcorrencia(client, loteId, protocoloEtapaId);
+  const novo = somaDias(vencimento < hoje ? hoje : vencimento, dias);
+  await client.query(
+    `INSERT INTO lotes_etapas_acoes (lote_id, protocolo_etapa_id, ocorrencia, tipo_acao, dias, registrado_por)
+     VALUES ($1, $2, $3, 'adiamento', $4, $5)`,
+    [loteId, protocoloEtapaId, ocorrencia, diasEntre(vencimento, novo), registradoPor],
+  );
+  return { vencimento: novo };
+}
+
+/**
+ * RF-66: a etapa feita fora da agenda (no meio de outro serviço). Grava a ação e
+ * conclui pelo mesmo caminho da tarefa confirmada: a fase, as âncoras e o plantio
+ * andam do mesmo jeito (RN-31, RN-34).
+ */
+export async function concluirEtapaSemAgenda(
+  client: Db,
+  loteId: string,
+  protocoloEtapaId: string,
+  hoje: string,
+  registradoPor: string,
+): Promise<{ faseAvancada: string | null }> {
+  const { ocorrencia } = await travarOcorrencia(client, loteId, protocoloEtapaId);
+  await client.query(
+    `INSERT INTO lotes_etapas_acoes (lote_id, protocolo_etapa_id, ocorrencia, tipo_acao, data_acao, registrado_por)
+     VALUES ($1, $2, $3, 'conclusao_sem_agenda', $4, $5)`,
+    [loteId, protocoloEtapaId, ocorrencia, hoje, registradoPor],
+  );
+  return concluirEtapa(client, loteId, protocoloEtapaId, hoje);
+}
+
+export type TipoAcaoEtapa = 'adiamento' | 'conclusao_sem_agenda';
+
+/** Uma linha do histórico do protocolo do lote (RF-66). */
+export interface AcaoDaEtapa {
+  id: string;
+  rotulo: string;
+  tipoAcao: TipoAcaoEtapa;
+  dias: number | null;
+  dataAcao: string;
+  registradoPor: string;
+}
+
+/** RF-66: o histórico das ações da gerência sobre o protocolo do lote, do mais novo para o mais antigo. */
+export async function listAcoesDoLote(db: Db, loteId: string): Promise<AcaoDaEtapa[]> {
+  const { rows } = await db.query<AcaoDaEtapa>(
+    `SELECT ac.id, pe.rotulo, ac.tipo_acao AS "tipoAcao", ac.dias,
+            to_char(ac.data_acao, 'YYYY-MM-DD') AS "dataAcao", u.nome_exibicao AS "registradoPor"
+       FROM lotes_etapas_acoes ac
+       JOIN protocolos_etapas pe ON pe.id = ac.protocolo_etapa_id
+       JOIN usuarios u ON u.id = ac.registrado_por
+      WHERE ac.lote_id = $1
+      ORDER BY ac.criado_em DESC`,
+    [loteId],
+  );
+  return rows;
 }
 
 /**

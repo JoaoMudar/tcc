@@ -4,6 +4,7 @@ import {
   type AtribuicaoResumo,
   type EstadoTarefaInput,
   detalhesAtribuicao,
+  estadoNaGrade,
   estadoTarefa,
   formatHoraTarefa,
   formatQuantidadeMedida,
@@ -165,6 +166,26 @@ describe('estadoTarefa (RF-29, RF-31, RN-14)', () => {
   it('soma só quem foi contado, ignorando os participantes em branco', () => {
     expect(estadoTarefa(tarefa({ participantes: [{ quantidade: 100 }, { quantidade: null }] }))).toBe('feita');
     expect(estadoTarefa(tarefa({ participantes: [{ quantidade: 10 }, { quantidade: null }] }))).toBe('parcial');
+  });
+});
+
+describe('estadoNaGrade: a semana que já pode ser fechada (RF-31, RN-14)', () => {
+  const planejada: EstadoTarefaInput = { situacao: 'planejada', eQuantitativa: false, quantidadePlanejada: null, participantes: [{ quantidade: null }] };
+
+  it('a planejada com gente já mostra o "?" que o fechamento vai dar', () => {
+    expect(estadoNaGrade(planejada, true)).toBe('presumida');
+  });
+
+  it('antes de a semana poder fechar, a planejada segue planejada', () => {
+    expect(estadoNaGrade(planejada, false)).toBe('planejada');
+  });
+
+  it('a sem ninguém fica planejada: o fechamento a deixa pendente', () => {
+    expect(estadoNaGrade({ ...planejada, participantes: [] }, true)).toBe('planejada');
+  });
+
+  it('a confirmada não muda', () => {
+    expect(estadoNaGrade({ ...planejada, situacao: 'confirmada' }, true)).toBe('feita');
   });
 });
 

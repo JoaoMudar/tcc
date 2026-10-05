@@ -11,12 +11,23 @@ interface EscolhaMultiplaProps {
   colunas?: 2 | 3;
   /** Asterisco na legenda. Não vira `required` no campo: no checkbox, isso exigiria marcar todos. */
   obrigatorio?: boolean;
+  /** Avisa o que ficou marcado, para quem desenha campos conforme a escolha. */
+  onChange?: (marcados: string[]) => void;
 }
 
 /** Pessoas, dias e turno são tocados, nunca digitados (RNF-02), com alvo de toque grande (RNF-03). */
-export function EscolhaMultipla({ legenda, name, opcoes, marcados, tipo = 'checkbox', colunas = 2, obrigatorio = false }: EscolhaMultiplaProps) {
+export function EscolhaMultipla({ legenda, name, opcoes, marcados, tipo = 'checkbox', colunas = 2, obrigatorio = false, onChange }: EscolhaMultiplaProps) {
   return (
-    <fieldset className="flex flex-col gap-1">
+    <fieldset
+      className="flex flex-col gap-1"
+      onChange={
+        onChange &&
+        ((evento) => {
+          const marcadas = evento.currentTarget.querySelectorAll<HTMLInputElement>(`input[name="${name}"]:checked`);
+          onChange(Array.from(marcadas, (input) => input.value));
+        })
+      }
+    >
       <legend className={`mb-1 text-sm font-semibold text-gray-700 ${obrigatorio ? MARCA_OBRIGATORIO : ''}`}>{legenda}</legend>
       <div className={`grid gap-2 ${colunas === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
         {opcoes.map((opcao) => (

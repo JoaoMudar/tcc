@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { passoDoZoom } from '@/lib/agenda-zoom';
 import { useZoomAgenda } from './ZoomAgenda';
 
-const LINK_NAV = 'inline-flex h-11 min-w-11 items-center justify-center rounded-lg px-2 text-base text-muted hover:bg-surface hover:text-ink';
+// Sem `display` aqui: cada seta declara o seu, senão o `inline-flex` vence o `hidden` e o celular mostra as quatro
+const LINK_NAV = 'h-11 min-w-11 items-center justify-center rounded-lg px-2 text-base text-muted hover:bg-surface hover:text-ink';
 
 const ROTULO = {
   semana: ['Semana anterior', 'Próxima semana'],
@@ -26,12 +27,12 @@ export function NavegacaoAgenda({ dia, hoje }: { dia: string; hoje: string }) {
   );
   return (
     <nav aria-label="Trocar de dia ou semana" className="flex items-center">
-      {seta(passoDoZoom('semana', dia, -1), 'Semana anterior', '←', '‹', 'md:hidden')}
-      {seta(passoDoZoom('semana', dia, 1), 'Próxima semana', '→', '›', 'md:hidden')}
+      {seta(passoDoZoom('semana', dia, -1), 'Semana anterior', '←', '‹', 'inline-flex md:hidden')}
+      {seta(passoDoZoom('semana', dia, 1), 'Próxima semana', '→', '›', 'inline-flex md:hidden')}
       {seta(passoDoZoom(zoom, dia, -1), antes, '←', '‹', 'hidden md:inline-flex')}
       {seta(passoDoZoom(zoom, dia, 1), depois, '→', '›', 'hidden md:inline-flex')}
       {dia !== hoje && (
-        <Link href="/producao" title="Voltar para hoje (T)" className={`${LINK_NAV} text-sm font-semibold`}>
+        <Link href="/producao" title="Voltar para hoje (T)" className={`${LINK_NAV} inline-flex text-sm font-semibold`}>
           Hoje
         </Link>
       )}

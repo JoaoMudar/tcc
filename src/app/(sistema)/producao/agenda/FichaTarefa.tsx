@@ -1,16 +1,16 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { GuardaParaSemRede } from '@/components/GuardaParaSemRede';
-import { Notice } from '@/components/ui/Notice';
+import { Toast } from '@/components/ui/Toast';
 import { Pill } from '@/components/ui/Pill';
-import { ESTADOS_TAREFA, TOM_ESTADO, estadoTarefa, findAtribuicao, formatHoraTarefa, formatQuantidadeMedida } from '@/lib/agenda';
+import { ESTADOS_TAREFA, TOM_ESTADO, estadoNaGrade, findAtribuicao, formatHoraTarefa, formatQuantidadeMedida } from '@/lib/agenda';
 import { listAreas } from '@/lib/areas';
-import { formatData } from '@/lib/datas';
+import { formatData, hojeNoViveiro } from '@/lib/datas';
 import pool from '@/lib/db';
 import { opcoesDeLote } from '@/lib/lotes-rotulos';
 import { listLotesAbertos } from '@/lib/lotes';
 import { can } from '@/lib/permissions';
-import { nomeDia, rotuloSemana } from '@/lib/semanas';
+import { nomeDia, rotuloSemana, semanaJaPassou } from '@/lib/semanas';
 import { turnoLabel } from '@/lib/turnos';
 import { isUuid } from '@/lib/uuid';
 import { requirePageAccess } from '@/lib/auth/guards';
@@ -44,26 +44,20 @@ export async function FichaTarefa({ id, feito, emModal }: FichaTarefaProps) {
   ]);
   const hora = formatHoraTarefa(a.horaInicio, a.horaFim);
   const feita = a.situacao === 'confirmada' || a.situacao === 'nao_confirmada';
+  // A semana já pode ser fechada: o "?" que o fechamento vai dar aparece antes, no estado
+  const aFechar = a.semanaSituacao === 'aberta' && semanaJaPassou(a.semanaInicio, hojeNoViveiro());
+  const estado = estadoNaGrade(a, aFechar);
 
   return (
     <TelaDeTarefa titulo={a.tipo} emModal={emModal} voltar={{ href: `/producao?dia=${a.data}`, rotulo: 'Voltar à agenda do dia' }}>
       <GuardaParaSemRede caminho={`/producao/agenda/${a.id}`} />
-      {feito === 'alterada' && <Notice tone="success">Tarefa alterada.</Notice>}
-      {a.situacao === 'nao_confirmada' && (
-        <Notice tone="warning">
-          Ninguém confirmou esta tarefa até o fechamento da semana. Ela conta como realizada, com essa marca.
-        </Notice>
-      )}
-      {a.semanaSituacao === 'fechada' && a.situacao === 'planejada' && (
-        <Notice tone="info">A semana fechou com esta tarefa sem ninguém escalado. Ela segue pendente.</Notice>
-      )}
-
+      {feito === 'alterada' && <Toast tone="success">Tarefa alterada.</Toast>}
       <section className="flex flex-col gap-3 rounded-xl border border-line bg-white p-4">
         <div className="flex items-start justify-between gap-2">
           <h2 className="text-xl font-bold text-ink">
             {nomeDia(a.data)}, {formatData(a.data)}
           </h2>
-          <Pill tone={TOM_ESTADO[estadoTarefa(a)]}>{ESTADOS_TAREFA[estadoTarefa(a)]}</Pill>
+          <Pill tone={TOM_ESTADO[estado]}>{ESTADOS_TAREFA[estado]}</Pill>
         </div>
         <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-base">
           <div>
@@ -117,7 +111,7 @@ export async function FichaTarefa({ id, feito, emModal }: FichaTarefaProps) {
             </dd>
           </div>
         </dl>
-        {a.eRecorrente && <p className="text-sm text-muted">Repete toda semana: vem junto no primeiro lançamento da semana seguinte.</p>}
+        {a.eRecorrente && <p className="text-sm text-muted">Repete toda semana.</p>}
         {a.observacoes && <p className="text-base text-muted">{a.observacoes}</p>}
       </section>
 
@@ -140,10 +134,6 @@ export async function FichaTarefa({ id, feito, emModal }: FichaTarefaProps) {
           </ul>
         )}
       </section>
-
-      {editavel && a.participantes.length === 0 && podeAlterar && (
-        <Notice tone="info">Escale ao menos uma pessoa antes de confirmar.</Notice>
-      )}
 
       {podeConfirmar && (
         <section className="flex flex-col gap-3 rounded-xl border border-line bg-white p-4">

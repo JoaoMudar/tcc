@@ -136,6 +136,18 @@ export function estadoTarefa(a: EstadoTarefaInput): EstadoTarefa {
   return total < a.quantidadePlanejada ? 'parcial' : 'feita';
 }
 
+/**
+ * O estado na semana que já pode ser fechada (passou o domingo e segue aberta):
+ * a planejada com gente escalada já aparece como o fechamento vai deixá-la,
+ * `presumida`, para a gerência ver o que falta confirmar. A sem ninguém segue
+ * planejada, porque o fechamento a deixa pendente (RN-14). Fora dessa semana, o
+ * "?" só existe depois do fechamento de fato.
+ */
+export function estadoNaGrade(a: EstadoTarefaInput, aFechar: boolean): EstadoTarefa {
+  if (aFechar && a.situacao === 'planejada' && a.participantes.length > 0) return 'presumida';
+  return estadoTarefa(a);
+}
+
 /** Valor da opção "nenhum" nas listas opcionais: o servidor lê qualquer coisa que não seja UUID como vazio. */
 export const NENHUM = 'nenhum';
 

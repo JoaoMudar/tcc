@@ -14,7 +14,7 @@ import {
   posicaoPercentual,
   recortePerfil,
 } from '@/lib/agenda-grade';
-import { ESTADOS_TAREFA, estadoTarefa, formatHoraTarefa } from '@/lib/agenda-rotulos';
+import { ESTADOS_TAREFA, type EstadoTarefa, estadoNaGrade, formatHoraTarefa } from '@/lib/agenda-rotulos';
 import { COR_CATEGORIA, FUNDO_CATEGORIA } from '@/lib/cores-categoria';
 import { nomeDia } from '@/lib/semanas';
 import { turnoLabel } from '@/lib/turnos';
@@ -43,6 +43,8 @@ interface BarraTarefaProps {
   arrastavel: boolean;
   /** Pode virar a principal: a semana está aberta e quem vê pode alterar. */
   promovivel: boolean;
+  /** A semana já pode ser fechada: o card diz, pela cor cheia, o que falta confirmar. */
+  aFechar?: boolean;
   /** É o fantasma do arrasto, desenhado onde o ponteiro está. */
   emArrasto: boolean;
   /** No arrasto para a linha de outra pessoa, quem passa a fazer: vai no balão. */
@@ -85,6 +87,19 @@ function nivelDa(largura: number | null): Nivel {
 /** O recuo do card dentro da caixa da barra, em pixels (o `p-0.5`). */
 const RECUO = 2;
 
+/**
+ * A cor cheia do card. Na semana que já pode ser fechada, ela diz o que o
+ * fechamento vai fazer: âmbar para o que ninguém confirmou (entra presumido),
+ * verde para o confirmado. Nas outras, o confirmado ganha a cor da categoria.
+ * Nula quando o card fica só tingido.
+ */
+export function corCheia(estado: EstadoTarefa, categoria: keyof typeof COR_CATEGORIA, aFechar: boolean): string | null {
+  const confirmada = estado === 'feita' || estado === 'parcial' || estado === 'nao_feita';
+  if (aFechar && estado === 'presumida') return 'bg-atencao';
+  if (aFechar && confirmada) return 'bg-feito';
+  return confirmada ? COR_CATEGORIA[categoria] : null;
+}
+
 /** Quebra só entre palavras: nunca "Adub/ar". */
 const SEM_QUEBRA_NA_PALAVRA = '[word-break:normal] [overflow-wrap:normal] hyphens-none';
 
@@ -108,16 +123,18 @@ export function BarraTarefa({
   encosta = { inicio: false, fim: false },
   arrastavel,
   promovivel,
+  aFechar = false,
   emArrasto,
   destino,
   onPromover,
   iniciar,
   aoTeclar,
 }: BarraTarefaProps) {
-  const estado = estadoTarefa(a);
+  const estado = estadoNaGrade(a, aFechar);
   const hora = formatHoraTarefa(a.horaInicio, a.horaFim)?.replace(' às ', '–');
-  // Confirmada ganha a cor cheia da categoria: o que já foi feito precisa saltar aos olhos
-  const confirmada = !emArrasto && (estado === 'feita' || estado === 'parcial' || estado === 'nao_feita');
+  // O que já foi feito (ou, na semana a fechar, o que falta confirmar) ganha cor cheia: precisa saltar aos olhos
+  const cheia = emArrasto ? null : corCheia(estado, a.categoria, aFechar);
+  const confirmada = cheia !== null;
   const apagada = estado === 'cancelada';
   const secundaria = perfil.some((d) => d.camada > 0);
   const { left, width } = posicaoPercentual(desenho, janela);
@@ -184,7 +201,7 @@ export function BarraTarefa({
         className={`pointer-events-auto relative flex min-w-0 flex-1 gap-1 overflow-hidden rounded-md ${encosta.inicio ? 'rounded-l-none' : ''} ${
           encosta.fim ? 'rounded-r-none border-r-0' : ''
         } border pr-1 pl-2 text-left hover:border-gray-400 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-dark ${
-          confirmada ? `${COR_CATEGORIA[a.categoria]} border-transparent` : `${FUNDO_CATEGORIA[a.categoria]} border-line`
+          cheia ? `${cheia} border-transparent` : `${FUNDO_CATEGORIA[a.categoria]} border-line`
         } ${compacto ? '' : 'items-start py-1'} ${arrastavel ? 'cursor-grab touch-none active:cursor-grabbing' : ''} ${
           emArrasto ? 'bg-white shadow-lg ring-2 ring-brand' : ''
         }`}

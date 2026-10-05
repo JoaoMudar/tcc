@@ -4,18 +4,21 @@ import { GuardaParaSemRede } from '@/components/GuardaParaSemRede';
 import { PageHeader } from '@/components/PageHeader';
 import { AcaoRecolhivel } from '@/components/ui/AcaoRecolhivel';
 import { Notice } from '@/components/ui/Notice';
+import { Toast } from '@/components/ui/Toast';
 import { Pill } from '@/components/ui/Pill';
 import { formatData, hojeNoViveiro } from '@/lib/datas';
 import pool from '@/lib/db';
 import { formatDateTime } from '@/lib/format';
 import { CAUSAS_PERDA, FASES, TIPOS_MOVIMENTO, formatQuantidade } from '@/lib/lotes-rotulos';
 import { findLote, listCanteirosParaLote, listMovimentos } from '@/lib/lotes';
+import { formatAltura } from '@/lib/pedidos-rotulos';
 import { acimaDoLimite, formatPercentual, limiteMortalidade, mortalidade } from '@/lib/perdas';
 import { can } from '@/lib/permissions';
-import { listEtapasDoLote } from '@/lib/protocolos';
+import { listAcoesDoLote, listEtapasDoLote } from '@/lib/protocolos';
 import { formatVolume, listRecipientes } from '@/lib/recipientes';
 import { isUuid } from '@/lib/uuid';
 import { requirePageAccess } from '@/lib/auth/guards';
+import { AlturaForm } from './AlturaForm';
 import { ContagemForm } from './ContagemForm';
 import { DivisaoForm } from './DivisaoForm';
 import { FaseForm } from './FaseForm';
@@ -45,13 +48,14 @@ export default async function LotePage({ params, searchParams }: LotePageProps) 
   const podeRepicar = podeMovimento && can(user.perfil, 'lotes', 'C');
   const podeFase = aberto && can(user.perfil, 'lotes', 'A');
 
-  const [movimentos, limite, canteiros, recipientes, etapas] = await Promise.all([
+  const [movimentos, limite, canteiros, recipientes, etapas, acoes] = await Promise.all([
     listMovimentos(pool, id),
     limiteMortalidade(pool),
     podeMovimento ? listCanteirosParaLote(pool) : [],
     podeRepicar ? listRecipientes(pool) : [],
     // RF-51: o percurso do lote pelo protocolo, com o vencimento derivado
     listEtapasDoLote(pool, id, hojeNoViveiro()),
+    listAcoesDoLote(pool, id),
   ]);
   const taxa = mortalidade(lote.perdas, lote.quantidadeInicial);
   const alerta = acimaDoLimite(taxa, limite);
@@ -67,16 +71,16 @@ export default async function LotePage({ params, searchParams }: LotePageProps) 
         <Link href="/producao/lotes" className="text-base font-semibold text-brand-dark">
           Voltar
         </Link>
-        {feito === 'criado' && <Notice tone="success">Lote {lote.codigo} criado.</Notice>}
+        {feito === 'criado' && <Toast tone="success">Lote {lote.codigo} criado.</Toast>}
         {feito === 'repicado' && (
-          <Notice tone="success">
+          <Toast tone="success">
             Repicagem registrada. Este é o lote novo, ligado ao {lote.origemCodigo}.
-          </Notice>
+          </Toast>
         )}
         {feito === 'dividido' && (
-          <Notice tone="success">
+          <Toast tone="success">
             Divisão registrada. Este é o primeiro lote; o {lote.origemCodigo} encerrou e o segundo está na lista de lotes.
-          </Notice>
+          </Toast>
         )}
         {!aberto && (
           <Notice tone="info">
@@ -109,6 +113,10 @@ export default async function LotePage({ params, searchParams }: LotePageProps) 
               <dd className="font-semibold text-ink">{lote.canteiro ?? 'nenhum'}</dd>
             </div>
             <div>
+              <dt className="text-sm text-muted">Altura</dt>
+              <dd className="font-semibold text-ink">{lote.alturaM === null ? 'não medida' : formatAltura(lote.alturaM)}</dd>
+            </div>
+            <div>
               <dt className="text-sm text-muted">Criação</dt>
               <dd className="font-semibold text-ink">{formatData(lote.dataCriacao)}</dd>
             </div>
@@ -116,7 +124,7 @@ export default async function LotePage({ params, searchParams }: LotePageProps) 
               <dt className="text-sm text-muted">Quantidade inicial</dt>
               <dd className="font-semibold text-ink">{formatQuantidade(lote.quantidadeInicial)}</dd>
             </div>
-            <div className="col-span-2">
+            <div>
               <dt className="text-sm text-muted">Mortalidade</dt>
               <dd className={`font-semibold ${alerta ? 'text-red-800' : 'text-ink'}`}>
                 {taxa === null ? '-' : formatPercentual(taxa)} · {formatQuantidade(lote.perdas)} perdidas
@@ -148,7 +156,7 @@ export default async function LotePage({ params, searchParams }: LotePageProps) 
           {lote.observacoes && <p className="text-base text-muted">{lote.observacoes}</p>}
         </section>
 
-        <ProtocoloDoLote etapas={etapas} />
+        <ProtocoloDoLote etapas={etapas} acoes={acoes} />
 
         {podePerda && (
           <AcaoRecolhivel titulo="Registrar perda">
@@ -160,8 +168,14 @@ export default async function LotePage({ params, searchParams }: LotePageProps) 
             <ContagemForm loteId={lote.id} codigo={lote.codigo} saldo={lote.quantidadeAtual} />
           </AcaoRecolhivel>
         )}
+        {/* O `?repicar=` fica no endereço: é ele que liga a repicagem à tarefa. A instrução também fica */}
         {podeRepicar && atribuicaoRepicagem && (
-          <Notice tone="success">Tarefa confirmada. Agora registre a repicagem: ela fica ligada à tarefa.</Notice>
+          <>
+            <Toast tone="success" limpar={[]}>
+              Tarefa confirmada.
+            </Toast>
+            <Notice tone="info">Agora registre a repicagem: ela fica ligada à tarefa.</Notice>
+          </>
         )}
         {podeRepicar && (
           <AcaoRecolhivel titulo="Repicar" aberta={atribuicaoRepicagem !== null}>
@@ -193,6 +207,12 @@ export default async function LotePage({ params, searchParams }: LotePageProps) 
         {podeMovimento && lote.canteiroId && (
           <AcaoRecolhivel titulo="Transferir de canteiro">
             <TransferenciaForm loteId={lote.id} saldo={lote.quantidadeAtual} canteiroAtualId={lote.canteiroId} canteiros={canteiros} />
+          </AcaoRecolhivel>
+        )}
+        {/* RF-65: é a altura que o item de pedido compara com a pedida (RN-06) */}
+        {podeFase && (
+          <AcaoRecolhivel titulo="Medir altura">
+            <AlturaForm loteId={lote.id} alturaM={lote.alturaM} />
           </AcaoRecolhivel>
         )}
         {podeFase && (

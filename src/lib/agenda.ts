@@ -13,7 +13,7 @@ import { nomeEspecieSql } from './lotes';
 import { type ResultadoMovimento, registrarMovimento, travarLote } from './movimentos';
 // Seta num sentido só: `protocolos.ts` não importa daqui.
 import { concluirEtapa } from './protocolos';
-import { diasDaSemana, isInicioDeSemana, rotuloSemana, semanaJaPassou } from './semanas';
+import { diasDaSemana, inicioDaSemana, isInicioDeSemana, rotuloSemana, semanaJaPassou } from './semanas';
 import type { Db } from './sql';
 import type { CategoriaTarefa, Declaracoes } from './tipos-tarefa';
 import { parseHora } from './turnos';
@@ -605,10 +605,11 @@ async function conferirReferencias(client: Client, input: AtribuicaoInput): Prom
 }
 
 /**
- * RF-27, RN-29: traz as atribuições da semana `origemInicio` para a semana
- * `destinoId`, sete dias depois. Volta planejada e sem contagem; só com quem
- * ainda é funcionário, e com o lote só se ele segue aberto. A tarefa que ficou
- * sem ninguém não é copiada.
+ * RF-27, RN-29: traz as atribuições recorrentes da semana `origemInicio` para a
+ * semana `destinoId`, sete dias depois. Volta planejada e sem contagem; só com
+ * quem ainda é funcionário, e com o lote só se ele segue aberto. A tarefa que
+ * ficou sem ninguém não é trazida. Não há mais cópia manual da semana inteira:
+ * o que se repete é marcado como recorrente, e o resto se lança.
  *
  * **A tarefa que nasceu de sugestão não é copiada** (`lote_etapa_id IS NULL`), e
  * a razão mudou com o RF-47: não é que o motor a gere sozinho, é que ela
@@ -616,7 +617,7 @@ async function conferirReferencias(client: Client, input: AtribuicaoInput): Prom
  * carregaria um vencimento que não é o daquela semana. O protocolo torna a
  * sugeri-la enquanto a etapa continuar vencida.
  */
-async function copiarDaSemana(client: Client, origemInicio: string, destinoId: string, recorrentes: boolean): Promise<number> {
+async function copiarRecorrentes(client: Client, origemInicio: string, destinoId: string): Promise<number> {
   const { rows } = await client.query<DadosAtribuicao & { participantes: string[] }>(
     `SELECT to_char(a.data_trabalho + 7, 'YYYY-MM-DD') AS data, a.turno_id AS "turnoId", a.tipo_tarefa_id AS "tipoTarefaId",
             to_char(a.hora_inicio, 'HH24:MI') AS "horaInicio", to_char(a.hora_fim, 'HH24:MI') AS "horaFim",
@@ -633,9 +634,9 @@ async function copiarDaSemana(client: Client, origemInicio: string, destinoId: s
        JOIN turnos_trabalho t ON t.id = a.turno_id AND t.ativo
        JOIN tipos_tarefa tt ON tt.id = a.tipo_tarefa_id AND tt.ativo
        LEFT JOIN lotes l ON l.id = a.lote_id
-      WHERE s.inicio_semana = $1 AND a.e_recorrente = $2 AND a.lote_etapa_id IS NULL AND a.situacao <> 'cancelada'
+      WHERE s.inicio_semana = $1 AND a.e_recorrente AND a.lote_etapa_id IS NULL AND a.situacao <> 'cancelada'
       ORDER BY a.data_trabalho, t.inicio, a.criado_em`,
-    [origemInicio, recorrentes],
+    [origemInicio],
   );
   let copiadas = 0;
   for (const { participantes, ...dados } of rows) {
@@ -660,28 +661,8 @@ export async function abrirSemana(client: Client, inicio: string): Promise<{ id:
     const existente = await travarSemana(client, 'inicio_semana', inicio);
     return { id: existente.id, criada: false, recorrentes: 0 };
   }
-  const recorrentes = await copiarDaSemana(client, somaDias(inicio, -7), rows[0].id, true);
+  const recorrentes = await copiarRecorrentes(client, somaDias(inicio, -7), rows[0].id);
   return { id: rows[0].id, criada: true, recorrentes };
-}
-
-/**
- * T5.4, RF-27: o resto da semana passada, o que não é recorrente. Só em semana
- * sem outro lançamento: copiar duas vezes duplicaria a semana inteira.
- */
-export async function copiarSemanaAnterior(client: Client, inicio: string): Promise<{ copiadas: number; recorrentes: number }> {
-  const aberta = await abrirSemana(client, inicio);
-  const semana = await travarSemana(client, 'id', aberta.id);
-  recusarSeFechada(semana);
-  const { rows } = await client.query<{ n: number }>(
-    'SELECT COUNT(*)::int AS n FROM atribuicoes WHERE semana_id = $1 AND NOT e_recorrente AND lote_etapa_id IS NULL',
-    [semana.id],
-  );
-  if (rows[0].n > 0) {
-    throw new UserError('Esta semana já tem tarefas lançadas além das recorrentes. A cópia só é feita em semana ainda vazia, para não duplicar.');
-  }
-  const copiadas = await copiarDaSemana(client, somaDias(inicio, -7), semana.id, false);
-  if (copiadas === 0 && aberta.recorrentes === 0) throw new UserError('A semana passada não tem tarefa para copiar.');
-  return { copiadas, recorrentes: aberta.recorrentes };
 }
 
 /**
@@ -723,19 +704,34 @@ export async function criarAtribuicoes(client: Client, input: AtribuicaoInput): 
 }
 
 /** Só a planejada, num dia só, e dentro da mesma semana. */
-export async function atualizarAtribuicao(client: Client, id: string, input: AtribuicaoInput): Promise<void> {
+/**
+ * Altera a tarefa planejada. Fica na mesma semana, ou vai para uma à frente: é o
+ * "Marcar na agenda" da tarefa atrasada (RF-66), que a traz para a semana de
+ * hoje. Movida, não pode cair antes de hoje, senão seguiria atrasada; a semana
+ * de destino nasce se preciso e recusa se fechada, travada depois da de origem,
+ * na mesma ordem do adiamento.
+ */
+export async function atualizarAtribuicao(client: Client, id: string, input: AtribuicaoInput, hoje: string): Promise<void> {
   const atribuicao = await travarAtribuicao(client, id);
   recusarSeFechada(atribuicao.semana);
   recusarSeNaoPlanejada(atribuicao);
-  if (input.dias.length !== 1 || atribuicao.semana.inicio !== input.semana) {
-    throw new UserError('Escolha um dia da mesma semana. Para outra semana, lance a tarefa de novo.');
+  if (input.dias.length !== 1) throw new UserError('Escolha um dia só.');
+  let semanaId = atribuicao.semana.id;
+  if (input.semana < atribuicao.semana.inicio) {
+    throw new UserError('A tarefa não volta para uma semana anterior. Escolha um dia desta semana ou de uma à frente.');
+  }
+  if (input.semana > atribuicao.semana.inicio) {
+    if (input.dias[0] < hoje) throw new UserError('Escolha hoje ou um dia à frente: antes de hoje a tarefa continuaria atrasada.');
+    const destino = await abrirSemana(client, input.semana);
+    recusarSeFechada(await travarSemana(client, 'id', destino.id));
+    semanaId = destino.id;
   }
   await conferirReferencias(client, input);
   await client.query(
     `UPDATE atribuicoes
         SET data_trabalho = $2, turno_id = $3, tipo_tarefa_id = $4, hora_inicio = $5, hora_fim = $6, lote_id = $7,
             especie_id = $8, recipiente_id = $9, area_id = $10, canteiro_id = $11, quantidade_planejada = $12,
-            e_recorrente = $13, observacoes = $14
+            e_recorrente = $13, observacoes = $14, semana_id = $15
       WHERE id = $1`,
     [
       id,
@@ -752,6 +748,7 @@ export async function atualizarAtribuicao(client: Client, id: string, input: Atr
       input.quantidadePlanejada,
       input.recorrente,
       input.observacoes,
+      semanaId,
     ],
   );
   await client.query('DELETE FROM atribuicoes_participantes WHERE atribuicao_id = $1', [id]);
@@ -786,6 +783,25 @@ export async function reagendarAtribuicao(client: Client, id: string, input: Rea
     input.horaFim,
   ]);
   return { semanaInicio: atribuicao.semana.inicio };
+}
+
+/**
+ * RF-66: a tarefa atrasada que pede providência, adiada X dias a partir de hoje
+ * (ou da data dela, se ainda não chegou): adiar para um dia que já passou a
+ * deixaria atrasada do mesmo jeito. Ao contrário do arraste, pode cair em outra
+ * semana: a de destino nasce se ainda não existia, e recusa se estiver fechada.
+ * Turno, hora e gente seguem. A semana de origem nunca é posterior à de destino,
+ * e é nessa ordem que se trava.
+ */
+export async function adiarAtribuicao(client: Client, id: string, dias: number, hoje: string): Promise<{ data: string }> {
+  const atribuicao = await travarAtribuicao(client, id);
+  recusarSeFechada(atribuicao.semana);
+  recusarSeNaoPlanejada(atribuicao);
+  const data = somaDias(atribuicao.dataTrabalho < hoje ? hoje : atribuicao.dataTrabalho, dias);
+  const destino = await abrirSemana(client, inicioDaSemana(data));
+  recusarSeFechada(await travarSemana(client, 'id', destino.id));
+  await client.query('UPDATE atribuicoes SET data_trabalho = $2, semana_id = $3 WHERE id = $1', [id, data, destino.id]);
+  return { data };
 }
 
 /**
@@ -902,6 +918,22 @@ export async function confirmarAtribuicao(
   }
 
   return { loteId: input.loteId, perda };
+}
+
+/**
+ * RF-66: a etapa feita fora da agenda vira tarefa já confirmada, num dia só.
+ * Lança e confirma na mesma transação, para a etapa se concluir na data do
+ * trabalho e a perda entrar pela porta única, como em qualquer confirmação.
+ */
+export async function registrarTarefaFeita(
+  client: Client,
+  atribuicao: AtribuicaoInput,
+  confirmacao: ConfirmacaoInput,
+  registradoPor: string,
+): Promise<{ id: string; loteId: string | null; perda: ResultadoMovimento | null }> {
+  if (atribuicao.dias.length !== 1) throw new UserError('Escolha o dia em que a tarefa foi feita.');
+  const [id] = await criarAtribuicoes(client, atribuicao);
+  return { id, ...(await confirmarAtribuicao(client, id, confirmacao, registradoPor)) };
 }
 
 /** A repicagem que fecha a tarefa (UC-20 FA-1) só se liga à tarefa confirmada daquele lote. */

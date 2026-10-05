@@ -7,10 +7,10 @@ import {
   type ConfirmacaoInput,
   type ReagendamentoInput,
   abrirSemana,
+  adiarAtribuicao,
   atualizarAtribuicao,
   conferirAtribuicaoDaRepicagem,
   confirmarAtribuicao,
-  copiarSemanaAnterior,
   criarAtribuicoes,
   excluirAtribuicao,
   fecharSemana,
@@ -32,10 +32,10 @@ const prefixo = `ta${randomUUID().slice(0, 6)}`;
 // Semanas longe de qualquer outra suíte: segunda-feira, 2030
 const S1 = '2030-01-07';
 const S2 = '2030-01-14';
-// Segunda-feira cuja semana anterior ninguém usa
-const S3 = '2031-01-06';
 // Semana isolada do reagendamento: nenhuma outra contagem passa por ela
 const S4 = '2031-02-03';
+// Semana isolada do adiamento, que leva a tarefa para a seguinte
+const S5 = '2031-03-03';
 
 let usuario: string;
 let manha: string;
@@ -322,19 +322,21 @@ describe('agenda da semana contra Postgres', () => {
   });
 
   it('só a tarefa planejada se altera ou se exclui', async () => {
-    await expect(tx((client) => atualizarAtribuicao(client, ids.tres, tarefa({ dias: ['2030-01-08'] })))).rejects.toThrow('já está confirmada');
+    await expect(tx((client) => atualizarAtribuicao(client, ids.tres, tarefa({ dias: ['2030-01-08'] }), S1))).rejects.toThrow('já está confirmada');
     await expect(tx((client) => excluirAtribuicao(client, ids.tres))).rejects.toThrow('já está confirmada');
 
     const [id] = await criar({ participantes: [amelia], dias: ['2030-01-10'] });
-    await tx((client) => atualizarAtribuicao(client, id, tarefa({ participantes: [jaison], dias: ['2030-01-11'], turnoId: tarde })));
+    await tx((client) => atualizarAtribuicao(client, id, tarefa({ participantes: [jaison], dias: ['2030-01-11'], turnoId: tarde }), S1));
     expect(await findAtribuicao(pool, id)).toMatchObject({ data: '2030-01-11', turnoId: tarde, participantes: [expect.objectContaining({ id: jaison })] });
-    await expect(tx((client) => atualizarAtribuicao(client, id, tarefa({ semana: S2, dias: [S2] })))).rejects.toThrow('mesma semana');
+    await expect(tx((client) => atualizarAtribuicao(client, id, tarefa({ semana: '2029-12-31', dias: ['2029-12-31'] }), S1))).rejects.toThrow(
+      'semana anterior',
+    );
 
     expect(await tx((client) => excluirAtribuicao(client, id))).toEqual({ data: '2030-01-11' });
     expect(await findAtribuicao(pool, id)).toBeNull();
   });
 
-  it('TA-29: a semana nova nasce com as recorrentes, e a cópia traz o resto uma vez só', async () => {
+  it('TA-29: a semana nova nasce com as recorrentes, e só com elas', async () => {
     // Tarefa de quem deixou de ser funcionário não vai para a semana nova
     await criar({ participantes: [valdir], dias: ['2030-01-10'] });
     await pool.query("UPDATE cadastro.pessoas_papeis SET ativo = false WHERE pessoa_id = $1 AND papel = 'funcionario'", [valdir]);
@@ -348,21 +350,46 @@ describe('agenda da semana contra Postgres', () => {
     ]);
     expect(await tx((client) => abrirSemana(client, S2))).toMatchObject({ criada: false, recorrentes: 0 });
 
-    const { rows } = await pool.query<{ n: number }>(
-      `SELECT COUNT(*)::int AS n FROM atribuicoes a JOIN semanas s ON s.id = a.semana_id
-        WHERE s.inicio_semana = $1 AND NOT a.e_recorrente`,
-      [S1],
+    // Volta planejada, sem contagem, e só com quem ainda é funcionário
+    expect(recorrentes.flatMap((a) => a.participantes).every((p) => p.quantidade === null)).toBe(true);
+    expect(recorrentes.flatMap((a) => a.participantes.map((p) => p.id))).not.toContain(valdir);
+  });
+
+  it('RF-66: a tarefa atrasada adiada cai na semana seguinte, com o mesmo turno e a mesma gente', async () => {
+    const [id] = await criar({ semana: S5, dias: ['2031-03-06'], participantes: [jaison] });
+    // Hoje antes da data dela: conta da data dela
+    await expect(tx((client) => adiarAtribuicao(client, id, 7, '2031-03-01'))).resolves.toEqual({ data: '2031-03-13' });
+    const movida = await findAtribuicao(pool, id);
+    expect(movida).toMatchObject({ data: '2031-03-13', turnoId: manha, participantes: [expect.objectContaining({ id: jaison })] });
+    expect(await findSemana(pool, '2031-03-10')).toMatchObject({ situacao: 'aberta' });
+  });
+
+  it('RF-66: a tarefa já vencida adia contando de hoje, e não da data que passou', async () => {
+    const [id] = await criar({ semana: S5, dias: ['2031-03-04'], participantes: [jaison] });
+    // Venceu em 04/03; hoje é 11/03: um dia a mais cai em 12/03, e não em 05/03
+    await expect(tx((client) => adiarAtribuicao(client, id, 1, '2031-03-11'))).resolves.toEqual({ data: '2031-03-12' });
+  });
+
+  it('RF-66: marcar na agenda traz a tarefa atrasada para a semana de hoje, nunca antes de hoje', async () => {
+    const [id] = await criar({ semana: S5, dias: ['2031-03-05'], participantes: [jaison], loteId: lote });
+    const S6 = '2031-03-10';
+    // Antes de hoje, continuaria atrasada
+    await expect(tx((client) => atualizarAtribuicao(client, id, tarefa({ semana: S6, dias: [S6], loteId: lote }), '2031-03-11'))).rejects.toThrow(
+      'antes de hoje',
     );
-    const { copiadas } = await tx((client) => copiarSemanaAnterior(client, S2));
-    expect(copiadas).toBe(rows[0].n - 1);
+    await tx((client) => atualizarAtribuicao(client, id, tarefa({ semana: S6, dias: ['2031-03-12'], loteId: lote }), '2031-03-11'));
+    expect(await findAtribuicao(pool, id)).toMatchObject({ data: '2031-03-12', semanaInicio: S6 });
 
-    const semana = await listAgendaSemana(pool, aberta.id);
-    expect(semana.every((a) => a.situacao === 'planejada')).toBe(true);
-    expect(semana.flatMap((a) => a.participantes).every((p) => p.quantidade === null)).toBe(true);
-    expect(semana.flatMap((a) => a.participantes.map((p) => p.id))).not.toContain(valdir);
-    expect(semana.find((a) => a.tipoTarefaId === repicar)).toMatchObject({ loteId: lote, data: '2030-01-16' });
-
-    await expect(tx((client) => copiarSemanaAnterior(client, S2))).rejects.toThrow('já tem tarefas lançadas');
+    // A semana de destino fechada não recebe
+    const [outra] = await criar({ semana: S5, dias: ['2031-03-06'], participantes: [jaison] });
+    await pool.query(
+      `INSERT INTO semanas (inicio_semana, situacao, fechada_em) VALUES ($1, 'fechada', NOW())
+       ON CONFLICT (inicio_semana) DO UPDATE SET situacao = 'fechada', fechada_em = NOW()`,
+      ['2031-03-17'],
+    );
+    await expect(
+      tx((client) => atualizarAtribuicao(client, outra, tarefa({ semana: '2031-03-17', dias: ['2031-03-18'] }), '2031-03-11')),
+    ).rejects.toThrow('está fechada');
   });
 
   it('TA-34 e TA-30: fechar marca a não confirmada, deixa a sem ninguém pendente, e a semana fechada não se altera', async () => {
@@ -393,12 +420,7 @@ describe('agenda da semana contra Postgres', () => {
     await expect(criar()).rejects.toThrow('está fechada e não se altera');
     await expect(confirmar(orfa.id)).rejects.toThrow('está fechada');
     await expect(tx((client) => excluirAtribuicao(client, orfa.id))).rejects.toThrow('está fechada');
-    await expect(tx((client) => copiarSemanaAnterior(client, S1))).rejects.toThrow('está fechada');
+    await expect(tx((client) => adiarAtribuicao(client, orfa.id, 1, '2030-01-14'))).rejects.toThrow('está fechada');
     await expect(tx((client) => fecharSemana(client, S1, '2030-01-14'))).rejects.toThrow('já está fechada');
-  });
-
-  it('sem nada na semana passada, não há o que copiar, e a semana não fica criada', async () => {
-    await expect(tx((client) => copiarSemanaAnterior(client, S3))).rejects.toThrow('não tem tarefa para copiar');
-    expect(await findSemana(pool, S3)).toBeNull();
   });
 });
