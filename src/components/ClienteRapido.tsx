@@ -34,7 +34,7 @@ export function ClienteRapido({ onCriado, onFechar }: ClienteRapidoProps) {
     <Modal titulo="Cliente novo" onFechar={onFechar}>
       <form action={formAction} className="flex flex-col gap-3">
           <TextField label="Nome" name="nome" defaultValue={state.fields?.nome} autoComplete="off" required autoFocus />
-          <CampoTelefone defaultValue={state.fields?.telefone} hint="Com DDD" required />
+          <CampoTelefone defaultValue={state.fields?.telefone} required />
           {state.error && <Notice tone="error">{state.error}</Notice>}
           {state.candidatas ? (
             <>

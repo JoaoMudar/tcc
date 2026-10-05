@@ -99,7 +99,6 @@ export function PessoaForm({ pessoa, verFiscal, podeEditar, paraPedido }: Pessoa
         <TextField label="Nome" name="nome" defaultValue={fields?.nome ?? pessoa?.nome} required />
         <CampoTelefone
           defaultValue={fields?.telefone ?? formatTelefone(pessoa?.telefone ?? null)}
-          hint={paraPedido ? 'Com DDD' : undefined}
           required={Boolean(paraPedido)}
         />
         <TextField label="E-mail" name="email" type="email" defaultValue={fields?.email ?? pessoa?.email ?? ''} />

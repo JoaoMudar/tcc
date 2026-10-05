@@ -87,6 +87,34 @@ export function validateTelefone(text: string): { error: string } | { value: str
   return { value: digits };
 }
 
+/**
+ * A máscara do telefone enquanto se digita: `(47`, `(47) 9961`, `(47) 99612-4408`.
+ * O terceiro dígito 9 já põe o padrão do celular (5-4), para a máscara não pular
+ * no último número. Com o texto `anterior`, apagar um traço, parêntese ou espaço
+ * apaga o dígito de antes, senão a máscara o devolveria e o apagar travaria.
+ */
+export function mascaraTelefone(texto: string, anterior = ''): string {
+  let digits = onlyDigits(texto);
+  // 55 do código do país, quando colado do WhatsApp
+  if (digits.length > 11 && digits.startsWith('55')) digits = digits.slice(2);
+  digits = digits.slice(0, 11);
+  if (texto.length < anterior.length && digits === onlyDigits(anterior)) digits = digits.slice(0, -1);
+
+  if (digits.length === 0) return '';
+  if (digits.length <= 2) return `(${digits}`;
+  const ddd = digits.slice(0, 2);
+  const resto = digits.slice(2);
+  const corte = resto[0] === '9' ? 5 : 4;
+  if (resto.length <= corte) return `(${ddd}) ${resto}`;
+  return `(${ddd}) ${resto.slice(0, corte)}-${resto.slice(corte)}`;
+}
+
+/** O telefone tem todos os dígitos: 11 no celular (começa em 9), 10 no fixo. */
+export function telefoneCompleto(texto: string): boolean {
+  const digits = onlyDigits(texto);
+  return digits.length === (digits[2] === '9' ? 11 : 10);
+}
+
 /** 47996124408 → (47) 99612-4408. */
 export function formatTelefone(digits: string | null): string {
   if (!digits) return '';
