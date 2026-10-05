@@ -113,6 +113,31 @@ export async function voltarParaCargaAction(_previous: FormState, formData: Form
   return {};
 }
 
+/**
+ * P17: os passos do cabeçalho. Voltar vai direto à etapa tocada; avançar é o
+ * botão da própria etapa ("Confirmar carga", "Iniciar carregamento"), com as
+ * mesmas conferências, e por isso só a etapa seguinte avança.
+ */
+export async function irParaEtapaAction(previous: FormState, formData: FormData): Promise<FormState> {
+  await requirePermission('cargas_pedido', 'A');
+  const viagem = lerViagem(formData);
+  const para = formText(formData, 'para');
+  const atual = formText(formData, 'atual');
+  if (!viagem) return { error: 'Viagem inválida.' };
+
+  if (para === 'roteirizando' && atual === 'montando') return confirmarCargaAction(previous, formData);
+  if (para === 'carregando' && atual === 'roteirizando') return iniciarCarregamentoAction(previous, formData);
+  if (para !== 'montando' && para !== 'roteirizando') return { error: 'Etapa inválida.' };
+
+  try {
+    await withTransaction(pool, (client) => viagens.voltarEtapa(client, viagem.viagemId, para));
+  } catch (error) {
+    return { error: toUserMessage(error) };
+  }
+  revalidar(viagem.data);
+  return {};
+}
+
 /** A lista que abre enquanto se digita um endereço. Mapa fora do ar é lista vazia: o texto livre continua valendo. */
 export async function buscarEnderecosAction(texto: string): Promise<SugestaoDeEndereco[]> {
   await requirePermission('cargas_pedido', 'A');
@@ -218,7 +243,10 @@ export async function removerParadaAction(_previous: FormState, formData: FormDa
   return {};
 }
 
-/** "Iniciar carregamento": as cargas nascem, e a Tela 3 abre. Dali só se sai. */
+/**
+ * "Iniciar carregamento": as cargas nascem, e a Tela 3 abre. Voltar dali não
+ * as desfaz (P17): ao avançar de novo, o pedido segue com as que já tem.
+ */
 export async function iniciarCarregamentoAction(_previous: FormState, formData: FormData): Promise<FormState> {
   const user = await requirePermission('cargas_pedido', 'C');
   const viagem = lerViagem(formData);

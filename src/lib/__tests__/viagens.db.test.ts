@@ -32,6 +32,7 @@ import {
   tirarPedido,
   viagemDoDia,
   viagensEmAndamento,
+  voltarEtapa,
 } from '../viagens';
 
 /**
@@ -358,6 +359,38 @@ describe('o carregamento (Tela 3)', () => {
     expect(await listCargas(pool, novo)).toHaveLength(1);
     const [grupo] = await cargasDaViagem(pool, viagemId);
     expect(grupo.itens.map((i) => i.quantidade)).toEqual([200, 100]);
+  });
+
+  it('P17: volta do carregamento à rota e à carga, e o que foi marcado continua marcado', async () => {
+    const { dia, viagemId, a, b } = await viagemNaRota();
+    await tx((c) => iniciarCarregamento(c, viagemId, gerencia()));
+    const [primeiro] = await cargasDaViagem(pool, viagemId);
+    await tx((c) => marcarItemSeparado(c, primeiro.itens[0].id, true));
+
+    await tx((c) => voltarEtapa(c, viagemId, 'roteirizando'));
+    expect((await viagemDoDia(pool, dia))!.situacao).toBe('roteirizando');
+    await tx((c) => voltarEtapa(c, viagemId, 'montando'));
+    expect((await viagemDoDia(pool, dia))!.situacao).toBe('montando');
+    await expect(tx((c) => voltarEtapa(c, viagemId, 'montando'))).rejects.toThrow(/já está nesta etapa/);
+
+    // Avançar de novo segue com as cargas que existem, sem criar outras
+    await tx((c) => mudarEtapa(c, viagemId, 'roteirizando'));
+    await tx((c) => iniciarCarregamento(c, viagemId, gerencia()));
+    expect(await listCargas(pool, a)).toHaveLength(1);
+    expect(await listCargas(pool, b)).toHaveLength(1);
+    expect((await cargasDaViagem(pool, viagemId))[0].itens[0].separado).toBe(true);
+  });
+
+  it('P17: a viagem pronta não volta de etapa', async () => {
+    const dia = umDia();
+    const pedido = await pedidoAprovado(dia);
+    const { viagemId } = await tx((c) => adicionarPedido(c, dia, pedido, gerencia()));
+    await tx((c) => mudarEtapa(c, viagemId, 'roteirizando'));
+    await tx((c) => iniciarCarregamento(c, viagemId, gerencia()));
+    const [grupo] = await cargasDaViagem(pool, viagemId);
+    await tx((c) => marcarItemSeparado(c, grupo.itens[0].id, true));
+    await tx((c) => concluirViagem(c, viagemId, gerencia()));
+    await expect(tx((c) => voltarEtapa(c, viagemId, 'roteirizando'))).rejects.toThrow(/já está pronta/);
   });
 
     it('iniciar de novo é recusado, e nenhum pedido ganha segunda carga', async () => {
