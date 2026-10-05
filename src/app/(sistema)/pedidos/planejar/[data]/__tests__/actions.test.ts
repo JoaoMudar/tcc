@@ -178,6 +178,41 @@ describe('confirmar carga (Tela 1 → Tela 2)', () => {
   });
 });
 
+describe('os passos do cabeçalho (P17)', () => {
+  it('do carregamento volta à rota, sem tocar nas cargas', async () => {
+    situacaoViagem = 'carregando';
+    const state = await actions.irParaEtapaAction({}, form({ data: DIA, viagem_id: VIAGEM, atual: 'carregando', para: 'roteirizando' }));
+    expect(state.error).toBeUndefined();
+    expect(gravouEm('UPDATE viagens SET situacao = $2')[0][1]).toEqual([VIAGEM, 'roteirizando']);
+    expect(gravouEm('pedidos_cargas')).toHaveLength(0);
+  });
+
+  it('do carregamento volta direto à carga', async () => {
+    situacaoViagem = 'carregando';
+    await actions.irParaEtapaAction({}, form({ data: DIA, viagem_id: VIAGEM, atual: 'carregando', para: 'montando' }));
+    expect(gravouEm('UPDATE viagens SET situacao = $2')[0][1]).toEqual([VIAGEM, 'montando']);
+  });
+
+  it('a viagem pronta não volta', async () => {
+    situacaoViagem = 'pronta';
+    const state = await actions.irParaEtapaAction({}, form({ data: DIA, viagem_id: VIAGEM, atual: 'pronta', para: 'roteirizando' }));
+    expect(state.error).toMatch(/já está pronta/);
+  });
+
+  it('avançar da carga é o mesmo "Confirmar carga"', async () => {
+    vi.mocked(geocodificarTexto).mockRejectedValue(new MapaIndisponivel('sem chave'));
+    await expect(
+      actions.irParaEtapaAction({}, form({ data: DIA, viagem_id: VIAGEM, atual: 'montando', para: 'roteirizando' })),
+    ).rejects.toThrow(`REDIRECT /pedidos/planejar/${DIA}?aviso=mapa_indisponivel`);
+  });
+
+  it('etapa que não existe é recusada', async () => {
+    const state = await actions.irParaEtapaAction({}, form({ data: DIA, viagem_id: VIAGEM, atual: 'montando', para: 'pronta' }));
+    expect(state.error).toBe('Etapa inválida.');
+    expectNoDatabase();
+  });
+});
+
 describe('ordem da rota (Tela 2)', () => {
   it('recusa lista com id que não é uuid, sem ir ao banco', async () => {
     const state = await actions.salvarOrdemAction(DIA, VIAGEM, [PARADA, 'x']);

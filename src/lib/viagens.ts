@@ -474,6 +474,21 @@ export async function mudarEtapa(
   return { ...viagem, situacao: para };
 }
 
+const ORDEM_DAS_ETAPAS: Record<SituacaoViagem, number> = { montando: 0, roteirizando: 1, carregando: 2, pronta: 3 };
+
+/**
+ * P17: voltar uma ou duas etapas, pelo cabeçalho ou pela seta. **Do
+ * carregamento também se volta**: as cargas e os itens já marcados ficam, e ao
+ * avançar de novo `iniciarCarregamento` segue com elas, sem criar outras. Só a
+ * viagem pronta não volta, porque a carga dela já foi dada como pronta.
+ */
+export async function voltarEtapa(client: Client, viagemId: string, para: 'montando' | 'roteirizando'): Promise<void> {
+  const viagem = await travarViagem(client, viagemId);
+  if (viagem.situacao === 'pronta') throw new UserError('A viagem já está pronta, e não volta de etapa.');
+  if (ORDEM_DAS_ETAPAS[para] >= ORDEM_DAS_ETAPAS[viagem.situacao]) throw new UserError('A viagem já está nesta etapa.');
+  await client.query('UPDATE viagens SET situacao = $2 WHERE id = $1', [viagemId, para]);
+}
+
 /**
  * Tela 2 → Tela 3: cria a carga de cada pedido aprovado, numa transação só. Cada
  * um passa a `separando` por `criarCargaUnica`, que é a mesma porta do "Organizar
