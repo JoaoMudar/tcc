@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { EspecieRapida } from '@/components/EspecieRapida';
 import { GradeItens } from '@/components/pedidos/GradeItens';
+import { EnderecoDaEntrega } from '@/components/pedidos/EnderecoDaEntrega';
 import { FechamentoDoPedido } from '@/components/pedidos/FechamentoDoPedido';
 import { type ItemDaFicha, GradeItensFicha, type ValoresNegociacao } from '@/components/pedidos/GradeItensFicha';
 import { ItemEmFoco } from '@/components/pedidos/ItemEmFoco';
@@ -25,8 +26,10 @@ import {
 import {
   adicionarItemAction,
   atualizarItemAction,
+  buscarEnderecosDoPedidoAction,
   negociarItensAction,
   removerItemAction,
+  salvarEnderecoDoPedidoAction,
   salvarFreteAction,
   sugerirFreteAction,
 } from '../actions';
@@ -48,6 +51,8 @@ interface ItensDaFichaProps {
   proximoPasso: ProximoPassoProps;
   /** RN-64: o frete gravado no pedido. */
   frete?: { centavos: number | null; origem: OrigemFrete | null; distanciaKm: number | null };
+  /** O título do modal do endereço de entrega, aberto pelo frete. */
+  nomeCliente?: string;
 }
 
 /**
@@ -185,6 +190,7 @@ export function ItensDaFicha({
   faltaBloqueia = false,
   proximoPasso,
   frete,
+  nomeCliente,
 }: ItensDaFichaProps) {
   const { agendar, salvando } = useFilaDeGravacao(ATRASO_GRAVACAO_MS);
   const [erro, setErro] = useState<string | null>(null);
@@ -351,6 +357,8 @@ export function ItensDaFicha({
   const [origem, setOrigem] = useState<OrigemFrete>(frete?.origem ?? ORIGEM_PADRAO);
   const [distancia, setDistancia] = useState(() => textoDistancia(frete?.distanciaKm ?? null));
   const [avisoFrete, setAvisoFrete] = useState<string | null>(null);
+  const [faltaEndereco, setFaltaEndereco] = useState<{ endereco: string | null } | null>(null);
+  const [editandoEndereco, setEditandoEndereco] = useState(false);
   const [sugerindo, setSugerindo] = useState(false);
   const freteRef = useRef({ texto: freteTexto, origem });
 
@@ -378,15 +386,28 @@ export function ItensDaFicha({
   const sugerir = async () => {
     setSugerindo(true);
     setAvisoFrete(null);
+    setFaltaEndereco(null);
     const resultado = await sugerirFreteAction(pedidoId, freteRef.current.origem);
     setSugerindo(false);
     if ('error' in resultado) {
       setAvisoFrete(resultado.error);
+      setFaltaEndereco(resultado.falta ?? null);
       return;
     }
     setDistancia(textoDistancia(resultado.distanciaKm));
     alterarFrete(freteParaCampo(resultado.centavos));
   };
+
+  // Endereço gravado: fecha e sugere de novo, que era o que a chefia queria
+  const sugerirRef = useRef(sugerir);
+  useEffect(() => {
+    sugerirRef.current = sugerir;
+  });
+  const fecharEndereco = useCallback(() => setEditandoEndereco(false), []);
+  const enderecoSalvo = useCallback(() => {
+    setEditandoEndereco(false);
+    void sugerirRef.current();
+  }, []);
 
   const freteLido = parsePreco(freteTexto);
   const freteCentavos = modo === 'negociacao' ? ('value' in freteLido ? freteLido.value : null) : (frete?.centavos ?? null);
@@ -439,9 +460,22 @@ export function ItensDaFicha({
                   onAlterarFrete: alterarFrete,
                   onAlterarOrigem: alterarOrigem,
                   onSugerir: sugerir,
+                  falta: faltaEndereco && { ...faltaEndereco, onAbrir: () => setEditandoEndereco(true) },
                 }
               : undefined
           }
+        />
+      )}
+
+      {editandoEndereco && (
+        <EnderecoDaEntrega
+          nomeCliente={nomeCliente ?? ''}
+          endereco={faltaEndereco?.endereco ?? null}
+          acao={salvarEnderecoDoPedidoAction}
+          buscar={buscarEnderecosDoPedidoAction}
+          camposOcultos={{ pedido_id: pedidoId }}
+          onFechar={fecharEndereco}
+          onSalvo={enderecoSalvo}
         />
       )}
 

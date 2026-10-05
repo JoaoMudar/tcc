@@ -21,6 +21,8 @@ interface FechamentoDoPedidoProps {
     onAlterarFrete: (texto: string) => void;
     onAlterarOrigem: (origem: OrigemFrete) => void;
     onSugerir: () => void;
+    /** Sem endereço de entrega, ou não achado no mapa: o botão de completá-lo, no lugar do aviso. */
+    falta?: { endereco: string | null; onAbrir: () => void } | null;
   };
 }
 
@@ -104,6 +106,15 @@ export function FechamentoDoPedido({ subtotalCentavos, freteCentavos, peso, edic
           <p className="text-sm font-semibold text-amber-900 empty:hidden" aria-live="polite">
             {edicao.aviso}
           </p>
+          {edicao.falta && (
+            <button
+              type="button"
+              onClick={edicao.falta.onAbrir}
+              className="flex min-h-11 items-center self-start rounded-lg border-[1.5px] border-amber-600 bg-amber-50 px-3 text-sm font-bold text-amber-900 active:bg-amber-100"
+            >
+              {edicao.falta.endereco ? 'Corrigir endereço' : 'Adicionar endereço'}
+            </button>
+          )}
         </div>
       )}
     </section>

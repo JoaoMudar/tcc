@@ -6,41 +6,55 @@ import { CampoEndereco } from '@/components/ui/CampoEndereco';
 import { CampoLocalizacao } from '@/components/ui/CampoLocalizacao';
 import { Modal } from '@/components/ui/Modal';
 import { Notice } from '@/components/ui/Notice';
-import { EMPTY_FORM_STATE } from '@/lib/form-state';
-import { buscarEnderecosAction, salvarEnderecoEntregaAction } from './actions';
+import { EMPTY_FORM_STATE, type FormState } from '@/lib/form-state';
+import type { SugestaoDeEndereco } from '@/lib/rotas';
 
 interface EnderecoDaEntregaProps {
-  data: string;
-  viagemId: string;
-  cliente: { id: string; nome: string };
+  nomeCliente: string;
   /** O endereço que o cadastro já tem, quando o mapa não o achou. */
   endereco: string | null;
+  /** Quem grava: a rota do planejar ou o frete do pedido, cada um com a sua permissão. */
+  acao: (previous: FormState, formData: FormData) => Promise<FormState>;
+  buscar: (texto: string) => Promise<SugestaoDeEndereco[]>;
+  /** O que identifica a viagem ou o pedido, em campos escondidos. */
+  camposOcultos: Record<string, string>;
   onFechar: () => void;
+  /** Depois de gravar; sem ele, só fecha. */
+  onSalvo?: () => void;
 }
 
 /**
- * P17: o endereço de entrega que falta, sem sair da rota. Digita-se o
+ * P17: o endereço de entrega que falta, sem sair da tela. Digita-se o
  * endereço, com as sugestões do mapa, ou cola-se a localização que o cliente
  * mandou pelo WhatsApp. Grava no cadastro do cliente, e vale para as próximas.
  */
-export function EnderecoDaEntrega({ data, viagemId, cliente, endereco, onFechar }: EnderecoDaEntregaProps) {
-  const [estado, salvar, salvando] = useActionState(salvarEnderecoEntregaAction, EMPTY_FORM_STATE);
+export function EnderecoDaEntrega({
+  nomeCliente,
+  endereco,
+  acao,
+  buscar,
+  camposOcultos,
+  onFechar,
+  onSalvo,
+}: EnderecoDaEntregaProps) {
+  const [estado, salvar, salvando] = useActionState(acao, EMPTY_FORM_STATE);
+  const depois = onSalvo ?? onFechar;
 
   useEffect(() => {
-    if (estado.success) onFechar();
-  }, [estado.success, onFechar]);
+    if (estado.success) depois();
+  }, [estado.success, depois]);
 
   return (
-    <Modal titulo={`Endereço de entrega · ${cliente.nome}`} onFechar={onFechar}>
+    <Modal titulo={`Endereço de entrega · ${nomeCliente}`} onFechar={onFechar}>
       <form action={salvar} className="flex flex-col gap-3">
-        <input type="hidden" name="data" value={data} />
-        <input type="hidden" name="viagem_id" value={viagemId} />
-        <input type="hidden" name="cliente_id" value={cliente.id} />
+        {Object.entries(camposOcultos).map(([nome, valor]) => (
+          <input key={nome} type="hidden" name={nome} value={valor} />
+        ))}
         <CampoEndereco
           label="Endereço"
           name="endereco"
           defaultValue={estado.fields?.endereco ?? endereco ?? ''}
-          buscar={buscarEnderecosAction}
+          buscar={buscar}
         />
         <CampoLocalizacao name="localizacao" defaultValue={estado.fields?.localizacao} />
         <p className="text-sm text-muted">Fica no cadastro do cliente e vale para as próximas entregas.</p>

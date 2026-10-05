@@ -7,9 +7,9 @@ import { isDataIso } from '@/lib/datas';
 import pool from '@/lib/db';
 import { toUserMessage } from '@/lib/errors';
 import { type FormState, formText } from '@/lib/form-state';
-import { resolverLocalizacao } from '@/lib/localizacao-servidor';
+import { lerEnderecoDeEntrega } from '@/lib/endereco-entrega-form';
 import { type AvisoDaRota, type SugestaoDeEndereco, lerCoordenada } from '@/lib/rotas';
-import { type EnderecoDoPonto, MapaIndisponivel, enderecoDoPonto, sugerirEnderecos } from '@/lib/rotas-ors';
+import { MapaIndisponivel, sugerirEnderecos } from '@/lib/rotas-ors';
 import { withTransaction } from '@/lib/transaction';
 import { isUuid } from '@/lib/uuid';
 import * as viagens from '@/lib/viagens';
@@ -156,70 +156,24 @@ function coordenadaDoForm(formData: FormData) {
   return lerCoordenada(formText(formData, 'lat'), formText(formData, 'lng'));
 }
 
-/** O rótulo da lista ("Rua X, 120, Rio do Sul, SC, Brasil") sem a cidade e o resto, que vão nos próprios campos. */
-function logradouroDoRotulo(rotulo: string, cidade: string | null): string {
-  const partes = rotulo.split(',').map((parte) => parte.trim());
-  const ondeCidade = cidade ? partes.findIndex((parte) => parte.toLowerCase() === cidade.toLowerCase()) : -1;
-  return ondeCidade > 0 ? partes.slice(0, ondeCidade).join(', ') : rotulo;
-}
-
-async function lugarDoPonto(ponto: { lat: number; lng: number }): Promise<EnderecoDoPonto | null> {
-  try {
-    return await enderecoDoPonto(ponto);
-  } catch (error) {
-    if (error instanceof MapaIndisponivel) return null;
-    throw error;
-  }
-}
-
 /**
  * P17: o endereço de entrega que falta, completado tocando no cliente da Tela
- * 2. Vale o endereço digitado (com ou sem escolher na lista) ou a localização
- * que o cliente mandou pelo WhatsApp, colada; com as duas, o ponto colado é o
- * que vale, e o texto fica como referência.
+ * 2. A leitura do form é a mesma do frete do pedido (`lerEnderecoDeEntrega`).
  */
 export async function salvarEnderecoEntregaAction(_previous: FormState, formData: FormData): Promise<FormState> {
   await requirePermission('cargas_pedido', 'A');
   const viagem = lerViagem(formData);
   const clienteId = formText(formData, 'cliente_id');
   if (!viagem || !isUuid(clienteId)) return { error: 'Cliente inválido.' };
-  const texto = formText(formData, 'endereco').trim().slice(0, 300);
-  const colado = formText(formData, 'localizacao').trim().slice(0, 2000);
-  const fields = { endereco: texto, localizacao: colado };
-
-  let ponto = coordenadaDoForm(formData);
-  let doWhatsApp = false;
-  if (colado !== '') {
-    ponto = await resolverLocalizacao(colado);
-    if (!ponto) {
-      return {
-        error: 'Não deu para ler a localização. Cole o link que o cliente mandou pelo WhatsApp, ou os dois números.',
-        fields,
-      };
-    }
-    doWhatsApp = true;
-  }
-  if (!texto && !ponto) return { error: 'Digite o endereço ou cole a localização.', fields };
-
-  const lugar = ponto ? await lugarDoPonto(ponto) : null;
-  const logradouro = texto
-    ? doWhatsApp
-      ? texto
-      : logradouroDoRotulo(texto, lugar?.cidade ?? null)
-    : (lugar?.logradouro ?? 'Localização enviada pelo WhatsApp');
+  const lido = await lerEnderecoDeEntrega(formData);
+  if ('error' in lido) return lido;
 
   try {
     await withTransaction(pool, (client) =>
-      viagens.salvarEnderecoDeEntrega(client, viagem.viagemId, clienteId, {
-        logradouro,
-        cidade: lugar?.cidade ?? null,
-        uf: lugar?.uf ?? null,
-        cep: lugar?.cep ?? null,
-        ponto,
-      }),
+      viagens.salvarEnderecoDeEntrega(client, viagem.viagemId, clienteId, lido.endereco),
     );
   } catch (error) {
-    return { error: toUserMessage(error), fields };
+    return { error: toUserMessage(error), fields: lido.fields };
   }
   revalidar(viagem.data);
   return { success: 'Endereço salvo.' };

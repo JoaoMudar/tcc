@@ -7,7 +7,10 @@ import { toUserMessage } from '@/lib/errors';
 import { type FormState, formText } from '@/lib/form-state';
 import { isOrigemFrete } from '@/lib/frete';
 import * as pedidos from '@/lib/pedidos';
-import { AVISOS_DO_FRETE, sugestaoDeFrete } from '@/lib/pedidos-frete';
+import { lerEnderecoDeEntrega } from '@/lib/endereco-entrega-form';
+import { AVISOS_DO_FRETE, salvarEnderecoDoPedido, sugestaoDeFrete } from '@/lib/pedidos-frete';
+import type { SugestaoDeEndereco } from '@/lib/rotas';
+import { MapaIndisponivel, sugerirEnderecos } from '@/lib/rotas-ors';
 import { withTransaction } from '@/lib/transaction';
 import { isUuid } from '@/lib/uuid';
 import { requirePermission } from '@/lib/auth/guards';
@@ -324,17 +327,53 @@ export async function salvarFreteAction(_previous: FormState, formData: FormData
 export async function sugerirFreteAction(
   pedidoId: string,
   origem: string,
-): Promise<{ error: string } | { centavos: number; distanciaKm: number }> {
+): Promise<
+  | { error: string; falta?: { endereco: string | null } }
+  | { centavos: number; distanciaKm: number }
+> {
   const user = await requirePermission('confirmacao_pedido', 'A');
   if (!isUuid(pedidoId)) return { error: 'Pedido inválido.' };
   if (!isOrigemFrete(origem)) return { error: 'Origem do frete inválida.' };
   if (user.perfil === 'gerencia') return { error: 'O frete do pedido é digitado pela chefia.' };
   try {
     const sugestao = await sugestaoDeFrete(pool, pedidoId, origem);
-    return 'aviso' in sugestao ? { error: AVISOS_DO_FRETE[sugestao.aviso] } : sugestao;
+    if (!('aviso' in sugestao)) return sugestao;
+    const error = AVISOS_DO_FRETE[sugestao.aviso];
+    return 'endereco' in sugestao ? { error, falta: { endereco: sugestao.endereco } } : { error };
   } catch (error) {
     return { error: toUserMessage(error) };
   }
+}
+
+/** A lista de endereços do modal do frete, com a permissão do pedido. Mapa fora do ar é lista vazia. */
+export async function buscarEnderecosDoPedidoAction(texto: string): Promise<SugestaoDeEndereco[]> {
+  await requirePermission('confirmacao_pedido', 'A');
+  const busca = typeof texto === 'string' ? texto.trim() : '';
+  if (busca.length < 3 || busca.length > 200) return [];
+  try {
+    return await sugerirEnderecos(busca);
+  } catch (error) {
+    if (error instanceof MapaIndisponivel) return [];
+    throw error;
+  }
+}
+
+/** P17: o endereço de entrega que faltou para sugerir o frete, sem sair do pedido. */
+export async function salvarEnderecoDoPedidoAction(_previous: FormState, formData: FormData): Promise<FormState> {
+  const user = await requirePermission('confirmacao_pedido', 'A');
+  if (user.perfil === 'gerencia') return { error: 'O frete do pedido é digitado pela chefia.' };
+  const pedidoId = formText(formData, 'pedido_id');
+  if (!isUuid(pedidoId)) return { error: 'Pedido inválido.' };
+  const lido = await lerEnderecoDeEntrega(formData);
+  if ('error' in lido) return lido;
+
+  try {
+    await withTransaction(pool, (client) => salvarEnderecoDoPedido(client, pedidoId, lido.endereco));
+  } catch (error) {
+    return { error: toUserMessage(error), fields: lido.fields };
+  }
+  revalidarPedidos(pedidoId);
+  return { success: 'Endereço salvo.' };
 }
 
 /** T8.3, RF-57: confirmar trava os itens. O guard é o do D4, `confirmacao_pedido`. */

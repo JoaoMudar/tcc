@@ -17,6 +17,7 @@ import {
   UFS,
   enderecoFieldName,
 } from './pessoas-form';
+import type { Coordenada } from './rotas-ors';
 import { type Db, escapeLike, violatedConstraint } from './sql';
 
 export * from './pessoas-form';
@@ -330,6 +331,63 @@ export async function addPapel(db: Db, pessoaId: string, papel: Exclude<Papel, '
     [pessoaId, papel],
   );
   return rows[0]?.nome ?? null;
+}
+
+/** O endereço de entrega que se completa fora do cadastro: o texto, e o ponto quando se sabe. */
+export interface EnderecoDeEntrega {
+  logradouro: string;
+  /** Nulos mantêm o que o cadastro já tem. */
+  cidade: string | null;
+  uf: string | null;
+  cep: string | null;
+  ponto: Coordenada | null;
+}
+
+/**
+ * P17: grava o endereço de entrega do cliente, o primeiro do tipo, ou o cria.
+ * Quem chama confere a permissão: a rota do planejar e o frete do pedido.
+ *
+ * Com o ponto (escolhido na lista, ou a localização colada do WhatsApp), a
+ * coordenada é gravada junto, e o mapa não precisa procurar o texto. Sem ele,
+ * a coordenada que existia só cai se o texto mudou.
+ */
+export async function salvarEnderecoDeEntrega(
+  client: Pick<PoolClient, 'query'>,
+  clienteId: string,
+  endereco: EnderecoDeEntrega,
+): Promise<void> {
+  const { rows } = await client.query<{ id: string }>(
+    `SELECT id FROM cadastro.pessoas_enderecos
+      WHERE pessoa_id = $1 AND tipo = 'entrega'
+      ORDER BY criado_em, id LIMIT 1 FOR UPDATE`,
+    [clienteId],
+  );
+  const { logradouro, cidade, uf, cep, ponto } = endereco;
+  if (!rows[0]) {
+    await client.query(
+      `INSERT INTO cadastro.pessoas_enderecos (pessoa_id, tipo, logradouro, cidade, uf, cep, lat, lng, geocodificado_em)
+       VALUES ($1, 'entrega', $2, $3, $4, $5, $6, $7, CASE WHEN $6::numeric IS NULL THEN NULL ELSE NOW() END)`,
+      [clienteId, logradouro, cidade, uf, cep, ponto?.lat ?? null, ponto?.lng ?? null],
+    );
+  } else if (ponto) {
+    await client.query(
+      `UPDATE cadastro.pessoas_enderecos
+          SET logradouro = $2, cidade = COALESCE($3, cidade), uf = COALESCE($4, uf), cep = COALESCE($5, cep),
+              lat = $6, lng = $7, geocodificado_em = NOW()
+        WHERE id = $1`,
+      [rows[0].id, logradouro, cidade, uf, cep, ponto.lat, ponto.lng],
+    );
+  } else {
+    // O texto mudou: o gatilho apaga a coordenada velha. O "não achado" também
+    // cai, para a sugestão procurar o texto novo em vez de repetir o aviso
+    await client.query(
+      `UPDATE cadastro.pessoas_enderecos
+          SET logradouro = $2, cidade = COALESCE($3, cidade), uf = COALESCE($4, uf), cep = COALESCE($5, cep),
+              geocodificado_em = CASE WHEN lat IS NULL THEN NULL ELSE geocodificado_em END
+        WHERE id = $1`,
+      [rows[0].id, logradouro, cidade, uf, cep],
+    );
+  }
 }
 
 /** RF-15: nome e telefone bastam para o pedido; a ficha se completa depois. */

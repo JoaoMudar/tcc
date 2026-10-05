@@ -486,7 +486,56 @@ describe('frete do pedido (RN-64)', () => {
       rowCount: 1,
     } as never);
     await expect(actions.sugerirFreteAction(PEDIDO, 'agrolandia')).resolves.toEqual({
-      error: 'O cliente não tem endereço de entrega. Digite o frete combinado.',
+      error: 'Cliente sem endereço de entrega.',
+      falta: { endereco: null },
     });
+  });
+});
+
+describe('endereço de entrega pelo frete (P17)', () => {
+  const CLIENTE = '4f5b3a6c-2d9e-4a6f-9b4c-6d0e1f2a3b4c';
+
+  /** O pedido travado devolve o cliente; o cliente ainda não tem endereço de entrega. */
+  function pedidoDoCliente(situacao: string) {
+    client.query.mockImplementation((async (sql: string) => {
+      if (/FROM pedidos WHERE id/.test(sql)) return { rows: [{ clienteId: CLIENTE, situacao, numero: 7 }], rowCount: 1 };
+      return { rows: [], rowCount: 0 };
+    }) as never);
+  }
+
+  function gravouEndereco() {
+    return client.query.mock.calls.filter(([sql]) => String(sql).includes('INSERT INTO cadastro.pessoas_enderecos'));
+  }
+
+  it('grava o endereço digitado no cadastro do cliente do pedido', async () => {
+    pedidoDoCliente('verificado');
+    const state = await actions.salvarEnderecoDoPedidoAction({}, form({ pedido_id: PEDIDO, endereco: 'Rua XV, 120' }));
+    expect(state).toEqual({ success: 'Endereço salvo.' });
+    expect(gravouEndereco().map(([, valores]) => valores)).toEqual([[CLIENTE, 'Rua XV, 120', null, null, null, null, null]]);
+  });
+
+  it('pedido aprovado não completa endereço por aqui', async () => {
+    pedidoDoCliente('aprovado');
+    const state = await actions.salvarEnderecoDoPedidoAction({}, form({ pedido_id: PEDIDO, endereco: 'Rua XV' }));
+    expect(state.error).toMatch(/depois da conferência/);
+    expect(state.fields).toEqual({ endereco: 'Rua XV', localizacao: '' });
+    expect(gravouEndereco()).toEqual([]);
+  });
+
+  it('sem endereço nem localização, recusa antes do banco', async () => {
+    const state = await actions.salvarEnderecoDoPedidoAction({}, form({ pedido_id: PEDIDO, endereco: ' ' }));
+    expect(state.error).toBe('Digite o endereço ou cole a localização.');
+    expectNoDatabase();
+  });
+
+  it('a gerência não completa o endereço do frete', async () => {
+    loggedAs('gerencia');
+    const state = await actions.salvarEnderecoDoPedidoAction({}, form({ pedido_id: PEDIDO, endereco: 'Rua XV' }));
+    expect(state.error).toBeTruthy();
+    expectNoDatabase();
+  });
+
+  it('a busca de endereços ignora texto curto', async () => {
+    await expect(actions.buscarEnderecosDoPedidoAction('ab')).resolves.toEqual([]);
   });
 });
