@@ -42,8 +42,8 @@ describe('PainelProvidencia (RF-66)', () => {
   });
 
   it('a tarefa já lançada se remarca e se confirma pela ficha, sem lançar outra', () => {
-    abrir({ ...BASE, origem: { tipo: 'tarefa', atribuicaoId: 'a1', marcarHref: '/producao/agenda/a1/editar?semana=2026-10-05' } });
-    expect(screen.getByRole('link', { name: 'Marcar na agenda' })).toHaveAttribute('href', '/producao/agenda/a1/editar?semana=2026-10-05');
+    abrir({ ...BASE, origem: { tipo: 'tarefa', atribuicaoId: 'a1', marcarHref: '/producao/agenda/a1/editar?semana=2026-10-05&voltar=agenda' } });
+    expect(screen.getByRole('link', { name: 'Marcar na agenda' })).toHaveAttribute('href', '/producao/agenda/a1/editar?semana=2026-10-05&voltar=agenda');
     expect(screen.getByRole('link', { name: 'Confirmar tarefa' })).toHaveAttribute('href', '/producao/agenda/a1');
   });
 

@@ -6,8 +6,8 @@ export default async function EditarAtribuicaoPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ semana?: string }>;
+  searchParams: Promise<{ semana?: string; voltar?: string }>;
 }) {
-  const [{ id }, { semana }] = await Promise.all([params, searchParams]);
-  return <EditarTarefa id={id} semana={semana} emModal={false} />;
+  const [{ id }, { semana, voltar }] = await Promise.all([params, searchParams]);
+  return <EditarTarefa id={id} semana={semana} voltar={voltar} emModal={false} />;
 }

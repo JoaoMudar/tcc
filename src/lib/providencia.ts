@@ -81,13 +81,22 @@ export function providenciaDoLote(lote: LoteNoMapa, pendencia: string | null, se
   };
   if (lote.atribuicaoPendenteId) {
     const id = lote.atribuicaoPendenteId;
-    return { ...base, origem: { tipo: 'tarefa', atribuicaoId: id, marcarHref: `/producao/agenda/${id}/editar?semana=${semana}` } };
+    return { ...base, origem: { tipo: 'tarefa', atribuicaoId: id, marcarHref: `/producao/agenda/${id}/editar?semana=${semana}&voltar=agenda` } };
   }
   if (lote.protocoloEtapaPendenteId && lote.tipoTarefaPendenteId) {
     const etapa = { etapaId: lote.protocoloEtapaPendenteId, loteId: lote.id, tipoTarefaId: lote.tipoTarefaPendenteId, turnoId: lote.turnoPendenteId };
     return { ...base, origem: origemDaEtapa(semana, etapa) };
   }
   return null;
+}
+
+/**
+ * Para onde vai a tarefa alterada. Vinda do "Marcar na agenda" (`voltar=agenda`),
+ * volta para a agenda do dia novo: a tarefa ainda não foi feita, e a ficha
+ * aberta logo depois parecia pedir a confirmação. Senão, volta para a ficha.
+ */
+export function destinoAposAlterar(id: string, dia: string, voltar: string | null): string {
+  return voltar === 'agenda' ? `/producao?dia=${dia}&feito=alterada` : `/producao/agenda/${id}?feito=alterada`;
 }
 
 /**
