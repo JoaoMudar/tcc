@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { PageHeader } from '@/components/PageHeader';
 import { CARACTERISTICA_LABELS } from '@/lib/especies';
 import { requirePageAccess } from '@/lib/auth/guards';
-import { EspecieForm } from '../EspecieForm';
+import { NovaEspecie } from '../NovaEspecie';
 
 export default async function NovaEspeciePage() {
   await requirePageAccess('especies', 'C');
@@ -15,7 +15,7 @@ export default async function NovaEspeciePage() {
         <Link href="/cadastros/especies" className="text-base font-semibold text-brand-dark">
           Voltar
         </Link>
-        <EspecieForm caracteristicas={caracteristicas} podeEditar />
+        <NovaEspecie caracteristicas={caracteristicas} />
       </div>
     </main>
   );

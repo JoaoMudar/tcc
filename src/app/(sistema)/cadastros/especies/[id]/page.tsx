@@ -5,6 +5,8 @@ import { Notice } from '@/components/ui/Notice';
 import { Toast } from '@/components/ui/Toast';
 import pool from '@/lib/db';
 import { CARACTERISTICA_LABELS, findEspecie, nomeExibido } from '@/lib/especies';
+import { atribuicaoFfb } from '@/lib/especies-ffb';
+import { ROTULO_VALIDACAO } from '@/lib/especies-rotulos';
 import { can } from '@/lib/permissions';
 import { listTemposDaEspecie } from '@/lib/protocolos';
 import { isUuid } from '@/lib/uuid';
@@ -24,6 +26,7 @@ export default async function EspeciePage({ params, searchParams }: PageProps<'/
 
   // RF-25: o tempo da etapa é do protocolo, e o D4 nota 3 o guarda como protocolo
   const tempos = await listTemposDaEspecie(pool, id);
+  const atribuicao = await atribuicaoFfb(pool);
   const podeTempos = can(user.perfil, 'protocolos', 'A');
 
   return (
@@ -39,8 +42,14 @@ export default async function EspeciePage({ params, searchParams }: PageProps<'/
           </Toast>
         )}
         {!podeEditar && <Notice tone="info">O catálogo de espécies é da chefia. Seu perfil pode consultar, mas não alterar.</Notice>}
+        <p className="text-sm text-muted">
+          {ROTULO_VALIDACAO[especie.statusValidacao]}
+          {especie.familia && ` · Família ${especie.familia}`}
+        </p>
         <EspecieForm especie={especie} caracteristicas={caracteristicas} podeEditar={podeEditar} />
         <TemposProtocoloSecao especieId={especie.id} tempos={tempos} podeEditar={podeTempos} />
+        {/* A licença CC-BY 4.0 da FFB pede a atribuição onde o nome dela aparece */}
+        {atribuicao && especie.statusValidacao === 'validado' && <p className="text-xs text-muted">{atribuicao}</p>}
       </div>
     </main>
   );

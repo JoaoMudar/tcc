@@ -16,6 +16,8 @@
     "db:migrate:status": "tsx scripts/migrate.ts status",
     "db:seed-admin": "tsx scripts/seed-admin.ts",
     "db:carga": "tsx scripts/carga-inicial.ts",
+    "db:ffb": "tsx scripts/ffb-importar.ts",
+    "db:conciliar": "tsx scripts/especies-conciliar.ts",
     "db:retencao": "tsx scripts/manutencao.ts retencao",
     "db:conferir": "tsx scripts/manutencao.ts conferir",
     "backup:cifrar": "tsx scripts/cifra-backup.ts cifrar",

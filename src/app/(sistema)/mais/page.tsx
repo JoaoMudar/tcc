@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { PageHeader } from '@/components/PageHeader';
 import { BotaoSair } from '@/components/BotaoSair';
 import { requireUser } from '@/lib/auth/dal';
+import pool from '@/lib/db';
+import { atribuicaoFfb } from '@/lib/especies-ffb';
 import { visibleNavItems } from '@/lib/auth/menu';
 import { logout } from '../actions';
 
@@ -9,6 +11,7 @@ import { logout } from '../actions';
 export default async function MaisPage() {
   const user = await requireUser();
   const items = visibleNavItems(user.perfil).filter((item) => item.placement === 'more');
+  const atribuicao = await atribuicaoFfb(pool);
 
   return (
     <main>
@@ -24,6 +27,8 @@ export default async function MaisPage() {
           </Link>
         ))}
         <BotaoSair logoutAction={logout} />
+        {/* Licença CC-BY 4.0 da lista de nomes usada no cadastro de espécie (RF-68) */}
+        {atribuicao && <p className="pt-4 text-xs text-muted">{atribuicao}</p>}
       </div>
     </main>
   );

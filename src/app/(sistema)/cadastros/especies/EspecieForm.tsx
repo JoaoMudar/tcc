@@ -23,9 +23,16 @@ interface EspecieFormProps {
   };
   caracteristicas: readonly SelectOption[];
   podeEditar: boolean;
+  /** RF-68: o que a pessoa escolheu na busca da Flora do Brasil, só na espécie nova */
+  sugestao?: {
+    nomeCientifico: string;
+    nomesPopulares: string[];
+    taxonIdFfb: string;
+    sinonimoTaxonIdFfb: string | null;
+  };
 }
 
-export function EspecieForm({ especie, caracteristicas, podeEditar }: EspecieFormProps) {
+export function EspecieForm({ especie, caracteristicas, podeEditar, sugestao }: EspecieFormProps) {
   const [state, formAction, pending] = useActionState(saveEspecieAction, EMPTY_FORM_STATE);
   const [foto, setFoto] = useState<{ blob: Blob; preview: string } | null>(null);
   const [preparando, setPreparando] = useState(false);
@@ -67,6 +74,8 @@ export function EspecieForm({ especie, caracteristicas, podeEditar }: EspecieFor
     <form action={enviar} className="flex flex-col gap-4">
       <fieldset disabled={!podeEditar} className="flex flex-col gap-4">
         {especie && <input type="hidden" name="especie_id" value={especie.id} />}
+        {sugestao && <input type="hidden" name="taxon_id_ffb" value={sugestao.taxonIdFfb} />}
+        {sugestao?.sinonimoTaxonIdFfb && <input type="hidden" name="sinonimo_taxon_id_ffb" value={sugestao.sinonimoTaxonIdFfb} />}
 
         <div className="flex items-center gap-4">
           {fotoExibida ? (
@@ -96,7 +105,7 @@ export function EspecieForm({ especie, caracteristicas, podeEditar }: EspecieFor
         <TextField
           label="Nome científico"
           name="nome_cientifico"
-          defaultValue={fields?.nome_cientifico ?? especie?.nomeCientifico}
+          defaultValue={fields?.nome_cientifico ?? especie?.nomeCientifico ?? sugestao?.nomeCientifico}
           autoCapitalize="sentences"
           required
         />
@@ -104,7 +113,7 @@ export function EspecieForm({ especie, caracteristicas, podeEditar }: EspecieFor
           label="Nomes populares"
           name="nomes_populares"
           hint="Um por linha. O primeiro é o nome principal."
-          defaultValue={fields?.nomes_populares ?? especie?.nomesPopulares.join('\n')}
+          defaultValue={fields?.nomes_populares ?? (especie ?? sugestao)?.nomesPopulares.join('\n')}
         />
 
         <fieldset className="flex flex-col gap-1">
