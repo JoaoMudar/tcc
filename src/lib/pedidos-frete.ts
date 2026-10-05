@@ -3,6 +3,7 @@ import { UserError } from './errors';
 import { type OrigemFrete, ORIGENS_FRETE, sugerirFrete } from './frete';
 import { parametrosDoFrete } from './parametros';
 import { NEGOCIAVEIS } from './pedidos';
+import { type EnderecoDeEntrega, salvarEnderecoDeEntrega } from './pessoas';
 import { SITUACOES_PEDIDO, type SituacaoPedido } from './pedidos-rotulos';
 import { enderecoEmTexto } from './rotas';
 import { type Coordenada, MapaIndisponivel, distanciaDeCarro, geocodificarTexto } from './rotas-ors';
@@ -11,11 +12,13 @@ import { partidasBase } from './viagens';
 
 export type SugestaoDeFrete =
   | { centavos: number; distanciaKm: number }
-  | { aviso: 'sem_endereco' | 'endereco_nao_achado' | 'saida_nao_achada' | 'mapa_indisponivel' };
+  | { aviso: 'saida_nao_achada' | 'mapa_indisponivel' }
+  /** Falta o endereço de entrega, ou o mapa não o achou: a tela oferece completá-lo. */
+  | { aviso: 'sem_endereco' | 'endereco_nao_achado'; endereco: string | null };
 
 export const AVISOS_DO_FRETE: Record<Extract<SugestaoDeFrete, { aviso: string }>['aviso'], string> = {
-  sem_endereco: 'O cliente não tem endereço de entrega. Digite o frete combinado.',
-  endereco_nao_achado: 'O endereço de entrega do cliente não foi achado no mapa. Digite o frete combinado.',
+  sem_endereco: 'Cliente sem endereço de entrega.',
+  endereco_nao_achado: 'Endereço de entrega não achado no mapa.',
   saida_nao_achada: 'O endereço de saída não foi achado no mapa. Confira em Configurações.',
   mapa_indisponivel: 'O mapa não respondeu agora. Digite o frete combinado ou tente de novo.',
 };
@@ -56,28 +59,23 @@ export async function sugestaoDeFrete(db: Db, pedidoId: string, origem: OrigemFr
   );
   const pedido = rows[0];
   if (!pedido) throw new UserError('Pedido não encontrado.');
-  if (!NEGOCIAVEIS.includes(pedido.situacao)) {
-    throw new UserError(
-      `O pedido ${pedido.numero} está em ${SITUACOES_PEDIDO[pedido.situacao].toLowerCase()}, ` +
-        'e o frete se combina depois da conferência.',
-    );
-  }
+  exigirNegociavel(pedido);
 
   const texto = enderecoEmTexto({ logradouro: pedido.logradouro, cidade: pedido.cidade, uf: pedido.uf });
-  if (!pedido.enderecoId || !texto) return { aviso: 'sem_endereco' };
+  if (!pedido.enderecoId || !texto) return { aviso: 'sem_endereco', endereco: texto || null };
 
   try {
     let destino: Coordenada | null = pedido.lat !== null && pedido.lng !== null ? { lat: pedido.lat, lng: pedido.lng } : null;
     if (!destino) {
       // Já procurado e não achado: não gasta outra consulta com o mesmo texto
-      if (pedido.geocodificadoEm) return { aviso: 'endereco_nao_achado' };
+      if (pedido.geocodificadoEm) return { aviso: 'endereco_nao_achado', endereco: texto };
       destino = await geocodificarTexto(texto);
       await db.query('UPDATE cadastro.pessoas_enderecos SET lat = $2, lng = $3, geocodificado_em = NOW() WHERE id = $1', [
         pedido.enderecoId,
         destino?.lat ?? null,
         destino?.lng ?? null,
       ]);
-      if (!destino) return { aviso: 'endereco_nao_achado' };
+      if (!destino) return { aviso: 'endereco_nao_achado', endereco: texto };
     }
 
     const partidas = await partidasBase(db);
@@ -97,4 +95,29 @@ export async function sugestaoDeFrete(db: Db, pedidoId: string, origem: OrigemFr
     if (error instanceof MapaIndisponivel) return { aviso: 'mapa_indisponivel' };
     throw error;
   }
+}
+
+function exigirNegociavel(pedido: { situacao: SituacaoPedido; numero: number }) {
+  if (!NEGOCIAVEIS.includes(pedido.situacao)) {
+    throw new UserError(
+      `O pedido ${pedido.numero} está em ${SITUACOES_PEDIDO[pedido.situacao].toLowerCase()}, ` +
+        'e o frete se combina depois da conferência.',
+    );
+  }
+}
+
+/**
+ * P17: o endereço de entrega que faltou para sugerir o frete, completado na
+ * ficha do pedido. Grava no cadastro do cliente do pedido, e só enquanto o
+ * frete se negocia: a permissão de negociar não é a de editar cadastro.
+ */
+export async function salvarEnderecoDoPedido(db: Db, pedidoId: string, endereco: EnderecoDeEntrega): Promise<void> {
+  const { rows } = await db.query<{ clienteId: string; situacao: SituacaoPedido; numero: number }>(
+    'SELECT cliente_id AS "clienteId", situacao, numero_pedido AS numero FROM pedidos WHERE id = $1 FOR UPDATE',
+    [pedidoId],
+  );
+  const pedido = rows[0];
+  if (!pedido) throw new UserError('Pedido não encontrado.');
+  exigirNegociavel(pedido);
+  await salvarEnderecoDeEntrega(db, pedido.clienteId, endereco);
 }

@@ -167,7 +167,9 @@ o total e o peso estimado da carga. O frete se sugere pela distância de carro a
 entrega do cliente, saindo de Agrolândia ou de Itapema, ida e volta, pelo consumo (17 km/L) e pelo
 preço do litro (R$ 7,00) de Configurações (RN-64). A sugestão só vem no toque de "Sugerir frete
 pela distância", e o campo é da chefia, que digita o valor combinado mesmo que destoe da conta.
-Sem endereço de entrega, ou com o mapa fora do ar, a tela diz o motivo e o frete continua
+Sem endereço de entrega, ou com um endereço que o mapa não achou, a tela traz "Adicionar
+endereço" (ou "Corrigir endereço"), o mesmo da rota do planejar: grava no cadastro do cliente e
+sugere o frete de novo. Com o mapa fora do ar, a tela diz o motivo. Nos dois casos o frete continua
 digitável. O peso é a soma de quantidade por peso do recipiente cheio, cadastrado em Recipientes
 (RN-65), e o item cujo recipiente não tem peso aparece contado à parte. O total da lista de pedidos
 também soma o frete.

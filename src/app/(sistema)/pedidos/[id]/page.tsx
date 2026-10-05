@@ -123,6 +123,7 @@ export default async function PedidoPage({ params }: PedidoPageProps) {
             }))}
           faltaBloqueia={situacao === 'verificado'}
           frete={{ centavos: pedido.freteCentavos, origem: pedido.freteOrigem, distanciaKm: pedido.freteDistanciaKm }}
+          nomeCliente={pedido.cliente}
           proximoPasso={{
             pedidoId: pedido.id,
             situacao,

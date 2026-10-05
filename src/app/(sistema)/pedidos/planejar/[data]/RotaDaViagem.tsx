@@ -13,6 +13,7 @@ import {
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useActionState, useCallback, useId, useState, useTransition } from 'react';
+import { EnderecoDaEntrega } from '@/components/pedidos/EnderecoDaEntrega';
 import { Button } from '@/components/ui/Button';
 import { Notice } from '@/components/ui/Notice';
 import { CampoEndereco } from '@/components/ui/CampoEndereco';
@@ -25,10 +26,10 @@ import {
   definirPartidaAction,
   iniciarCarregamentoAction,
   removerParadaAction,
+  salvarEnderecoEntregaAction,
   salvarOrdemAction,
   sugerirOrdemAction,
 } from './actions';
-import { EnderecoDaEntrega } from './EnderecoDaEntrega';
 
 export interface ParadaNaRota {
   id: string;
@@ -367,10 +368,11 @@ export function RotaDaViagem({ data, viagemId, partida, paradas, distancia, avis
 
       {semEndereco?.clienteId && (
         <EnderecoDaEntrega
-          data={data}
-          viagemId={viagemId}
-          cliente={{ id: semEndereco.clienteId, nome: semEndereco.cliente ?? '' }}
+          nomeCliente={semEndereco.cliente ?? ''}
           endereco={semEndereco.endereco}
+          acao={salvarEnderecoEntregaAction}
+          buscar={buscarEnderecosAction}
+          camposOcultos={{ data, viagem_id: viagemId, cliente_id: semEndereco.clienteId }}
           onFechar={fecharEndereco}
         />
       )}

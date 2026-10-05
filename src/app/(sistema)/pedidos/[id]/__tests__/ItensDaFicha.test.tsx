@@ -6,6 +6,7 @@ import {
   atualizarItemAction,
   negociarItensAction,
   removerItemAction,
+  salvarEnderecoDoPedidoAction,
   salvarFreteAction,
   sugerirFreteAction,
 } from '../../actions';
@@ -17,6 +18,8 @@ vi.mock('../../actions', () => ({
   removerItemAction: vi.fn(async () => ({ success: 'ok' })),
   negociarItensAction: vi.fn(async () => ({ success: 'Negociação salva.' })),
   salvarFreteAction: vi.fn(async () => ({ success: 'Frete salvo.' })),
+  salvarEnderecoDoPedidoAction: vi.fn(async () => ({ success: 'Endereço salvo.' })),
+  buscarEnderecosDoPedidoAction: vi.fn(async () => []),
   sugerirFreteAction: vi.fn(async () => ({ centavos: 7000, distanciaKm: 85 })),
   confirmarPedidoAction: vi.fn(async () => ({})),
   transicionarPedidoAction: vi.fn(async () => ({})),
@@ -220,13 +223,47 @@ describe('ItensDaFicha: o fechamento do pedido (RF-67)', () => {
   });
 
   it('o aviso da sugestão aparece, e o campo fica como estava', async () => {
-    vi.mocked(sugerirFreteAction).mockResolvedValueOnce({ error: 'O cliente não tem endereço de entrega. Digite o frete combinado.' });
+    vi.mocked(sugerirFreteAction).mockResolvedValueOnce({ error: 'O mapa não respondeu agora. Digite o frete combinado ou tente de novo.' });
     negociacao();
     await act(async () => {
       fireEvent.click(screen.getByText('Sugerir frete pela distância'));
     });
-    expect(screen.getByText(/não tem endereço de entrega/)).toBeTruthy();
+    expect(screen.getByText(/O mapa não respondeu/)).toBeTruthy();
+    expect(screen.queryByText('Adicionar endereço')).toBeNull();
     expect((screen.getByLabelText('Frete') as HTMLInputElement).value).toBe('');
+  });
+
+  it('cliente sem endereço: o botão abre o endereço, e gravar sugere o frete de novo', async () => {
+    vi.mocked(sugerirFreteAction).mockResolvedValueOnce({ error: 'Cliente sem endereço de entrega.', falta: { endereco: null } });
+    negociacao();
+    await act(async () => {
+      fireEvent.click(screen.getByText('Sugerir frete pela distância'));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Adicionar endereço'));
+    });
+    fireEvent.change(screen.getByLabelText('Endereço'), { target: { value: 'Rua XV, 120' } });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Salvar endereço'));
+    });
+    const enviado = vi.mocked(salvarEnderecoDoPedidoAction).mock.calls[0][1];
+    expect(enviado.get('pedido_id')).toBe('p1');
+    expect(enviado.get('endereco')).toBe('Rua XV, 120');
+    expect(sugerirFreteAction).toHaveBeenCalledTimes(2);
+    expect((screen.getByLabelText('Frete') as HTMLInputElement).value).toBe('70,00');
+    expect(screen.queryByText('Salvar endereço')).toBeNull();
+  });
+
+  it('endereço não achado no mapa vira "Corrigir endereço"', async () => {
+    vi.mocked(sugerirFreteAction).mockResolvedValueOnce({
+      error: 'Endereço de entrega não achado no mapa.',
+      falta: { endereco: 'Rua Errada, Ibirama' },
+    });
+    negociacao();
+    await act(async () => {
+      fireEvent.click(screen.getByText('Sugerir frete pela distância'));
+    });
+    expect(screen.getByText('Corrigir endereço')).toBeTruthy();
   });
 
   it('item sem peso no recipiente é avisado', () => {
