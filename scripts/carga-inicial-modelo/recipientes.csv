@@ -1,8 +1,9 @@
-# Recipientes. Volume em litros, com vírgula (0,055). Em branco se não souber.
-nome;volume_litros
-Tubete;
-Saco 10x18;
-Saco 17x22;
-Saco 20x26;
-Saco 28x32;
-Balde;
+# Recipientes. Volume em litros, com vírgula (0,055). Peso do recipiente cheio, com substrato e muda,
+# em kg (0,35). Em branco se não souber.
+nome;volume_litros;peso_kg
+Tubete;;
+Saco 10x18;;
+Saco 17x22;;
+Saco 20x26;;
+Saco 28x32;;
+Balde;;

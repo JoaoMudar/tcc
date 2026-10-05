@@ -8,7 +8,7 @@ import {
   parseNumeroCanteiro,
 } from '../areas';
 import { parseInsumoFields } from '../insumos';
-import { duplicateMessage as recipienteDuplicado, formatVolume, parseRecipienteFields } from '../recipientes';
+import { duplicateMessage as recipienteDuplicado, formatPeso, formatVolume, parseRecipienteFields } from '../recipientes';
 import { parseTipoTarefaFields, resumoDeclaracoes } from '../tipos-tarefa';
 
 describe('áreas e canteiros (RF-13)', () => {
@@ -46,12 +46,28 @@ describe('áreas e canteiros (RF-13)', () => {
 describe('recipientes (RF-11)', () => {
   it('volume em litros com vírgula, ou em branco', () => {
     expect(parseRecipienteFields({ nome: ' Saco 10x18 ', volume: '0,9' })).toEqual({
-      value: { nome: 'Saco 10x18', volumeLitros: 0.9 },
+      value: { nome: 'Saco 10x18', volumeLitros: 0.9, pesoKg: null },
     });
-    expect(parseRecipienteFields({ nome: 'Balde', volume: '' })).toEqual({ value: { nome: 'Balde', volumeLitros: null } });
+    expect(parseRecipienteFields({ nome: 'Balde', volume: '' })).toEqual({ value: { nome: 'Balde', volumeLitros: null, pesoKg: null } });
     expect(parseRecipienteFields({ nome: 'Balde', volume: '0' })).toHaveProperty('error');
     expect(parseRecipienteFields({ nome: 'Balde', volume: '1000' })).toHaveProperty('error');
     expect(parseRecipienteFields({ nome: 'B', volume: '' })).toHaveProperty('error');
+  });
+
+  it('peso do recipiente cheio em kg com vírgula, ou em branco (RN-65)', () => {
+    expect(parseRecipienteFields({ nome: 'Saco 20x26', volume: '', peso: '4,5' })).toEqual({
+      value: { nome: 'Saco 20x26', volumeLitros: null, pesoKg: 4.5 },
+    });
+    expect(parseRecipienteFields({ nome: 'Tubete', volume: '', peso: '0,35' })).toHaveProperty('value.pesoKg', 0.35);
+    expect(parseRecipienteFields({ nome: 'Balde', volume: '', peso: '0' })).toEqual({
+      error: 'O peso é em kg, maior que zero, como 0,35 ou 4,5.',
+    });
+    expect(parseRecipienteFields({ nome: 'Balde', volume: '', peso: 'muito' })).toHaveProperty('error');
+  });
+
+  it('formata o peso', () => {
+    expect(formatPeso(4.5)).toBe('4,5 kg');
+    expect(formatPeso(null)).toBe('');
   });
 
   it('formata o volume', () => {
