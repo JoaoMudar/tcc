@@ -6,6 +6,8 @@ import {
   estadoDoGenerico,
   perguntasDoItem,
   resolveComplemento,
+  resolveResposta,
+  estadoComComplementos,
   resolveDisponibilidade,
   validarComposicaoGenerico,
 } from '../pedidos-rotulos';
@@ -259,7 +261,7 @@ describe('resolveComplemento: o "+" de "Tem parte" (P13)', () => {
 
   it('as duas linhas não passam do pedido', () => {
     expect(resolveComplemento(pedido, { quantidade: 300 }, { quantidade: 201, recipienteId: 'saco' })).toEqual({
-      error: 'As duas linhas passam do pedido: são 500 mudas.',
+      error: 'As linhas passam do pedido: são 500 mudas.',
     });
   });
 
@@ -288,7 +290,117 @@ describe('resolveComplemento: o "+" de "Tem parte" (P13)', () => {
     });
   });
 
-  it('item sem quantidade pedida não se completa', () => {
-    expect(resolveComplemento(item('R'), { quantidade: 30 }, { quantidade: 20, recipienteId: 'saco' })).toHaveProperty('error');
+  it('item sem quantidade pedida não se completa em "Tem parte"', () => {
+    expect(resolveResposta('parcial', item('R'), { quantidade: 30 }, [{ quantidade: 20, recipienteId: 'saco' }])).toEqual({
+      error: 'Só se completa o item que tem quantidade pedida.',
+    });
+  });
+});
+
+describe('resolveResposta: várias linhas (P17)', () => {
+  const semRecipiente = item('Q');
+
+  it('sem linha extra, é a resposta de sempre', () => {
+    expect(resolveResposta('disponivel', semRecipiente, { recipienteId: 'saco' })).toEqual({
+      value: {
+        disponibilidade: { disponivel: true, quantidadeDisponivel: null, recipienteDisponivelId: 'saco', alturaDisponivelM: null },
+        complementos: [],
+      },
+    });
+  });
+
+  it('"Tem tudo" dividido: a primeira linha grava como parte, e a soma fecha o pedido', () => {
+    const resposta = resolveResposta('disponivel', semRecipiente, { quantidade: 200, recipienteId: 'saco' }, [
+      { quantidade: 300, recipienteId: 'balde' },
+    ]);
+    expect(resposta).toEqual({
+      value: {
+        disponibilidade: { disponivel: false, quantidadeDisponivel: 200, recipienteDisponivelId: 'saco', alturaDisponivelM: null },
+        complementos: [{ quantidade: 300, recipienteId: 'balde', alturaM: null }],
+      },
+    });
+  });
+
+  it('"Tem tudo" dividido que não soma o pedido é recusado', () => {
+    expect(
+      resolveResposta('disponivel', semRecipiente, { quantidade: 200, recipienteId: 'saco' }, [{ quantidade: 200, recipienteId: 'balde' }]),
+    ).toEqual({ error: 'As linhas somam 400, e o pedido é de 500 mudas. Se falta muda, use "Tem parte".' });
+    expect(
+      resolveResposta('disponivel', semRecipiente, { quantidade: 200, recipienteId: 'saco' }, [{ quantidade: 400, recipienteId: 'balde' }]),
+    ).toHaveProperty('error');
+  });
+
+  it('"Tem tudo" só se divide no item com recipiente a definir', () => {
+    expect(
+      resolveResposta('disponivel', item('QR'), { quantidade: 200, recipienteId: 'saco' }, [{ quantidade: 300, recipienteId: 'balde' }]),
+    ).toEqual({ error: 'Só se divide em recipientes o item com recipiente a definir.' });
+  });
+
+  it('"Tem tudo" dividido exige quantas e o recipiente da primeira linha', () => {
+    expect(resolveResposta('disponivel', semRecipiente, { recipienteId: 'saco' }, [{ quantidade: 300, recipienteId: 'balde' }])).toEqual({
+      error: 'Informe quantas estão no primeiro recipiente.',
+    });
+    expect(resolveResposta('disponivel', semRecipiente, { quantidade: 200 }, [{ quantidade: 300, recipienteId: 'balde' }])).toHaveProperty('error');
+  });
+
+  it('item sem quantidade se divide em "Tem" sem teto', () => {
+    const resposta = resolveResposta('disponivel', item(''), { quantidade: 20, recipienteId: 'saco' }, [{ quantidade: 30, recipienteId: 'balde' }]);
+    expect(resposta).toEqual({
+      value: {
+        disponibilidade: { disponivel: true, quantidadeDisponivel: 20, recipienteDisponivelId: 'saco', alturaDisponivelM: null },
+        complementos: [{ quantidade: 30, recipienteId: 'balde', alturaM: null }],
+      },
+    });
+  });
+
+  it('"Tem parte" com três linhas, até o pedido', () => {
+    const resposta = resolveResposta('parcial', item('QR'), { quantidade: 200 }, [
+      { quantidade: 100, recipienteId: 'saco' },
+      { quantidade: 100, recipienteId: 'balde' },
+    ]);
+    expect(resposta).toHaveProperty('value');
+    expect(
+      resolveResposta('parcial', item('QR'), { quantidade: 200 }, [
+        { quantidade: 200, recipienteId: 'saco' },
+        { quantidade: 200, recipienteId: 'balde' },
+      ]),
+    ).toEqual({ error: 'As linhas passam do pedido: são 500 mudas.' });
+  });
+
+  it('duas linhas no mesmo recipiente são recusadas', () => {
+    expect(
+      resolveResposta('parcial', item('QR'), { quantidade: 200 }, [
+        { quantidade: 100, recipienteId: 'saco' },
+        { quantidade: 100, recipienteId: 'saco' },
+      ]),
+    ).toEqual({ error: 'Duas linhas no mesmo recipiente: some as duas numa só.' });
+  });
+
+  it('"Não tem" não se divide', () => {
+    expect(resolveResposta('indisponivel', semRecipiente, {}, [{ quantidade: 1, recipienteId: 'saco' }])).toHaveProperty('error');
+  });
+});
+
+describe('estadoComComplementos (P17)', () => {
+  const base = {
+    recipienteId: null as string | null,
+    quantidade: 500 as number | null,
+    disponivel: false as boolean | null,
+    quantidadeDisponivel: 200 as number | null,
+    recipienteDisponivelId: 'saco' as string | null,
+    alturaDisponivelM: null as number | null,
+  };
+
+  it('a soma que fecha o pedido é "tudo"', () => {
+    expect(estadoComComplementos(base, [{ quantidade: 300 }])).toBe('tudo');
+  });
+
+  it('a soma que não fecha é "parte"', () => {
+    expect(estadoComComplementos(base, [{ quantidade: 100 }])).toBe('parte');
+    expect(estadoComComplementos(base, [])).toBe('parte');
+  });
+
+  it('com recipiente pedido, continua "parte"', () => {
+    expect(estadoComComplementos({ ...base, recipienteId: 'tubete' }, [{ quantidade: 300 }])).toBe('parte');
   });
 });

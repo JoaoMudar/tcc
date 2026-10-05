@@ -66,7 +66,7 @@ export async function marcarDisponibilidadeAction(_previous: FormState, formData
     recipienteId?: string | null;
     alturaM?: number | null;
     observacoes?: string | null;
-    complemento?: { quantidade: number | null; recipienteId: string | null; alturaM: number | null } | null;
+    complementos?: { quantidade: number | null; recipienteId: string | null; alturaM: number | null }[];
   } = {};
 
   // Quantas, em que recipiente e com que altura: quem exige o quê, conforme o
@@ -82,21 +82,24 @@ export async function marcarDisponibilidadeAction(_previous: FormState, formData
     extras.recipienteId = recipienteId || null;
     extras.alturaM = altura.value;
 
-    // P13: a segunda linha do "+". Os três em branco é "sem complemento"
-    const complementoQuantidade = formText(formData, 'complemento_quantidade');
-    const complementoRecipiente = formText(formData, 'complemento_recipiente_id');
-    const complementoAltura = formText(formData, 'complemento_altura');
-    if (complementoQuantidade.trim() || complementoRecipiente || complementoAltura.trim()) {
+    // P13, P17: as linhas do "+", numeradas de 0. Linha com os três em branco
+    // não conta, e a numeração acaba na primeira que não veio
+    extras.complementos = [];
+    for (let n = 0; n < 20 && formData.has(`complemento_${n}_quantidade`); n++) {
+      const complementoQuantidade = formText(formData, `complemento_${n}_quantidade`);
+      const complementoRecipiente = formText(formData, `complemento_${n}_recipiente_id`);
+      const complementoAltura = formText(formData, `complemento_${n}_altura`);
+      if (!complementoQuantidade.trim() && !complementoRecipiente && !complementoAltura.trim()) continue;
       const quantidadeComplemento = pedidos.parseQuantidadeOpcional(complementoQuantidade);
       if ('error' in quantidadeComplemento) return { error: `No complemento: ${quantidadeComplemento.error.toLowerCase()}` };
       if (complementoRecipiente !== '' && !isUuid(complementoRecipiente)) return { error: 'Escolha o recipiente do complemento.' };
       const alturaComplemento = pedidos.parseAltura(complementoAltura);
       if ('error' in alturaComplemento) return { error: `No complemento: ${alturaComplemento.error.toLowerCase()}` };
-      extras.complemento = {
+      extras.complementos.push({
         quantidade: quantidadeComplemento.value,
         recipienteId: complementoRecipiente || null,
         alturaM: alturaComplemento.value,
-      };
+      });
     }
   }
 

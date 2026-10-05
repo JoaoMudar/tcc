@@ -1133,7 +1133,7 @@ describe('conferência por tipo de item (P12, 20260925000001)', () => {
     await tx((c) =>
       marcarDisponibilidade(c, id, item.id, 'parcial', gerencia(), {
         quantidade: 300,
-        complemento: { quantidade: 200, recipienteId: saco, alturaM: null },
+        complementos: [{ quantidade: 200, recipienteId: saco, alturaM: null }],
       }),
     );
     const conferidos = await listItens(pool, id);
@@ -1159,16 +1159,41 @@ describe('conferência por tipo de item (P12, 20260925000001)', () => {
     ]);
   });
 
+  it('P17: "tem tudo" dividido do item sem recipiente aprova uma linha por recipiente', async () => {
+    const { id } = await novoPedido({ itens: [{ especieId: especie, recipienteId: null, quantidade: 50, precoCentavos: null }] });
+    const [item] = await listItens(pool, id);
+    await tx((c) =>
+      marcarDisponibilidade(c, id, item.id, 'disponivel', gerencia(), {
+        quantidade: 20,
+        recipienteId: tubete,
+        complementos: [{ quantidade: 30, recipienteId: saco, alturaM: null }],
+      }),
+    );
+    // A soma fecha o pedido: a conferência conta o item como disponível
+    const { resumo } = await tx((c) => concluirVerificacao(c, id, gerencia()));
+    expect(resumo).toBe('1 de 1 disponíveis.');
+
+    const conferidos = await listItens(pool, id);
+    const complemento = conferidos.find((i) => i.complementaItemId === item.id)!;
+    await tx((c) => negociarItens(c, id, [soPreco(item.id, 300), soPreco(complemento.id, 900)], chefia()));
+    await tx((c) => confirmarPedido(c, id, chefia()));
+    const aprovados = (await listItens(pool, id)).sort((a, b) => a.quantidade! - b.quantidade!);
+    expect(aprovados.map((i) => [i.quantidade, i.recipienteId, i.precoCentavos])).toEqual([
+      [20, tubete, 300],
+      [30, saco, 900],
+    ]);
+  });
+
   it('responder de novo sem o "+" apaga o complemento', async () => {
     const { id } = await novoPedido({
       itens: [{ especieId: especie, recipienteId: tubete, quantidade: 500, precoCentavos: 300 }],
     });
     const [item] = await listItens(pool, id);
     const complemento = { quantidade: 200, recipienteId: saco, alturaM: null };
-    await tx((c) => marcarDisponibilidade(c, id, item.id, 'parcial', gerencia(), { quantidade: 300, complemento }));
+    await tx((c) => marcarDisponibilidade(c, id, item.id, 'parcial', gerencia(), { quantidade: 300, complementos: [complemento] }));
     expect(await listItens(pool, id)).toHaveLength(2);
     await expect(
-      tx((c) => marcarDisponibilidade(c, id, item.id, 'parcial', gerencia(), { quantidade: 300, complemento: { ...complemento, quantidade: 201 } })),
+      tx((c) => marcarDisponibilidade(c, id, item.id, 'parcial', gerencia(), { quantidade: 300, complementos: [{ ...complemento, quantidade: 201 }] })),
     ).rejects.toThrow(/passam do pedido/);
     expect(await listItens(pool, id)).toHaveLength(2);
 
@@ -1184,7 +1209,7 @@ describe('conferência por tipo de item (P12, 20260925000001)', () => {
     await tx((c) =>
       marcarDisponibilidade(c, id, item.id, 'parcial', gerencia(), {
         quantidade: 300,
-        complemento: { quantidade: 200, recipienteId: saco, alturaM: null },
+        complementos: [{ quantidade: 200, recipienteId: saco, alturaM: null }],
       }),
     );
     const complemento = (await listItens(pool, id)).find((i) => i.complementaItemId === item.id)!;

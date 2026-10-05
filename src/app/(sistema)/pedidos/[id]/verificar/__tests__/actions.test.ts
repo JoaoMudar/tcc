@@ -306,8 +306,8 @@ describe('o complemento em outro recipiente (P13)', () => {
       item_id: ITEM,
       estado: 'parcial',
       quantidade: '300',
-      complemento_quantidade: '200',
-      complemento_recipiente_id: SACO,
+      complemento_0_quantidade: '200',
+      complemento_0_recipiente_id: SACO,
     });
     expect((await actions.marcarDisponibilidadeAction({}, dados)).error).toBeUndefined();
     const [[sql, valores]] = gravouEm('INSERT INTO pedidos_itens');
@@ -329,23 +329,23 @@ describe('o complemento em outro recipiente (P13)', () => {
       item_id: ITEM,
       estado: 'parcial',
       quantidade: '300',
-      complemento_quantidade: '300',
-      complemento_recipiente_id: SACO,
+      complemento_0_quantidade: '300',
+      complemento_0_recipiente_id: SACO,
     });
     expect((await actions.marcarDisponibilidadeAction({}, dados)).error).toMatch(/passam do pedido/);
     expect(gravouEm('INSERT INTO pedidos_itens')).toEqual([]);
     expect(gravouEm('UPDATE pedidos_itens')).toEqual([]);
   });
 
-  it('só "Tem parte" se completa', async () => {
+  it('"Tem tudo" de item com recipiente pedido não se divide', async () => {
     const dados = form({
       pedido_id: PEDIDO,
       item_id: ITEM,
       estado: 'disponivel',
-      complemento_quantidade: '200',
-      complemento_recipiente_id: SACO,
+      complemento_0_quantidade: '200',
+      complemento_0_recipiente_id: SACO,
     });
-    expect((await actions.marcarDisponibilidadeAction({}, dados)).error).toMatch(/Tem parte/);
+    expect((await actions.marcarDisponibilidadeAction({}, dados)).error).toMatch(/recipiente a definir/);
   });
 
   it('recipiente do complemento que não é identificador é recusado antes do banco', async () => {
@@ -354,10 +354,54 @@ describe('o complemento em outro recipiente (P13)', () => {
       item_id: ITEM,
       estado: 'parcial',
       quantidade: '300',
-      complemento_quantidade: '200',
-      complemento_recipiente_id: 'saco',
+      complemento_0_quantidade: '200',
+      complemento_0_recipiente_id: 'saco',
     });
     expect((await actions.marcarDisponibilidadeAction({}, dados)).error).toMatch(/recipiente do complemento/);
     expectNoDatabase();
+  });
+});
+
+describe('"Tem tudo" dividido em vários recipientes (P17)', () => {
+  const SACO = '4f7b3a5c-2d9e-4a6f-9b4c-6d0e1f2a3b4c';
+  const BALDE = '5a8c4b6d-3e0f-4b7a-8c5d-7e1f2a3b4c5d';
+
+  beforeEach(() => {
+    respondeCom({ id: PEDIDO, numero: 1, situacao: 'verificando', quantidade: 500, recipienteId: null, alturaM: null, generico: false, preco: null });
+  });
+
+  it('a primeira linha fica com a parte dela, e cada outra vira um item', async () => {
+    const dados = form({
+      pedido_id: PEDIDO,
+      item_id: ITEM,
+      estado: 'disponivel',
+      quantidade: '200',
+      recipiente_id: RECIPIENTE,
+      complemento_0_quantidade: '200',
+      complemento_0_recipiente_id: SACO,
+      complemento_1_quantidade: '100',
+      complemento_1_recipiente_id: BALDE,
+    });
+    expect((await actions.marcarDisponibilidadeAction({}, dados)).error).toBeUndefined();
+    expect(gravouEm('INSERT INTO pedidos_itens').map(([, valores]) => valores)).toEqual([
+      [PEDIDO, ITEM, SACO, 200, null],
+      [PEDIDO, ITEM, BALDE, 100, null],
+    ]);
+    const [[, valores]] = gravouEm('UPDATE pedidos_itens');
+    expect(valores).toEqual([PEDIDO, ITEM, false, 200, RECIPIENTE, null, null]);
+  });
+
+  it('as linhas têm de somar o pedido', async () => {
+    const dados = form({
+      pedido_id: PEDIDO,
+      item_id: ITEM,
+      estado: 'disponivel',
+      quantidade: '200',
+      recipiente_id: RECIPIENTE,
+      complemento_0_quantidade: '200',
+      complemento_0_recipiente_id: SACO,
+    });
+    expect((await actions.marcarDisponibilidadeAction({}, dados)).error).toMatch(/somam 400/);
+    expect(gravouEm('INSERT INTO pedidos_itens')).toEqual([]);
   });
 });
