@@ -3,6 +3,7 @@
 import { useActionState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Notice } from '@/components/ui/Notice';
+import { Toast } from '@/components/ui/Toast';
 import { Pill } from '@/components/ui/Pill';
 import { type SelectOption, SelectField } from '@/components/ui/SelectField';
 import { TextField } from '@/components/ui/TextField';
@@ -41,7 +42,11 @@ export function InsumoForm({ insumo, categorias, unidades, podeEditar }: InsumoF
             Em uso
           </label>
           {state.error && <Notice tone="error">{state.error}</Notice>}
-          {state.success && <Notice tone="success">{state.success}</Notice>}
+          {state.success && (
+            <Toast tone="success" limpar={[]} gatilho={state}>
+              {state.success}
+            </Toast>
+          )}
           <Button type="submit" variant="secondary" pending={pending}>
             Salvar
           </Button>

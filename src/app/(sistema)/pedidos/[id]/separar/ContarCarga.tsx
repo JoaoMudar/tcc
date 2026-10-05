@@ -3,6 +3,7 @@
 import { useActionState, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Notice } from '@/components/ui/Notice';
+import { Toast } from '@/components/ui/Toast';
 import { EMPTY_FORM_STATE } from '@/lib/form-state';
 import { formatQuantidade } from '@/lib/lotes-rotulos';
 import { formatAltura } from '@/lib/pedidos-rotulos';
@@ -112,7 +113,11 @@ export function ContarCarga({ pedidoId, cargas }: ContarCargaProps) {
       </ul>
 
       {conclusao.error && <Notice tone="error">{conclusao.error}</Notice>}
-      {conclusao.success && <Notice tone="success">{conclusao.success}</Notice>}
+      {conclusao.success && (
+        <Toast tone="success" limpar={[]} gatilho={conclusao}>
+          {conclusao.success}
+        </Toast>
+      )}
 
       {atual.situacao !== 'pronto' &&
         (completa ? (

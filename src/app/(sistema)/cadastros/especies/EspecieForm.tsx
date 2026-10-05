@@ -3,6 +3,7 @@
 import { type ChangeEvent, useActionState, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Notice } from '@/components/ui/Notice';
+import { Toast } from '@/components/ui/Toast';
 import type { SelectOption } from '@/components/ui/SelectField';
 import { TextArea } from '@/components/ui/TextArea';
 import { TextField } from '@/components/ui/TextField';
@@ -135,7 +136,11 @@ export function EspecieForm({ especie, caracteristicas, podeEditar }: EspecieFor
       </fieldset>
 
       {state.error && <Notice tone="error">{state.error}</Notice>}
-      {state.success && <Notice tone="success">{state.success}</Notice>}
+      {state.success && (
+        <Toast tone="success" limpar={[]} gatilho={state}>
+          {state.success}
+        </Toast>
+      )}
       {podeEditar && (
         <Button type="submit" pending={pending || preparando} pendingLabel={preparando ? 'Preparando a foto…' : 'Salvando…'}>
           Salvar

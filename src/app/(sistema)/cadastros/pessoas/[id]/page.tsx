@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { PageHeader } from '@/components/PageHeader';
 import { Notice } from '@/components/ui/Notice';
+import { Toast } from '@/components/ui/Toast';
 import pool from '@/lib/db';
 import { findPessoa, papeisResumo } from '@/lib/pessoas';
 import { can } from '@/lib/permissions';
@@ -31,7 +32,11 @@ export default async function PessoaPage({ params, searchParams }: PageProps<'/c
           {papeisResumo(pessoa.papeis) || 'Sem papel ativo'}
           {pessoa.papeis.some((p) => p.papel === 'funcionario') && (pessoa.temAcesso ? ' · acessa o sistema' : ' · sem acesso')}
         </p>
-        {salvo && <Notice tone="success">Cadastro criado.</Notice>}
+        {salvo && (
+          <Toast tone="success" limpar={['salvo']}>
+            Cadastro criado.
+          </Toast>
+        )}
         {!podeEditar && (
           <Notice tone="info">Seu perfil vê nome, telefone e papéis. O cadastro e os dados fiscais ficam com a chefia.</Notice>
         )}

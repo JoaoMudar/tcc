@@ -43,7 +43,7 @@ export default async function PedidosPage({ searchParams }: PedidosPageProps) {
             do que aconteceu some sozinho: quem registra um já vai registrar o
             seguinte, e um banner fixo só ocuparia a tela do celular. */}
         {params.feito === 'criado' && (
-          <Toast tone="success">
+          <Toast tone="success" limpar={['feito', 'numero']}>
             Pedido {params.numero ?? ''} registrado. O preço entra depois da conferência.
           </Toast>
         )}

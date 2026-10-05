@@ -3,6 +3,7 @@
 import { useActionState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Notice } from '@/components/ui/Notice';
+import { Toast } from '@/components/ui/Toast';
 import { TextField } from '@/components/ui/TextField';
 import { EMPTY_FORM_STATE } from '@/lib/form-state';
 import { createRecipiente } from './actions';
@@ -22,7 +23,11 @@ export function NovoRecipienteForm() {
         <TextField label="Volume (L)" name="volume" inputMode="decimal" defaultValue={fields?.volume} hint="Ex.: 2,8" />
       </div>
       {state.error && <Notice tone="error">{state.error}</Notice>}
-      {state.success && <Notice tone="success">{state.success}</Notice>}
+      {state.success && (
+        <Toast tone="success" limpar={[]} gatilho={state}>
+          {state.success}
+        </Toast>
+      )}
       <Button type="submit" variant="outline" pending={pending}>
         + Criar recipiente
       </Button>
