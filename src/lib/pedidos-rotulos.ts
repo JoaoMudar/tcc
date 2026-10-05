@@ -164,7 +164,7 @@ export function parsePreco(text: string): { error: string } | { value: number } 
 
 /** Altura maior que isto no campo do pedido é dedo escorregando, e não muda. */
 const ALTURA_MAXIMA_M = 20;
-/** Abaixo disto seria semente, e não muda pronta para venda. */
+/** Abaixo disto seria semente, e não muda para venda. */
 const ALTURA_MINIMA_M = 0.05;
 
 /**
@@ -253,6 +253,45 @@ export function precoParaCampo(centavos: number): string {
  */
 export function chaveSaldo(especieId: string, recipienteId: string): string {
   return `${especieId}:${recipienteId}`;
+}
+
+/** Os lotes abertos de um par espécie e recipiente que têm a mesma altura medida. */
+export interface FaixaDeAltura {
+  /** Nula é "ainda não medida". */
+  alturaM: number | null;
+  quantidade: number;
+}
+
+/** RN-62: quanto abaixo da altura pedida a muda ainda é oferecida para completar o item. */
+export const TOLERANCIA_ALTURA_M = 0.2;
+
+export interface SaldoDoItem {
+  /** O que atende o item: a mesma espécie e recipiente, com altura igual ou maior que a pedida. */
+  disponivel: number;
+  /** Até 20 cm abaixo da pedida: não atende, mas pode completar o que falta (RN-62). */
+  abaixo: number;
+  /** Lotes sem altura medida, quando o item pede altura: não se sabe se atendem. */
+  semAltura: number;
+}
+
+/**
+ * RN-06, RN-62: o saldo que atende o item. Toda muda de lote aberto está à
+ * venda, em qualquer fase; o que decide é a espécie, o recipiente e a altura.
+ * Item sem altura é atendido por todos os lotes do par. A comparação é em
+ * centímetros inteiros, para 1,00 - 0,20 não virar 0,7999.
+ */
+export function saldoDoItem(faixas: readonly FaixaDeAltura[] | undefined, alturaPedidaM: number | null): SaldoDoItem {
+  const saldo: SaldoDoItem = { disponivel: 0, abaixo: 0, semAltura: 0 };
+  const pedida = alturaPedidaM === null ? null : Math.round(alturaPedidaM * 100);
+  const piso = pedida === null ? null : pedida - Math.round(TOLERANCIA_ALTURA_M * 100);
+  for (const faixa of faixas ?? []) {
+    const altura = faixa.alturaM === null ? null : Math.round(faixa.alturaM * 100);
+    if (pedida === null) saldo.disponivel += faixa.quantidade;
+    else if (altura === null) saldo.semAltura += faixa.quantidade;
+    else if (altura >= pedida) saldo.disponivel += faixa.quantidade;
+    else if (altura >= piso!) saldo.abaixo += faixa.quantidade;
+  }
+  return saldo;
 }
 
 export interface ItemCalculavel {

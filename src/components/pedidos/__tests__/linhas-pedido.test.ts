@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import type { EspecieParaColagem, RecipienteParaColagem } from '@/lib/pedidos-colagem';
-import { type Linha, aplicarColagemTabular, estaVazia, linhaVazia, proximaChave } from '../linhas-pedido';
+import { chaveSaldo, saldoDoItem } from '@/lib/pedidos-rotulos';
+import {
+  type Linha,
+  aplicarColagemTabular,
+  estaVazia,
+  linhaVazia,
+  montarSaldos,
+  proximaChave,
+  textoSaldo,
+} from '../linhas-pedido';
 
 const ESPECIES: EspecieParaColagem[] = [
   { id: 'ipe', nome: 'Ipê-amarelo', nomeCientifico: 'Handroanthus albus', nomesPopulares: ['Ipê-amarelo'] },
@@ -73,5 +82,30 @@ describe('colagem de planilha nas células (T8.16)', () => {
   it('colar espécie no item genérico o torna específico, porque agora ele tem espécie', () => {
     const [linha] = colar([{ ...linhaVazia(1), generico: true }], [['Pitanga']]);
     expect(linha).toMatchObject({ generico: false, especieId: 'pit' });
+  });
+});
+
+describe('estoque disponível no item (RF-56, RN-06, RN-62)', () => {
+  const faixas = [
+    { especieId: 'ipe', recipienteId: 'tub', alturaM: 1.2, quantidade: 100 },
+    { especieId: 'ipe', recipienteId: 'tub', alturaM: 1, quantidade: 30 },
+    { especieId: 'ipe', recipienteId: 'tub', alturaM: null, quantidade: 40 },
+    { especieId: 'ipe', recipienteId: 'saco', alturaM: 0.5, quantidade: 7 },
+  ];
+
+  it('agrupa as faixas de altura por par espécie e recipiente', () => {
+    const saldos = montarSaldos(faixas);
+    expect(saldos[chaveSaldo('ipe', 'tub')]).toHaveLength(3);
+    expect(saldos[chaveSaldo('ipe', 'saco')]).toEqual([{ alturaM: 0.5, quantidade: 7 }]);
+  });
+
+  it('sem falta, diz só o disponível', () => {
+    expect(textoSaldo({ disponivel: 170, abaixo: 0, semAltura: 0 }, 100)).toBe('Disponível: 170');
+    expect(textoSaldo({ disponivel: 170, abaixo: 30, semAltura: 40 }, null)).toBe('Disponível: 170');
+  });
+
+  it('faltando, diz quanto falta, quanto há até 20 cm abaixo e quanto não foi medido', () => {
+    const saldo = saldoDoItem(montarSaldos(faixas)[chaveSaldo('ipe', 'tub')], 1.2);
+    expect(textoSaldo(saldo, 150)).toBe('Disponível: 100 · faltam 50 · 30 com até 20 cm a menos · 40 sem altura medida');
   });
 });

@@ -6,7 +6,7 @@ import { Pill, type PillTone } from '@/components/ui/Pill';
 import { formatData } from '@/lib/datas';
 import pool from '@/lib/db';
 import { nomeExibido, searchEspecies } from '@/lib/especies';
-import { saldoEmProducao, saldoPronto } from '@/lib/estoque';
+import { saldoDisponivel } from '@/lib/estoque';
 import { formatDateTime } from '@/lib/format';
 import { CANAIS_VENDA, SITUACOES_PEDIDO, type SituacaoPedido, findPedido, listHistorico } from '@/lib/pedidos';
 import { podeTransicionar } from '@/lib/pedidos-rotulos';
@@ -57,10 +57,9 @@ export default async function PedidoPage({ params }: PedidoPageProps) {
     user.perfil !== 'gerencia';
   const modo = editaItens ? 'cadastro' : negocia ? 'negociacao' : 'leitura';
 
-  const [historico, prontos, producao, especies, recipientes] = await Promise.all([
+  const [historico, disponiveis, especies, recipientes] = await Promise.all([
     listHistorico(pool, pedido.id),
-    saldoPronto(pool),
-    saldoEmProducao(pool),
+    saldoDisponivel(pool),
     editaItens ? searchEspecies(pool) : [],
     editaItens ? listRecipientes(pool) : [],
   ]);
@@ -108,7 +107,7 @@ export default async function PedidoPage({ params }: PedidoPageProps) {
           pedidoId={pedido.id}
           modo={modo}
           itens={pedido.itens}
-          saldos={montarSaldos(prontos, producao)}
+          saldos={montarSaldos(disponiveis)}
           opcoesEspecie={especies
             .filter((e) => e.ativa)
             .map((e) => ({

@@ -52,13 +52,14 @@ beforeEach(() => {
 
 describe('permissões da produção (D4 §3.5)', () => {
   // Perda e contagem saíram daqui para a fila do aparelho: o teste delas é o de `registros-campo`
-  it('chefia só lê: não cria lote, não transfere, não repica nem muda fase', async () => {
+  it('chefia só lê: não cria lote, não transfere, não repica nem muda fase ou altura', async () => {
     loggedAs('chefia');
     const lote = { lote_id: LOTE };
     await expect(actions.criarLoteAction({}, form({}))).rejects.toThrow(FORBIDDEN_MESSAGE);
     await expect(actions.transferirLoteAction({}, form({ ...lote, canteiro_id: OUTRO }))).rejects.toThrow(FORBIDDEN_MESSAGE);
     await expect(actions.repicarLoteAction({}, form({ ...lote, quantidade: '5' }))).rejects.toThrow(FORBIDDEN_MESSAGE);
     await expect(actions.alterarFaseAction({}, form({ ...lote, fase: 'pronto' }))).rejects.toThrow(FORBIDDEN_MESSAGE);
+    await expect(actions.alterarAlturaAction({}, form({ ...lote, altura: '1,20 m' }))).rejects.toThrow(FORBIDDEN_MESSAGE);
     expectNoDatabase();
   });
 });
@@ -93,5 +94,22 @@ describe('repicagem e fase', () => {
     loggedAs('gerencia');
     expect((await actions.alterarFaseAction({}, form({ lote_id: LOTE, fase: 'encerrado' }))).error).toBe('Escolha a fase na lista.');
     expectNoDatabase();
+  });
+
+  it('RF-65: altura que não se entende é recusada antes do banco', async () => {
+    loggedAs('gerencia');
+    const state = await actions.alterarAlturaAction({}, form({ lote_id: LOTE, altura: 'alta' }));
+    expect(state.error).toMatch(/A altura precisa ser/);
+    expect((await actions.alterarAlturaAction({}, form({ lote_id: 'x', altura: '1,20 m' }))).error).toBe('Lote inválido.');
+    expectNoDatabase();
+  });
+
+  it('RF-65: a altura medida vai ao banco em metros, e o vazio apaga', async () => {
+    loggedAs('gerencia');
+    vi.mocked(pool.query).mockResolvedValue({ rowCount: 1, rows: [] } as never);
+    expect((await actions.alterarAlturaAction({}, form({ lote_id: LOTE, altura: '120' }))).success).toBe('Altura registrada: 1,20 m.');
+    expect(vi.mocked(pool.query).mock.calls[0][1]).toEqual([LOTE, 1.2]);
+    expect((await actions.alterarAlturaAction({}, form({ lote_id: LOTE, altura: '' }))).success).toBe('Altura apagada.');
+    expect(vi.mocked(pool.query).mock.calls[1][1]).toEqual([LOTE, null]);
   });
 });

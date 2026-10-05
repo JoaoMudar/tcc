@@ -12,8 +12,9 @@ import {
   formatMoeda,
   itemVendavel,
   rotuloGenerico,
+  saldoDoItem,
 } from '@/lib/pedidos-rotulos';
-import type { SaldosPorChave } from './linhas-pedido';
+import { type SaldosPorChave, textoSaldo } from './linhas-pedido';
 
 /** O item como a ficha o recebe do servidor: o pedido e o que a conferência achou. */
 export interface ItemDaFicha extends ItemParaAprovar {
@@ -104,7 +105,11 @@ export function GradeItensFicha({ itens, saldos, valores, onAlterar, faltaBloque
     const quantidade = parcial ? item.quantidadeDisponivel : item.quantidade;
     const recipiente = item.recipienteDisponivel ?? item.recipiente;
     const altura = item.alturaDisponivelM ?? item.alturaM;
-    const saldo = item.especieId && item.recipienteId ? saldos[chaveSaldo(item.especieId, item.recipienteId)] : undefined;
+    // RN-06: o que atende é o pedido (espécie, recipiente e altura), e não o que a conferência achou
+    const saldo =
+      item.especieId && item.recipienteId
+        ? saldoDoItem(saldos[chaveSaldo(item.especieId, item.recipienteId)], item.alturaM)
+        : undefined;
     // Só o item vendável se negocia; o genérico com quantidade só recebe preço,
     // porque a quantidade dele é a soma dos filhos
     const edita = negociando && itemVendavel(item, itens);
@@ -231,8 +236,7 @@ export function GradeItensFicha({ itens, saldos, valores, onAlterar, faltaBloque
                   )}
                   {linha.saldo !== undefined && (
                     <span className={`block text-xs text-muted ${linha.filho ? 'pl-4' : ''}`}>
-                      Pronto: {formatQuantidade(linha.saldo.pronto)}
-                      {linha.saldo.producao > 0 && ` · ${formatQuantidade(linha.saldo.producao)} em produção`}
+                      {textoSaldo(linha.saldo, linha.item.quantidade)}
                     </span>
                   )}
                 </td>

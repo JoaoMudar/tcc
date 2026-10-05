@@ -5,6 +5,7 @@ import { EspecieRapida } from '@/components/EspecieRapida';
 import { Button } from '@/components/ui/Button';
 import { ComboboxField } from '@/components/ui/ComboboxField';
 import { Notice } from '@/components/ui/Notice';
+import { Toast } from '@/components/ui/Toast';
 import { type SelectOption, SelectField } from '@/components/ui/SelectField';
 import { TextArea } from '@/components/ui/TextArea';
 import { TextField } from '@/components/ui/TextField';
@@ -41,10 +42,10 @@ const CANAL_OPCOES = Object.entries(CANAIS_VENDA).map(([value, label]) => ({ val
 
 /**
  * T8.1, UC-31: cliente, canal e as linhas do pedido, que são uma planilha na
- * tela larga e uma lista no celular (`GradeItens`). Cada linha mostra o saldo de
- * muda pronta (RF-56), e o saldo menor que o pedido **avisa e não recusa**
- * (UC-31 FA-2): o viveiro vende com frequência muda que ainda vai ficar pronta,
- * e barrar isso transformaria uma venda normal em erro de sistema.
+ * tela larga e uma lista no celular (`GradeItens`). Cada linha mostra o estoque
+ * disponível da espécie, do recipiente e da altura pedidos (RF-56, RN-06), e o
+ * saldo menor que o pedido **avisa e não recusa** (UC-31 FA-2): a muda cresce até
+ * a entrega, e barrar isso transformaria uma venda normal em erro de sistema.
  *
  * **Não há preço aqui** (RN-50): quem registra está no meio de uma conversa e
  * anota o que o cliente quer. O valor se fecha depois da conferência, quando a
@@ -62,7 +63,8 @@ export function NovoPedidoForm({ clientes, especies, recipientes, saldos, verFis
   const [linhas, setLinhas] = useState<Linha[]>([linhaVazia(1)]);
   const [colando, setColando] = useState<string | null>(null);
   const [emFoco, setEmFoco] = useState<number | null>(null);
-  const [aviso, setAviso] = useState<string | null>(null);
+  // Objeto, não texto: colar duas vezes o mesmo número de linhas também avisa de novo
+  const [aviso, setAviso] = useState<{ texto: string } | null>(null);
   // A linha que pediu espécie nova, e o nome que foi digitado nela
   const [criandoEspecie, setCriandoEspecie] = useState<{ chave: number; nome: string } | null>(null);
 
@@ -155,7 +157,7 @@ export function NovoPedidoForm({ clientes, especies, recipientes, saldos, verFis
       return [...base, ...novas];
     });
     setColando(null);
-    setAviso(`${importados.length} ${importados.length === 1 ? 'item adicionado' : 'itens adicionados'}.`);
+    setAviso({ texto: `${importados.length} ${importados.length === 1 ? 'item adicionado' : 'itens adicionados'}.` });
   }
 
   /**
@@ -180,7 +182,7 @@ export function NovoPedidoForm({ clientes, especies, recipientes, saldos, verFis
         recipientes.map((opcao) => ({ id: opcao.value, nome: opcao.label })),
       ),
     );
-    setAviso(`${celulas.length} ${celulas.length === 1 ? 'linha colada' : 'linhas coladas'}. Confira as células em branco.`);
+    setAviso({ texto: `${celulas.length} ${celulas.length === 1 ? 'linha colada' : 'linhas coladas'}. Confira as células em branco.` });
   }
 
   const linhaEmFoco = linhas.find((linha) => linha.chave === emFoco);
@@ -244,7 +246,11 @@ export function NovoPedidoForm({ clientes, especies, recipientes, saldos, verFis
           defaultValue={fields?.observacoes}
         />
 
-        {aviso && <Notice tone="success">{aviso}</Notice>}
+        {aviso && (
+          <Toast tone="success" limpar={[]} gatilho={aviso}>
+            {aviso.texto}
+          </Toast>
+        )}
 
         <GradeItens
           linhas={linhas}

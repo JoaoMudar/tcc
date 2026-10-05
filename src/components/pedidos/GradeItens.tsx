@@ -7,8 +7,8 @@ import { MARCA_OBRIGATORIO } from '@/components/ui/marcaObrigatorio';
 import type { SelectOption } from '@/components/ui/SelectField';
 import { TextField } from '@/components/ui/TextField';
 import { formatQuantidade, lerQuantidade } from '@/lib/lotes-rotulos';
-import { chaveSaldo, mascaraAltura, normalizaCampoAltura, rotuloGenerico } from '@/lib/pedidos-rotulos';
-import type { Celula, Linha, SaldosPorChave } from './linhas-pedido';
+import { chaveSaldo, mascaraAltura, normalizaCampoAltura, parseAltura, rotuloGenerico, saldoDoItem } from '@/lib/pedidos-rotulos';
+import { type Celula, type Linha, type SaldosPorChave, textoSaldo } from './linhas-pedido';
 
 interface GradeItensProps {
   linhas: readonly Linha[];
@@ -107,11 +107,11 @@ export function GradeItens({
   }
 
   function saldoDa(linha: Linha) {
-    const saldo = saldos[chaveSaldo(linha.especieId, linha.recipienteId)];
-    const pronto = saldo?.pronto ?? 0;
+    const altura = parseAltura(linha.altura);
+    const saldo = saldoDoItem(saldos[chaveSaldo(linha.especieId, linha.recipienteId)], 'error' in altura ? null : altura.value);
     const quantidade = lerQuantidade(linha.quantidade);
-    const falta = Boolean(linha.especieId && linha.recipienteId && quantidade !== null && quantidade > pronto);
-    return { saldo, pronto, quantidade, falta };
+    const falta = Boolean(linha.especieId && linha.recipienteId && quantidade !== null && quantidade > saldo.disponivel);
+    return { saldo, quantidade, falta };
   }
 
   return (
@@ -170,7 +170,7 @@ export function GradeItens({
           </thead>
           <tbody>
             {linhas.map((linha, indice) => {
-              const { saldo, pronto, quantidade, falta } = saldoDa(linha);
+              const { saldo, quantidade, falta } = saldoDa(linha);
               return (
                 <tr key={linha.chave} className={`border-t border-line align-top ${linha.generico ? 'bg-blue-50' : ''}`}>
                   {/* O foco marca em que célula a colagem começa, e o `onFocus`
@@ -201,9 +201,7 @@ export function GradeItens({
                     {/* RF-56: o saldo não é coluna, é a linha miúda embaixo da espécie */}
                     {linha.especieId && linha.recipienteId && (
                       <p className={`px-3 pb-1.5 text-xs ${falta ? 'font-semibold text-amber-800' : 'text-muted'}`}>
-                        Pronto: {formatQuantidade(pronto)}
-                        {saldo && saldo.producao > 0 && ` · ${formatQuantidade(saldo.producao)} em produção`}
-                        {falta && quantidade !== null && ` · faltam ${formatQuantidade(quantidade - pronto)}`}
+                        {textoSaldo(saldo, quantidade)}
                       </p>
                     )}
                   </td>

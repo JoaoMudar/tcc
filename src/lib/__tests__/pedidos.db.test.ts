@@ -5,7 +5,7 @@ import { Pool, type PoolClient } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { insertArea, insertCanteiro } from '../areas';
 import { hojeNoViveiro } from '../datas';
-import { saldoPronto } from '../estoque';
+import { saldoDisponivel } from '../estoque';
 import { alterarFase, criarLote } from '../lotes';
 import { registrarMovimento } from '../movimentos';
 import {
@@ -293,8 +293,8 @@ describe('lista da carteira (T8.4, RF-58, TA-54)', () => {
   });
 });
 
-describe('saldo de muda pronta no item (T8.2, RF-56, UC-32)', () => {
-  it('sai dos lotes prontos, e a perda registrada muda o número exibido (TA-64)', async () => {
+describe('estoque disponível no item (T8.2, RF-56, UC-32)', () => {
+  it('sai de todo lote aberto, e a perda registrada muda o número exibido (TA-64)', async () => {
     const lote = await tx((client) =>
       criarLote(client, {
         especieId: especie,
@@ -307,19 +307,18 @@ describe('saldo de muda pronta no item (T8.2, RF-56, UC-32)', () => {
       }),
     );
 
-    // Lote que ainda não está pronto não entra no saldo do item (RN-06)
-    const antesDePronto = await saldoPronto(pool, { especieId: especie, recipienteId: tubete });
-    expect(antesDePronto).toHaveLength(0);
-
+    // RN-06: o lote recém-semeado já entra no saldo do item; não há fase de "muda pronta"
+    const [antes] = await saldoDisponivel(pool, { especieId: especie, recipienteId: tubete });
+    expect(antes.quantidade).toBe(500);
     await alterarFase(pool, lote.id, 'pronto');
-    const [pronto] = await saldoPronto(pool, { especieId: especie, recipienteId: tubete });
-    expect(pronto.quantidade).toBe(500);
+    const [mesmo] = await saldoDisponivel(pool, { especieId: especie, recipienteId: tubete });
+    expect(mesmo.quantidade).toBe(500);
 
     // É esta a interligação da Fase 8: a perda no lote muda o saldo do item
     await tx((client) =>
       registrarMovimento(client, { loteId: lote.id, tipo: 'perda', quantidade: -120, causa: 'seca', registradoPor: usuario }),
     );
-    const [depois] = await saldoPronto(pool, { especieId: especie, recipienteId: tubete });
+    const [depois] = await saldoDisponivel(pool, { especieId: especie, recipienteId: tubete });
     expect(depois.quantidade).toBe(380);
 
     // E o item do pedido daquela espécie e recipiente continua o mesmo: o pedido lê, e não reserva

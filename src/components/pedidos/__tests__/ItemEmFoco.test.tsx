@@ -90,3 +90,22 @@ describe('item do pedido em tela cheia (T8.1)', () => {
     expect(onAlterar).toHaveBeenLastCalledWith(4, 'especieId', 'ipe');
   });
 });
+
+describe('estoque disponível no item em tela cheia (RF-56, RN-06)', () => {
+  it('a altura digitada decide quais lotes atendem', () => {
+    render(
+      <ItemEmFoco
+        linha={{ ...linhaVazia(1), especieId: 'ipe', recipienteId: 'tub', altura: '1,00 m', quantidade: '50' }}
+        indice={0}
+        opcoesEspecie={[{ value: 'ipe', label: 'Ipê-amarelo' }]}
+        recipientes={[{ value: 'tub', label: 'Tubete' }]}
+        saldos={{ 'ipe:tub': [{ alturaM: 1, quantidade: 20 }, { alturaM: 0.8, quantidade: 15 }, { alturaM: null, quantidade: 9 }] }}
+        onAlterar={vi.fn()}
+        onRemover={vi.fn()}
+        onFechar={vi.fn()}
+        onCriarEspecie={vi.fn()}
+      />,
+    );
+    expect(screen.getByText('Disponível: 20 · faltam 30 · 15 com até 20 cm a menos · 9 sem altura medida')).toBeInTheDocument();
+  });
+});

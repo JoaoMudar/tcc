@@ -5,9 +5,9 @@ import { ComboboxField } from '@/components/ui/ComboboxField';
 import { Modal } from '@/components/ui/Modal';
 import type { SelectOption } from '@/components/ui/SelectField';
 import { TextField } from '@/components/ui/TextField';
-import { formatQuantidade, lerQuantidade } from '@/lib/lotes-rotulos';
-import { chaveSaldo, mascaraAltura } from '@/lib/pedidos-rotulos';
-import type { Linha, SaldosPorChave } from './linhas-pedido';
+import { lerQuantidade } from '@/lib/lotes-rotulos';
+import { chaveSaldo, mascaraAltura, parseAltura, saldoDoItem } from '@/lib/pedidos-rotulos';
+import { type Linha, type SaldosPorChave, textoSaldo } from './linhas-pedido';
 
 interface ItemEmFocoProps {
   linha: Linha;
@@ -42,10 +42,10 @@ export function ItemEmFoco({
   onFechar,
   onCriarEspecie,
 }: ItemEmFocoProps) {
-  const saldo = saldos[chaveSaldo(linha.especieId, linha.recipienteId)];
-  const pronto = saldo?.pronto ?? 0;
+  const altura = parseAltura(linha.altura);
+  const saldo = saldoDoItem(saldos[chaveSaldo(linha.especieId, linha.recipienteId)], 'error' in altura ? null : altura.value);
   const quantidade = lerQuantidade(linha.quantidade);
-  const falta = linha.especieId && linha.recipienteId && quantidade !== null && quantidade > pronto;
+  const falta = linha.especieId && linha.recipienteId && quantidade !== null && quantidade > saldo.disponivel;
 
   return (
     <Modal titulo={`Item ${indice + 1}`} onFechar={onFechar}>
@@ -105,9 +105,7 @@ export function ItemEmFoco({
 
       {linha.especieId && linha.recipienteId && (
         <p className={`text-sm ${falta ? 'text-amber-800' : 'text-muted'}`}>
-          Pronto para venda: <strong>{formatQuantidade(pronto)}</strong>
-          {saldo && saldo.producao > 0 && ` · ${formatQuantidade(saldo.producao)} em produção, ainda não pronta`}
-          {falta && quantidade !== null && ` · faltam ${formatQuantidade(quantidade - pronto)}`}
+          {textoSaldo(saldo, quantidade)}
         </p>
       )}
 

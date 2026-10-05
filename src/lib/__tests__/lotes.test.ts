@@ -106,6 +106,7 @@ describe('montarOcupacao (RF-33)', () => {
     especie: 'Ipê',
     recipiente: 'Tubete',
     fase: 'semeado',
+    alturaM: null,
     saldo,
   });
 
