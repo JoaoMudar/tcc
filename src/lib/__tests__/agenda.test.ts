@@ -84,7 +84,32 @@ describe('parseReagendamento (arrasto na agenda, RNF-14)', () => {
 
   it('aceita dia, turno e o intervalo que o arrasto declarou', () => {
     expect(parseReagendamento({ data: '2026-09-15', turnoId: TURNO, horaInicio: '07:00', horaFim: '08:30' })).toEqual({
-      value: { data: '2026-09-15', turnoId: TURNO, horaInicio: '07:00', horaFim: '08:30' },
+      value: { data: '2026-09-15', turnoId: TURNO, horaInicio: '07:00', horaFim: '08:30', troca: null },
+    });
+  });
+
+  describe('troca de pessoa (RN-61)', () => {
+    const A = '1c8e2d4f-9a6b-4d2c-8e1f-3a7b8c9d0e1f';
+    const B = '2d9f3e5a-0b7c-4e3d-9f2a-4b8c9d0e1f2a';
+    const base = { data: '2026-09-15', turnoId: TURNO, horaInicio: '', horaFim: '' };
+
+    it('quem está na linha de destino substitui quem estava na de origem', () => {
+      expect(parseReagendamento({ ...base, sai: A, entra: B })).toEqual({
+        value: { data: '2026-09-15', turnoId: TURNO, horaInicio: null, horaFim: null, troca: { sai: A, entra: B } },
+      });
+    });
+
+    it('vindo da linha "Sem ninguém", só entra', () => {
+      expect(parseReagendamento({ ...base, entra: B })).toMatchObject({ value: { troca: { sai: null, entra: B } } });
+    });
+
+    it('a mesma pessoa nos dois lados não troca nada', () => {
+      expect(parseReagendamento({ ...base, sai: A, entra: A })).toMatchObject({ value: { troca: null } });
+    });
+
+    it('sair sem ninguém entrar é do formulário, e não do arrasto', () => {
+      expect(parseReagendamento({ ...base, sai: A })).toEqual({ error: expect.stringContaining('linha de uma pessoa') });
+      expect(parseReagendamento({ ...base, sai: 'x', entra: B })).toEqual({ error: 'Pessoa de origem inválida.' });
     });
   });
 
@@ -283,7 +308,7 @@ function resumo(id: string, data: string, participantes: { id: string; nome: str
     id,
     semanaId: 's',
     semanaInicio: SEMANA,
-    semanaSituacao: 'rascunho',
+    semanaSituacao: 'aberta',
     data,
     turnoId: TURNO,
     turno: 'manha',
@@ -297,6 +322,7 @@ function resumo(id: string, data: string, participantes: { id: string; nome: str
     exigeRecipiente: true,
     exigeArea: true,
     unidadeMedida: 'un',
+    categoria: 'terra',
     especieId: null,
     especie: null,
     recipienteId: null,
@@ -311,6 +337,7 @@ function resumo(id: string, data: string, participantes: { id: string; nome: str
     eRecorrente: false,
     situacao: 'planejada',
     observacoes: null,
+    prioridadeEm: '2026-09-20T12:00:00.000000Z',
     participantes: participantes.map((p) => ({ ...p, quantidade: null })),
   };
 }

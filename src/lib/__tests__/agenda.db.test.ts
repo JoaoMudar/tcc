@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { Pool, type PoolClient } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
+  promoverAtribuicao,
   type AtribuicaoInput,
   type ConfirmacaoInput,
   type ReagendamentoInput,
@@ -18,7 +19,6 @@ import {
   listAgendaDia,
   listAgendaSemana,
   listFuncionarios,
-  publicarSemana,
   reagendarAtribuicao,
   resumoFechamento,
 } from '../agenda';
@@ -163,7 +163,7 @@ describe('agenda da semana contra Postgres', () => {
     expect(nomes).not.toContain(cleusa);
   });
 
-  it('TA-26: duas tarefas no mesmo turno, cada uma com o seu grupo, e a semana nasce em rascunho', async () => {
+  it('TA-26: duas tarefas no mesmo turno, cada uma com o seu grupo, e a semana nasce aberta', async () => {
     [ids.encher] = await criar({ tipoTarefaId: encher, participantes: [rogerio, amelia], recipienteId: tubete, quantidadePlanejada: 500 });
     [ids.irrigar] = await criar({ tipoTarefaId: irrigar, participantes: [jaison] });
 
@@ -172,7 +172,7 @@ describe('agenda da semana contra Postgres', () => {
     expect(doDia.every((a) => a.turnoId === manha)).toBe(true);
     expect(doDia.find((a) => a.id === ids.encher)!.participantes.map((p) => p.id).sort()).toEqual([rogerio, amelia].sort());
     expect(doDia.find((a) => a.id === ids.irrigar)!.participantes.map((p) => p.id)).toEqual([jaison]);
-    expect(await findSemana(pool, S1)).toMatchObject({ situacao: 'rascunho', fechadaEm: null });
+    expect(await findSemana(pool, S1)).toMatchObject({ situacao: 'aberta', fechadaEm: null });
   });
 
   it('TA-27: a tarefa com hora a guarda, a sem hora é aceita, e as duas têm turno; vários dias de uma vez', async () => {
@@ -181,6 +181,18 @@ describe('agenda da semana contra Postgres', () => {
     ids.recorrente = recorrentes[0];
     expect(await findAtribuicao(pool, ids.recorrente)).toMatchObject({ turnoId: manha, horaInicio: '07:00', horaFim: '08:00', eRecorrente: true });
     expect(await findAtribuicao(pool, ids.encher)).toMatchObject({ turnoId: manha, horaInicio: null, horaFim: null });
+  });
+
+  it('RF-26: a precedência nasce nula (segue a regra), e tornar principal a grava; a escolha mais recente vence', async () => {
+    const [primeira] = await criar({ semana: S4, dias: [S4], participantes: [valdir] });
+    const [segunda] = await criar({ semana: S4, dias: [S4], participantes: [valdir] });
+    const em = async (id: string) => (await findAtribuicao(pool, id))!.prioridadeEm;
+    expect(await em(primeira)).toBeNull();
+    expect(await em(segunda)).toBeNull();
+
+    await tx((client) => promoverAtribuicao(client, segunda));
+    await tx((client) => promoverAtribuicao(client, primeira));
+    expect((await em(primeira))! > (await em(segunda))!).toBe(true);
   });
 
   it('TA-68: arrastar remarca dia, turno e hora, e recusa o que sai da semana ou já aconteceu', async () => {
@@ -206,6 +218,22 @@ describe('agenda da semana contra Postgres', () => {
     // O que já aconteceu não se remaneja
     await confirmar(id);
     await expect(reagendar()).rejects.toThrow('não se altera');
+  });
+
+  it('RN-61: arrastar para a linha de outra pessoa troca quem faz, e recusa quem já está', async () => {
+    const [id] = await criar({ semana: S4, dias: [S4], participantes: [valdir, jaison] });
+    const mover = (troca: ReagendamentoInput['troca']) =>
+      tx((client) => reagendarAtribuicao(client, id, { data: S4, turnoId: manha, horaInicio: null, horaFim: null, troca }));
+
+    await mover({ sai: valdir, entra: rogerio });
+    const grupo = (await findAtribuicao(pool, id))!.participantes.map((p) => p.id);
+    expect(grupo).toHaveLength(2);
+    expect(grupo).toEqual(expect.arrayContaining([jaison, rogerio]));
+
+    await expect(mover({ sai: rogerio, entra: jaison })).rejects.toThrow('já está nesta tarefa');
+    await expect(mover({ sai: valdir, entra: amelia })).rejects.toThrow('não está mais nesta tarefa');
+    await expect(mover({ sai: null, entra: amelia })).rejects.toThrow('já tem gente escalada');
+    await expect(mover({ sai: rogerio, entra: cleusa })).rejects.toThrow('funcionário ativo');
   });
 
   it('TA-28: o banco é a segunda barreira contra fim sem início', async () => {
@@ -302,7 +330,7 @@ describe('agenda da semana contra Postgres', () => {
     expect(await findAtribuicao(pool, id)).toMatchObject({ data: '2030-01-11', turnoId: tarde, participantes: [expect.objectContaining({ id: jaison })] });
     await expect(tx((client) => atualizarAtribuicao(client, id, tarefa({ semana: S2, dias: [S2] })))).rejects.toThrow('mesma semana');
 
-    expect(await tx((client) => excluirAtribuicao(client, id))).toEqual({ semanaInicio: S1 });
+    expect(await tx((client) => excluirAtribuicao(client, id))).toEqual({ data: '2030-01-11' });
     expect(await findAtribuicao(pool, id)).toBeNull();
   });
 
@@ -347,10 +375,7 @@ describe('agenda da semana contra Postgres', () => {
       [semana.id, '2030-01-11', tarde, irrigar],
     );
 
-    await expect(tx((client) => fecharSemana(client, S1))).rejects.toThrow('Publique a semana');
-    await tx((client) => publicarSemana(client, S1, usuario));
-    await expect(tx((client) => publicarSemana(client, S1, usuario))).rejects.toThrow('já está publicada');
-
+    // A semana aberta fecha direto: não há publicação antes (RF-28)
     const antes = await resumoFechamento(pool, semana.id);
     expect(antes.semConfirmacao).toBeGreaterThan(0);
     expect(antes.semNinguem).toBe(1);

@@ -30,6 +30,20 @@
 
   /* Alvo mínimo de toque (RNF-03): 48px, para dedo sujo ou molhado */
   --spacing-touch: 3rem;
+
+  /* A grade da semana trocando de semana: curto, para não atrasar a leitura */
+  --animate-surgir: surgir 150ms ease-out;
+
+  @keyframes surgir {
+    from {
+      opacity: 0;
+      transform: translateY(2px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
 }
 
 :root {

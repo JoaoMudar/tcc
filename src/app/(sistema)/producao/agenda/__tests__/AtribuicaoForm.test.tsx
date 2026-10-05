@@ -70,4 +70,15 @@ describe('AtribuicaoForm', () => {
     expect(container.querySelector('input[name="area_id"]')).toBeNull();
     expect(screen.getByLabelText(/Quantidade prevista em kg/)).toHaveAttribute('inputmode', 'decimal');
   });
+
+  it('vindo do clique no Gantt, não pergunta dia nem turno, e a pessoa vem marcada', () => {
+    const { container } = render(
+      <AtribuicaoForm semana="2026-09-14" opcoes={OPCOES} inicial={{ participantes: 'p1' }} fixos={{ dia: '2026-09-14', turnoId: 't1' }} />,
+    );
+    expect(screen.queryByText('Dias')).toBeNull();
+    expect(screen.queryByText('Turno')).toBeNull();
+    expect((container.querySelector('input[type="hidden"][name="dias"]') as HTMLInputElement).value).toBe('2026-09-14');
+    expect((container.querySelector('input[type="hidden"][name="turno_id"]') as HTMLInputElement).value).toBe('t1');
+    expect(screen.getByLabelText('Gilberto')).toBeChecked();
+  });
 });

@@ -40,17 +40,16 @@ export function lerQuantidadeMedida(text: string, unidade: UnidadeTarefa): numbe
   return numero < MAXIMO ? numero : null;
 }
 
+/** RF-28: a semana nasce aberta no primeiro lançamento, e fechada não se altera (RN-13). */
 export const SITUACOES_SEMANA = {
-  rascunho: 'Rascunho',
-  publicada: 'Publicada',
+  aberta: 'Aberta',
   fechada: 'Fechada',
 } as const;
 
 export type SituacaoSemana = keyof typeof SITUACOES_SEMANA;
 
 export const TOM_SEMANA: Record<SituacaoSemana, PillTone> = {
-  rascunho: 'amber',
-  publicada: 'blue',
+  aberta: 'green',
   fechada: 'neutral',
 };
 
@@ -170,4 +169,28 @@ export function detalhesAtribuicao(a: DetalhesAtribuicao): string[] {
     a.canteiro ? `Canteiro ${a.canteiro}` : a.area && `Área ${a.area}`,
     a.quantidadePlanejada !== null && `Previsto ${formatQuantidadeMedida(a.quantidadePlanejada, a.unidadeMedida)}`,
   ].filter((parte): parte is string => typeof parte === 'string' && parte !== '');
+}
+
+export interface ConfirmavelInput {
+  situacao: SituacaoAtribuicao;
+  semanaSituacao: SituacaoSemana;
+  eQuantitativa: boolean;
+  exigeLote: boolean;
+  loteId: string | null;
+  participantes: readonly unknown[];
+}
+
+/**
+ * O toque único da agenda do celular (RF-29, RNF-14): só quando a confirmação não
+ * tem nada a perguntar. A quantitativa pede um número por pessoa, e a que exige
+ * lote sem tê-lo pede o lote: essas abrem a ficha, onde está o formulário.
+ */
+export function confirmavelNumToque(a: ConfirmavelInput): boolean {
+  return (
+    a.situacao === 'planejada' &&
+    a.semanaSituacao === 'aberta' &&
+    a.participantes.length > 0 &&
+    !a.eQuantitativa &&
+    (!a.exigeLote || a.loteId !== null)
+  );
 }

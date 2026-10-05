@@ -89,7 +89,7 @@ export async function criarAtribuicaoAction(_previous: FormState, formData: Form
     return { error: toUserMessage(error), fields: resultado.fields };
   }
   revalidarProducao();
-  redirect(`/producao/agenda?semana=${resultado.value.semana}&feito=lancada`);
+  redirect(`/producao?dia=${resultado.value.dias[0]}&feito=lancada`);
 }
 
 export async function atualizarAtribuicaoAction(_previous: FormState, formData: FormData): Promise<FormState> {
@@ -109,8 +109,8 @@ export async function atualizarAtribuicaoAction(_previous: FormState, formData: 
 }
 
 /**
- * O arrasto na linha do tempo da semana (RNF-14). Não redireciona: a grade fica
- * onde está, e quem conta o que mudou é a própria barra no lugar novo.
+ * O arrasto na grade da semana (RNF-14). Não redireciona: a grade fica onde
+ * está, e quem conta o que mudou é o próprio card no lugar novo.
  */
 export async function reagendarAtribuicaoAction(_previous: FormState, formData: FormData): Promise<FormState> {
   await requirePermission('agenda', 'A');
@@ -121,6 +121,8 @@ export async function reagendarAtribuicaoAction(_previous: FormState, formData: 
     turnoId: formText(formData, 'turno_id'),
     horaInicio: formText(formData, 'hora_inicio'),
     horaFim: formText(formData, 'hora_fim'),
+    sai: formText(formData, 'sai'),
+    entra: formText(formData, 'entra'),
   });
   if ('error' in resultado) return { error: resultado.error };
 
@@ -133,43 +135,38 @@ export async function reagendarAtribuicaoAction(_previous: FormState, formData: 
   return { success: 'Tarefa remarcada.' };
 }
 
+/** RF-26: a tarefa coberta, arrastada para cima na grade, passa a aparecer por inteiro. */
+export async function promoverAtribuicaoAction(_previous: FormState, formData: FormData): Promise<FormState> {
+  await requirePermission('agenda', 'A');
+  const id = formText(formData, 'id');
+  if (!isUuid(id)) return { error: 'Tarefa inválida.' };
+  try {
+    await withTransaction(pool, (client) => agenda.promoverAtribuicao(client, id));
+  } catch (error) {
+    return { error: toUserMessage(error) };
+  }
+  revalidarProducao();
+  return { success: 'Tarefa em destaque.' };
+}
+
 export async function excluirAtribuicaoAction(_previous: FormState, formData: FormData): Promise<FormState> {
   await requirePermission('agenda', 'E');
   const id = formText(formData, 'id');
   if (!isUuid(id)) return { error: 'Tarefa inválida.' };
 
-  let semanaInicio: string;
+  let data: string;
   try {
-    ({ semanaInicio } = await withTransaction(pool, (client) => agenda.excluirAtribuicao(client, id)));
+    ({ data } = await withTransaction(pool, (client) => agenda.excluirAtribuicao(client, id)));
   } catch (error) {
     return { error: toUserMessage(error) };
   }
   revalidarProducao();
-  redirect(`/producao/agenda?semana=${semanaInicio}&feito=excluida`);
+  redirect(`/producao?dia=${data}&feito=excluida`);
 }
 
 function lerSemanaDoForm(formData: FormData): string | null {
   const semana = formText(formData, 'semana');
   return isInicioDeSemana(semana) ? semana : null;
-}
-
-/** RN-29: abrir traz as recorrentes da semana passada. */
-export async function abrirSemanaAction(_previous: FormState, formData: FormData): Promise<FormState> {
-  await requirePermission('agenda', 'C');
-  const semana = lerSemanaDoForm(formData);
-  if (!semana) return { error: 'Semana inválida.' };
-  try {
-    const { recorrentes } = await withTransaction(pool, (client) => agenda.abrirSemana(client, semana));
-    revalidarProducao();
-    return {
-      success:
-        recorrentes === 0
-          ? 'Semana aberta. A semana passada não tinha tarefa recorrente.'
-          : `Semana aberta, com ${recorrentes} ${recorrentes === 1 ? 'tarefa recorrente' : 'tarefas recorrentes'} da semana passada.`,
-    };
-  } catch (error) {
-    return { error: toUserMessage(error) };
-  }
 }
 
 /** T5.4, RF-27. */
@@ -187,20 +184,6 @@ export async function copiarSemanaAction(_previous: FormState, formData: FormDat
   }
 }
 
-/** T5.3, RF-28. */
-export async function publicarSemanaAction(_previous: FormState, formData: FormData): Promise<FormState> {
-  const user = await requirePermission('agenda', 'A');
-  const semana = lerSemanaDoForm(formData);
-  if (!semana) return { error: 'Semana inválida.' };
-  try {
-    await withTransaction(pool, (client) => agenda.publicarSemana(client, semana, user.usuarioId));
-  } catch (error) {
-    return { error: toUserMessage(error) };
-  }
-  revalidarProducao();
-  return { success: 'Semana publicada.' };
-}
-
 /** T5.6, RF-28, RF-31. */
 export async function fecharSemanaAction(_previous: FormState, formData: FormData): Promise<FormState> {
   await requirePermission('fechamento_semana', 'A');
@@ -212,5 +195,5 @@ export async function fecharSemanaAction(_previous: FormState, formData: FormDat
     return { error: toUserMessage(error) };
   }
   revalidarProducao();
-  redirect(`/producao/agenda?semana=${semana}&feito=fechada`);
+  redirect(`/producao?dia=${semana}&feito=fechada`);
 }

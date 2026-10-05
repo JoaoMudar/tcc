@@ -52,7 +52,7 @@ beforeEach(() => {
 });
 
 describe('permissões da agenda (D4 §3.3)', () => {
-  it('chefia só lê: não lança, altera, exclui, abre, copia, publica nem fecha', async () => {
+  it('chefia só lê: não lança, altera, exclui, copia nem fecha', async () => {
     loggedAs('chefia');
     const semana = form({ semana: SEMANA });
     const tarefa = form({ id: ID });
@@ -60,9 +60,8 @@ describe('permissões da agenda (D4 §3.3)', () => {
     await expect(actions.atualizarAtribuicaoAction({}, tarefa)).rejects.toThrow(FORBIDDEN_MESSAGE);
     await expect(actions.excluirAtribuicaoAction({}, tarefa)).rejects.toThrow(FORBIDDEN_MESSAGE);
     await expect(actions.reagendarAtribuicaoAction({}, tarefa)).rejects.toThrow(FORBIDDEN_MESSAGE);
-    await expect(actions.abrirSemanaAction({}, semana)).rejects.toThrow(FORBIDDEN_MESSAGE);
+    await expect(actions.promoverAtribuicaoAction({}, tarefa)).rejects.toThrow(FORBIDDEN_MESSAGE);
     await expect(actions.copiarSemanaAction({}, semana)).rejects.toThrow(FORBIDDEN_MESSAGE);
-    await expect(actions.publicarSemanaAction({}, semana)).rejects.toThrow(FORBIDDEN_MESSAGE);
     await expect(actions.fecharSemanaAction({}, semana)).rejects.toThrow(FORBIDDEN_MESSAGE);
     expectNoDatabase();
   });
@@ -76,26 +75,25 @@ describe('permissões da agenda (D4 §3.3)', () => {
     expect(await actions.atualizarAtribuicaoAction({}, form({ id: 'x' }))).toEqual({ error: 'Tarefa inválida.' });
     expect(await actions.excluirAtribuicaoAction({}, form({ id: 'x' }))).toEqual({ error: 'Tarefa inválida.' });
     expect(await actions.reagendarAtribuicaoAction({}, form({ id: 'x' }))).toEqual({ error: 'Tarefa inválida.' });
+    expect(await actions.promoverAtribuicaoAction({}, form({ id: 'x' }))).toEqual({ error: 'Tarefa inválida.' });
     expect(await actions.reagendarAtribuicaoAction({}, form({ id: ID, data: '2026-13-40' }))).toEqual({ error: 'Dia inválido.' });
     expect(await actions.reagendarAtribuicaoAction({}, form({ id: ID, data: SEMANA, turno_id: 'x' }))).toMatchObject({
       error: expect.stringContaining('Escolha o turno'),
     });
-    expect(await actions.abrirSemanaAction({}, form({ semana: 'x' }))).toEqual({ error: 'Semana inválida.' });
     expect(await actions.copiarSemanaAction({}, form({ semana: '2026-09-16' }))).toEqual({ error: 'Semana inválida.' });
-    expect(await actions.publicarSemanaAction({}, form({ semana: '' }))).toEqual({ error: 'Semana inválida.' });
     expect(await actions.fecharSemanaAction({}, form({ semana: 'x' }))).toEqual({ error: 'Semana inválida.' });
     expectNoDatabase();
   });
 
-  it('fechar a semana publicada volta para a agenda', async () => {
+  it('fechar a semana aberta, sem publicar antes, volta para a agenda', async () => {
     loggedAs('gerencia');
     client.query.mockImplementation(async (sql: string) =>
       sql.includes('FROM semanas')
-        ? { rows: [{ id: 's1', inicio: SEMANA, situacao: 'publicada', fechadaEm: null }] }
+        ? { rows: [{ id: 's1', inicio: SEMANA, situacao: 'aberta', fechadaEm: null }] }
         : { rows: [], rowCount: 2 },
     );
     await expect(actions.fecharSemanaAction({}, form({ semana: SEMANA }))).rejects.toThrow(
-      `redirect:/producao/agenda?semana=${SEMANA}&feito=fechada`,
+      `redirect:/producao?dia=${SEMANA}&feito=fechada`,
     );
     expect(client.query).toHaveBeenCalledWith('COMMIT');
   });
@@ -117,12 +115,43 @@ describe('permissões da agenda (D4 §3.3)', () => {
     expect(client.query).not.toHaveBeenCalledWith(expect.stringContaining('UPDATE atribuicoes SET data_trabalho'), expect.anything());
   });
 
+  it('RF-26: trazer para cima grava a precedência, e a semana fechada recusa', async () => {
+    loggedAs('gerencia');
+    let situacao = 'aberta';
+    client.query.mockImplementation(async (sql: string) => {
+      if (sql.includes('FROM atribuicoes WHERE id')) return { rows: [{ semanaId: 's1' }] };
+      if (sql.includes('FROM semanas')) return { rows: [{ id: 's1', inicio: SEMANA, situacao, fechadaEm: null }] };
+      if (sql.includes('FOR UPDATE OF a')) return { rows: [{ id: ID, situacao: 'confirmada' }] };
+      return { rows: [] };
+    });
+    expect(await actions.promoverAtribuicaoAction({}, form({ id: ID }))).toEqual({ success: 'Tarefa em destaque.' });
+    expect(client.query).toHaveBeenCalledWith(expect.stringContaining('SET prioridade_em'), [ID]);
+
+    client.query.mockClear();
+    situacao = 'fechada';
+    expect(await actions.promoverAtribuicaoAction({}, form({ id: ID }))).toEqual({ error: expect.stringContaining('está fechada') });
+    expect(client.query).not.toHaveBeenCalledWith(expect.stringContaining('SET prioridade_em'), expect.anything());
+  });
+
+  it('RN-61: o arrasto entre linhas leva quem sai e quem entra; sair sem entrar é recusado antes do banco', async () => {
+    loggedAs('gerencia');
+    expect(
+      await actions.reagendarAtribuicaoAction({}, form({ id: ID, data: SEMANA, turno_id: PESSOA, hora_inicio: '', hora_fim: '', sai: PESSOA })),
+    ).toEqual({ error: expect.stringContaining('linha de uma pessoa') });
+    expectNoDatabase();
+  });
+
+  it('as ações de abrir e publicar a semana não existem mais', () => {
+    expect(actions).not.toHaveProperty('abrirSemanaAction');
+    expect(actions).not.toHaveProperty('publicarSemanaAction');
+  });
+
   it('semana fechada recusa com o motivo (TA-30)', async () => {
     loggedAs('gerencia');
     client.query.mockImplementation(async (sql: string) =>
       sql.includes('FROM semanas') ? { rows: [{ id: 's1', inicio: SEMANA, situacao: 'fechada', fechadaEm: new Date() }] } : { rows: [] },
     );
-    expect(await actions.publicarSemanaAction({}, form({ semana: SEMANA }))).toEqual({
+    expect(await actions.copiarSemanaAction({}, form({ semana: SEMANA }))).toEqual({
       error: expect.stringContaining('está fechada e não se altera'),
     });
     expect(client.query).toHaveBeenCalledWith('ROLLBACK');
