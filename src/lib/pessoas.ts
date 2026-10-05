@@ -174,7 +174,8 @@ export async function findPessoa(db: Db, id: string, verFiscal: boolean): Promis
   const { rows } = await db.query<PessoaFicha>(
     `SELECT p.id, p.tipo, p.nome, p.telefone, p.email, p.observacoes, p.ativa${colunaDocumento}, ${PAPEIS_AGREGADOS},
             COALESCE((SELECT json_agg(json_build_object('tipo', e.tipo, 'logradouro', e.logradouro, 'cidade', e.cidade,
-                                                        'uf', e.uf, 'cep', e.cep) ORDER BY e.tipo, e.criado_em)
+                                                        'uf', e.uf, 'cep', e.cep,
+                                                        'lat', e.lat::float8, 'lng', e.lng::float8) ORDER BY e.tipo, e.criado_em)
                         FROM cadastro.pessoas_enderecos e
                        WHERE e.pessoa_id = p.id AND e.tipo = ANY($2::cadastro.tipo_endereco[])), '[]') AS enderecos
        FROM cadastro.pessoas p
@@ -228,16 +229,52 @@ async function writePapeis(client: PoolClient, pessoaId: string, papeis: readonl
   );
 }
 
+interface CoordenadaGuardada {
+  tipo: TipoEndereco;
+  logradouro: string | null;
+  cidade: string | null;
+  uf: string | null;
+  cep: string | null;
+  lat: string | null;
+  lng: string | null;
+  geocodificadoEm: Date | null;
+}
+
+type TextoDoEndereco = Pick<Endereco, 'logradouro' | 'cidade' | 'uf' | 'cep'>;
+
+const mesmoTexto = (a: TextoDoEndereco, b: TextoDoEndereco) =>
+  a.logradouro === b.logradouro && a.cidade === b.cidade && (a.uf ?? '').trim() === (b.uf ?? '').trim() && a.cep === b.cep;
+
+/**
+ * O formulário regrava os endereços inteiros, e por isso apaga e reinsere.
+ * **A coordenada sobrevive** (P17): o endereço que volta com o mesmo texto
+ * recupera o ponto que tinha, seja o achado pela API, seja a localização colada
+ * do WhatsApp. Sem isso, salvar o telefone apagaria o ponto da entrega. O
+ * endereço que traz ponto novo (colado agora) grava o novo.
+ */
 async function writeEnderecos(client: PoolClient, pessoaId: string, enderecos: readonly Endereco[], incluiFiscal: boolean) {
-  await client.query(
-    `DELETE FROM cadastro.pessoas_enderecos WHERE pessoa_id = $1 AND ($2 OR tipo <> 'cobranca')`,
+  const { rows: antes } = await client.query<CoordenadaGuardada>(
+    `DELETE FROM cadastro.pessoas_enderecos WHERE pessoa_id = $1 AND ($2 OR tipo <> 'cobranca')
+     RETURNING tipo, logradouro, cidade, uf, cep, lat, lng, geocodificado_em AS "geocodificadoEm"`,
     [pessoaId, incluiFiscal],
   );
   for (const e of enderecos) {
+    const guardada = antes.find((antigo) => antigo.tipo === e.tipo && mesmoTexto(antigo, e));
+    const novo = e.lat != null && e.lng != null;
     await client.query(
-      `INSERT INTO cadastro.pessoas_enderecos (pessoa_id, tipo, logradouro, cidade, uf, cep)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
-      [pessoaId, e.tipo, e.logradouro, e.cidade, e.uf, e.cep],
+      `INSERT INTO cadastro.pessoas_enderecos (pessoa_id, tipo, logradouro, cidade, uf, cep, lat, lng, geocodificado_em)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      [
+        pessoaId,
+        e.tipo,
+        e.logradouro,
+        e.cidade,
+        e.uf,
+        e.cep,
+        novo ? e.lat : (guardada?.lat ?? null),
+        novo ? e.lng : (guardada?.lng ?? null),
+        novo ? new Date() : (guardada?.geocodificadoEm ?? null),
+      ],
     );
   }
 }

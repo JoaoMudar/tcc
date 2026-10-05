@@ -6,7 +6,9 @@ import pool from '@/lib/db';
 import { validateTelefone } from '@/lib/documento';
 import { toUserMessage } from '@/lib/errors';
 import { formText } from '@/lib/form-state';
+import { resolverLocalizacao } from '@/lib/localizacao-servidor';
 import * as pessoas from '@/lib/pessoas';
+import { enderecoFieldName } from '@/lib/pessoas-form';
 import type { ClienteRapidoState, PessoaFormState } from '@/lib/pessoas';
 import { withTransaction } from '@/lib/transaction';
 import { isUuid } from '@/lib/uuid';
@@ -48,6 +50,30 @@ export async function savePessoaAction(_previous: PessoaFormState, formData: For
   }
   const fiscal = incluiFiscal ? pessoas.parseFiscalFields(parsed.value.tipo, get) : null;
   if (fiscal && 'error' in fiscal) return { error: fiscal.error, fields };
+
+  // P17: a localização que o cliente mandou pelo WhatsApp, colada no endereço de entrega
+  const colada = get(enderecoFieldName('entrega', 'localizacao')).trim().slice(0, 2000);
+  if (colada) {
+    const ponto = await resolverLocalizacao(colada);
+    if (!ponto) {
+      return {
+        error: 'Endereço de entrega: não deu para ler a localização. Cole o link que o cliente mandou, ou os dois números.',
+        fields,
+      };
+    }
+    const entrega = parsed.value.enderecos.find((e) => e.tipo === 'entrega');
+    if (entrega) Object.assign(entrega, ponto);
+    else {
+      parsed.value.enderecos.push({
+        tipo: 'entrega',
+        logradouro: 'Localização enviada pelo WhatsApp',
+        cidade: null,
+        uf: null,
+        cep: null,
+        ...ponto,
+      });
+    }
+  }
 
   let pessoaId: string;
   try {

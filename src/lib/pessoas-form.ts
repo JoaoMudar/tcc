@@ -41,6 +41,12 @@ export interface Endereco {
   cidade: string | null;
   uf: string | null;
   cep: string | null;
+  /**
+   * O ponto no mapa (P17). Na leitura, o que está guardado; na gravação, só a
+   * localização colada do WhatsApp o traz. Ausente é "não mexer".
+   */
+  lat?: number | null;
+  lng?: number | null;
 }
 
 export interface PessoaResumo {
@@ -61,7 +67,7 @@ export interface PessoaFicha extends PessoaResumo {
   enderecos: Endereco[];
 }
 
-export function enderecoFieldName(tipo: TipoEndereco, campo: 'logradouro' | 'cidade' | 'uf' | 'cep'): string {
+export function enderecoFieldName(tipo: TipoEndereco, campo: 'logradouro' | 'cidade' | 'uf' | 'cep' | 'localizacao'): string {
   return `endereco_${tipo}_${campo}`;
 }
 

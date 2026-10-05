@@ -99,6 +99,7 @@ export default async function PlanejarPage({ params, searchParams }: PlanejarPag
             pedidoId: parada.pedidoId,
             numero: parada.numero,
             cliente: parada.cliente,
+            clienteId: parada.clienteId,
             cidade: parada.cidade,
             descricao: parada.descricao,
             endereco: parada.endereco,
