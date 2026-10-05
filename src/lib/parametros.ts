@@ -20,6 +20,8 @@ interface ParametroInfo {
   /** Limites do número. O parâmetro de texto (endereço) não os tem. */
   min?: number;
   max?: number;
+  /** Número com casas decimais, maior que zero: o consumo e o preço do litro. */
+  positivo?: boolean;
 }
 
 export const ATENCAO = 'producao.atraso_atencao_dias';
@@ -29,6 +31,8 @@ export const JANELA_AVISO = 'producao.protocolo_janela_aviso_pct';
 export const HORIZONTE = 'producao.protocolo_horizonte_dias';
 export const PARTIDA_AGROLANDIA = 'comercial.viagem_partida_agrolandia';
 export const PARTIDA_ITAPEMA = 'comercial.viagem_partida_itapema';
+export const FRETE_KM_POR_LITRO = 'comercial.frete_km_por_litro';
+export const FRETE_PRECO_LITRO = 'comercial.frete_preco_litro';
 
 /** Como a tela chama cada chave (textos do F1 UC-06). Chave sem entrada aparece com a `descricao` do banco. */
 export const PARAMETRO_INFO: Record<string, ParametroInfo> = {
@@ -76,6 +80,18 @@ export const PARAMETRO_INFO: Record<string, ParametroInfo> = {
     label: 'Viagem: saída de Itapema',
     unidade: '',
     dica: 'Endereço da segunda base de saída',
+  },
+  [FRETE_KM_POR_LITRO]: {
+    label: 'Frete: consumo do caminhão',
+    unidade: 'km/L',
+    dica: 'Quantos km o caminhão faz com um litro, para sugerir o frete',
+    positivo: true,
+  },
+  [FRETE_PRECO_LITRO]: {
+    label: 'Frete: preço do litro',
+    unidade: 'R$',
+    dica: 'Preço da gasolina, para sugerir o frete',
+    positivo: true,
   },
 };
 
@@ -135,6 +151,7 @@ export function validateParametros(
 
     // Segunda camada: o limite de cada chave que a tela conhece
     const info = PARAMETRO_INFO[parametro.chave];
+    if (info?.positivo && !(Number(parsed.value) > 0)) return { error: `"${label}" precisa ser um número maior que zero.` };
     if (info?.min !== undefined && info.max !== undefined) {
       const numero = Number(parsed.value);
       if (!Number.isInteger(numero) || numero < info.min || numero > info.max) {
@@ -160,6 +177,20 @@ export async function horizonteProtocolo(db: Db): Promise<number> {
   const { rows } = await db.query<{ valor: string }>('SELECT valor FROM parametros WHERE chave = $1', [HORIZONTE]);
   if (!rows[0]) throw new Error(`Parâmetro ${HORIZONTE} ausente`);
   return Number(rows[0].valor);
+}
+
+/** RN-64: o consumo e o preço do litro, de Configurações. A migration garante as linhas. */
+export async function parametrosDoFrete(db: Db): Promise<{ kmPorLitro: number; precoLitro: number }> {
+  const { rows } = await db.query<{ chave: string; valor: string }>(
+    'SELECT chave, valor FROM parametros WHERE chave = ANY($1::text[])',
+    [[FRETE_KM_POR_LITRO, FRETE_PRECO_LITRO]],
+  );
+  const valor = (chave: string) => {
+    const linha = rows.find((row) => row.chave === chave);
+    if (!linha) throw new Error(`Parâmetro ${chave} ausente`);
+    return Number(linha.valor);
+  };
+  return { kmPorLitro: valor(FRETE_KM_POR_LITRO), precoLitro: valor(FRETE_PRECO_LITRO) };
 }
 
 export async function listParametros(db: Db): Promise<Parametro[]> {

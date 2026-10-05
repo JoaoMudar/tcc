@@ -1,6 +1,14 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { MapaIndisponivel, geocodificarTexto, numeroDaCasa, otimizarOrdem, sugerirEnderecos } from '../rotas-ors';
+import {
+  MapaIndisponivel,
+  distanciaDeCarro,
+  enderecoDoPonto,
+  geocodificarTexto,
+  numeroDaCasa,
+  otimizarOrdem,
+  sugerirEnderecos,
+} from '../rotas-ors';
 
 const fetchMock = vi.fn();
 
@@ -158,5 +166,63 @@ describe('otimizarOrdem', () => {
   it('resposta sem rota é MapaIndisponivel', async () => {
     responde({ routes: [] });
     await expect(otimizarOrdem(partida, paradas)).rejects.toBeInstanceOf(MapaIndisponivel);
+  });
+});
+
+describe('distanciaDeCarro (RN-64)', () => {
+  const viveiro = { lat: -27.4086, lng: -49.8219 };
+  const cliente = { lat: -27.2141, lng: -49.6431 };
+
+  it('devolve a distância de carro em metros, com lng,lat na consulta', async () => {
+    responde({ features: [{ properties: { summary: { distance: 42345.6, duration: 2400 } } }] });
+    await expect(distanciaDeCarro(viveiro, cliente)).resolves.toBe(42346);
+    const url = new URL(String(fetchMock.mock.calls[0][0]));
+    expect(url.pathname).toBe('/v2/directions/driving-car');
+    expect(url.searchParams.get('start')).toBe('-49.8219,-27.4086');
+    expect(url.searchParams.get('end')).toBe('-49.6431,-27.2141');
+  });
+
+  it('sem rota é MapaIndisponivel', async () => {
+    responde({ features: [] });
+    await expect(distanciaDeCarro(viveiro, cliente)).rejects.toBeInstanceOf(MapaIndisponivel);
+  });
+});
+
+describe('enderecoDoPonto (P17)', () => {
+  it('o ponto vira os campos do cadastro', async () => {
+    responde({
+      features: [
+        {
+          properties: {
+            street: 'Rua XV de Novembro',
+            housenumber: '120',
+            locality: 'Rio do Sul',
+            region_a: 'SC',
+            postalcode: '89160-000',
+          },
+        },
+      ],
+    });
+    await expect(enderecoDoPonto({ lat: -27.2141, lng: -49.6431 })).resolves.toEqual({
+      logradouro: 'Rua XV de Novembro, 120',
+      cidade: 'Rio do Sul',
+      uf: 'SC',
+      cep: '89160-000',
+    });
+    const url = new URL(String(fetchMock.mock.calls[0][0]));
+    expect(url.pathname).toBe('/geocode/reverse');
+    expect(url.searchParams.get('point.lat')).toBe('-27.2141');
+  });
+
+  it('sem rua, fica o nome do lugar; nada achado é nulo', async () => {
+    responde({ features: [{ properties: { name: 'Sítio Boa Vista', localadmin: 'Ibirama', region_a: 'sc' } }] });
+    await expect(enderecoDoPonto({ lat: -27.05, lng: -49.52 })).resolves.toEqual({
+      logradouro: 'Sítio Boa Vista',
+      cidade: 'Ibirama',
+      uf: 'SC',
+      cep: null,
+    });
+    responde({ features: [] });
+    await expect(enderecoDoPonto({ lat: -27.05, lng: -49.52 })).resolves.toBeNull();
   });
 });

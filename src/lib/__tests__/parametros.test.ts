@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   ATENCAO,
   CRITICO,
+  FRETE_KM_POR_LITRO,
+  FRETE_PRECO_LITRO,
   MORTALIDADE,
   PARTIDA_AGROLANDIA,
   PARTIDA_ITAPEMA,
@@ -76,6 +78,20 @@ describe('validateParametros (RF-09)', () => {
   it('crítico igual ou abaixo de atenção é recusado', () => {
     expect(validateParametros(EXISTENTES, { ...VALIDOS, [ATENCAO]: '3', [CRITICO]: '3' })).toEqual({
       error: 'O atraso crítico precisa ser maior que o atraso de atenção.',
+    });
+  });
+
+  it('consumo e preço do litro aceitam decimal, maior que zero (RN-64)', () => {
+    const existentes = [
+      ...EXISTENTES,
+      { chave: FRETE_KM_POR_LITRO, tipoValor: 'numero' as const, descricao: 'km/L' },
+      { chave: FRETE_PRECO_LITRO, tipoValor: 'numero' as const, descricao: 'R$/L' },
+    ];
+    expect(validateParametros(existentes, { ...VALIDOS, [FRETE_KM_POR_LITRO]: '17', [FRETE_PRECO_LITRO]: '6,59' })).toEqual({
+      value: { ...VALIDOS, [FRETE_KM_POR_LITRO]: '17', [FRETE_PRECO_LITRO]: '6.59' },
+    });
+    expect(validateParametros(existentes, { ...VALIDOS, [FRETE_KM_POR_LITRO]: '0', [FRETE_PRECO_LITRO]: '7' })).toEqual({
+      error: '"Frete: consumo do caminhão" precisa ser um número maior que zero.',
     });
   });
 
