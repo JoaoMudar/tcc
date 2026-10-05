@@ -3,7 +3,8 @@
  * elas. Puro, sem React e sem SQL: é a parte que o teste consegue olhar sem
  * montar tela nenhuma.
  */
-import { chaveSaldo, normalizaCampoAltura } from '@/lib/pedidos-rotulos';
+import { formatQuantidade } from '@/lib/lotes-rotulos';
+import { type FaixaDeAltura, type SaldoDoItem, chaveSaldo, normalizaCampoAltura } from '@/lib/pedidos-rotulos';
 import {
   type EspecieParaColagem,
   type RecipienteParaColagem,
@@ -11,26 +12,41 @@ import {
   casaRecipiente,
 } from '@/lib/pedidos-colagem';
 
-/** Saldo pronto e em produção de cada par espécie e recipiente, lido na abertura da tela. */
-export type SaldosPorChave = Record<string, { pronto: number; producao: number }>;
+/** O estoque disponível de cada par espécie e recipiente, por altura, lido na abertura da tela. */
+export type SaldosPorChave = Record<string, FaixaDeAltura[]>;
 
-interface SaldoDoPar {
+interface SaldoDaFaixa extends FaixaDeAltura {
   especieId: string;
   recipienteId: string;
-  quantidade: number;
 }
 
-/** As duas leituras de estoque (RF-56) juntas, por par espécie e recipiente. */
-export function montarSaldos(prontos: readonly SaldoDoPar[], producao: readonly SaldoDoPar[]): SaldosPorChave {
+/**
+ * RF-56: o estoque disponível agrupado por par espécie e recipiente. Vai à tela
+ * por altura, e não somado, porque a altura do item muda enquanto a pessoa
+ * digita, e é ela que decide quais lotes atendem (RN-06).
+ */
+export function montarSaldos(faixas: readonly SaldoDaFaixa[]): SaldosPorChave {
   const saldos: SaldosPorChave = {};
-  for (const linha of prontos) {
-    saldos[chaveSaldo(linha.especieId, linha.recipienteId)] = { pronto: linha.quantidade, producao: 0 };
-  }
-  for (const linha of producao) {
-    const chave = chaveSaldo(linha.especieId, linha.recipienteId);
-    saldos[chave] = { pronto: saldos[chave]?.pronto ?? 0, producao: linha.quantidade };
+  for (const { especieId, recipienteId, alturaM, quantidade } of faixas) {
+    const chave = chaveSaldo(especieId, recipienteId);
+    (saldos[chave] ??= []).push({ alturaM, quantidade });
   }
   return saldos;
+}
+
+/**
+ * A linha miúda embaixo do item: "Disponível: 120". Faltando, diz quanto falta
+ * e, se o item pede altura, quanto há até 20 cm abaixo para completar e quanto
+ * está sem altura medida (RN-62). Não recusa nada: só avisa (UC-31 FA-2).
+ */
+export function textoSaldo(saldo: SaldoDoItem, quantidade: number | null): string {
+  const partes = [`Disponível: ${formatQuantidade(saldo.disponivel)}`];
+  if (quantidade !== null && quantidade > saldo.disponivel) {
+    partes.push(`faltam ${formatQuantidade(quantidade - saldo.disponivel)}`);
+    if (saldo.abaixo > 0) partes.push(`${formatQuantidade(saldo.abaixo)} com até 20 cm a menos`);
+    if (saldo.semAltura > 0) partes.push(`${formatQuantidade(saldo.semAltura)} sem altura medida`);
+  }
+  return partes.join(' · ');
 }
 
 export interface Linha {

@@ -9,6 +9,7 @@ import {
   TRANSICOES,
   centavosParaSql,
   chaveSaldo,
+  saldoDoItem,
   filtraPedidosPorCliente,
   formatAltura,
   formatMoeda,
@@ -599,5 +600,31 @@ describe('máquina de estados do pedido (T8.5, RN-53)', () => {
     expect(daChefia).toContain('aprovado');
     expect(daChefia).toContain('pendente_alteracao');
     expect(transicoesDe('verificado', 'gerencia')).toEqual([]);
+  });
+});
+
+describe('saldo do item por altura (RN-06, RN-62)', () => {
+  const faixas = [
+    { alturaM: 1.5, quantidade: 10 },
+    { alturaM: 1.2, quantidade: 100 },
+    { alturaM: 1, quantidade: 30 },
+    { alturaM: 0.99, quantidade: 5 },
+    { alturaM: null, quantidade: 40 },
+  ];
+
+  it('item sem altura é atendido por todos os lotes do par, medidos ou não', () => {
+    expect(saldoDoItem(faixas, null)).toEqual({ disponivel: 185, abaixo: 0, semAltura: 0 });
+  });
+
+  it('com altura, atende a muda igual ou maior; até 20 cm abaixo completa, e a borda dos 20 cm entra', () => {
+    expect(saldoDoItem(faixas, 1.2)).toEqual({ disponivel: 110, abaixo: 30, semAltura: 40 });
+  });
+
+  it('a muda mais de 20 cm abaixo não aparece, nem como complemento', () => {
+    expect(saldoDoItem(faixas, 1.21)).toEqual({ disponivel: 10, abaixo: 100, semAltura: 40 });
+  });
+
+  it('sem estoque do par, tudo zero', () => {
+    expect(saldoDoItem(undefined, 1)).toEqual({ disponivel: 0, abaixo: 0, semAltura: 0 });
   });
 });

@@ -3,7 +3,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { Notice } from '@/components/ui/Notice';
 import pool from '@/lib/db';
 import { nomeExibido, searchEspecies } from '@/lib/especies';
-import { saldoEmProducao, saldoPronto } from '@/lib/estoque';
+import { saldoDisponivel } from '@/lib/estoque';
 import { listClientes } from '@/lib/pedidos';
 import { formatVolume, listRecipientes } from '@/lib/recipientes';
 import { requirePageAccess } from '@/lib/auth/guards';
@@ -18,15 +18,14 @@ import { NovoPedidoForm } from './NovoPedidoForm';
  */
 export default async function NovoPedidoPage() {
   const user = await requirePageAccess('pedidos', 'C');
-  const [clientes, especies, recipientes, prontos, producao] = await Promise.all([
+  const [clientes, especies, recipientes, disponiveis] = await Promise.all([
     listClientes(pool),
     searchEspecies(pool),
     listRecipientes(pool),
-    saldoPronto(pool),
-    saldoEmProducao(pool),
+    saldoDisponivel(pool),
   ]);
 
-  const saldos = montarSaldos(prontos, producao);
+  const saldos = montarSaldos(disponiveis);
 
   // Sem espécie cadastrada não há o que pedir. Recipiente não trava: o item pode
   // nascer sem ele, e a conferência responde em qual a muda está
