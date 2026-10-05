@@ -3,6 +3,7 @@
 import { useActionState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Notice } from '@/components/ui/Notice';
+import { Toast } from '@/components/ui/Toast';
 import { EMPTY_FORM_STATE } from '@/lib/form-state';
 import type { CanteiroResumo } from '@/lib/lotes-rotulos';
 import { CanteiroPicker } from '../CanteiroPicker';
@@ -32,7 +33,11 @@ export function TransferenciaForm({ loteId, saldo, canteiroAtualId, canteiros }:
         sufixo=" de destino"
       />
       {state.error && <Notice tone="error">{state.error}</Notice>}
-      {state.success && <Notice tone="success">{state.success}</Notice>}
+      {state.success && (
+        <Toast tone="success" limpar={[]} gatilho={state}>
+          {state.success}
+        </Toast>
+      )}
       <Button type="submit" variant="outline" pending={pending}>
         Transferir
       </Button>

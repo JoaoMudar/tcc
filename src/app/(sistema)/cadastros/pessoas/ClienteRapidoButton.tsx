@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { ClienteRapido } from '@/components/ClienteRapido';
 import { Button } from '@/components/ui/Button';
-import { Notice } from '@/components/ui/Notice';
+import { Toast } from '@/components/ui/Toast';
 import type { PessoaRef } from '@/lib/pessoas-form';
 
 /** Na lista de pessoas o cadastro rápido abre por cima; na Fase 8 o pedido usa o mesmo componente. */
@@ -15,12 +15,12 @@ export function ClienteRapidoButton() {
   return (
     <>
       {criado && (
-        <Notice tone="success">
+        <Toast tone="success" limpar={[]} gatilho={criado} duracaoMs={8000}>
           {criado.nome} está no cadastro.{' '}
           <Link href={`/cadastros/pessoas/${criado.id}`} className="font-bold underline">
             Completar cadastro
           </Link>
-        </Notice>
+        </Toast>
       )}
       <Button
         variant="outline"

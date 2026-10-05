@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { type EstadoRegistro, useRegistroCampo } from '@/components/useRegistroCampo';
 import { Button } from '@/components/ui/Button';
 import { Notice } from '@/components/ui/Notice';
+import { Toast } from '@/components/ui/Toast';
 import { TextField } from '@/components/ui/TextField';
 import { formatQuantidade, lerQuantidade } from '@/lib/lotes-rotulos';
 
@@ -60,7 +61,11 @@ function Campos({ loteId, saldo, state, formAction, pending }: CamposProps) {
       )}
       <TextField label="Observação" name="observacoes" maxLength={500} defaultValue={fields?.observacoes} />
       {state.error && <Notice tone="error">{state.error}</Notice>}
-      {state.success && <Notice tone="success">{state.success}</Notice>}
+      {state.success && (
+        <Toast tone="success" limpar={[]} gatilho={state}>
+          {state.success}
+        </Toast>
+      )}
       {state.guardado && <Notice tone="warning">{state.guardado}</Notice>}
       <Button type="submit" pending={pending}>
         Confirmar contagem

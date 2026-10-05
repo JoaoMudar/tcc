@@ -3,6 +3,7 @@
 import { useActionState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Notice } from '@/components/ui/Notice';
+import { Toast } from '@/components/ui/Toast';
 import { Pill } from '@/components/ui/Pill';
 import { TextField } from '@/components/ui/TextField';
 import { EMPTY_FORM_STATE } from '@/lib/form-state';
@@ -34,7 +35,11 @@ export function TurnoForm({ turno, podeEditar }: TurnoFormProps) {
             Em uso na agenda
           </label>
           {state.error && <Notice tone="error">{state.error}</Notice>}
-          {state.success && <Notice tone="success">{state.success}</Notice>}
+          {state.success && (
+            <Toast tone="success" limpar={[]} gatilho={state}>
+              {state.success}
+            </Toast>
+          )}
           <Button type="submit" pending={pending}>
             Salvar
           </Button>

@@ -3,6 +3,7 @@
 import { useActionState, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Notice } from '@/components/ui/Notice';
+import { Toast } from '@/components/ui/Toast';
 import { type SelectOption, SelectField } from '@/components/ui/SelectField';
 import { TextField } from '@/components/ui/TextField';
 import { EMPTY_FORM_STATE } from '@/lib/form-state';
@@ -171,7 +172,11 @@ export function EtapaForm({ protocoloId, etapa, opcoes, podeEditar }: EtapaFormP
       </fieldset>
 
       {state.error && <Notice tone="error">{state.error}</Notice>}
-      {state.success && <Notice tone="success">{state.success}</Notice>}
+      {state.success && (
+        <Toast tone="success" limpar={[]} gatilho={state}>
+          {state.success}
+        </Toast>
+      )}
       {podeEditar && (
         <Button type="submit" variant={etapa ? 'secondary' : 'outline'} pending={pending}>
           {etapa ? 'Salvar etapa' : '+ Acrescentar etapa'}

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { PageHeader } from '@/components/PageHeader';
 import { Notice } from '@/components/ui/Notice';
+import { Toast } from '@/components/ui/Toast';
 import { Pill } from '@/components/ui/Pill';
 import pool from '@/lib/db';
 import { FASES, FASES_EDITAVEIS } from '@/lib/lotes-rotulos';
@@ -44,7 +45,11 @@ export default async function ProtocoloPage({ params, searchParams }: PageProps<
         <Link href="/cadastros/protocolos" className="text-base font-semibold text-brand-dark">
           Voltar
         </Link>
-        {salvo && <Notice tone="success">Protocolo criado. Acrescente as etapas abaixo.</Notice>}
+        {salvo && (
+          <Toast tone="success" limpar={['salvo']}>
+            Protocolo criado. Acrescente as etapas abaixo.
+          </Toast>
+        )}
         {!podeEditar && <Notice tone="info">Seu perfil pode consultar este protocolo, mas não alterá-lo.</Notice>}
 
         <ProtocoloForm protocolo={protocolo} podeEditar={podeEditar} />

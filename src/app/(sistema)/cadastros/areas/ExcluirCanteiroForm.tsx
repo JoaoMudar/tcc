@@ -3,6 +3,7 @@
 import { useActionState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Notice } from '@/components/ui/Notice';
+import { Toast } from '@/components/ui/Toast';
 import { SelectField } from '@/components/ui/SelectField';
 import { EMPTY_FORM_STATE } from '@/lib/form-state';
 import { deleteCanteiro } from './actions';
@@ -24,7 +25,11 @@ export function ExcluirCanteiroForm({ canteiros }: { canteiros: readonly { id: s
           required
         />
         {state.error && <Notice tone="error">{state.error}</Notice>}
-        {state.success && <Notice tone="success">{state.success}</Notice>}
+        {state.success && (
+          <Toast tone="success" limpar={[]} gatilho={state}>
+            {state.success}
+          </Toast>
+        )}
         <Button type="submit" variant="secondary" pending={pending} pendingLabel="Excluindo…">
           Excluir
         </Button>

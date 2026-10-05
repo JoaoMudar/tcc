@@ -6,7 +6,11 @@ import { ContagemForm } from '../ContagemForm';
 import { PerdaForm } from '../PerdaForm';
 
 const refresh = vi.fn();
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), refresh }) }));
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn(), refresh }),
+  usePathname: () => '/producao/lotes/l1',
+  useSearchParams: () => new URLSearchParams(),
+}));
 vi.mock('@/lib/fila-local', () => ({ enfileirar: vi.fn(async () => undefined), remover: vi.fn(async () => undefined) }));
 vi.mock('@/lib/fila-envio', () => ({ enviarGuardado: vi.fn() }));
 

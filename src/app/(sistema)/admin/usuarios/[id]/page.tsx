@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { PageHeader } from '@/components/PageHeader';
 import { Notice } from '@/components/ui/Notice';
+import { Toast } from '@/components/ui/Toast';
 import pool from '@/lib/db';
 import { formatDateTime } from '@/lib/format';
 import { findUsuario, listPessoasDisponiveis } from '@/lib/usuarios';
@@ -27,9 +28,9 @@ export default async function UsuarioPage({ params, searchParams }: PageProps<'/
           Voltar
         </Link>
         {criado && (
-          <Notice tone="success">
+          <Toast tone="success" limpar={['criado']} duracaoMs={8000}>
             Usuário criado. Passe o usuário <strong>{usuario.login}</strong> e a senha provisória para a pessoa.
-          </Notice>
+          </Toast>
         )}
         <p className="text-base text-gray-700">
           Entra como <strong>{usuario.login}</strong>

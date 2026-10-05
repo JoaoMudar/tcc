@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { PageHeader } from '@/components/PageHeader';
 import { Notice } from '@/components/ui/Notice';
+import { Toast } from '@/components/ui/Toast';
 import pool from '@/lib/db';
 import { CARACTERISTICA_LABELS, findEspecie, nomeExibido } from '@/lib/especies';
 import { can } from '@/lib/permissions';
@@ -32,7 +33,11 @@ export default async function EspeciePage({ params, searchParams }: PageProps<'/
         <Link href="/cadastros/especies" className="text-base font-semibold text-brand-dark">
           Voltar
         </Link>
-        {salvo && <Notice tone="success">Espécie cadastrada.</Notice>}
+        {salvo && (
+          <Toast tone="success" limpar={['salvo']}>
+            Espécie cadastrada.
+          </Toast>
+        )}
         {!podeEditar && <Notice tone="info">O catálogo de espécies é da chefia. Seu perfil pode consultar, mas não alterar.</Notice>}
         <EspecieForm especie={especie} caracteristicas={caracteristicas} podeEditar={podeEditar} />
         <TemposProtocoloSecao especieId={especie.id} tempos={tempos} podeEditar={podeTempos} />

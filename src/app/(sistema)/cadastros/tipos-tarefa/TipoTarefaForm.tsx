@@ -3,6 +3,7 @@
 import { useActionState, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Notice } from '@/components/ui/Notice';
+import { Toast } from '@/components/ui/Toast';
 import { type SelectOption, SelectField } from '@/components/ui/SelectField';
 import { TextField } from '@/components/ui/TextField';
 import { UNIDADES_TAREFA } from '@/lib/agenda-rotulos';
@@ -106,7 +107,11 @@ export function TipoTarefaForm({ tipo, categorias, podeEditar }: TipoTarefaFormP
       </fieldset>
 
       {state.error && <Notice tone="error">{state.error}</Notice>}
-      {state.success && <Notice tone="success">{state.success}</Notice>}
+      {state.success && (
+        <Toast tone="success" limpar={[]} gatilho={state}>
+          {state.success}
+        </Toast>
+      )}
       {podeEditar && (
         <Button type="submit" pending={pending}>
           Salvar
