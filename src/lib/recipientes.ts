@@ -45,6 +45,30 @@ export function parseRecipienteFields(input: {
   return { value: { nome, volumeLitros, pesoKg } };
 }
 
+/** Seis dígitos com três casas: 999,999, o teto de NUMERIC(6,3). */
+const DECIMAL_MAX_DIGITOS = 6;
+
+/** O volume ou o peso de volta no campo, já na máscara: 0.35 → "0,350". */
+export function decimalParaCampo(valor: number | null): string {
+  return valor === null ? '' : valor.toFixed(3).replace('.', ',');
+}
+
+/**
+ * A máscara do volume e do peso, aplicada a cada tecla: os dígitos entram pela
+ * direita e as três últimas casas são as decimais ("1" é 0,001, "350" é 0,350,
+ * "18000" é 18,000), como a altura na grade de itens (`mascaraAltura`).
+ *
+ * O apagar que só tira a vírgula não mudaria nada, porque a máscara a
+ * devolveria; por isso ele tira o último dígito.
+ */
+export function mascaraDecimal3(novo: string, anterior = ''): string {
+  const digitosDe = (texto: string) => texto.replace(/\D/g, '').replace(/^0+/, '');
+  let digitos = digitosDe(novo);
+  if (digitos === digitosDe(anterior) && novo.length < anterior.length) digitos = digitos.slice(0, -1);
+  digitos = digitos.slice(0, DECIMAL_MAX_DIGITOS);
+  return digitos ? decimalParaCampo(Number(digitos) / 1000) : '';
+}
+
 /** 0.35 → "0,35 kg". */
 export function formatPeso(kg: number | null): string {
   if (kg === null) return '';

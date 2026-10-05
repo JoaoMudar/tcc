@@ -99,6 +99,9 @@ const PERGUNTAS_DA_DIVISAO: readonly Pergunta[] = [
   { campo: 'recipiente', obrigatorio: true },
 ];
 
+/** P18: o suplente do item sem quantidade só diz o recipiente. */
+const PERGUNTAS_DO_SUPLENTE: readonly Pergunta[] = [{ campo: 'recipiente', obrigatorio: true }];
+
 function emLinha(quantidade: number | null, recipiente: string | null, alturaM: number | null): string {
   return [
     quantidade === null ? null : formatQuantidade(quantidade),
@@ -119,6 +122,17 @@ function respostaGravada(gravada: EstadoDaResposta): Resposta | null {
  * única resposta que tem número e recipiente que nenhum botão mostra.
  */
 function resumoDaResposta(item: ItemParaConferir, gravada: EstadoDaResposta): string | undefined {
+  // P18: sem quantidade, as outras linhas são suplentes, e nenhum botão os mostra
+  if (item.quantidade === null && item.complementos.length > 0 && (gravada === 'tudo' || gravada === 'parte')) {
+    const rotulo = gravada === 'parte' ? 'Tem parte' : perguntasDoItem(item).rotuloTudo;
+    const primeira = emLinha(
+      item.quantidadeDisponivel,
+      item.recipienteDisponivel ?? item.recipiente,
+      gravada === 'parte' ? item.alturaDisponivelM : null,
+    );
+    const tambem = item.complementos.map((linha) => linha.recipiente).filter(Boolean).join(', ');
+    return `${rotulo}: ${primeira} · também em ${tambem}`;
+  }
   const outras = item.complementos.map((linha) => ` + ${emLinha(linha.quantidade, linha.recipiente, linha.alturaM)}`).join('');
   // "Tem tudo" dividido: o botão cheio não diz em quais recipientes
   if (gravada === 'tudo' && item.complementos.length > 0) {
@@ -161,6 +175,10 @@ function lerCampos(valores: Campos): { error: string } | { value: { quantidade: 
  * P17: o "+" abre quantas linhas a pessoa quiser, e aparece também em "Tem
  * tudo" quando o cliente não disse o recipiente: as 50 podem estar 20 num saco
  * e 30 noutro.
+ *
+ * P18: **no item sem quantidade, o "+" não divide**: não há soma a fechar. Ele
+ * guarda os outros recipientes em que a espécie também está, só o recipiente,
+ * e eles viram suplentes na ficha, e não linhas do orçamento.
  */
 export function VerificacaoItem({ pedidoId, item, recipientes }: VerificacaoItemProps) {
   const [state, formAction, pending] = useActionState(marcarDisponibilidadeAction, EMPTY_FORM_STATE);
@@ -277,16 +295,23 @@ export function VerificacaoItem({ pedidoId, item, recipientes }: VerificacaoItem
     if (aberta) enviar(aberta, valores, proximos);
   }
 
-  // "Tem tudo" só se divide quando o cliente não disse o recipiente
-  const podeDividir = aberta === 'tudo' && item.recipienteId === null;
+  const semQuantidade = item.quantidade === null;
+  // "Tem tudo" só se divide quando o cliente não disse o recipiente, e disse quantas
+  const podeDividir = aberta === 'tudo' && item.recipienteId === null && !semQuantidade;
   const dividida = podeDividir && complementos.length > 0;
   const basicas: readonly Pergunta[] = aberta === 'parte' ? perguntas.parte : aberta === 'tudo' ? perguntas.tudo : [];
   // Dividido, a primeira linha também diz quantas
   const lista = dividida && !basicas.some((p) => p.campo === 'quantidade') ? [PERGUNTAS_DA_DIVISAO[0], ...basicas] : basicas;
-  const perguntasDaLinha = aberta === 'tudo' ? PERGUNTAS_DA_DIVISAO : perguntas.parte;
+  const perguntasDaLinha = semQuantidade ? PERGUNTAS_DO_SUPLENTE : aberta === 'tudo' ? PERGUNTAS_DA_DIVISAO : perguntas.parte;
   const selecionada = aberta ?? tocada ?? respostaGravada(gravada);
-  // "Tem parte" só se completa com quantidade pedida: sem ela, não há o que falte
-  const podeCompletar = (aberta === 'parte' && item.quantidade !== null) || podeDividir;
+  // Com quantidade pedida, "Tem parte" completa e "Tem tudo" divide; sem ela, toda resposta com muda guarda suplente
+  const podeCompletar = semQuantidade ? aberta !== null : aberta === 'parte' || podeDividir;
+  const legenda = (n: number) =>
+    semQuantidade
+      ? `Também tem em ${complementos.length > 1 ? n + 1 : ''}`.trim()
+      : aberta === 'tudo'
+        ? `Outro recipiente ${n + 1}`
+        : `Complemento ${complementos.length > 1 ? n + 1 : ''}`.trim();
 
   return (
     <li className={`flex flex-col gap-3 rounded-xl border-2 p-4 ${COR_DO_ESTADO[selecionada ?? 'pendente']}`}>
@@ -314,9 +339,7 @@ export function VerificacaoItem({ pedidoId, item, recipientes }: VerificacaoItem
           {podeCompletar &&
             complementos.map((linha, n) => (
               <fieldset key={n} className="flex flex-col gap-3 rounded-lg border border-line p-3">
-                <legend className="px-1 text-sm font-semibold text-muted">
-                  {aberta === 'tudo' ? `Outro recipiente ${n + 1}` : `Complemento ${complementos.length > 1 ? n + 1 : ''}`.trim()}
-                </legend>
+                <legend className="px-1 text-sm font-semibold text-muted">{legenda(n)}</legend>
                 <CamposConferidos
                   perguntas={perguntasDaLinha}
                   valores={linha}
@@ -325,15 +348,19 @@ export function VerificacaoItem({ pedidoId, item, recipientes }: VerificacaoItem
                   prefixo={`complemento_${n}_`}
                   onAlterar={(campo, valor, gravar) => alterarComplemento(n, campo, valor, gravar)}
                 />
-                <Button variant="secondary" onClick={() => tirarComplemento(n)}>
-                  {aberta === 'tudo' ? 'Tirar este recipiente' : 'Tirar complemento'}
+                <Button variant="danger" onClick={() => tirarComplemento(n)}>
+                  {aberta === 'tudo' || semQuantidade ? 'Tirar este recipiente' : 'Tirar complemento'}
                 </Button>
               </fieldset>
             ))}
 
           {podeCompletar && (
             <Button variant="outline" onClick={abrirComplemento}>
-              {aberta === 'tudo' ? '+ Dividir em outro recipiente' : '+ Completar com outro recipiente'}
+              {semQuantidade
+                ? '+ Também tem em outro recipiente'
+                : aberta === 'tudo'
+                  ? '+ Dividir em outro recipiente'
+                  : '+ Completar com outro recipiente'}
             </Button>
           )}
 

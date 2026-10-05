@@ -55,6 +55,20 @@ function Mais({ cheio }: { cheio: boolean }) {
   );
 }
 
+/** O "tirar da carga": o X vermelho, a antítese do "+" verde que põe. */
+function Menos() {
+  return (
+    <span
+      aria-hidden="true"
+      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border-2 border-red-600 bg-white text-red-600"
+    >
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
+        <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
+      </svg>
+    </span>
+  );
+}
+
 /**
  * Tela 1: montar a carga. No topo, o que já vai no caminhão; abaixo, o que pode
  * ir. Tocar num pedido o põe na carga e marca a entrega para o dia da viagem.
@@ -135,9 +149,11 @@ export function MontarCarga({ data, viagemId, carga, marcados, abertos }: Montar
                   <button
                     type="submit"
                     disabled={tirando}
-                    className="min-h-11 shrink-0 rounded-lg border border-line bg-white px-3 text-sm font-bold text-muted active:bg-gray-100"
+                    aria-label={`Tirar o pedido ${pedido.numero} da carga`}
+                    title="Tirar da carga"
+                    className="shrink-0 rounded-lg active:opacity-70 disabled:opacity-60"
                   >
-                    Tirar
+                    <Menos />
                   </button>
                 </form>
               )}

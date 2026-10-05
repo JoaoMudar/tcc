@@ -9,6 +9,7 @@ import {
   salvarEnderecoDoPedidoAction,
   salvarFreteAction,
   sugerirFreteAction,
+  usarSuplenteAction,
 } from '../../actions';
 import { ATRASO_GRAVACAO_MS, ItensDaFicha } from '../ItensDaFicha';
 
@@ -21,6 +22,7 @@ vi.mock('../../actions', () => ({
   salvarEnderecoDoPedidoAction: vi.fn(async () => ({ success: 'Endereço salvo.' })),
   buscarEnderecosDoPedidoAction: vi.fn(async () => []),
   sugerirFreteAction: vi.fn(async () => ({ centavos: 7000, distanciaKm: 85 })),
+  usarSuplenteAction: vi.fn(async () => ({ success: 'ok' })),
   confirmarPedidoAction: vi.fn(async () => ({})),
   transicionarPedidoAction: vi.fn(async () => ({})),
 }));
@@ -291,5 +293,54 @@ describe('ItensDaFicha: o fechamento do pedido (RF-67)', () => {
     );
     expect(screen.queryByLabelText('Frete')).toBeNull();
     expect(screen.getByText('sem frete')).toBeTruthy();
+  });
+});
+
+describe('ItensDaFicha: o suplente do item sem quantidade (P18)', () => {
+  const PITANGA = item({ id: 'a', especie: 'Pitanga', quantidade: null, recipienteId: 's20', recipiente: 'Saco 20x26' });
+  const SUPLENTE = item({
+    id: 'b',
+    especie: 'Pitanga',
+    quantidade: null,
+    recipienteId: 's17',
+    recipiente: 'Saco 17x22',
+    complementaItemId: 'a',
+    suplente: true,
+  });
+
+  function negociacao() {
+    return render(
+      <ItensDaFicha
+        pedidoId="p1"
+        modo="negociacao"
+        itens={[PITANGA, SUPLENTE]}
+        saldos={{ 'e1:s17': [{ alturaM: null, quantidade: 120 }] }}
+        faltaBloqueia
+        proximoPasso={{ ...PASSO, situacao: 'verificado' }}
+      />,
+    );
+  }
+
+  it('não vira linha: uma espécie, uma linha, e o suplente embaixo com o saldo', () => {
+    negociacao();
+    expect(screen.getAllByLabelText('Preço do item 1')).toHaveLength(2); // planilha e celular
+    expect(screen.queryAllByLabelText('Preço do item 2')).toHaveLength(0);
+    expect(screen.getAllByText(/Se faltar: também tem em/)[0].textContent).toContain('120 disponíveis');
+    expect(screen.getByText('Falta preço em 1 item e quantidade em 1 item.')).toBeTruthy();
+  });
+
+  it('"Usar" grava o que está digitado e transforma o suplente em linha', async () => {
+    negociacao();
+    await act(async () => fireEvent.click(screen.getAllByText('Usar Saco 17x22')[0]));
+    expect(usarSuplenteAction).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(usarSuplenteAction).mock.calls[0][1].get('item_id')).toBe('b');
+  });
+
+  it('fora da negociação o suplente aparece, sem o botão', () => {
+    render(
+      <ItensDaFicha pedidoId="p1" modo="leitura" itens={[PITANGA, SUPLENTE]} saldos={{}} proximoPasso={{ ...PASSO, situacao: 'verificado' }} />,
+    );
+    expect(screen.getAllByText(/Se faltar: também tem em/).length).toBeGreaterThan(0);
+    expect(screen.queryByText('Usar Saco 17x22')).toBeNull();
   });
 });

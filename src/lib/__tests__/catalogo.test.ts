@@ -8,7 +8,14 @@ import {
   parseNumeroCanteiro,
 } from '../areas';
 import { parseInsumoFields } from '../insumos';
-import { duplicateMessage as recipienteDuplicado, formatPeso, formatVolume, parseRecipienteFields } from '../recipientes';
+import {
+  decimalParaCampo,
+  duplicateMessage as recipienteDuplicado,
+  formatPeso,
+  formatVolume,
+  mascaraDecimal3,
+  parseRecipienteFields,
+} from '../recipientes';
 import { parseTipoTarefaFields, resumoDeclaracoes } from '../tipos-tarefa';
 
 describe('áreas e canteiros (RF-13)', () => {
@@ -75,6 +82,27 @@ describe('recipientes (RF-11)', () => {
     expect(formatVolume(0.055)).toBe('55 mL');
     expect(formatVolume(12)).toBe('12 L');
     expect(formatVolume(null)).toBe('');
+  });
+
+  it('a máscara do volume e do peso enche pela direita, com três casas', () => {
+    expect(mascaraDecimal3('1')).toBe('0,001');
+    expect(mascaraDecimal3('350')).toBe('0,350');
+    expect(mascaraDecimal3('18000')).toBe('18,000');
+    expect(mascaraDecimal3('0,350' + '5', '0,350')).toBe('3,505');
+    expect(mascaraDecimal3('1a2b')).toBe('0,012');
+    expect(mascaraDecimal3('1234567')).toBe('123,456');
+    expect(mascaraDecimal3('')).toBe('');
+  });
+
+  it('o apagar que só tira a vírgula tira o último dígito', () => {
+    expect(mascaraDecimal3('0350', '0,350')).toBe('0,035');
+    expect(mascaraDecimal3('', '0,001')).toBe('');
+  });
+
+  it('o valor do banco volta na máscara, e a máscara passa no parse', () => {
+    expect(decimalParaCampo(0.35)).toBe('0,350');
+    expect(decimalParaCampo(null)).toBe('');
+    expect(parseRecipienteFields({ nome: 'Balde', volume: mascaraDecimal3('18000') })).toHaveProperty('value.volumeLitros', 18);
   });
 
   it('nome repetido', () => {
