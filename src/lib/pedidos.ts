@@ -170,6 +170,8 @@ export interface FichaPedido extends Omit<PedidoResumo, 'itens' | 'totalCentavos
   /** RN-64: o frete combinado, em centavos. Nulo é "sem frete". */
   freteCentavos: number | null;
   freteOrigem: OrigemFrete | null;
+  /** O endereço de saída digitado, quando a origem é `outro`. */
+  freteOrigemEndereco: string | null;
   /** Distância de ida da última sugestão de frete, em km. */
   freteDistanciaKm: number | null;
   itens: ItemPedido[];
@@ -244,6 +246,7 @@ export async function findPedido(db: Db, id: string): Promise<FichaPedido | null
             to_char(p.data_entrega, 'YYYY-MM-DD') AS "dataEntrega", p.observacoes,
             u.nome_exibicao AS "criadoPor",
             ROUND(p.frete * 100)::int AS "freteCentavos", p.frete_origem AS "freteOrigem",
+            p.frete_origem_endereco AS "freteOrigemEndereco",
             p.frete_distancia_km::float8 AS "freteDistanciaKm"
        FROM pedidos p
        JOIN cadastro.pessoas c ON c.id = p.cliente_id
@@ -679,12 +682,12 @@ export async function usarSuplente(client: Client, pedidoId: string, itemId: str
 /**
  * RN-64: o frete que a chefia combinou, gravado como o preço dos itens: na
  * negociação, e só por ela. Nulo é "sem frete". A origem fica junto, porque é
- * ela que diz de onde a sugestão foi calculada.
+ * ela que diz de onde a sugestão foi calculada; a origem nula mantém a gravada.
  */
 export async function salvarFrete(
   client: Client,
   pedidoId: string,
-  frete: { centavos: number | null; origem: OrigemFrete | null },
+  frete: { centavos: number | null; origem: OrigemFrete | null; endereco?: string | null },
   autor: AutorDaMudanca,
 ): Promise<void> {
   const pedido = await travarPedido(client, pedidoId);
@@ -695,11 +698,15 @@ export async function salvarFrete(
     );
   }
   if (autor.perfil === 'gerencia') throw new UserError('O frete do pedido é digitado pela chefia.');
-  await client.query('UPDATE pedidos SET frete = $2, frete_origem = COALESCE($3, frete_origem) WHERE id = $1', [
-    pedidoId,
-    frete.centavos === null ? null : centavosParaSql(frete.centavos),
-    frete.origem,
-  ]);
+  const endereco = frete.endereco?.trim() || null;
+  if (frete.origem === 'outro' && !endereco) throw new UserError('Digite o endereço de saída do frete.');
+  await client.query(
+    `UPDATE pedidos SET frete = $2, frete_origem = COALESCE($3, frete_origem),
+            frete_origem_endereco = CASE WHEN $3::text IS NULL THEN frete_origem_endereco
+                                         WHEN $3::text = 'outro' THEN $4 END
+      WHERE id = $1`,
+    [pedidoId, frete.centavos === null ? null : centavosParaSql(frete.centavos), frete.origem, endereco],
+  );
 }
 
 export async function negociarItens(

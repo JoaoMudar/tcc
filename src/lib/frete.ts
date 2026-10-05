@@ -3,7 +3,8 @@
  * enquanto a chefia digita. Quem consulta o mapa e grava é `pedidos-frete.ts`.
  */
 
-export const ORIGENS_FRETE = { agrolandia: 'Agrolândia', itapema: 'Itapema' } as const;
+/** As duas saídas de Configurações, e `outro`, um endereço digitado na hora. */
+export const ORIGENS_FRETE = { agrolandia: 'Agrolândia', itapema: 'Itapema', outro: 'Outro' } as const;
 export type OrigemFrete = keyof typeof ORIGENS_FRETE;
 export const ORIGEM_PADRAO: OrigemFrete = 'agrolandia';
 

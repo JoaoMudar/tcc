@@ -122,7 +122,9 @@ export default async function PedidoPage({ params }: PedidoPageProps) {
               label: r.volumeLitros === null ? r.nome : `${r.nome} · ${formatVolume(r.volumeLitros)}`,
             }))}
           faltaBloqueia={situacao === 'verificado'}
-          frete={{ centavos: pedido.freteCentavos, origem: pedido.freteOrigem, distanciaKm: pedido.freteDistanciaKm }}
+          frete={{ centavos: pedido.freteCentavos, origem: pedido.freteOrigem,
+            origemEndereco: pedido.freteOrigemEndereco,
+            distanciaKm: pedido.freteDistanciaKm }}
           nomeCliente={pedido.cliente}
           proximoPasso={{
             pedidoId: pedido.id,

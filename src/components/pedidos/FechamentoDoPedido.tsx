@@ -1,8 +1,10 @@
 'use client';
 
 import { Button } from '@/components/ui/Button';
+import { CampoEndereco } from '@/components/ui/CampoEndereco';
 import { ORIGENS_FRETE, type OrigemFrete, formatPesoCarga } from '@/lib/frete';
 import { formatMoeda, formatTotal } from '@/lib/pedidos-rotulos';
+import type { SugestaoDeEndereco } from '@/lib/rotas';
 
 interface FechamentoDoPedidoProps {
   /** Soma dos itens, em centavos. Nula enquanto falta preço ou quantidade. */
@@ -20,6 +22,10 @@ interface FechamentoDoPedidoProps {
     aviso: string | null;
     onAlterarFrete: (texto: string) => void;
     onAlterarOrigem: (origem: OrigemFrete) => void;
+    /** O endereço de saída na origem `outro`. */
+    endereco: string;
+    onAlterarEndereco: (texto: string, ponto: { lat: number; lng: number } | null) => void;
+    buscar: (texto: string) => Promise<SugestaoDeEndereco[]>;
     onSugerir: () => void;
     /** Sem endereço de entrega, ou não achado no mapa: o botão de completá-lo, no lugar do aviso. */
     falta?: { endereco: string | null; onAbrir: () => void } | null;
@@ -78,30 +84,47 @@ export function FechamentoDoPedido({ subtotalCentavos, freteCentavos, peso, edic
 
       {edicao && (
         <div className="flex flex-col gap-2 border-t border-line pt-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm text-muted">Sugerir frete saindo de</span>
-            <div role="radiogroup" aria-label="Saída do frete" className="flex gap-1 rounded-xl bg-gray-100 p-1">
-              {(Object.keys(ORIGENS_FRETE) as OrigemFrete[]).map((origem) => (
-                <label
-                  key={origem}
-                  className="flex min-h-9 cursor-pointer items-center rounded-lg px-3 text-sm font-semibold text-gray-700 has-checked:bg-white has-checked:text-brand-dark has-checked:shadow-sm"
-                >
-                  <input
-                    type="radio"
-                    name="frete_origem"
-                    value={origem}
-                    checked={edicao.origem === origem}
-                    onChange={() => edicao.onAlterarOrigem(origem)}
-                    className="sr-only"
-                  />
-                  {ORIGENS_FRETE[origem]}
-                </label>
-              ))}
+          <div className="flex flex-col gap-2 md:flex-row md:flex-wrap md:items-center">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm text-muted">Sugerir frete saindo de</span>
+              <div role="radiogroup" aria-label="Saída do frete" className="flex gap-1 rounded-xl bg-gray-100 p-1">
+                {(Object.keys(ORIGENS_FRETE) as OrigemFrete[]).map((origem) => (
+                  <label
+                    key={origem}
+                    className="flex min-h-9 cursor-pointer items-center rounded-lg px-3 text-sm font-semibold text-gray-700 has-checked:bg-white has-checked:text-brand-dark has-checked:shadow-sm"
+                  >
+                    <input
+                      type="radio"
+                      name="frete_origem"
+                      value={origem}
+                      checked={edicao.origem === origem}
+                      onChange={() => edicao.onAlterarOrigem(origem)}
+                      className="sr-only"
+                    />
+                    {ORIGENS_FRETE[origem]}
+                  </label>
+                ))}
+              </div>
             </div>
+            <Button
+              variant="outline"
+              className="md:w-auto!"
+              onClick={edicao.onSugerir}
+              pending={edicao.sugerindo}
+              pendingLabel="Calculando…"
+            >
+              Sugerir frete pela distância
+            </Button>
           </div>
-          <Button variant="outline" onClick={edicao.onSugerir} pending={edicao.sugerindo} pendingLabel="Calculando…">
-            Sugerir frete pela distância
-          </Button>
+          {edicao.origem === 'outro' && (
+            <CampoEndereco
+              label="Endereço de saída"
+              name="frete_origem_endereco"
+              defaultValue={edicao.endereco}
+              buscar={edicao.buscar}
+              onAlterar={edicao.onAlterarEndereco}
+            />
+          )}
           {edicao.distancia && <p className="text-sm text-muted">{edicao.distancia}</p>}
           <p className="text-sm font-semibold text-amber-900 empty:hidden" aria-live="polite">
             {edicao.aviso}

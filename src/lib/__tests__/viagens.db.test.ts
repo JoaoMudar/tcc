@@ -21,6 +21,7 @@ import {
   adicionarPedido,
   cargasDaViagem,
   concluirViagem,
+  definirChegada,
   findViagem,
   iniciarCarregamento,
   listParadas,
@@ -286,6 +287,24 @@ describe('a rota (Tela 2)', () => {
     await tx((c) => mudarEtapa(c, viagemId, 'montando'));
     expect((await viagemDoDia(pool, dia))!.situacao).toBe('montando');
     expect((await listParadas(pool, viagemId)).map((p) => p.pedidoId)).toEqual([b, a]);
+  });
+
+  it('a volta começa igual à saída, e escolhida fica com a coordenada', async () => {
+    const { viagemId } = await viagemNaRota();
+    expect(await findViagem(pool, viagemId)).toMatchObject({ chegadaDescricao: null, chegadaLat: null });
+
+    await pool.query('UPDATE viagens SET sugerir_ordem = false WHERE id = $1', [viagemId]);
+    await tx((c) => definirChegada(c, viagemId, ' Centro, Itapema ', { lat: -27.09, lng: -48.61 }));
+    expect(await findViagem(pool, viagemId)).toMatchObject({
+      chegadaDescricao: 'Centro, Itapema',
+      chegadaLat: -27.09,
+      chegadaLng: -48.61,
+      sugerirOrdem: true,
+    });
+
+    await expect(tx((c) => definirChegada(c, viagemId, '  '))).rejects.toThrow(/endereço de volta/);
+    await tx((c) => mudarEtapa(c, viagemId, 'montando'));
+    await expect(tx((c) => definirChegada(c, viagemId, 'Itapema, SC'))).rejects.toThrow(/etapa da rota/);
   });
 });
 

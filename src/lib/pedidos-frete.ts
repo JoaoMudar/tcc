@@ -36,14 +36,24 @@ interface DestinoDoPedido {
 }
 
 /**
- * RN-64: a sugestão de frete do pedido, saindo de Agrolândia ou de Itapema
- * até o endereço de entrega do cliente, de carro, ida e volta.
+ * RN-64: a sugestão de frete do pedido, saindo de Agrolândia, de Itapema ou de
+ * um endereço digitado (`outro`), até o endereço de entrega do cliente, de
+ * carro, ida e volta. No `outro`, a coordenada vem do endereço escolhido na
+ * lista e, sem ela, o texto é procurado.
  *
  * Como em `sugerirRota`, a coordenada achada para o endereço fica guardada nele,
  * e o mesmo texto não gasta outra consulta. **A rede fica fora de transação**:
  * a sugestão só lê, e a única escrita é a coordenada e a distância.
  */
-export async function sugestaoDeFrete(db: Db, pedidoId: string, origem: OrigemFrete): Promise<SugestaoDeFrete> {
+export async function sugestaoDeFrete(
+  db: Db,
+  pedidoId: string,
+  origem: OrigemFrete,
+  outro: { texto: string; coordenada: Coordenada | null } | null = null,
+): Promise<SugestaoDeFrete> {
+  const textoOutro = origem === 'outro' ? outro?.texto.trim() || '' : '';
+  if (origem === 'outro' && !textoOutro) throw new UserError('Digite o endereço de saída do frete.');
+
   const { rows } = await db.query<DestinoDoPedido>(
     `SELECT p.situacao, p.numero_pedido AS numero, e.id AS "enderecoId", e.logradouro, e.cidade, e.uf,
             e.lat::float8 AS lat, e.lng::float8 AS lng, e.geocodificado_em AS "geocodificadoEm"
@@ -78,18 +88,22 @@ export async function sugestaoDeFrete(db: Db, pedidoId: string, origem: OrigemFr
       if (!destino) return { aviso: 'endereco_nao_achado', endereco: texto };
     }
 
-    const partidas = await partidasBase(db);
-    const saida = await geocodificarTexto(partidas[origem] || `${ORIGENS_FRETE[origem]}, SC`);
+    let saida: Coordenada | null;
+    if (origem === 'outro') {
+      saida = outro?.coordenada ?? (await geocodificarTexto(textoOutro));
+    } else {
+      const partidas = await partidasBase(db);
+      saida = await geocodificarTexto(partidas[origem] || `${ORIGENS_FRETE[origem]}, SC`);
+    }
     if (!saida) return { aviso: 'saida_nao_achada' };
 
     const metros = await distanciaDeCarro(saida, destino);
     const distanciaKm = Math.max(0.1, Math.round(metros / 100) / 10);
     const { kmPorLitro, precoLitro } = await parametrosDoFrete(db);
-    await db.query('UPDATE pedidos SET frete_distancia_km = $2, frete_origem = $3 WHERE id = $1', [
-      pedidoId,
-      distanciaKm,
-      origem,
-    ]);
+    await db.query(
+      'UPDATE pedidos SET frete_distancia_km = $2, frete_origem = $3, frete_origem_endereco = $4 WHERE id = $1',
+      [pedidoId, distanciaKm, origem, textoOutro || null],
+    );
     return { centavos: sugerirFrete(distanciaKm, kmPorLitro, precoLitro), distanciaKm };
   } catch (error) {
     if (error instanceof MapaIndisponivel) return { aviso: 'mapa_indisponivel' };

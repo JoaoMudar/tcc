@@ -116,6 +116,24 @@ describe('linkGoogleMaps', () => {
     expect(parametros(links[1]).get('waypoints')).toBe('-27.11,-49.11|-27.12,-49.12');
     expect(parametros(links[1]).get('destination')).toBe('-27.13,-49.13');
   });
+
+  it('com a volta, o trajeto termina nela, e a última entrega vira ponto do meio', () => {
+    const [link] = linkGoogleMaps(VIVEIRO, [ponto(1), ponto(2)], { lat: null, lng: null, endereco: 'Itapema, SC' });
+    expect(parametros(link).get('waypoints')).toBe('-27.01,-49.01|-27.02,-49.02');
+    expect(parametros(link).get('destination')).toBe('Itapema, SC');
+  });
+
+  it('a volta conta como ponto: 10 entregas e a volta pedem dois links', () => {
+    const paradas = Array.from({ length: 10 }, (_, i) => ponto(i + 1));
+    const links = linkGoogleMaps(VIVEIRO, paradas, VIVEIRO);
+    expect(links).toHaveLength(2);
+    expect(parametros(links[1]).get('origin')).toBe('-27.1,-49.1');
+    expect(parametros(links[1]).get('destination')).toBe('-27.408,-49.822');
+  });
+
+  it('sem entrega, a volta sozinha não faz link', () => {
+    expect(linkGoogleMaps(VIVEIRO, [], VIVEIRO)).toEqual([]);
+  });
 });
 
 describe('aplicarOrdemSugerida', () => {

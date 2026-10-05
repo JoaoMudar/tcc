@@ -32,6 +32,10 @@ export interface Viagem {
   partidaDescricao: string;
   partidaLat: number | null;
   partidaLng: number | null;
+  /** Onde o caminhão termina. Nula é "volta para onde saiu". */
+  chegadaDescricao: string | null;
+  chegadaLat: number | null;
+  chegadaLng: number | null;
   situacao: SituacaoViagem;
   sugerirOrdem: boolean;
   distanciaM: number | null;
@@ -84,7 +88,8 @@ export interface PedidoParaViagem {
 export const SITUACOES_DA_VIAGEM: readonly SituacaoPedido[] = ['aprovado', 'separando', 'pronto_envio'];
 
 const COLUNAS_VIAGEM = `v.id, to_char(v.data, 'YYYY-MM-DD') AS data, v.partida_descricao AS "partidaDescricao",
-       v.partida_lat::float8 AS "partidaLat", v.partida_lng::float8 AS "partidaLng", v.situacao,
+       v.partida_lat::float8 AS "partidaLat", v.partida_lng::float8 AS "partidaLng", v.chegada_descricao AS "chegadaDescricao",
+       v.chegada_lat::float8 AS "chegadaLat", v.chegada_lng::float8 AS "chegadaLng", v.situacao,
        v.sugerir_ordem AS "sugerirOrdem", v.distancia_m AS "distanciaM", v.duracao_s AS "duracaoS"`;
 
 /** O primeiro endereço de entrega do cliente: o pedido não tem endereço próprio. */
@@ -419,6 +424,29 @@ export async function definirPartida(
 }
 
 /**
+ * Tela 2: onde o caminhão termina. Até alguém escolher, a volta é a saída, e
+ * trocar a saída a leva junto.
+ */
+export async function definirChegada(
+  client: Client,
+  viagemId: string,
+  descricao: string,
+  coordenada: Coordenada | null = null,
+): Promise<void> {
+  const texto = descricao.trim();
+  if (!texto) throw new UserError('Digite o endereço de volta.');
+  const viagem = await travarViagem(client, viagemId);
+  exigirEtapa(viagem, 'roteirizando', 'A volta só muda na etapa da rota.');
+  if (texto === viagem.chegadaDescricao && !coordenada) return;
+  await client.query(
+    `UPDATE viagens SET chegada_descricao = $2, chegada_lat = $3, chegada_lng = $4,
+                        distancia_m = NULL, duracao_s = NULL, sugerir_ordem = true
+      WHERE id = $1`,
+    [viagemId, texto, coordenada?.lat ?? null, coordenada?.lng ?? null],
+  );
+}
+
+/**
  * Tela 2: parada que não é entrega ("abastecer"). Sem item, não aparece no
  * carregamento. A coordenada vem do endereço escolhido na lista, e sem endereço
  * não há o que situar.
@@ -656,6 +684,23 @@ export async function sugerirRota(pool: Conectavel, viagemId: string): Promise<A
       ]);
     }
 
+    // Sem volta escolhida, o caminhão volta para onde saiu
+    let chegada: Coordenada | null = partida;
+    if (viagem.chegadaDescricao !== null) {
+      chegada =
+        viagem.chegadaLat !== null && viagem.chegadaLng !== null
+          ? { lat: viagem.chegadaLat, lng: viagem.chegadaLng }
+          : await geocodificarTexto(viagem.chegadaDescricao);
+      if (!chegada) return 'volta_nao_achada';
+      if (viagem.chegadaLat === null) {
+        await pool.query('UPDATE viagens SET chegada_lat = $2, chegada_lng = $3 WHERE id = $1', [
+          viagemId,
+          chegada.lat,
+          chegada.lng,
+        ]);
+      }
+    }
+
     const situadas = await Promise.all(
       linhas.map(async (linha): Promise<(Coordenada & { id: string }) | null> => {
         if (linha.lat !== null && linha.lng !== null) return { id: linha.id, lat: linha.lat, lng: linha.lng };
@@ -685,6 +730,7 @@ export async function sugerirRota(pool: Conectavel, viagemId: string): Promise<A
     const rota = await otimizarOrdem(
       partida,
       situadas.filter((ponto) => ponto !== null),
+      chegada,
     );
     const ordem = aplicarOrdemSugerida(
       linhas.map((linha) => linha.id),

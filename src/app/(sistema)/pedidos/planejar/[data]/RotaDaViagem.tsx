@@ -23,13 +23,15 @@ import { linkGoogleMaps, moverNaLista } from '@/lib/rotas';
 import {
   adicionarParadaAction,
   buscarEnderecosAction,
-  definirPartidaAction,
   iniciarCarregamentoAction,
   removerParadaAction,
   salvarEnderecoEntregaAction,
   salvarOrdemAction,
   sugerirOrdemAction,
 } from './actions';
+import { type EscolhaDePartida, EscolhaDoPonto } from './EscolhaDoPonto';
+
+export type { EscolhaDePartida } from './EscolhaDoPonto';
 
 export interface ParadaNaRota {
   id: string;
@@ -45,23 +47,40 @@ export interface ParadaNaRota {
   naoAchado: boolean;
 }
 
-export type EscolhaDePartida = 'agrolandia' | 'itapema' | 'outro';
+interface PontaDaRota {
+  descricao: string;
+  lat: number | null;
+  lng: number | null;
+  escolha: EscolhaDePartida;
+}
 
 interface RotaDaViagemProps {
   data: string;
   viagemId: string;
-  partida: { descricao: string; lat: number | null; lng: number | null; escolha: EscolhaDePartida };
+  partida: PontaDaRota;
+  /** Onde o caminhão termina: sem escolha, a própria saída. */
+  chegada: PontaDaRota;
   paradas: readonly ParadaNaRota[];
   /** `cerca de 42 km · 1 h 05 min`, quando a API respondeu para esta ordem. */
   distancia: string | null;
   aviso: string | null;
 }
 
-const PARTIDAS: { escolha: EscolhaDePartida; nome: string }[] = [
-  { escolha: 'agrolandia', nome: 'Agrolândia' },
-  { escolha: 'itapema', nome: 'Itapema' },
-  { escolha: 'outro', nome: 'Outro' },
-];
+function CasaDaPonta({ descricao, rotulo }: { descricao: string; rotulo: string }) {
+  return (
+    <div className="flex items-center gap-2.5 rounded-lg bg-stone-100 px-3 py-2.5">
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-ink text-white">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true">
+          <path d="M3 11l9-7 9 7v9H3z" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </span>
+      <span className="flex min-w-0 flex-col">
+        <span className="text-xs font-bold tracking-wide text-muted uppercase">{rotulo}</span>
+        <span className="text-base font-semibold text-ink">{descricao}</span>
+      </span>
+    </div>
+  );
+}
 
 function Seta({ para }: { para: 'cima' | 'baixo' }) {
   return (
@@ -171,13 +190,10 @@ function CartaoDaParada({ parada, marca, primeiro, ultimo, onMover, remover, onE
  * pressionando e arrastando, ou pelas setas, para quem não acerta o arraste.
  * Cada mudança grava ao soltar.
  */
-export function RotaDaViagem({ data, viagemId, partida, paradas, distancia, aviso }: RotaDaViagemProps) {
+export function RotaDaViagem({ data, viagemId, partida, chegada, paradas, distancia, aviso }: RotaDaViagemProps) {
   const [ordem, setOrdem] = useState(() => paradas.map((parada) => parada.id));
   const [erroDaOrdem, setErroDaOrdem] = useState<string | null>(null);
   const [gravando, startTransition] = useTransition();
-  const [outro, setOutro] = useState(partida.escolha === 'outro');
-
-  const [saida, escolherSaida, escolhendo] = useActionState(definirPartidaAction, EMPTY_FORM_STATE);
   const [sugestao, sugerir, sugerindo] = useActionState(sugerirOrdemAction, EMPTY_FORM_STATE);
   // A contagem das paradas que entraram: o campo de endereço guarda o próprio
   // texto, e só esvazia ao nascer de novo
@@ -228,10 +244,11 @@ export function RotaDaViagem({ data, viagemId, partida, paradas, distancia, avis
   const links = linkGoogleMaps(
     { lat: partida.lat, lng: partida.lng, endereco: partida.descricao },
     naOrdem.map((parada) => ({ lat: parada.lat, lng: parada.lng, endereco: parada.endereco })),
+    { lat: chegada.lat, lng: chegada.lng, endereco: chegada.descricao },
   );
 
   let entregas = 0;
-  const erro = erroDaOrdem ?? saida.error ?? sugestao.error ?? remocao.error ?? inicio.error;
+  const erro = erroDaOrdem ?? sugestao.error ?? remocao.error ?? inicio.error;
 
   return (
     <>
@@ -239,47 +256,8 @@ export function RotaDaViagem({ data, viagemId, partida, paradas, distancia, avis
         {aviso && <Notice tone="warning">{aviso}</Notice>}
         {erro && <Notice tone="error">{erro}</Notice>}
 
-        <section className="flex flex-col gap-2">
-          <h2 className="text-sm font-bold tracking-widest text-muted uppercase">Saída</h2>
-          <div className="grid grid-cols-3 gap-1.5">
-            {PARTIDAS.map(({ escolha, nome }) => {
-              const ativa = outro ? escolha === 'outro' : partida.escolha === escolha;
-              const estilo = `min-h-11 w-full rounded-lg border text-base font-bold ${ativa ? 'border-brand bg-brand text-white' : 'border-gray-300 bg-white text-ink'}`;
-              return escolha === 'outro' ? (
-                <button key={escolha} type="button" aria-pressed={ativa} className={estilo} onClick={() => setOutro(true)}>
-                  {nome}
-                </button>
-              ) : (
-                <form key={escolha} action={escolherSaida} onSubmit={() => setOutro(false)}>
-                  <input type="hidden" name="data" value={data} />
-                  <input type="hidden" name="viagem_id" value={viagemId} />
-                  <input type="hidden" name="partida" value={escolha} />
-                  <button type="submit" aria-pressed={ativa} disabled={escolhendo} className={estilo}>
-                    {nome}
-                  </button>
-                </form>
-              );
-            })}
-          </div>
-          {outro && (
-            <form action={escolherSaida} className="flex items-end gap-2">
-              <input type="hidden" name="data" value={data} />
-              <input type="hidden" name="viagem_id" value={viagemId} />
-              <input type="hidden" name="partida" value="outro" />
-              <CampoEndereco
-                label="Endereço de saída"
-                name="endereco"
-                className="flex-1"
-                required
-                defaultValue={saida.fields?.endereco ?? (partida.escolha === 'outro' ? partida.descricao : '')}
-                buscar={buscarEnderecosAction}
-              />
-              <Button type="submit" className="w-auto!" pending={escolhendo} pendingLabel="…">
-                Usar
-              </Button>
-            </form>
-          )}
-        </section>
+        <EscolhaDoPonto ponta="saida" data={data} viagemId={viagemId} ponto={partida} />
+        <EscolhaDoPonto ponta="volta" data={data} viagemId={viagemId} ponto={chegada} />
 
         <section className="flex flex-col gap-2">
           <div className="flex items-baseline justify-between gap-2">
@@ -287,14 +265,7 @@ export function RotaDaViagem({ data, viagemId, partida, paradas, distancia, avis
             {distancia && <span className="text-sm font-bold text-brand-dark">{distancia}</span>}
           </div>
 
-          <div className="flex items-center gap-2.5 rounded-lg bg-stone-100 px-3 py-2.5">
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-ink text-white">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true">
-                <path d="M3 11l9-7 9 7v9H3z" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </span>
-            <span className="text-base font-semibold text-ink">{partida.descricao}</span>
-          </div>
+          <CasaDaPonta rotulo="Saída" descricao={partida.descricao} />
 
           <DndContext id={dndId} sensors={sensores} collisionDetection={closestCenter} onDragEnd={aoSoltar}>
             <SortableContext items={ordem} strategy={verticalListSortingStrategy}>
@@ -319,6 +290,8 @@ export function RotaDaViagem({ data, viagemId, partida, paradas, distancia, avis
               </ol>
             </SortableContext>
           </DndContext>
+
+          <CasaDaPonta rotulo="Volta" descricao={chegada.descricao} />
 
           <div className="grid grid-cols-2 gap-2">
             <form action={sugerir}>

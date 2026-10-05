@@ -224,6 +224,29 @@ describe('ItensDaFicha: o fechamento do pedido (RF-67)', () => {
     expect(screen.getByText(/85 km, ida e volta/)).toBeTruthy();
   });
 
+  it('"Outro" abre o endereço de saída, e a sugestão e o frete gravado o levam', async () => {
+    negociacao();
+    expect(screen.queryByLabelText('Endereço de saída')).toBeNull();
+    fireEvent.click(screen.getByLabelText('Outro'));
+    fireEvent.change(screen.getByLabelText('Endereço de saída'), { target: { value: 'Rua Central, Ibirama' } });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Sugerir frete pela distância'));
+    });
+    expect(sugerirFreteAction).toHaveBeenCalledWith('p1', 'outro', { texto: 'Rua Central, Ibirama', lat: '', lng: '' });
+    await esperarGravacao();
+    const enviado = vi.mocked(salvarFreteAction).mock.calls[0][1];
+    expect(enviado.get('frete_origem')).toBe('outro');
+    expect(enviado.get('frete_origem_endereco')).toBe('Rua Central, Ibirama');
+  });
+
+  it('"Outro" sem endereço não troca a origem gravada', async () => {
+    negociacao();
+    fireEvent.click(screen.getByLabelText('Outro'));
+    fireEvent.change(screen.getByLabelText('Frete'), { target: { value: '80,00' } });
+    await esperarGravacao();
+    expect(vi.mocked(salvarFreteAction).mock.calls[0][1].get('frete_origem')).toBe('');
+  });
+
   it('o aviso da sugestão aparece, e o campo fica como estava', async () => {
     vi.mocked(sugerirFreteAction).mockResolvedValueOnce({ error: 'O mapa não respondeu agora. Digite o frete combinado ou tente de novo.' });
     negociacao();

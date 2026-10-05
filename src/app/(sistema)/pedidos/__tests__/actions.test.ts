@@ -450,13 +450,30 @@ describe('frete do pedido (RN-64)', () => {
     emSituacao('verificado');
     const state = await actions.salvarFreteAction({}, form({ pedido_id: PEDIDO, frete: '84,50', frete_origem: 'itapema' }));
     expect(state.error).toBeUndefined();
-    expect(gravouFrete().map(([, valores]) => valores)).toEqual([[PEDIDO, '84.50', 'itapema']]);
+    expect(gravouFrete().map(([, valores]) => valores)).toEqual([[PEDIDO, '84.50', 'itapema', null]]);
   });
 
   it('frete em branco é "sem frete"', async () => {
     emSituacao('verificado');
     await actions.salvarFreteAction({}, form({ pedido_id: PEDIDO, frete: '', frete_origem: '' }));
-    expect(gravouFrete().map(([, valores]) => valores)).toEqual([[PEDIDO, null, null]]);
+    expect(gravouFrete().map(([, valores]) => valores)).toEqual([[PEDIDO, null, null, null]]);
+  });
+
+  it('"Outro" grava o endereço de saída junto', async () => {
+    emSituacao('verificado');
+    const state = await actions.salvarFreteAction(
+      {},
+      form({ pedido_id: PEDIDO, frete: '90', frete_origem: 'outro', frete_origem_endereco: ' Centro, Ibirama ' }),
+    );
+    expect(state.error).toBeUndefined();
+    expect(gravouFrete().map(([, valores]) => valores)).toEqual([[PEDIDO, '90.00', 'outro', 'Centro, Ibirama']]);
+  });
+
+  it('"Outro" sem endereço é recusado', async () => {
+    emSituacao('verificado');
+    const state = await actions.salvarFreteAction({}, form({ pedido_id: PEDIDO, frete: '90', frete_origem: 'outro' }));
+    expect(state.error).toBe('Digite o endereço de saída do frete.');
+    expect(gravouFrete()).toEqual([]);
   });
 
   it('valor que não é dinheiro e origem desconhecida são recusados antes do banco', async () => {
@@ -484,6 +501,13 @@ describe('frete do pedido (RN-64)', () => {
 
   it('a sugestão recusa origem desconhecida antes do banco', async () => {
     await expect(actions.sugerirFreteAction(PEDIDO, 'blumenau')).resolves.toEqual({ error: 'Origem do frete inválida.' });
+    expectNoDatabase();
+  });
+
+  it('a sugestão saindo de "Outro" pede o endereço antes do banco', async () => {
+    await expect(actions.sugerirFreteAction(PEDIDO, 'outro', { texto: '  ', lat: '', lng: '' })).resolves.toEqual({
+      error: 'Digite o endereço de saída do frete.',
+    });
     expectNoDatabase();
   });
 

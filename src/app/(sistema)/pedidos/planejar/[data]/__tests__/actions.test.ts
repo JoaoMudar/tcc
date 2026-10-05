@@ -56,6 +56,9 @@ function viagemRow() {
     partidaDescricao: 'Agrolândia, SC',
     partidaLat: null,
     partidaLng: null,
+    chegadaDescricao: null,
+    chegadaLat: null,
+    chegadaLng: null,
     situacao: situacaoViagem,
     sugerirOrdem: true,
     distanciaM: null,
@@ -247,6 +250,27 @@ describe('ordem da rota (Tela 2)', () => {
       ),
     ).rejects.toThrow('REDIRECT');
     expect(gravouEm('SET partida_descricao')[0][1]).toEqual([VIAGEM, 'Rodoviária, Ibirama', -27.05, -49.51]);
+  });
+
+  it('a volta digitada grava na chegada, e não mexe na saída', async () => {
+    situacaoViagem = 'roteirizando';
+    await expect(
+      actions.definirPartidaAction(
+        {},
+        form({ data: DIA, viagem_id: VIAGEM, ponta: 'volta', partida: 'outro', endereco: 'Centro, Itapema', lat: '-27.09', lng: '-48.61' }),
+      ),
+    ).rejects.toThrow('REDIRECT');
+    expect(gravouEm('SET chegada_descricao')[0][1]).toEqual([VIAGEM, 'Centro, Itapema', -27.09, -48.61]);
+    expect(gravouEm('SET partida_descricao')).toHaveLength(0);
+  });
+
+  it('volta em branco é recusada', async () => {
+    situacaoViagem = 'roteirizando';
+    const state = await actions.definirPartidaAction(
+      {},
+      form({ data: DIA, viagem_id: VIAGEM, ponta: 'volta', partida: 'outro', endereco: ' ' }),
+    );
+    expect(state.error).toBe('Digite o endereço de volta.');
   });
 
   it('parada extra precisa de descrição', async () => {

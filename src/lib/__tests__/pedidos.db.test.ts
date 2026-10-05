@@ -174,6 +174,22 @@ describe('cadastro do pedido (T8.1, RF-54, RF-55)', () => {
     await expect(tx((c) => salvarFrete(c, id, { centavos: 100, origem: null }, gerencia()))).rejects.toThrow(/chefia/);
   });
 
+  it('o frete saindo de "Outro" guarda o endereço, e voltar a Itapema o apaga', async () => {
+    const { id } = await novoPedido();
+    await pool.query("UPDATE pedidos SET situacao = 'verificado' WHERE id = $1", [id]);
+    await tx((c) => salvarFrete(c, id, { centavos: 9000, origem: 'outro', endereco: 'Centro, Ibirama' }, chefia()));
+    expect(await findPedido(pool, id)).toMatchObject({ freteOrigem: 'outro', freteOrigemEndereco: 'Centro, Ibirama' });
+
+    // Origem nula mantém a gravada, endereço junto
+    await tx((c) => salvarFrete(c, id, { centavos: 9500, origem: null }, chefia()));
+    expect(await findPedido(pool, id)).toMatchObject({ freteCentavos: 9500, freteOrigemEndereco: 'Centro, Ibirama' });
+
+    await tx((c) => salvarFrete(c, id, { centavos: 9500, origem: 'itapema' }, chefia()));
+    expect(await findPedido(pool, id)).toMatchObject({ freteOrigem: 'itapema', freteOrigemEndereco: null });
+
+    await expect(tx((c) => salvarFrete(c, id, { centavos: 1, origem: 'outro' }, chefia()))).rejects.toThrow(/endereço/);
+  });
+
   it('P17: o item traz o peso do recipiente cheio (RN-65)', async () => {
     await pool.query('UPDATE recipientes SET peso_kg = 0.35 WHERE id = $1', [tubete]);
     const { id } = await novoPedido();

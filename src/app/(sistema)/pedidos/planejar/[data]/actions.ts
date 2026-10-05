@@ -179,13 +179,17 @@ export async function salvarEnderecoEntregaAction(_previous: FormState, formData
   return { success: 'Endereço salvo.' };
 }
 
-/** A saída: Agrolândia, Itapema (de Configurações) ou um endereço digitado. */
+/**
+ * A saída ou a volta (`ponta`): Agrolândia, Itapema (de Configurações) ou um
+ * endereço digitado.
+ */
 export async function definirPartidaAction(_previous: FormState, formData: FormData): Promise<FormState> {
   await requirePermission('cargas_pedido', 'A');
   const viagem = lerViagem(formData);
   if (!viagem) return { error: 'Viagem inválida.' };
 
   const escolha = formText(formData, 'partida');
+  const definir = formText(formData, 'ponta') === 'volta' ? viagens.definirChegada : viagens.definirPartida;
   let aviso: AvisoDaRota | null = null;
   try {
     const base = await viagens.partidasBase(pool);
@@ -193,7 +197,7 @@ export async function definirPartidaAction(_previous: FormState, formData: FormD
       escolha === 'agrolandia' ? base.agrolandia : escolha === 'itapema' ? base.itapema : formText(formData, 'endereco');
     // Só o endereço digitado traz coordenada: as duas bases são procuradas pelo texto
     const coordenada = escolha === 'outro' ? coordenadaDoForm(formData) : null;
-    await withTransaction(pool, (client) => viagens.definirPartida(client, viagem.viagemId, descricao, coordenada));
+    await withTransaction(pool, (client) => definir(client, viagem.viagemId, descricao, coordenada));
     const atual = await viagens.findViagem(pool, viagem.viagemId);
     if (atual?.sugerirOrdem) aviso = await viagens.sugerirRota(pool, viagem.viagemId);
   } catch (error) {

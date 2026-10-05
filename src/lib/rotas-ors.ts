@@ -130,12 +130,14 @@ export interface RotaOtimizada {
 }
 
 /**
- * A melhor ordem a partir da partida (`/optimization`, o VROOM do ORS). Rota
- * aberta: o caminhão sai do viveiro e a sugestão termina na última entrega.
+ * A melhor ordem a partir da partida (`/optimization`, o VROOM do ORS). Com a
+ * chegada, a rota termina nela, e o km e o tempo contam a volta; sem ela, a
+ * rota é aberta e termina na última entrega.
  */
 export async function otimizarOrdem(
   partida: Coordenada,
   paradas: readonly (Coordenada & { id: string })[],
+  chegada: Coordenada | null = null,
 ): Promise<RotaOtimizada> {
   if (paradas.length === 0) return { ordem: [], distanciaM: 0, duracaoS: 0 };
 
@@ -145,7 +147,14 @@ export async function otimizarOrdem(
     headers: { Authorization: chave(), 'Content-Type': 'application/json' },
     body: JSON.stringify({
       jobs: paradas.map((parada, indice) => ({ id: indice + 1, location: [parada.lng, parada.lat] })),
-      vehicles: [{ id: 1, profile: 'driving-car', start: [partida.lng, partida.lat] }],
+      vehicles: [
+        {
+          id: 1,
+          profile: 'driving-car',
+          start: [partida.lng, partida.lat],
+          ...(chegada ? { end: [chegada.lng, chegada.lat] } : {}),
+        },
+      ],
       options: { g: true },
     }),
   })) as {
