@@ -56,6 +56,20 @@ describe('validateTelefone', () => {
   it('recusa sem DDD', () => {
     expect(validateTelefone('99612-4408')).toHaveProperty('error');
   });
+
+  it('recusa DDD que não existe', () => {
+    expect(validateTelefone('(20) 99612-4408')).toEqual({ error: 'DDD 20 não existe. Confira os dois primeiros números.' });
+    expect(validateTelefone('(01) 3521-0000')).toHaveProperty('error');
+  });
+
+  it('celular de 11 dígitos começa em 9', () => {
+    expect(validateTelefone('(47) 89612-4408')).toEqual({ error: 'Celular com 11 dígitos começa em 9, depois do DDD.' });
+  });
+
+  it('dez dígitos começando em 6 a 9 é celular sem o 9', () => {
+    expect(validateTelefone('(47) 9612-4408')).toEqual({ error: 'Falta o 9 do celular, depois do DDD.' });
+    expect(validateTelefone('(47) 1521-0000')).toHaveProperty('error');
+  });
 });
 
 describe('formatação', () => {

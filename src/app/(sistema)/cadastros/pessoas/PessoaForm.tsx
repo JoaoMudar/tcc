@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useActionState, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/Button';
+import { CampoTelefone } from '@/components/ui/CampoTelefone';
 import { Notice } from '@/components/ui/Notice';
 import { Toast } from '@/components/ui/Toast';
 import { SelectField } from '@/components/ui/SelectField';
@@ -96,11 +97,7 @@ export function PessoaForm({ pessoa, verFiscal, podeEditar, paraPedido }: Pessoa
         </div>
 
         <TextField label="Nome" name="nome" defaultValue={fields?.nome ?? pessoa?.nome} required />
-        <TextField
-          label="Telefone"
-          name="telefone"
-          type="tel"
-          inputMode="tel"
+        <CampoTelefone
           defaultValue={fields?.telefone ?? formatTelefone(pessoa?.telefone ?? null)}
           hint={paraPedido ? 'Com DDD' : undefined}
           required={Boolean(paraPedido)}

@@ -58,13 +58,32 @@ export function formatDocumento(digits: string): string {
   return digits;
 }
 
-/** Telefone opcional, com DDD: 10 ou 11 dígitos. Grava só os dígitos, para a busca achar de qualquer jeito digitado. */
+/** Os DDDs que a Anatel atribuiu. Número com DDD fora daqui foi digitado errado. */
+const DDDS = new Set([
+  11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 24, 27, 28, 31, 32, 33, 34, 35, 37, 38, 41, 42, 43, 44, 45, 46,
+  47, 48, 49, 51, 53, 54, 55, 61, 62, 63, 64, 65, 66, 67, 68, 69, 71, 73, 74, 75, 77, 79, 81, 82, 83, 84, 85,
+  86, 87, 88, 89, 91, 92, 93, 94, 95, 96, 97, 98, 99,
+]);
+
+/**
+ * Telefone opcional, com DDD: 10 ou 11 dígitos. Grava só os dígitos, para a busca achar de qualquer jeito digitado.
+ *
+ * Além do tamanho, confere o que dá para conferir sem ligar: o DDD existe, o
+ * celular (11 dígitos) começa em 9, e o fixo (10 dígitos) começa de 2 a 5. Dez
+ * dígitos começando em 6 a 9 é celular sem o 9 da frente, erro comum de quem
+ * copia um número antigo.
+ */
 export function validateTelefone(text: string): { error: string } | { value: string | null } {
   if (text.trim() === '') return { value: null };
   let digits = onlyDigits(text);
   // 55 do código do país, quando colado do WhatsApp
   if (digits.length > 11 && digits.startsWith('55')) digits = digits.slice(2);
   if (digits.length !== 10 && digits.length !== 11) return { error: 'Telefone precisa ter DDD e número, como (47) 99612-4408.' };
+  if (!DDDS.has(Number(digits.slice(0, 2)))) return { error: `DDD ${digits.slice(0, 2)} não existe. Confira os dois primeiros números.` };
+  const primeiro = digits[2];
+  if (digits.length === 11 && primeiro !== '9') return { error: 'Celular com 11 dígitos começa em 9, depois do DDD.' };
+  if (digits.length === 10 && primeiro >= '6') return { error: 'Falta o 9 do celular, depois do DDD.' };
+  if (digits.length === 10 && primeiro < '2') return { error: 'Telefone fixo começa de 2 a 5, depois do DDD.' };
   return { value: digits };
 }
 
