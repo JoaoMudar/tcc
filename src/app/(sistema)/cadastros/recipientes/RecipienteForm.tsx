@@ -10,13 +10,14 @@ import { EMPTY_FORM_STATE } from '@/lib/form-state';
 import { updateRecipiente } from './actions';
 
 interface RecipienteFormProps {
-  recipiente: { id: string; nome: string; volumeLitros: number | null; ativo: boolean };
+  recipiente: { id: string; nome: string; volumeLitros: number | null; pesoKg: number | null; ativo: boolean };
   podeEditar: boolean;
 }
 
 export function RecipienteForm({ recipiente, podeEditar }: RecipienteFormProps) {
   const [state, formAction, pending] = useActionState(updateRecipiente, EMPTY_FORM_STATE);
   const volume = recipiente.volumeLitros === null ? '' : String(recipiente.volumeLitros).replace('.', ',');
+  const peso = recipiente.pesoKg === null ? '' : String(recipiente.pesoKg).replace('.', ',');
 
   return (
     <form action={formAction} className="flex flex-col gap-3 rounded-xl border border-line bg-white p-4">
@@ -26,9 +27,10 @@ export function RecipienteForm({ recipiente, podeEditar }: RecipienteFormProps) 
           <Pill tone="neutral">fora de uso</Pill>
         </span>
       )}
-      <fieldset disabled={!podeEditar} className="grid grid-cols-[2fr_1fr] gap-3">
-        <TextField label="Nome" name="nome" defaultValue={recipiente.nome} required />
+      <fieldset disabled={!podeEditar} className="grid grid-cols-2 gap-3">
+        <TextField label="Nome" name="nome" defaultValue={recipiente.nome} required className="col-span-2" />
         <TextField label="Volume (L)" name="volume" inputMode="decimal" defaultValue={volume} />
+        <TextField label="Peso cheio (kg)" name="peso" inputMode="decimal" defaultValue={peso} />
       </fieldset>
       {podeEditar && (
         <>

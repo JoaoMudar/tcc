@@ -14,7 +14,6 @@ import {
   centavosParaSql,
   podeTransicionar,
   quantidadeConfirmada,
-  resolveDisponibilidade,
   resolveResposta,
   validarComposicaoGenerico,
 } from './pedidos-rotulos';

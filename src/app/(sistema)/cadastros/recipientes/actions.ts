@@ -8,10 +8,10 @@ import * as recipientes from '@/lib/recipientes';
 import { isUuid } from '@/lib/uuid';
 import { requirePermission } from '@/lib/auth/guards';
 
-/** RF-11: recipiente novo, com nome e volume. */
+/** RF-11: recipiente novo, com nome, volume e peso cheio. */
 export async function createRecipiente(_previous: FormState, formData: FormData): Promise<FormState> {
   await requirePermission('recipientes', 'C');
-  const fields = { nome: formText(formData, 'nome'), volume: formText(formData, 'volume') };
+  const fields = { nome: formText(formData, 'nome'), volume: formText(formData, 'volume'), peso: formText(formData, 'peso') };
   const parsed = recipientes.parseRecipienteFields(fields);
   if ('error' in parsed) return { error: parsed.error, fields };
 
@@ -25,12 +25,16 @@ export async function createRecipiente(_previous: FormState, formData: FormData)
   return { success: `Recipiente ${parsed.value.nome} criado.` };
 }
 
-/** Nome, volume e uso. Não há exclusão: o recipiente sai de uso desativado. */
+/** Nome, volume, peso cheio e uso. Não há exclusão: o recipiente sai de uso desativado. */
 export async function updateRecipiente(_previous: FormState, formData: FormData): Promise<FormState> {
   await requirePermission('recipientes', 'A');
   const id = formText(formData, 'recipiente_id');
   if (!isUuid(id)) return { error: 'Recipiente inválido.' };
-  const parsed = recipientes.parseRecipienteFields({ nome: formText(formData, 'nome'), volume: formText(formData, 'volume') });
+  const parsed = recipientes.parseRecipienteFields({
+    nome: formText(formData, 'nome'),
+    volume: formText(formData, 'volume'),
+    peso: formText(formData, 'peso'),
+  });
   if ('error' in parsed) return { error: parsed.error };
 
   try {
