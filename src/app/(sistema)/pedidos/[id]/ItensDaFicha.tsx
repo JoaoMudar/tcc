@@ -455,6 +455,7 @@ export function ItensDaFicha({
       ) : (
         <GradeItensFicha
           itens={itensAgora}
+          conferidos={itens}
           saldos={saldos}
           valores={modo === 'negociacao' ? valores : undefined}
           onAlterar={modo === 'negociacao' ? alterarNegociacao : undefined}

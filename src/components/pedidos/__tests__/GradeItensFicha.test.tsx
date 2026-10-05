@@ -114,3 +114,101 @@ describe('estoque disponível na ficha (RF-56, RN-06)', () => {
     expect(screen.getByText('Disponível: 130')).toBeInTheDocument();
   });
 });
+
+describe('item dividido em recipientes: título com subitens', () => {
+  // Pediu 50 em tubete; tem 30 em tubete e completou com 20 em saco 17x22
+  const principal = item({
+    id: 'p',
+    quantidade: 50,
+    disponivel: false,
+    quantidadeDisponivel: 30,
+    recipienteDisponivelId: 't',
+    recipienteDisponivel: 'Tubete',
+  });
+  const complemento = item({
+    id: 'c',
+    quantidade: 20,
+    recipienteId: 's',
+    recipiente: 'Saco 17x22',
+    disponivel: true,
+    complementaItemId: 'p',
+  });
+  // A ordem do banco é por espécie e recipiente: o complemento (saco) pode vir antes do principal (tubete)
+  const outro = item({ id: 'o', especie: 'Cedro', especieId: 'e2', quantidade: 10 });
+
+  function linhasDaTabela() {
+    return Array.from(document.querySelectorAll('tbody tr')).map((tr) =>
+      Array.from(tr.querySelectorAll('td')).map((td) => td.textContent?.trim()),
+    );
+  }
+
+  it('o título mostra o pedido e o que temos, e as linhas reais vêm embaixo dele', () => {
+    render(<GradeItensFicha itens={[outro, complemento, principal]} saldos={{}} />);
+    const [linhaOutro, titulo, linhaPrincipal, linhaComplemento] = linhasDaTabela();
+    expect(titulo[0]).toContain('Ipê-amarelo');
+    expect(titulo[0]).toContain('Temos 50 de 50');
+    expect(titulo.slice(1)).toEqual(['Tubete', '', '50']);
+    expect(linhaPrincipal[0]).toContain('↳');
+    expect(linhaPrincipal.slice(1)).toEqual(['Tubete', '', '30']);
+    expect(linhaComplemento[0]).toContain('↳');
+    expect(linhaComplemento.slice(1)).toEqual(['Saco 17x22', '', '20']);
+    expect(linhaOutro[0]).toContain('Cedro');
+    expect(linhaOutro[0]).not.toContain('↳');
+  });
+
+  it('o que falta para o pedido aparece no título', () => {
+    render(<GradeItensFicha itens={[principal, { ...complemento, quantidade: 10 }]} saldos={{}} />);
+    expect(screen.getAllByText('Temos 40 de 50')[0].className).toMatch(/amber/);
+  });
+
+  it('"Tem tudo" dividido: o recipiente que o cliente não disse fica a definir no título', () => {
+    const semRecipiente = { ...principal, recipienteId: null, recipiente: null };
+    render(<GradeItensFicha itens={[semRecipiente, complemento]} saldos={{}} />);
+    const [titulo] = linhasDaTabela();
+    expect(titulo[1]).toBe('A definir');
+    expect(screen.queryByText('Definir')).toBeNull();
+  });
+
+  it('a parte sem complemento continua uma linha só', () => {
+    render(<GradeItensFicha itens={[principal]} saldos={{}} />);
+    expect(linhasDaTabela()).toHaveLength(1);
+    expect(screen.queryByText(/^Temos/)).toBeNull();
+  });
+
+  it('na negociação, o título não tem campo e mantém o pedido enquanto se digita', () => {
+    // O que ItensDaFicha passa enquanto a chefia digita: quantidade nova, conferência apagada
+    const digitado = { ...principal, quantidade: 35, disponivel: true, quantidadeDisponivel: null };
+    render(
+      <GradeItensFicha
+        itens={[digitado, complemento]}
+        conferidos={[principal, complemento]}
+        saldos={{}}
+        valores={{
+          p: { preco: '', quantidade: '35', recipienteId: 't' },
+          c: { preco: '', quantidade: '20', recipienteId: 's' },
+        }}
+        onAlterar={vi.fn()}
+      />,
+    );
+    const [titulo] = linhasDaTabela();
+    expect(titulo[3]).toBe('50');
+    expect(titulo[0]).toContain('Temos 50 de 50');
+    // Os campos são das duas linhas reais, numeradas sem o título
+    expect(screen.getAllByLabelText('Preço do item 1')).toHaveLength(2);
+    expect(screen.getAllByLabelText('Preço do item 2')).toHaveLength(2);
+    expect(screen.queryByLabelText('Preço do item 3')).toBeNull();
+  });
+
+  it('o suplente usado no item sem quantidade vira subitem, e o que sobra fica no título', () => {
+    const semQuantidade = item({ id: 'p', quantidade: null, disponivel: true });
+    const usado = item({ id: 'u', quantidade: null, recipienteId: 's', recipiente: 'Saco 17x22', disponivel: true, complementaItemId: 'p' });
+    const sobrando = item({ id: 'x', recipienteId: 'b', recipiente: 'Balde', disponivel: true, complementaItemId: 'p' });
+    render(<GradeItensFicha itens={[semQuantidade, usado]} suplentes={[sobrando]} saldos={{}} />);
+    const [titulo, , linhaUsado] = linhasDaTabela();
+    expect(titulo[0]).toContain('Temos em Tubete e Saco 17x22');
+    expect(titulo[0]).toContain('também tem em Balde');
+    expect(linhaUsado[0]).toContain('↳');
+    // O aviso aparece uma vez em cada desenho (planilha e lista), e não repete no subitem
+    expect(screen.getAllByText(/também tem em/)).toHaveLength(2);
+  });
+});
