@@ -24,7 +24,7 @@ export async function FecharSemana({ semana: semanaPedida, emModal }: { semana?:
       {!semana && <Notice tone="info">Esta semana não tem nenhuma tarefa lançada.</Notice>}
       {semana?.situacao === 'fechada' && <Notice tone="info">Esta semana já está fechada.</Notice>}
       {semana?.situacao === 'aberta' && !passou && (
-        <Notice tone="info">A semana ainda não terminou. Ela se fecha a partir da segunda-feira seguinte.</Notice>
+        <Notice tone="info">A semana ainda não terminou.</Notice>
       )}
       {semana && resumo && (
         <>

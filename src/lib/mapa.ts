@@ -52,6 +52,12 @@ export interface LoteNoMapa {
   tarefaPendente: string | null;
   pendenteDesde: string | null;
   diasAtraso: number;
+  /** De onde vem a pendência (RF-66): a tarefa lançada e não confirmada, ou a etapa que ninguém lançou. */
+  atribuicaoPendenteId: string | null;
+  protocoloEtapaPendenteId: string | null;
+  /** O tipo e o turno da etapa pendente, que vão preenchidos no lançamento. */
+  tipoTarefaPendenteId: string | null;
+  turnoPendenteId: string | null;
   quantidadeInicial: number;
   perdas: number;
   /** RF-42: perdas sobre a quantidade inicial. Nula sem base para dividir. */
@@ -71,9 +77,13 @@ export async function listLotesDoMapa(db: Db): Promise<LoteNoMapa[]> {
                        WHERE m.lote_id = l.id AND m.tipo_movimento = 'perda'), 0)::int AS perdas,
             s.situacao, s.tarefa_pendente AS "tarefaPendente",
             to_char(s.pendente_desde, 'YYYY-MM-DD') AS "pendenteDesde",
-            s.dias_atraso AS "diasAtraso"
+            s.dias_atraso AS "diasAtraso",
+            s.atribuicao_pendente_id AS "atribuicaoPendenteId",
+            s.protocolo_etapa_pendente_id AS "protocoloEtapaPendenteId",
+            s.tipo_tarefa_pendente_id AS "tipoTarefaPendenteId", pe.turno_id AS "turnoPendenteId"
        FROM situacao_lote s
        JOIN lotes l ON l.id = s.lote_id
+       LEFT JOIN protocolos_etapas pe ON pe.id = s.protocolo_etapa_pendente_id
        JOIN especies e ON e.id = l.especie_id
        JOIN recipientes r ON r.id = l.recipiente_id
       ORDER BY s.posicao NULLS LAST, s.codigo_lote`,

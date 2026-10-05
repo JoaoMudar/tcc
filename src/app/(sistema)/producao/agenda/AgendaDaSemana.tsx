@@ -2,18 +2,21 @@ import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { findSemana, listAgendaSemana, listFuncionarios } from '@/lib/agenda';
 import { COOKIE_ZOOM, lerZoom } from '@/lib/agenda-zoom';
+import { diasEntre } from '@/lib/datas';
 import pool from '@/lib/db';
+import { formatQuantidade } from '@/lib/lotes-rotulos';
+import { SITUACOES_LOTE, listLotesDoMapa, pedemProvidencia, textoPendencia } from '@/lib/mapa';
 import { horizonteProtocolo } from '@/lib/parametros';
 import { type Perfil, can } from '@/lib/permissions';
 import { listSugestoes, sugestoesDaSemana } from '@/lib/protocolos';
+import { providenciaDoLote } from '@/lib/providencia';
 import { diasDaSemana, diasUteisDaSemana, inicioDaSemana, rotuloSemana, semanaJaPassou } from '@/lib/semanas';
-import { formatDuracao, jornadaDiaria, listTurnos, turnoLabel } from '@/lib/turnos';
+import { listTurnos } from '@/lib/turnos';
 import { AgendaDiaCelular } from './AgendaDiaCelular';
-import { CopiarSemanaForm } from './CopiarSemanaForm';
 import { ForaDaGrade } from './ForaDaGrade';
 import { GanttSemana } from './GanttSemana';
-import { MenuSemana } from './MenuSemana';
 import { NavegacaoAgenda } from './NavegacaoAgenda';
+import { type ItemProvidencia, PedemProvidencia } from './PedemProvidencia';
 import { SeletorZoom } from './SeletorZoom';
 import { SugestoesProtocolo } from './SugestoesProtocolo';
 import { ZoomAgenda } from './ZoomAgenda';
@@ -45,16 +48,31 @@ export async function AgendaDaSemana({ dia, hoje, perfil }: AgendaDaSemanaProps)
   const horizonte = await horizonteProtocolo(pool);
   // O domingo fecha a semana (é o mesmo fim que sugestoesDaSemana usa)
   const fimDaSemana = dias[6];
-  const diasAteOFim = Math.round((Date.parse(`${fimDaSemana}T00:00:00Z`) - Date.parse(`${hoje}T00:00:00Z`)) / 86_400_000);
+  const diasAteOFim = diasEntre(hoje, fimDaSemana);
   const sugestoes = sugestoesDaSemana(await listSugestoes(pool, hoje, Math.max(horizonte, diasAteOFim, 0)), inicio, hoje);
-  const ativos = turnos.filter((turno) => turno.ativo);
+  // RF-45, RF-66: o que pede providência, de qualquer semana. O lançamento cai na
+  // semana aberta na tela, ou na de hoje quando a da tela já passou.
+  const semanaDeLancar = semanaJaPassou(inicio, hoje) ? inicioDaSemana(hoje) : inicio;
+  const providencias: ItemProvidencia[] = pedemProvidencia(await listLotesDoMapa(pool)).map((lote) => {
+    const pendencia = textoPendencia(lote, hoje);
+    return {
+      loteId: lote.id,
+      titulo: `${lote.codigo} · ${lote.especie}`,
+      providencia: providenciaDoLote(lote, pendencia, semanaDeLancar),
+      critico: lote.situacao === 'critico',
+      situacao: SITUACOES_LOTE[lote.situacao],
+      pendencia,
+      saldo: `${formatQuantidade(lote.saldo)} mudas`,
+    };
+  });
   // O turno desativado continua com a sua faixa na semana em que tem tarefa
   const turnosNaGrade = turnos.filter((turno) => turno.ativo || atribuicoes.some((a) => a.turnoId === turno.id));
 
   const fechada = semana?.situacao === 'fechada';
   const podeMontar = can(perfil, 'agenda', 'C') && !fechada;
   // Semana que ainda não existe não tem o que fechar, e a corrente ainda não terminou (RF-28)
-  const podeFechar = can(perfil, 'fechamento_semana', 'A') && semana?.situacao === 'aberta' && semanaJaPassou(inicio, hoje);
+  const aFechar = semana?.situacao === 'aberta' && semanaJaPassou(inicio, hoje);
+  const podeFechar = can(perfil, 'fechamento_semana', 'A') && aFechar;
   const podeArrastar = can(perfil, 'agenda', 'A') && !fechada;
   const podeConfirmar = can(perfil, 'confirmacao_tarefa', 'C') && !fechada;
   const noFimDeSemana = atribuicoes.filter((a) => !diasUteis.includes(a.data));
@@ -76,7 +94,15 @@ export async function AgendaDaSemana({ dia, hoje, perfil }: AgendaDaSemanaProps)
             {fechada && <span className="ml-1 rounded-full bg-surface px-2 py-0.5 text-xs font-semibold text-muted">Fechada</span>}
           </div>
           <div className="flex items-center gap-1">
-            <MenuSemana semana={inicio} dia={dia} podeMontar={podeMontar} />
+            {/* Um botão, e não um ⋯: sobrou uma ação só, e o <details> não abria no Firefox do celular */}
+            {podeMontar && (
+              <Link
+                href={`/producao/agenda/nova?semana=${inicio}&dia=${dia}`}
+                className="inline-flex min-h-11 items-center rounded-lg border-2 border-brand px-3 text-sm font-semibold text-brand active:bg-brand-light"
+              >
+                + Tarefa
+              </Link>
+            )}
             {podeFechar && (
               <Link
                 href={`/producao/agenda/fechar?semana=${inicio}`}
@@ -88,18 +114,8 @@ export async function AgendaDaSemana({ dia, hoje, perfil }: AgendaDaSemanaProps)
           </div>
         </div>
 
-        {/* TA-12: a jornada sai do período de trabalho cadastrado, e explica as faixas da grade */}
-        <p className="-mt-2 text-xs text-muted">
-          Jornada {formatDuracao(jornadaDiaria(turnos))}
-          {ativos.map((turno) => ` · ${turnoLabel(turno.nome)} ${turno.inicio}–${turno.fim}`).join('')}
-          {fechada && ' · Semana fechada: correção, só por lançamento na semana seguinte.'}
-        </p>
-
         {atribuicoes.length === 0 && (
-          <div className="flex flex-col items-start gap-3 rounded-lg border border-line bg-white p-6 md:flex-row md:items-center md:p-4">
-            <p className="text-sm text-muted">Nenhuma tarefa nesta semana.</p>
-            {podeMontar && <CopiarSemanaForm semana={inicio} estilo="vazio" />}
-          </div>
+          <p className="rounded-lg border border-line bg-white p-6 text-sm text-muted md:p-4">Nenhuma tarefa nesta semana.</p>
         )}
 
         {/* O Gantt aparece mesmo vazio: é nele que se clica para lançar */}
@@ -115,6 +131,7 @@ export async function AgendaDaSemana({ dia, hoje, perfil }: AgendaDaSemanaProps)
             hoje={hoje}
             semana={inicio}
             podeArrastar={podeArrastar}
+            aFechar={aFechar}
             opcoes={opcoes}
           />
         )}
@@ -130,12 +147,14 @@ export async function AgendaDaSemana({ dia, hoje, perfil }: AgendaDaSemanaProps)
             turnos={turnosNaGrade}
             podeConfirmar={podeConfirmar}
             podeAlterar={podeArrastar}
+            aFechar={aFechar}
             lancarHref={podeMontar ? `/producao/agenda/nova?semana=${inicio}&dia=${dia}` : undefined}
           />
         )}
 
         {/* Abaixo da semana, e nunca dentro da grade (RF-47) */}
         <SugestoesProtocolo sugestoes={sugestoes} semana={inicio} podeLancar={podeMontar} />
+        <PedemProvidencia itens={providencias} podeAgir={can(perfil, 'agenda', 'C')} />
       </section>
     </ZoomAgenda>
   );

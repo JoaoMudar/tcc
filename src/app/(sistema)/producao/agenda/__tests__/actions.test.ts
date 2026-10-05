@@ -52,7 +52,7 @@ beforeEach(() => {
 });
 
 describe('permissões da agenda (D4 §3.3)', () => {
-  it('chefia só lê: não lança, altera, exclui, copia nem fecha', async () => {
+  it('chefia só lê: não lança, altera, exclui nem fecha', async () => {
     loggedAs('chefia');
     const semana = form({ semana: SEMANA });
     const tarefa = form({ id: ID });
@@ -61,7 +61,6 @@ describe('permissões da agenda (D4 §3.3)', () => {
     await expect(actions.excluirAtribuicaoAction({}, tarefa)).rejects.toThrow(FORBIDDEN_MESSAGE);
     await expect(actions.reagendarAtribuicaoAction({}, tarefa)).rejects.toThrow(FORBIDDEN_MESSAGE);
     await expect(actions.promoverAtribuicaoAction({}, tarefa)).rejects.toThrow(FORBIDDEN_MESSAGE);
-    await expect(actions.copiarSemanaAction({}, semana)).rejects.toThrow(FORBIDDEN_MESSAGE);
     await expect(actions.fecharSemanaAction({}, semana)).rejects.toThrow(FORBIDDEN_MESSAGE);
     expectNoDatabase();
   });
@@ -80,7 +79,6 @@ describe('permissões da agenda (D4 §3.3)', () => {
     expect(await actions.reagendarAtribuicaoAction({}, form({ id: ID, data: SEMANA, turno_id: 'x' }))).toMatchObject({
       error: expect.stringContaining('Escolha o turno'),
     });
-    expect(await actions.copiarSemanaAction({}, form({ semana: '2026-09-16' }))).toEqual({ error: 'Semana inválida.' });
     expect(await actions.fecharSemanaAction({}, form({ semana: 'x' }))).toEqual({ error: 'Semana inválida.' });
     expectNoDatabase();
   });
@@ -141,19 +139,97 @@ describe('permissões da agenda (D4 §3.3)', () => {
     expectNoDatabase();
   });
 
-  it('as ações de abrir e publicar a semana não existem mais', () => {
+  it('as ações de abrir, publicar e copiar a semana não existem mais', () => {
     expect(actions).not.toHaveProperty('abrirSemanaAction');
     expect(actions).not.toHaveProperty('publicarSemanaAction');
+    expect(actions).not.toHaveProperty('copiarSemanaAction');
+  });
+});
+
+describe('RF-66: postergar e confirmar o que pede providência', () => {
+  const LOTE = '2d9f4e5a-0b7c-4e3d-9f2a-4b8c9d0e1f2a';
+  const ETAPA = '3e0a5f6b-1c8d-4f4e-8a3b-5c9d0e1f2a3b';
+
+  const TIPO = '4f1b6a7c-2d9e-4a5f-9b4c-6d0e1f2a3b4c';
+  const TURNO = '5a2c7b8d-3e0f-4b6a-8c5d-7e1f2a3b4c5d';
+
+  function feita(extra: Record<string, string> = {}): FormData {
+    return form({ lote_etapa_id: ETAPA, lote_id: LOTE, tipo_tarefa_id: TIPO, dias: '2026-09-15', turno_id: TURNO, participantes: PESSOA, ...extra });
+  }
+
+  it('chefia só lê: não posterga nem confirma', async () => {
+    loggedAs('chefia');
+    const etapa = form({ lote_id: LOTE, etapa_id: ETAPA, dias: '7' });
+    await expect(actions.adiarEtapaAction({}, etapa)).rejects.toThrow(FORBIDDEN_MESSAGE);
+    await expect(actions.registrarTarefaFeitaAction({}, feita())).rejects.toThrow(FORBIDDEN_MESSAGE);
+    await expect(actions.adiarAtribuicaoAction({}, form({ id: ID, dias: '7' }))).rejects.toThrow(FORBIDDEN_MESSAGE);
+    expectNoDatabase();
   });
 
-  it('semana fechada recusa com o motivo (TA-30)', async () => {
+  it('o que é inválido volta antes do banco', async () => {
+    loggedAs('gerencia');
+    expect(await actions.adiarEtapaAction({}, form({ lote_id: 'x', etapa_id: ETAPA, dias: '7' }))).toEqual({ error: 'Etapa inválida.' });
+    expect(await actions.adiarEtapaAction({}, form({ lote_id: LOTE, etapa_id: ETAPA, dias: '0' }))).toEqual({ error: 'Informe de 1 a 90 dias.' });
+    expect(await actions.registrarTarefaFeitaAction({}, feita({ dias: '' }))).toMatchObject({ error: 'Escolha o dia em que a tarefa foi feita.' });
+    expect(await actions.registrarTarefaFeitaAction({}, feita({ dias: '2999-01-01' }))).toMatchObject({
+      error: 'O dia em que foi feita não pode estar no futuro.',
+    });
+    expect(await actions.registrarTarefaFeitaAction({}, feita({ tipo_tarefa_id: 'x' }))).toMatchObject({ error: 'Tipo de tarefa inválido.' });
+    expect(await actions.adiarAtribuicaoAction({}, form({ id: 'x', dias: '7' }))).toEqual({ error: 'Tarefa inválida.' });
+    expect(await actions.adiarAtribuicaoAction({}, form({ id: ID, dias: '120' }))).toEqual({ error: 'Informe de 1 a 90 dias.' });
+    expectNoDatabase();
+  });
+
+  it('postergar grava a ação na ocorrência que está por vir, com o autor', async () => {
     loggedAs('gerencia');
     client.query.mockImplementation(async (sql: string) =>
-      sql.includes('FROM semanas') ? { rows: [{ id: 's1', inicio: SEMANA, situacao: 'fechada', fechadaEm: new Date() }] } : { rows: [] },
+      sql.includes('FOR UPDATE OF le') ? { rows: [{ ocorrencia: 3, vencimento: '2999-01-10' }] } : { rows: [] },
     );
-    expect(await actions.copiarSemanaAction({}, form({ semana: SEMANA }))).toEqual({
-      error: expect.stringContaining('está fechada e não se altera'),
+    expect(await actions.adiarEtapaAction({}, form({ lote_id: LOTE, etapa_id: ETAPA, dias: '7' }))).toEqual({ success: 'Adiada para 17/01/2999.' });
+    const insert = client.query.mock.calls.find(([sql]) => String(sql).includes('INSERT INTO lotes_etapas_acoes'));
+    expect(insert?.[1]).toEqual([LOTE, ETAPA, 3, 7, 'u1']);
+    expect(client.query).toHaveBeenCalledWith('COMMIT');
+  });
+
+  it('postergar a etapa vencida conta de hoje, e a linha leva o atraso junto', async () => {
+    loggedAs('gerencia');
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-05T12:00:00-03:00'));
+    try {
+      client.query.mockImplementation(async (sql: string) =>
+        sql.includes('FOR UPDATE OF le') ? { rows: [{ ocorrencia: 1, vencimento: '2026-10-01' }] } : { rows: [] },
+      );
+      expect(await actions.adiarEtapaAction({}, form({ lote_id: LOTE, etapa_id: ETAPA, dias: '1' }))).toEqual({ success: 'Adiada para 06/10/2026.' });
+      const insert = client.query.mock.calls.find(([sql]) => String(sql).includes('INSERT INTO lotes_etapas_acoes'));
+      // De 01/10 a 06/10: os quatro dias de atraso mais o um pedido
+      expect(insert?.[1]).toEqual([LOTE, ETAPA, 1, 5, 'u1']);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('a confirmação sem ninguém que fez volta sem gravar, com o que foi digitado', async () => {
+    loggedAs('gerencia');
+    vi.mocked(pool.query).mockResolvedValueOnce({
+      rows: [{ id: TIPO, nome: 'Limpeza', eQuantitativa: false, exigeLote: true, exigeEspecie: false, exigeRecipiente: false, exigeArea: false, unidadeMedida: 'un', ativo: true }],
+    } as never);
+    expect(await actions.registrarTarefaFeitaAction({}, feita({ participantes: '', perdidas: '3' }))).toMatchObject({
+      error: 'Escolha ao menos uma pessoa.',
+      fields: { perdidas: '3', dias: '2026-09-15' },
     });
-    expect(client.query).toHaveBeenCalledWith('ROLLBACK');
+    expect(pool.connect).not.toHaveBeenCalled();
+  });
+
+  it('a perda sem causa volta antes de lançar a tarefa', async () => {
+    loggedAs('gerencia');
+    vi.mocked(pool.query).mockResolvedValueOnce({
+      rows: [{ id: TIPO, nome: 'Limpeza', eQuantitativa: false, exigeLote: true, exigeEspecie: false, exigeRecipiente: false, exigeArea: false, unidadeMedida: 'un', ativo: true }],
+    } as never);
+    expect(await actions.registrarTarefaFeitaAction({}, feita({ perdidas: '3' }))).toMatchObject({ error: 'Escolha a causa das mudas que morreram.' });
+    expect(pool.connect).not.toHaveBeenCalled();
+  });
+
+  it('a ação de concluir sem agenda não existe mais: confirmar registra a tarefa', () => {
+    expect(actions).not.toHaveProperty('concluirEtapaSemAgendaAction');
   });
 });

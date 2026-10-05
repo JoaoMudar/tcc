@@ -56,6 +56,8 @@ interface GanttSemanaProps {
   semana: string;
   /** Arrastar remarca, e exige alterar a agenda em semana aberta. */
   podeArrastar?: boolean;
+  /** A semana já pode ser fechada: a não confirmada fica âmbar, a confirmada verde. */
+  aFechar?: boolean;
   /** As listas do formulário: só chegam quando se pode lançar. */
   opcoes?: OpcoesAtribuicao;
   className?: string;
@@ -100,6 +102,7 @@ export function GanttSemana({
   dia = hoje,
   semana,
   podeArrastar = false,
+  aFechar = false,
   opcoes,
   className = '',
 }: GanttSemanaProps) {
@@ -436,6 +439,7 @@ export function GanttSemana({
                               encosta={encostas(barra, barras)}
                               arrastavel={arrastavel(barra.item)}
                               promovivel={podeArrastar && barra.item.semanaSituacao === 'aberta'}
+                              aFechar={aFechar}
                               emArrasto={ehSessao}
                               destino={ehSessao && sessao.pessoa !== sessao.pessoaOriginal ? nomeDe(sessao.pessoa) : null}
                               onPromover={promover}

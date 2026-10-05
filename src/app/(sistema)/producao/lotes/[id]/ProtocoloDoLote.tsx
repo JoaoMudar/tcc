@@ -1,7 +1,7 @@
 import { Pill } from '@/components/ui/Pill';
 import { formatData } from '@/lib/datas';
 import { SITUACOES_ETAPA, TIPOS_AGENDAMENTO } from '@/lib/protocolo-rotulos';
-import type { EtapaDoLote } from '@/lib/protocolos';
+import type { AcaoDaEtapa, EtapaDoLote } from '@/lib/protocolos';
 
 const TOM_PILL = { em_dia: 'green', atencao: 'amber', atraso: 'red' } as const;
 
@@ -10,7 +10,7 @@ const TOM_PILL = { em_dia: 'green', atencao: 'amber', atraso: 'red' } as const;
  * alerta desligado não recebe indicação nenhuma, nem verde (RN-35, TA-37): a
  * irrigação diária colorida deixaria o viveiro inteiro em atraso toda manhã.
  */
-export function ProtocoloDoLote({ etapas }: { etapas: readonly EtapaDoLote[] }) {
+export function ProtocoloDoLote({ etapas, acoes = [] }: { etapas: readonly EtapaDoLote[]; acoes?: readonly AcaoDaEtapa[] }) {
   if (etapas.length === 0) return null;
 
   return (
@@ -56,6 +56,28 @@ export function ProtocoloDoLote({ etapas }: { etapas: readonly EtapaDoLote[] }) 
           );
         })}
       </ol>
+
+      {/* RF-66: o que a gerência fez com o protocolo fora da agenda. A conclusão por tarefa confirmada fica na agenda. */}
+      {acoes.length > 0 && (
+        <>
+          <h3 className="mt-2 text-sm font-semibold text-ink">Histórico do protocolo</h3>
+          <ul className="flex flex-col divide-y divide-line rounded-xl border border-line bg-white">
+            {acoes.map((acao) => (
+              <li key={acao.id} className="flex flex-col gap-0.5 px-4 py-2">
+                <span className="text-base text-ink">
+                  {acao.rotulo}:{' '}
+                  {acao.tipoAcao === 'adiamento'
+                    ? `postergada ${acao.dias} ${acao.dias === 1 ? 'dia' : 'dias'}`
+                    : 'concluída sem agenda'}
+                </span>
+                <span className="text-sm text-muted">
+                  {formatData(acao.dataAcao)} · {acao.registradoPor}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </section>
   );
 }

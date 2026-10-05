@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { PageHeader } from '@/components/PageHeader';
-import { Notice } from '@/components/ui/Notice';
+import { Toast } from '@/components/ui/Toast';
 import { hojeNoViveiro, isDataIso } from '@/lib/datas';
 import { CAUSAS_PERDA, formatQuantidade, isCausaPerda, lerQuantidade } from '@/lib/lotes-rotulos';
 import { type Recurso, can } from '@/lib/permissions';
@@ -17,11 +17,11 @@ const SECOES: readonly { href: string; title: string; description: string; recur
     recurso: 'lotes',
   },
   { href: '/producao/perdas', title: 'Perdas', description: 'Perdas por período, espécie e causa, e a mortalidade de cada lote.', recurso: 'analise_perdas' },
-  { href: '/producao/saldo', title: 'Muda pronta', description: 'Quanto há pronto para vender, por espécie e recipiente.', recurso: 'estoque_disponivel' },
+  { href: '/producao/saldo', title: 'Estoque disponível', description: 'Quanto há para vender, por espécie, recipiente e altura.', recurso: 'estoque_disponivel' },
 ];
 
 interface ProducaoPageProps {
-  searchParams: Promise<{ dia?: string; aba?: string; feito?: string; perda?: string; causa?: string }>;
+  searchParams: Promise<{ dia?: string; aba?: string; feito?: string; perda?: string; causa?: string; }>;
 }
 
 const FEITO: Record<string, string> = {
@@ -48,6 +48,7 @@ export default async function ProducaoPage({ searchParams }: ProducaoPageProps) 
     perdaRegistrada !== null && causa && isCausaPerda(causa)
       ? ` Perda de ${formatQuantidade(perdaRegistrada)} por ${CAUSAS_PERDA[causa].toLowerCase()} registrada no lote.`
       : '';
+  const avisoFeito = feito ? FEITO[feito] : undefined;
 
   return (
     <main>
@@ -59,11 +60,11 @@ export default async function ProducaoPage({ searchParams }: ProducaoPageProps) 
           <MapaProducao />
         ) : (
           <>
-            {feito && FEITO[feito] && (
-              <Notice tone="success">
-                {FEITO[feito]}
+            {avisoFeito && (
+              <Toast tone="success" limpar={['feito', 'perda', 'causa']}>
+                {avisoFeito}
                 {avisoPerda}
-              </Notice>
+              </Toast>
             )}
             <AgendaDaSemana dia={dia} hoje={hoje} perfil={user.perfil} />
           </>

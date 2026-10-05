@@ -26,6 +26,11 @@ export function somaDias(iso: string, dias: number): string {
   return data.toISOString().slice(0, 10);
 }
 
+/** Quantos dias de `de` até `ate`, negativo se `ate` vem antes. O avesso de `somaDias`. */
+export function diasEntre(de: string, ate: string): number {
+  return Math.round((Date.parse(`${ate}T00:00:00Z`) - Date.parse(`${de}T00:00:00Z`)) / 86_400_000);
+}
+
 /** 0 domingo, 6 sábado. Lido em UTC, como `somaDias`, para o fuso não deslocar o dia. */
 function diaDaSemana(iso: string): number {
   return new Date(`${iso}T00:00:00Z`).getUTCDay();

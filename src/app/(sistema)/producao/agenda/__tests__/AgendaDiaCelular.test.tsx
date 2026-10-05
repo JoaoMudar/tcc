@@ -84,3 +84,26 @@ describe('AgendaDiaCelular (RNF-14, RF-29)', () => {
     expect(screen.getByRole('link', { name: 'Lançar tarefa' })).toBeInTheDocument();
   });
 });
+
+describe('AgendaDiaCelular: a semana que já pode ser fechada', () => {
+  it('a não confirmada fica âmbar com "?", e só nessa semana', () => {
+    const { rerender } = renderDia({ atribuicoes: [tarefa()] });
+    expect(screen.queryByRole('img', { name: 'Presumida' })).not.toBeInTheDocument();
+    rerender(
+      <AgendaDiaCelular
+        atribuicoes={[tarefa(), tarefa({ id: 'a2', tipo: 'Capinar', situacao: 'confirmada', participantes: [{ ...JOAO, quantidade: null }] })]}
+        funcionarios={[GILBERTO, JOAO, ANA]}
+        dias={DIAS}
+        dia={SEMANA}
+        hoje="2026-10-05"
+        turnos={[MANHA, TARDE]}
+        podeConfirmar
+        podeAlterar
+        aFechar
+      />,
+    );
+    expect(screen.getByRole('img', { name: 'Presumida' })).toBeInTheDocument();
+    expect(screen.getByText(/Encher saquinhos/).closest('li')).toHaveClass('bg-amber-50');
+    expect(screen.getByText('Capinar').closest('li')).toHaveClass('bg-green-50');
+  });
+});
