@@ -113,7 +113,7 @@ Três leituras que o diagrama torna imediatas:
   espécie cadastrada uma vez vira tarefa, vira lote e vira item de pedido.
 - **O Comercial conecta-se a um único ator.** Não é omissão do diagrama: quem vende é a chefia, e o
   pedido é o único ponto em que o sistema registra dinheiro. A gerência não precisa dele para
-  operar, e o que ela produz chega ao pedido pelo saldo de muda pronta, e não por uma tela
+  operar, e o que ela produz chega ao pedido pelo estoque disponível, e não por uma tela
   compartilhada.
 
 ---
@@ -197,7 +197,7 @@ graph LR
     UC48(["UC-23 · Repicar lote"])
     UC58(["UC-24 · Dividir lote"])
     UC17(["UC-25 · Registrar perda"])
-    UC16(["UC-26 · Registrar contagem do lote"])
+    UC16(["UC-26 · Registrar contagem e altura do lote"])
     UC61(["UC-27 · Consultar o mapa de lotes"])
     UC62(["UC-28 · Acompanhar protocolo do lote"])
     UC15(["UC-29 · Consultar estoque disponível"])
@@ -287,14 +287,14 @@ alimenta a matriz de rastreabilidade [`B5`](../B-requisitos/B5-matriz-rastreabil
 | **UC-16** | Manter áreas e canteiros | 1 · Cad. | Gerência | RF-13 | - |
 | **UC-17** | Manter protocolo de atividades | 1 · Cad. | Gerência | RF-22, RF-23, RF-24 | **✔ sim** |
 | **UC-18** | Customizar tempo de etapa por espécie | 1 · Cad. | Gerência | RF-25 | **✔ sim** |
-| **UC-19** | Montar a agenda da semana | 2 · Prod. | Gerência | RF-26, RF-27, RF-28 | - |
+| **UC-19** | Montar a agenda da semana | 2 · Prod. | Gerência | RF-26, RF-27, RF-28, RF-66 | - |
 | **UC-20** | Confirmar tarefa realizada | 2 · Prod. | Gerência | RF-29, RF-30 | **✔ sim** |
 | **UC-21** | Fechar a semana | 2 · Prod. | Gerência | RF-31 | - |
 | **UC-22** | Criar lote | 2 · Prod. | Gerência | RF-32, RF-46 | **✔ sim** |
 | **UC-23** | Repicar lote | 2 · Prod. | Gerência | RF-34, RF-35, RF-36 | **✔ sim** |
 | **UC-24** | Dividir lote | 2 · Prod. | Gerência | RF-40 | **✔ sim** |
 | **UC-25** | Registrar perda | 2 · Prod. | Gerência | RF-38, RF-37 | **✔ sim** |
-| **UC-26** | Registrar contagem do lote | 2 · Prod. | Gerência | RF-39 | - |
+| **UC-26** | Registrar contagem e altura do lote | 2 · Prod. | Gerência | RF-39, RF-65 | - |
 | **UC-27** | Consultar o mapa de lotes | 2 · Prod. | Gerência, Chefia | RF-33, RF-44, RF-45 | - |
 | **UC-28** | Acompanhar protocolo do lote | 2 · Prod. | Gerência | RF-51, RF-52, RF-53 | - |
 | **UC-29** | Consultar estoque disponível | 2 · Prod. | Chefia, Gerência | RF-43 | - |

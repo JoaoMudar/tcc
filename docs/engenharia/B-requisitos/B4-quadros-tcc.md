@@ -34,9 +34,10 @@ seguida. O script gera exatamente esse formato.
 | RN-02 | A espécie tem um nome científico e vários nomes populares. |
 | RN-03 | A espécie pode ter várias características ao mesmo tempo, como nativa, frutífera e madeireira. |
 | RN-04 | O recipiente define o porte da muda. Espécie e recipiente formam o produto. |
-| RN-05 | A produção da muda segue uma sequência declarada de etapas com prazo, do plantio à muda pronta. |
-| RN-06 | Só a muda pronta pode ser vendida. |
+| RN-05 | A produção da muda segue uma sequência declarada de etapas com prazo, do plantio ao fim do manejo. |
+| RN-06 | Toda muda de lote aberto pode ser vendida, em qualquer fase. Atende o item a muda da mesma espécie e recipiente com altura igual ou maior que a pedida. |
 | RN-07 | O insumo pertence a uma categoria, que pode ser substrato, adubo, defensivo, recipiente ou outros. |
+| RN-62 | Quando a muda da altura pedida não basta, a de até 20 cm abaixo é apresentada como a que pode completar o item. |
 
 Fonte: Elaborado pelo autor (2026).
 
@@ -65,7 +66,7 @@ Fonte: Elaborado pelo autor (2026).
 | RN-26 | O horário dos turnos e os limites de atraso são ajustáveis. |
 | RN-27 | Na classificação, as mudas mortas viram perda do lote no mesmo registro. |
 | RN-28 | A ocupação do canteiro é a soma dos saldos dos lotes abertos nele. |
-| RN-29 | A tarefa recorrente já aparece preenchida na cópia da semana. |
+| RN-29 | A tarefa recorrente já aparece preenchida na semana seguinte. |
 | RN-61 | Remanejar a tarefa de uma pessoa para outra substitui a primeira pela segunda no grupo, e não acrescenta: quem já está na tarefa não entra de novo. |
 
 Fonte: Elaborado pelo autor (2026).
@@ -86,6 +87,7 @@ Fonte: Elaborado pelo autor (2026).
 | RN-39 | Na divisão, cada lote novo segue o protocolo sozinho e herda a fase e as datas do original. |
 | RN-40 | O vencimento da etapa é calculado, nunca digitado. |
 | RN-41 | O protocolo sugere tarefas de acordo com a necessidade do lote. |
+| RN-63 | Postergar a etapa desloca o vencimento só da ocorrência em aberto, contando de hoje quando ela já venceu, e cada adiamento ou conclusão fora da agenda fica no histórico do lote. |
 
 Fonte: Elaborado pelo autor (2026).
 
@@ -126,12 +128,12 @@ Fonte: Elaborado pelo autor (2026).
 
 | Área | Regras | Quantidade |
 |---|---|---:|
-| Domínio e produto | RN-01, RN-02, RN-03, RN-04, RN-05, RN-06, RN-07 | 7 |
+| Domínio e produto | RN-01, RN-02, RN-03, RN-04, RN-05, RN-06, RN-07, RN-62 | 8 |
 | Produção, lote e trabalho | RN-08, RN-09, RN-10, RN-11, RN-12, RN-13, RN-14, RN-15, RN-16, RN-17, RN-18, RN-19, RN-20, RN-21, RN-22, RN-23, RN-24, RN-25, RN-26, RN-27, RN-28, RN-29, RN-61 | 23 |
-| Protocolo de atividades por lote | RN-30, RN-31, RN-32, RN-33, RN-34, RN-35, RN-36, RN-37, RN-38, RN-39, RN-40, RN-41 | 12 |
+| Protocolo de atividades por lote | RN-30, RN-31, RN-32, RN-33, RN-34, RN-35, RN-36, RN-37, RN-38, RN-39, RN-40, RN-41, RN-63 | 13 |
 | Cliente e pedido | RN-42, RN-43, RN-44, RN-45, RN-46, RN-47, RN-48, RN-49, RN-50 | 9 |
 | Acesso e responsabilidade | RN-51, RN-52, RN-53, RN-54, RN-55, RN-56, RN-57, RN-58, RN-59, RN-60 | 10 |
-| **Total** | | **61** |
+| **Total** | | **63** |
 
 Fonte: Elaborado pelo autor (2026).
 
@@ -169,7 +171,7 @@ Fonte: Elaborado pelo autor (2026).
 | RF-24 | Alerta e janela de aviso por etapa | O sistema deve permitir ligar e desligar o alerta de atraso por etapa do protocolo, e sobrescrever nela a janela de aviso padrão. | RN-35 |
 | RF-25 | Tempo de etapa customizado por espécie | O sistema deve permitir, no cadastro da espécie, sobrescrever o tempo em dias de uma etapa específica do protocolo. | RN-36 |
 | RF-26 | Montagem da agenda da semana | O sistema deve permitir montar a agenda da semana atribuindo, por funcionário e por dia, o tipo de tarefa e o turno, manhã ou tarde, admitindo a mesma tarefa para mais de um funcionário e mais de uma tarefa no mesmo turno com grupos diferentes, e deve permitir declarar a hora de início e de fim da tarefa que tiver hora marcada, sem exigi-la das demais; na apresentação em tela larga (RNF-14) a montagem deve ser direta, numa linha do tempo por pessoa: arrastando a tarefa planejada para remarcá-la no dia e na hora, ou para a linha de outra pessoa, que então substitui a de origem no grupo, puxando a borda dela para declarar a duração, e lançando tarefa nova no turno vazio em que se clicar, sem perguntar de novo a pessoa, o dia e o turno. | RN-12, RN-25, RN-61 |
-| RF-27 | Cópia da semana e tarefa recorrente | O sistema deve permitir copiar a agenda da semana anterior e marcar tarefas como recorrentes, que passam a nascer preenchidas na cópia. | RN-29 |
+| RF-27 | Tarefa recorrente | O sistema deve permitir marcar tarefas como recorrentes, que passam a nascer preenchidas na semana seguinte, no primeiro lançamento dela. | RN-29 |
 | RF-28 | Situação da semana | O sistema deve controlar a situação da semana (aberta e fechada) e impedir alteração depois do fechamento. | RN-13 |
 | RF-29 | Confirmação da tarefa realizada | O sistema deve permitir confirmar a atribuição como realizada, apresentando os campos que o tipo de tarefa exigir, o lote uma vez para a tarefa e a quantidade uma vez por participante, exigindo o lote quando o tipo declarar lote específico e pedindo a quantidade apenas quando o tipo for quantitativo por unidade. | RN-23, RN-24, RN-27 |
 | RF-30 | Área ou canteiro da tarefa sem lote | O sistema deve permitir registrar a área ou o canteiro da tarefa cujo tipo declarar área, e dispensá-los quando o lote os determinar. | RN-24 |
@@ -185,7 +187,8 @@ Fonte: Elaborado pelo autor (2026).
 | RF-40 | Divisão de lote | O sistema deve permitir dividir um lote em dois, com cada resultante seguindo o protocolo de forma independente e herdando do original a fase e a data da última execução de cada etapa. | RN-39 |
 | RF-41 | Listagem de perdas com filtro | O sistema deve listar as perdas registradas com filtro por período, espécie e causa. | RN-10 |
 | RF-42 | Taxa de mortalidade e destaque no mapa | O sistema deve calcular a taxa de mortalidade do lote, como a razão entre as perdas dele e a sua quantidade inicial, apresentá-la no mapa e destacar ali o lote cuja taxa ultrapasse o limite definido em Configurações. | RN-11 |
-| RF-43 | Quantidade de muda pronta disponível | O sistema deve apresentar a quantidade de muda pronta disponível por espécie e recipiente, somada dos lotes abertos. | RN-04, RN-06, RN-08, RN-16 |
+| RF-43 | Estoque disponível por espécie, recipiente e altura | O sistema deve apresentar a quantidade de muda disponível por espécie, recipiente e altura, somada de todos os lotes abertos, em qualquer fase. | RN-04, RN-06, RN-08, RN-16 |
+| RF-65 | Altura atual da muda do lote | O sistema deve permitir registrar a altura atual da muda do lote, em metros, substituindo a medida anterior. | RN-06, RN-62 |
 | RF-44 | Mapa do viveiro com áreas, canteiros e lotes | O sistema deve apresentar o mapa do viveiro com as áreas, os canteiros de cada área e os lotes abertos de cada canteiro, cada lote com a sua situação. | RN-28 |
 | RF-45 | Situação do lote e tarefa pendente que a determina | O sistema deve classificar o lote em saudável, atenção e crítico a partir das etapas do protocolo vencidas ou a vencer nele, sem que a situação seja digitada, e apresentar, ao apontar o lote, a tarefa pendente que determina essa situação e o atraso em dias. | RN-40 |
 | RF-46 | Atribuição do protocolo ao lote na criação | O sistema deve atribuir ao lote, na criação, o protocolo vigente do recipiente dele, e acompanhar o lote etapa a etapa. | RN-30 |
@@ -196,9 +199,10 @@ Fonte: Elaborado pelo autor (2026).
 | RF-51 | Ficha do lote com etapas e vencimentos | O sistema deve apresentar, no lote, as etapas do protocolo com a data da última execução, o próximo vencimento e a situação de cada uma. | RN-40 |
 | RF-52 | Etapa em atenção e em atraso | O sistema deve apresentar a etapa em atenção dentro da janela de aviso e em atraso depois do vencimento, e sem indicação de situação quando o alerta da etapa estiver desligado. | RN-35 |
 | RF-53 | Encerramento do protocolo do lote | O sistema deve encerrar o protocolo do lote quando ele se encerra por saldo zero, por expedição total ou por divisão, deixando de sugerir etapas dele e cancelando as tarefas ainda não confirmadas sem removê-las. | RN-38 |
+| RF-66 | Postergar e concluir o que pede providência | O sistema deve apresentar, abaixo da agenda da semana, os lotes que pedem providência, de qualquer semana, e oferecer, a partir deles e da sugestão do protocolo, três saídas, cada uma na sua tela: postergar por um número de dias, contados de hoje quando o prazo já passou, marcar na agenda pelo mesmo lançamento de RF-47, e confirmar a tarefa feita fora da agenda, que a lança já confirmada no dia em que foi feita, com quem fez, a quantidade e as mudas que morreram; na tarefa já lançada e não confirmada, marcar na agenda remarca a própria tarefa, trazendo-a para a semana de hoje num dia que não seja anterior a hoje, e confirmar abre a confirmação dela; o adiamento da etapa fica registrado no histórico do protocolo do lote. | RN-63 |
 | RF-54 | Registro de pedido com cliente, canal e itens | O sistema deve permitir registrar pedido com cliente, canal de venda e itens identificados pela espécie ou marcados como genéricos, sem espécie escolhida e com observação opcional do que o cliente pediu, com recipiente, quantidade e altura opcionais no cadastro (exigidos na aprovação), montando os itens um a um ou a partir da lista de texto que o cliente enviou, sempre com revisão de quem registra. | RN-01, RN-04, RN-42, RN-46 |
 | RF-55 | Preço unitário informado no item | O sistema deve registrar, depois da conferência de disponibilidade, o preço unitário de cada item vendido e a quantidade combinada, limitada à que a conferência confirmou, e apresentar o total do item e o do pedido. | RN-50 |
-| RF-56 | Saldo disponível ao lado do item | O sistema deve apresentar, ao lado de cada item do pedido, a quantidade de muda pronta que a produção tem daquela espécie e recipiente. | RN-06, RN-08 |
+| RF-56 | Saldo disponível ao lado do item, pela altura pedida | O sistema deve apresentar, ao lado de cada item do pedido, a quantidade de muda que a produção tem daquela espécie e recipiente com altura igual ou maior que a pedida e, quando ela não basta, a quantidade até 20 cm abaixo que pode completar o item. | RN-06, RN-62, RN-08 |
 | RF-57 | Situação do pedido | O sistema deve controlar a situação do pedido ao longo das oito situações que vão do cadastro ao pronto para envio, impedindo alteração de item depois da aprovação. | RN-48, RN-53 |
 | RF-58 | Listagem de pedidos com filtro | O sistema deve listar os pedidos do mais recente ao mais antigo, com filtro por cliente que se aplica enquanto se digita. | RN-42 |
 | RF-59 | Disponibilidade conferida item a item | O sistema deve registrar, para cada item do pedido, a disponibilidade conferida no viveiro, que pode ser total, parcial ou nenhuma; a parcial registra, do que o cliente especificou (quantidade, recipiente, altura), o que foi encontrado; no item cadastrado sem recipiente, a resposta com muda registra em que recipiente ela está, e no item sem quantidade, opcionalmente, quantas existem. | RN-54 |
@@ -258,13 +262,13 @@ Fonte: Elaborado pelo autor (2026).
 
 | Origem | RF: Qtd. | RF: % | RNF: Qtd. | RNF: % |
 |---|---:|---:|---:|---:|
-| Observação participante (OP) | 27 | 38,0 | 0 | 0,0 |
-| Entrevista (EN) | 14 | 19,7 | 0 | 0,0 |
-| Análise documental (AD) | 2 | 2,8 | 0 | 0,0 |
-| Estudo do domínio (DOM) | 6 | 8,5 | 1 | 7,1 |
-| Exigência legal (LEG) | 2 | 2,8 | 3 | 21,4 |
-| Política do projeto (ORG) | 20 | 28,2 | 10 | 71,4 |
-| **Total de menções** | **71** | | **14** | |
+| Observação participante (OP) | 29 | 39,7 | 0 | 0,0 |
+| Entrevista (EN) | 14 | 19,2 | 0 | 0,0 |
+| Análise documental (AD) | 2 | 2,7 | 0 | 0,0 |
+| Estudo do domínio (DOM) | 6 | 8,2 | 1 | 7,1 |
+| Exigência legal (LEG) | 2 | 2,7 | 3 | 21,4 |
+| Política do projeto (ORG) | 20 | 27,4 | 10 | 71,4 |
+| **Total de menções** | **73** | | **14** | |
 
 Fonte: Elaborado pelo autor (2026).
 

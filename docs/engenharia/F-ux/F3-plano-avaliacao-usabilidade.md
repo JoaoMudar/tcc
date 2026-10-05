@@ -91,7 +91,7 @@ especificados em [`C2`](../C-modelagem/C2-especificacao-casos-de-uso.md).
 |---|---|---|---|
 | **T-01** | Registrar um pedido de três itens para cliente novo, com preço | UC-31 | Diária |
 | **T-02** | Confirmar um pedido e tentar alterar um item depois | UC-33 | Diária |
-| **T-03** | Descobrir quanto há de muda pronta de uma espécie em dois recipientes | UC-29 | Semanal |
+| **T-03** | Descobrir quanto há disponível de uma espécie em dois recipientes | UC-29 | Semanal |
 | **T-04** | Cadastrar uma espécie com dois nomes populares e localizá-la pelo segundo | UC-07 | Mensal |
 | **T-05** | Alterar o limite de mortalidade e conferir o efeito no mapa | UC-06 | Raro |
 

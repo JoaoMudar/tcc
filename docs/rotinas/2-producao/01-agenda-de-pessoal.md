@@ -61,13 +61,12 @@ agenda.
 
 ### 3. Repetir é o caminho normal
 
-A semana do viveiro se parece muito com a anterior. O botão principal da tela é
-**"Copiar semana passada"**: traz tudo preenchido, e ajusta-se o que mudou. Preencher do
-zero é a exceção.
+A semana se parece muito com a anterior, e **o que se repete é marcado como recorrente**. A
+tarefa recorrente **nasce preenchida** na semana seguinte, no primeiro lançamento dela, com o turno
+e a hora que tinha. O resto se lança.
 
-**Tarefa recorrente é uma marca, e não uma entidade de calendário.** Marcar a irrigação como
-recorrente faz com que ela **nasça preenchida** na cópia da semana, com o turno e a hora que ela
-tinha. É o suficiente para o gesto que o viveiro faz.
+**Não há "copiar semana passada".** A cópia da semana inteira existiu até 04/10/2026 e foi
+retirada: a marca de recorrente já traz o que se repete, e o resto se lança.
 
 > **Por que não uma regra de recorrência com dias, hora e vigência.** Uma entidade dessas existiria
 > para **gerar dias sozinha**, e o que gera dia sozinho neste modelo é o **protocolo**, cujo sujeito
@@ -99,7 +98,7 @@ em cima e, logo abaixo, a semana desse dia. Clicar num dia da semana troca o dia
 de computador, por RNF-14; no celular a semana vira lista por dia.
 
 ```
-Semana de 10/08 a 15/08  [Aberta]      [Copiar semana passada] [Fechar a semana]
+Semana de 10/08 a 15/08  [Aberta]      [+ Tarefa] [Fechar a semana]
 
               SEG        TER        QUA        QUI        SEX
               7  9  11 7  9  11 7  9  11 7  9  11 7  9  11
@@ -203,6 +202,27 @@ destacado; no celular abre no dia, que é onde se confirma.
 **Confirmar é marcar que foi feita**, e informar a quantidade de cada participante quando o tipo de
 tarefa for quantitativo por unidade. Tarefa não quantitativa confirma sem pedir número nenhum.
 
+### Abaixo da semana: o que pede providência
+
+Abaixo da grade ficam duas listas. A **sugestão do protocolo** mostra as etapas que vencem na
+semana aberta; **"Pedem providência"** mostra todos os lotes com tarefa vencida ou a vencer, de
+qualquer semana (RF-45, RF-66). Tocar num item abre três saídas, cada uma na sua tela:
+
+- **Postergar**: escolhe-se os dias por toque (1, 2, 3, 7, 15 ou 30, e o menos e o mais acertam o
+  resto), e a tela mostra o novo prazo antes de gravar. Os dias contam de hoje quando o prazo já
+  passou: a tarefa de 01/10 postergada um dia em 05/10 vai para 06/10, e não para 02/10. Vale só
+  para a ocorrência em aberto; concluída a etapa, a seguinte conta normalmente (RN-63).
+- **Marcar na agenda**: abre o lançamento de tarefa já com a etapa, o lote e o tipo (RF-47), com
+  dia, turno e hora, igual ao botão de nova tarefa.
+- **Confirmar tarefa**: a etapa foi feita no meio de outro serviço. Informa-se o dia, o turno, quem
+  fez, quanto e se morreu alguma, e ela entra na agenda já confirmada.
+
+O adiamento fica no **histórico do protocolo**, na ficha do lote, com a data e quem registrou. A
+tarefa que já está na agenda e não foi confirmada não se lança de novo. Postergar a muda de dia,
+mesmo que caia na semana seguinte; marcar na agenda abre a alteração dela já na semana de hoje,
+para escolher hoje ou um dia à frente, e com isso ela sai da lista; confirmar abre a confirmação
+dela.
+
 **Quem confirma é a gerência.** Os seis colaboradores de campo não operam o sistema: o trabalho
 deles é planejado e confirmado por quem coordena, de um aparelho só.
 
@@ -211,8 +231,8 @@ deles é planejado e confirmado por quem coordena, de um aparelho só.
 ```
 aberta                        ->  fechada
    |                                 |
-nasce no primeiro lançamento      não se altera mais
-(ou no "Copiar semana passada");  o que ficou sem confirmação entra
+nasce no primeiro lançamento,     não se altera mais
+com as recorrentes da anterior;   o que ficou sem confirmação entra
 monta-se e a equipe trabalha      como realizado, MARCADO de não confirmado
 ```
 
@@ -223,6 +243,10 @@ campo não acessam o sistema. Sobra o ato que separa o feito do suposto, que é 
 **Só se fecha a semana que já terminou**, a partir da segunda-feira seguinte. Fechar assume como
 feito o que não se confirmou, e a semana corrente ainda tem dia por trabalhar: fechá-la antes
 daria por realizada a tarefa que nem chegou o dia de fazer.
+
+**Enquanto a semana espera o fechamento, a grade já mostra o que ele vai fazer.** Da segunda-feira
+seguinte até alguém fechar, a tarefa sem confirmação aparece em amarelo com o "?", e a confirmada
+em verde. Antes disso o "?" não aparece: a tarefa de hoje ainda pode ser confirmada.
 
 **A marca existe para que a suposição não se disfarce de medição** (RN-14). A alternativa, uma
 agenda com buracos, não distingue o trabalho que não foi feito do que ninguém teve tempo de

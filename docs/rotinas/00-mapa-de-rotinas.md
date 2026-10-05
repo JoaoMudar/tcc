@@ -53,10 +53,10 @@ Ao colar a figura no Word, cole este parágrafo com ela.
 - **O Cadastro único não consome nada e alimenta as duas outras.** É a única área sem entrada.
   Por isso é rotina própria, e não um canto do `/admin`.
 - **O fluxo não é um ciclo, é uma linha.** Cadastro alimenta Produção e Comercial; a Produção
-  entrega ao Comercial um número, o saldo de muda pronta; e nada volta. É a diferença mais visível
+  entrega ao Comercial um número, o estoque disponível; e nada volta. É a diferença mais visível
   em relação ao desenho anterior, que tinha o Financeiro fechando um anel: sem custeio, não há
   volta a fazer.
-- **Estoque não é tabela.** É a soma dos lotes prontos; por isso mora na Produção, como resultado,
+- **Estoque não é tabela.** É a soma dos lotes abertos, em qualquer fase; por isso mora na Produção, como resultado,
   e não em Cadastros.
 
 ### A visão do dono
@@ -219,7 +219,7 @@ estar contada e no lugar de carregamento.
 |-------|--------|
 | Cadastro de pedido, com cliente, canal e itens | Chefia |
 | Informar o preço unitário de cada item | Chefia |
-| Consultar o saldo de muda pronta ao lado do item | Chefia |
+| Consultar o estoque disponível ao lado do item | Chefia |
 | Conferir no viveiro, item a item, o que existe para entregar | Gerência |
 | Compor em espécies o item pedido sem espécie | Gerência |
 | Aprovar o pedido, travando os itens | Chefia |

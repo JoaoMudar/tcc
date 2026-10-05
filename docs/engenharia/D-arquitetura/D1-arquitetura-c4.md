@@ -166,7 +166,7 @@ graph TB
   O1 --> N3
   C2 --> N3
   C2 --> N1
-  C2 -.->|"saldo de muda pronta"| O2
+  C2 -.->|"estoque disponível"| O2
 
   A2 -.->|"protege"| cadastros
   A2 -.->|"protege"| producao
@@ -187,7 +187,7 @@ quando a gerência aceita a sugestão e preenche o que o tipo exige (RF-47). É 
 sugestão sem acionamento a razão de o componente existir.
 
 **O Comercial depende da Produção por uma única aresta, e ela é de leitura.** O cadastro de
-pedidos consulta o saldo de muda pronta e não escreve nada lá: o pedido não reserva, não baixa e
+pedidos consulta o estoque disponível e não escreve nada lá: o pedido não reserva, não baixa e
 não move lote. É a interconexão que o trabalho existe para demonstrar, e o diagrama mostra que ela
 custa uma seta.
 

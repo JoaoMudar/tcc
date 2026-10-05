@@ -76,7 +76,7 @@ Comercial consegue vender.**
 O fluxo **não é um anel, é uma linha**. A versão anterior deste documento descrevia um ciclo em que
 a compra nascia no Financeiro e voltava para a Produção, e o preço voltava para o Comercial. Sem
 custeio, não há volta a fazer: o Cadastro único alimenta, a Produção registra, e o Comercial lê um
-número, o saldo de muda pronta.
+número, o estoque disponível.
 
 **Esse número é a única aresta entre as duas áreas de movimento**, e é de leitura: o pedido não
 reserva, não baixa e não move lote. É o que o trabalho existe para demonstrar, e o caso de uso

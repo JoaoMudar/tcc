@@ -243,7 +243,7 @@ desenhavam.
 | `batches_origem_nao_e_ele_mesmo` | `lotes_origem_nao_e_ele_mesmo` |
 | `batches_parent_idx` | `lotes_origem_idx` |
 | `batches_posicao_unica_no_canteiro` | `lotes_posicao_unica_no_canteiro` |
-| `batches_prontos_idx` | `lotes_prontos_idx` |
+| `batches_prontos_idx` | `lotes_prontos_idx` (substituído por `lotes_disponiveis_idx` em 03/10/2026) |
 | `batches_saldo_nao_negativo` | `lotes_saldo_nao_negativo` |
 | `batches_set_updated_at` | `lotes_define_atualizado_em` |
 | `batches_species_idx` | `lotes_especie_idx` |

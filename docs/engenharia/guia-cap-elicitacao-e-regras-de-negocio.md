@@ -149,7 +149,7 @@ As regras estão agrupadas em **cinco áreas**:
 
 | Área | Regras | Qtd. | O que cobre |
 |---|---|---:|---|
-| A: Domínio e produto | RN-01 a RN-07 | 7 | Espécie como centro, nomes populares, recipiente define o produto e o manejo, só muda pronta é estoque, insumo é catálogo |
+| A: Domínio e produto | RN-01 a RN-07 | 7 | Espécie como centro, nomes populares, recipiente define o produto e o manejo, toda muda de lote aberto está à venda, insumo é catálogo |
 | B: Produção, lote e trabalho | RN-08 a RN-29 | 22 | Saldo derivado dos lotes, contagem física prevalece, causa da perda em lista fechada, mortalidade, lote e canteiro, planejamento por turno, semana que fecha, quantidade por pessoa |
 | C: Protocolo de atividades por lote | RN-30 a RN-41 | 12 | Protocolo do recipiente, âncora declarada, contagem da execução real, uma ocorrência em aberto, alteração que não retroage, protocolo que sugere sem lançar |
 | D: Cliente e pedido | RN-42 a RN-50 | 9 | PF/PJ, cadastro mínimo, identidade única com papéis, canal de venda, nota em sistema externo, preço negociado |

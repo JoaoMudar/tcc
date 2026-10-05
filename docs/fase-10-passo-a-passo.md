@@ -159,7 +159,7 @@ A revisão encontrou três pontos que mudam comportamento de tela. Não mexi por
 1. **Saída de venda no lote (RF-37).** O RF-37 pede registrar "perda, contagem física e saída de
    venda sobre o lote", mas **nenhuma tela grava a saída de venda**. A porta única aceita o
    movimento (o teste ponta a ponta o usa), falta o formulário. Hoje, quando a muda sai no
-   caminhão, o saldo pronto continua contando com ela até alguém fazer uma contagem física. Opções:
+   caminhão, o estoque disponível continua contando com ela até alguém fazer uma contagem física. Opções:
    (a) um formulário "Saída de venda" na ficha do lote, igual ao de perda, sem causa; (b) deixar a
    contagem física como o jeito de acertar e registrar isso como decisão no `B2`. Recomendo a (a),
    antes de operar: sem ela, o número que o pedido lê fica errado depois da primeira entrega.

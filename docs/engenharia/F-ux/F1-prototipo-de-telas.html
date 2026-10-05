@@ -616,7 +616,7 @@ S.push({
 S.push({
   id:'UC-13', mod:'cadastros', actors:['chefia'], built:true, route:'/fornecedores',
   name:'Manter fornecedor', rf:'RF-19',
-  why:'As espécies que o fornecedor fornece não são texto livre: são a mesma lista do catálogo, para saber a quem perguntar quando falta muda pronta de uma espécie.',
+  why:'As espécies que o fornecedor fornece não são texto livre: são a mesma lista do catálogo, para saber a quem perguntar quando falta muda de uma espécie.',
   ui:`<div class="mk-hd"><div class="b">3 &middot; Comercial</div><div class="t">Viveiro Santa Clara</div><div class="r">Fornecedor</div></div>
   <div class="mk-body tight">
     <div><div class="mk-lbl">Contato</div><div class="mk-in v" style="margin-top:3px">Marcos &middot; (49) 99188-2210</div></div>
@@ -826,7 +826,7 @@ S.push({
 S.push({
   id:'UC-29', mod:'producao', actors:['chefia','gerencia'], built:false, route:'',
   name:'Consultar estoque disponível', rf:'RF-43',
-  why:'A pergunta que hoje se responde de memória: quantas mudas de cada espécie e tamanho existem. É leitura para os dois perfis, e é o mesmo número que o item de pedido exibe (RF-56). Só a muda pronta entra na conta: o que está em produção aparece à parte (RN-06).',
+  why:'A pergunta que hoje se responde de memória: quantas mudas de cada espécie e tamanho existem. É leitura para os dois perfis, e é o mesmo número que o item de pedido exibe (RF-56). Toda muda de lote aberto entra na conta, em qualquer fase, separada pela altura medida (RN-06).',
   ui:`<div class="mk-hd"><div class="b">2 &middot; Produção</div><div class="t">Estoque</div></div>
   <div class="mk-body tight">
     <div class="mk-in">🔍 Buscar espécie</div>
@@ -851,7 +851,7 @@ S.push({
 });
 S.push({
   id:'UC-26', mod:'producao', actors:['gerencia'], built:false, route:'',
-  name:'Registrar contagem do lote', rf:'RF-39',
+  name:'Registrar contagem e altura do lote', rf:'RF-39, RF-65',
   why:'A contagem física substitui a calculada, e não a corrige por diferença. O sistema guarda as duas para que a divergência sobreviva ao ajuste.',
   ui:`<div class="mk-hd"><div class="b">2 &middot; Produção</div><div class="t">Contagem física</div><div class="r">Lote 214 &middot; Cedro-rosa</div></div>
   <div class="mk-body">
@@ -920,14 +920,14 @@ S.push({
 
 S.push({
   id:'UC-19', mod:'producao', actors:['gerencia'], built:false, route:'', wide:true,
-  name:'Montar a agenda da semana', rf:'RF-26 a RF-28, RF-31',
-  why:'Não é outra tela: é a mesma agenda da entrada do módulo, com o botão de escala em Semana. A unidade da barra é o turno, e não a hora, porque é assim que o viveiro planeja a maior parte do trabalho; a tarefa que tem hora marcada de verdade, como a irrigação das sete às oito, exibe a sua ao lado do turno (RN-12). Copiar a semana anterior é o gesto principal: no viveiro a semana repete. A semana fechada trava, e a tarefa planejada não confirmada é assumida como realizada, com essa condição registrada.',
+  name:'Montar a agenda da semana', rf:'RF-26 a RF-28, RF-31, RF-66',
+  why:'Não é outra tela: é a mesma agenda da entrada do módulo, com o botão de escala em Semana. A unidade da barra é o turno, e não a hora, porque é assim que o viveiro planeja a maior parte do trabalho; a tarefa que tem hora marcada de verdade, como a irrigação das sete às oito, exibe a sua ao lado do turno (RN-12). O que se repete é marcado como recorrente e nasce preenchido na semana seguinte; não há cópia da semana inteira. Abaixo da grade, cada lote que pede providência se posterga, entra na agenda ou se conclui sem agenda (RF-66). A semana fechada trava, e a tarefa planejada não confirmada é assumida como realizada, com essa condição registrada.',
   ui:`<div class="mk-hd row"><div><div class="b">2 &middot; Produção</div><div class="t">Agenda &middot; 31/08 a 05/09</div></div><span class="mk-pill a" style="align-self:center">rascunho</span></div>
   <div class="mk-tabs"><span class="on">Agenda do dia</span><span>Mapa de produção</span></div>
   <div class="mk-body tight">
     <div class="mk-row">
       <div class="mk-seg" style="width:200px"><span>Dia</span><span class="on">Semana</span><span>Mês</span></div>
-      <div class="mk-btn sec" style="padding:7px 12px">Copiar da semana anterior</div>
+      <div class="mk-btn sec" style="padding:7px 12px">+ Tarefa</div>
     </div>
     <div class="mk-scale days"><span>SEG</span><span>TER</span><span>QUA</span><span>QUI</span><span>SEX</span><span>SÁB</span></div>
     <div class="mk-tl">
@@ -940,6 +940,8 @@ S.push({
     <div class="mk-lg"><span><i style="background:#15803D"></i>semeadura</span><span><i style="background:#0E7490"></i>repicagem</span><span><i style="background:#7C3AED"></i>adubação</span><span><i style="background:#B45309"></i>irrigação, recorrente</span></div>
     <div class="mk-lg"><span>barra cheia &middot; manhã e tarde</span><span>meia barra &middot; um turno só</span><span>a hora só aparece na tarefa que a tem &middot; irrigação 07:00</span></div>
     <div class="mk-info">A irrigação de Elias nasce preenchida nos seis dias: é tarefa recorrente, gerada pela regra e não digitada.</div>
+    <div class="mk-lbl">Pedem providência</div>
+    <div class="mk-warn">L-012 &middot; Ipê-amarelo &middot; Limpeza, atrasada 10 dias<br><b>Postergar</b> &middot; <b>Marcar na agenda</b> &middot; <b>Confirmar tarefa</b></div>
     <div style="flex:1"></div>
     <div class="mk-grid2" style="max-width:340px"><div class="mk-btn sec">Salvar</div><div class="mk-btn">Publicar</div></div>
   </div>`
@@ -1154,22 +1156,22 @@ S.push({
 S.push({
   id:'UC-32', mod:'comercial', actors:['chefia'], built:false, route:'/pedidos/novo',
   name:'Consultar disponibilidade no pedido', rf:'RF-56, RF-43',
-  why:'Não é uma tela: é o número que aparece ao lado do item enquanto ele é digitado. O saldo vem da soma dos lotes prontos daquela espécie e recipiente, e é a única aresta entre a Produção e o Comercial (RN-06, RN-08).',
+  why:'Não é uma tela: é o número que aparece ao lado do item enquanto ele é digitado. O saldo vem da soma dos lotes abertos daquela espécie e recipiente com altura igual ou maior que a pedida, e é a única aresta entre a Produção e o Comercial (RN-06, RN-08, RN-62).',
   ui:`<div class="mk-hd"><div class="b">Pedido #418</div><div class="t">Itens</div><div class="r">Prefeitura de Ibirama</div></div>
   <div class="mk-body tight">
     <div class="mk-card">
       <div class="mk-row"><span class="mk-nm">Ipê-amarelo &middot; 10&times;18</span><span class="mk-pill g">tem</span></div>
-      <div class="mk-row"><span style="font-size:10px;color:#6B7280">pedido 800 &middot; pronto 1.100</span><span style="font-weight:700">R$ 3,90</span></div>
+      <div class="mk-row"><span style="font-size:10px;color:#6B7280">pedido 800 &middot; disponível 1.100</span><span style="font-weight:700">R$ 3,90</span></div>
     </div>
     <div class="mk-card" style="border-color:#FDE68A;background:#FFFBEB">
       <div class="mk-row"><span class="mk-nm">Cedro-rosa &middot; 17&times;22</span><span class="mk-pill a">falta 200</span></div>
-      <div class="mk-row"><span style="font-size:10px;color:#92400E">pedido 1.000 &middot; pronto 800</span><span style="font-weight:700;color:#92400E">R$ 5,70</span></div>
+      <div class="mk-row"><span style="font-size:10px;color:#92400E">pedido 1.000 &middot; disponível 800 &middot; 300 com até 20 cm a menos</span><span style="font-weight:700;color:#92400E">R$ 5,70</span></div>
     </div>
     <div class="mk-card" style="opacity:.8">
-      <div class="mk-row"><span class="mk-nm">Canela-preta &middot; 20&times;26</span><span class="mk-pill n">nada pronto</span></div>
-      <div style="font-size:9.5px;color:#6B7280">pedido 300 &middot; 1.400 em produção, ainda não prontas</div>
+      <div class="mk-row"><span class="mk-nm">Canela-preta &middot; 20&times;26 &middot; 1,20 m</span><span class="mk-pill n">não medida</span></div>
+      <div style="font-size:9.5px;color:#6B7280">pedido 300 &middot; disponível 0 &middot; 1.400 sem altura medida</div>
     </div>
-    <div class="mk-info">O saldo <b>informa</b>, não impede: o viveiro vende muda que ainda vai ficar pronta. Em produção não é estoque de venda (RN-06).</div>
+    <div class="mk-info">O saldo <b>informa</b>, não impede: a muda cresce até a entrega. A muda até 20 cm menor completa, mas não entra no saldo (RN-62).</div>
   </div>`
 });
 S.push({

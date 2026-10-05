@@ -38,8 +38,8 @@ quantidade por participante, RF-33 com o encerramento do lote e RF-45 com a tare
 situação.
 
 **Uma exceção é declarada, e vale a explicação.** RF-43 e RF-56 compartilham o teste TA-64 e não
-foram fundidos. RF-43 é o saldo de muda pronta, que a Produção calcula; RF-56 é esse mesmo número
-exibido ao lado do item do pedido, que é o Comercial lendo o que a Produção deixou pronto. **É a
+foram fundidos. RF-43 é o estoque disponível, que a Produção calcula; RF-56 é esse mesmo número
+exibido ao lado do item do pedido, que é o Comercial lendo o que a Produção tem no canteiro. **É a
 única aresta entre as duas áreas**, e é o que este trabalho existe para demonstrar: fundi-los
 apagaria do documento a interconexão que ele quer provar. O caso de uso [`UC-32`](../C-modelagem/C1-diagrama-casos-de-uso.md)
 existe pela mesma razão, para registrar que o número é derivado e não digitado.
@@ -233,7 +233,7 @@ Registrar a hora da **tarefa** não é medir a hora da **pessoa**.
 | ID | Requisito | Ator | Prior. | Origem | Verificação |
 |---|---|---|---|---|---|
 | **RF-26** | O sistema deve permitir montar a agenda da semana atribuindo, por funcionário e por dia, o tipo de tarefa e o turno, manhã ou tarde, admitindo a mesma tarefa para mais de um funcionário e mais de uma tarefa no mesmo turno com grupos diferentes, e deve permitir declarar a hora de início e de fim da tarefa que tiver hora marcada, sem exigi-la das demais; na apresentação em tela larga (RNF-14) a montagem deve ser direta, numa linha do tempo por pessoa: arrastando a tarefa planejada para remarcá-la no dia e na hora, ou para a linha de outra pessoa, que então substitui a de origem no grupo, puxando a borda dela para declarar a duração, e lançando tarefa nova no turno vazio em que se clicar, sem perguntar de novo a pessoa, o dia e o turno | Gerência | D | EN, OP | Semana montada exibe, por pessoa e por dia, as tarefas e os turnos atribuídos, e duas tarefas com grupos distintos coexistem no mesmo turno; a tarefa lançada com hora a exibe, e a lançada sem hora é aceita do mesmo jeito; em tela larga, arrastar a tarefa planejada muda o dia, o turno e a hora dela, puxar a borda muda a duração, soltá-la na linha de outra pessoa troca a de origem por essa, e clicar no turno vazio de uma pessoa abre o lançamento já apontando para aquela pessoa, dia e turno, sem perguntá-los |
-| **RF-27** | O sistema deve permitir copiar a agenda da semana anterior e marcar tarefas como recorrentes, que passam a nascer preenchidas na cópia | Gerência | D | OP | Semana copiada reproduz a anterior; tarefa recorrente aparece sem ser lançada de novo |
+| **RF-27** | O sistema deve permitir marcar tarefas como recorrentes, que passam a nascer preenchidas na semana seguinte, no primeiro lançamento dela | Gerência | D | OP | Tarefa recorrente aparece na semana seguinte sem ser lançada de novo; a tarefa não recorrente não aparece |
 | **RF-28** | O sistema deve controlar a situação da semana (aberta e fechada) e impedir alteração depois do fechamento | Gerência | D | ORG | Semana fechada recusa alteração de atribuição |
 | **RF-29** | O sistema deve permitir confirmar a atribuição como realizada, apresentando os campos que o tipo de tarefa exigir, o lote uma vez para a tarefa e a quantidade uma vez por participante, exigindo o lote quando o tipo declarar lote específico e pedindo a quantidade apenas quando o tipo for quantitativo por unidade | Gerência | D | OP | Confirmar fecha a atribuição de todos os participantes, cada um com a própria quantidade; tarefa não quantitativa confirma sem pedir número algum, a quantitativa com três participantes apresenta três campos, e a que declara lote específico é recusada sem ele |
 | **RF-30** | O sistema deve permitir registrar a área ou o canteiro da tarefa cujo tipo declarar área, e dispensá-los quando o lote os determinar | Gerência | D | OP | Irrigação registra a área em que foi feita; repicagem não pede área nem canteiro, que vêm do lote; colher semente, feita fora do viveiro, não pede nenhum dos dois |
@@ -272,11 +272,19 @@ divergência entre os dois é defeito detectável.
 | **RF-40** | O sistema deve permitir dividir um lote em dois, com cada resultante seguindo o protocolo de forma independente e herdando do original a fase e a data da última execução de cada etapa | Gerência | D | OP | Os dois lotes resultantes exibem as mesmas datas de referência do original, e podem divergir a partir da divisão |
 | **RF-41** | O sistema deve listar as perdas registradas com filtro por período, espécie e causa | Gerência | D | EN | Filtro por período retorna apenas os registros do intervalo |
 | **RF-42** | O sistema deve calcular a taxa de mortalidade do lote, como a razão entre as perdas dele e a sua quantidade inicial, apresentá-la no mapa e destacar ali o lote cuja taxa ultrapasse o limite definido em Configurações | Gerência | D | EN | A taxa corresponde à soma das perdas dividida pela quantidade inicial; o lote acima do limite aparece destacado no mapa, com o percentual visível |
-| **RF-43** | O sistema deve apresentar a quantidade de muda pronta disponível por espécie e recipiente, somada dos lotes abertos | Chefia, Gerência | D | OP | A quantidade reflete a soma dos lotes prontos, descontadas perdas e vendas |
+| **RF-43** | O sistema deve apresentar a quantidade de muda disponível por espécie, recipiente e altura, somada de todos os lotes abertos, em qualquer fase | Chefia, Gerência | D | OP | A quantidade reflete a soma dos lotes abertos, descontadas perdas e vendas, e o lote recém-semeado já entra nela |
+| **RF-65** | O sistema deve permitir registrar a altura atual da muda do lote, em metros, substituindo a medida anterior | Gerência | D | OP | Lote medido com 1,20 m passa a atender o item que pede 1,20 m e deixa de atender o que pede 1,30 m |
 
-**RF-43 é a ponte para o Comercial.** Ele não é um estoque digitado: é a soma dos lotes que
-chegaram à fase de muda pronta, e é o número que o item de pedido exibe (RF-56). Estoque como
-entidade própria criaria duas verdades sobre o mesmo dado.
+**RF-43 é a ponte para o Comercial.** Ele não é um estoque digitado: é a soma de todos os lotes
+abertos, e é o número que o item de pedido exibe (RF-56). Estoque como entidade própria criaria
+duas verdades sobre o mesmo dado. Até 03/10/2026 a soma levava só os lotes na fase de muda pronta,
+e isso não descrevia o trabalho: num viveiro de mudas toda muda está à venda a qualquer momento, e
+**o que decide se ela atende o pedido é a espécie, o recipiente e a altura**, e não a fase (RN-06).
+A fase continua existindo como etapa do manejo.
+
+**RF-65 é o que dá à altura com quem ser comparada.** O cliente pede altura desde RF-54, e o lote
+não tinha onde guardá-la. A medida se registra na ficha do lote e guarda só a mais recente, porque
+a muda cresce, e a medida antiga não vende nada.
 
 **O limite de mortalidade é parâmetro, não constante** (RF-42, RN-26). RN-11 diz que o lote é
 destacado acima do limite, e não qual é o limite: o valor mora em Configurações, começa em 20% na
@@ -339,6 +347,7 @@ continua sendo a gerência.
 | **RF-51** | O sistema deve apresentar, no lote, as etapas do protocolo com a data da última execução, o próximo vencimento e a situação de cada uma | Gerência | D | EN | A ficha do lote responde se a classificação já foi feita e quando é a próxima limpeza |
 | **RF-52** | O sistema deve apresentar a etapa em atenção dentro da janela de aviso e em atraso depois do vencimento, e sem indicação de situação quando o alerta da etapa estiver desligado | Gerência | D | OP | Etapa trimestral entra em atenção cerca de dezoito dias antes; a irrigação diária não recebe indicação nenhuma |
 | **RF-53** | O sistema deve encerrar o protocolo do lote quando ele se encerra por saldo zero, por expedição total ou por divisão, deixando de sugerir etapas dele e cancelando as tarefas ainda não confirmadas sem removê-las | - | D | ORG | Lote zerado para de sugerir etapas, e as tarefas futuras dele aparecem canceladas, não ausentes |
+| **RF-66** | O sistema deve apresentar, abaixo da agenda da semana, os lotes que pedem providência, de qualquer semana, e oferecer, a partir deles e da sugestão do protocolo, três saídas, cada uma na sua tela: postergar por um número de dias, contados de hoje quando o prazo já passou, marcar na agenda pelo mesmo lançamento de RF-47, e confirmar a tarefa feita fora da agenda, que a lança já confirmada no dia em que foi feita, com quem fez, a quantidade e as mudas que morreram; na tarefa já lançada e não confirmada, marcar na agenda remarca a própria tarefa, trazendo-a para a semana de hoje num dia que não seja anterior a hoje, e confirmar abre a confirmação dela; o adiamento da etapa fica registrado no histórico do protocolo do lote | Gerência | D | OP | Etapa postergada em sete dias passa a vencer sete dias depois, ou sete dias depois de hoje se já estava vencida, e aparece no histórico do lote; etapa confirmada fora da agenda vira tarefa confirmada no dia informado, e a ocorrência seguinte conta a partir desse dia; a tarefa atrasada postergada em um dia vai para amanhã, mesmo que caia na semana seguinte; a tarefa atrasada marcada na agenda sai da lista dos que pedem providência |
 
 **O horizonte de sugestão é parâmetro, e não constante.** O sistema sugere as etapas de um período à
 frente e apresenta o que vence depois disso na ficha do lote: sugerir um ano de limpezas
@@ -361,6 +370,15 @@ previa.
 sugestão continua aparecendo, e continua contando atraso, enquanto ninguém a aceitar: adiar o
 lançamento não apaga o atraso que a etapa existe para denunciar (RF-45, RN-40).
 
+**Postergar não apaga o atraso, desloca o prazo de uma ocorrência só** (RF-66, RN-63). A muda que
+ainda não está no ponto de ser classificada precisa de mais alguns dias, e o adiamento fica no
+histórico do lote. Os dias contam do prazo, ou de hoje quando o prazo já passou: adiar para um dia
+que já foi deixaria a etapa atrasada do mesmo jeito. O registro fica com a data e quem registrou,
+porque um prazo que muda sem registro seria um prazo digitado, e o vencimento continua calculado
+(RN-40). A etapa feita no meio de outro serviço
+segue outro caminho. Ela é confirmada como tarefa no dia em que foi feita, com quem fez e as mudas
+que morreram, e por isso conclui a etapa e lança a perda como qualquer tarefa confirmada (RF-48).
+
 **O lote da sugestão vem da etapa, e não do formulário.** A sugestão sempre carrega o lote,
 inclusive quando o tipo de tarefa não declara lote específico: irrigar *aquele* lote é o que o
 protocolo apontou. Não há conflito com RF-24, que rege o que a tela **pede** a quem preenche: campo
@@ -378,7 +396,7 @@ para dizer por quanto deveria ter sido vendido.
 |---|---|---|---|---|---|
 | **RF-54** | O sistema deve permitir registrar pedido com cliente, canal de venda e itens identificados pela espécie ou marcados como genéricos, sem espécie escolhida e com observação opcional do que o cliente pediu, com recipiente, quantidade e altura opcionais no cadastro (exigidos na aprovação), montando os itens um a um ou a partir da lista de texto que o cliente enviou, sempre com revisão de quem registra | Chefia | D | OP | Pedido registrado aparece na lista de pedidos; linha colada cuja espécie o sistema não reconhece não entra sem alguém resolvê-la |
 | **RF-55** | O sistema deve registrar, depois da conferência de disponibilidade, o preço unitário de cada item vendido e a quantidade combinada, limitada à que a conferência confirmou, e apresentar o total do item e o do pedido | Chefia | D | EN | O total do pedido reproduz a soma de quantidade por preço de cada item; pedido com item sem preço, sem quantidade ou sem recipiente não é aprovado |
-| **RF-56** | O sistema deve apresentar, ao lado de cada item do pedido, a quantidade de muda pronta que a produção tem daquela espécie e recipiente | Chefia | D | OP | Item cuja espécie tem duzentas mudas prontas exibe esse saldo, atualizado a cada consulta |
+| **RF-56** | O sistema deve apresentar, ao lado de cada item do pedido, a quantidade de muda que a produção tem daquela espécie e recipiente com altura igual ou maior que a pedida e, quando ela não basta, a quantidade até 20 cm abaixo que pode completar o item | Chefia | D | OP | Item de 300 mudas de 1,20 m, com 200 medidas em 1,30 m e 150 em 1,05 m, exibe 200 disponíveis, a falta de 100 e as 150 com até 20 cm a menos |
 | **RF-57** | O sistema deve controlar a situação do pedido ao longo das oito situações que vão do cadastro ao pronto para envio, impedindo alteração de item depois da aprovação | Chefia | D | ORG | Pedido aprovado recusa inclusão e alteração de item |
 | **RF-58** | O sistema deve listar os pedidos do mais recente ao mais antigo, com filtro por cliente que se aplica enquanto se digita | Chefia | D | OP | Digitar parte do nome mostra apenas os pedidos desse cliente |
 | **RF-59** | O sistema deve registrar, para cada item do pedido, a disponibilidade conferida no viveiro, que pode ser total, parcial ou nenhuma; a parcial registra, do que o cliente especificou (quantidade, recipiente, altura), o que foi encontrado; no item cadastrado sem recipiente, a resposta com muda registra em que recipiente ela está, e no item sem quantidade, opcionalmente, quantas existem | Gerência | D | OP | Item marcado como parcial guarda a quantidade, o recipiente e a altura encontrados; item sem recipiente guarda em qual está |
@@ -401,7 +419,7 @@ e não de julgamento: a lista do cliente vem com apelido regional, erro de digit
 espécie que o viveiro não produz, e nenhum deles pode virar item sozinho.
 
 **RF-56 é a interconexão que o sistema existe para provar.** O saldo exibido não é digitado nem
-mantido à parte: vem de RF-43, que o soma dos lotes prontos. É o ponto em que o que a Produção
+mantido à parte: vem de RF-43, que o soma dos lotes abertos. É o ponto em que o que a Produção
 registrou passa a ser o que o Comercial pode vender, e é a razão de as duas áreas não poderem ser
 avaliadas em separado.
 

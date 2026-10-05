@@ -1,7 +1,7 @@
 %% A visao do dono: as tres areas de negocio e nada mais.
 %% Em LR, tres caixas numa faixa horizontal: e a figura que entra na largura da
 %% pagina do TCC sem virar coluna. O `rankSpacing` folgado existe para o rotulo
-%% "saldo de muda pronta" caber entre a Producao e o Comercial sem a seta passar
+%% "estoque disponível" caber entre a Producao e o Comercial sem a seta passar
 %% por cima da palavra.
 %% As fracoes de etapa com tela sairam dos nos: contagem de obra nao e conteudo de
 %% figura de TCC, e quem quiser o numero le a tabela de etapas de 00-mapa-de-rotinas.
@@ -13,7 +13,7 @@ flowchart LR
   P["<b>Comercial</b><br/><small>pedidos<br/>preço por item<br/>saldo disponível<br/>confirmação</small>"]
 
   C --> R
-  R -->|"saldo de muda pronta"| P
+  R -->|"estoque disponível"| P
   C --> P
 
   classDef ok fill:#dcfce7,stroke:#16a34a,stroke-width:2px,color:#111

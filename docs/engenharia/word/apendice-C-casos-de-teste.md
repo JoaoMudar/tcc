@@ -107,7 +107,7 @@ por subseção está na tabela gerada da §9.
 | **TA-26** | RF-26 | Três funcionários cadastrados | 1. Escalar dois deles para "Encher saquinho" na manhã de segunda<br>2. Escalar o terceiro para "Irrigação" na mesma manhã<br>3. Consultar a agenda do dia | As duas tarefas coexistem no mesmo turno, cada uma com o seu grupo | Não executado |
 | **TA-27** | RF-26 | Turnos cadastrados e um tipo de tarefa "Irrigação" | 1. Lançar "Irrigação" na manhã de segunda declarando das 07:00 às 08:00<br>2. Lançar "Repicagem" na mesma manhã sem informar hora<br>3. Consultar a agenda do dia | As duas são aceitas: a primeira exibe o horário, a segunda exibe só o turno, e **as duas exigiram o turno** (RN-12) | Não executado |
 | **TA-28** | RF-26 | A atribuição de TA-27 | 1. Tentar declarar hora de fim sem hora de início | O lançamento é recusado: fim sem início não é um dos casos que a agenda admite | Não executado |
-| **TA-29** | RF-27 | Semana anterior preenchida, com uma tarefa marcada como recorrente | 1. Criar a semana nova<br>2. Acionar "copiar semana passada" | A semana nasce com a tarefa recorrente já presente, e a cópia reproduz o restante da anterior | Não executado |
+| **TA-29** | RF-27 | Semana anterior com uma tarefa marcada como recorrente e outra não | 1. Lançar a primeira tarefa da semana nova<br>2. Consultar a semana | A semana nasce com a tarefa recorrente já presente, planejada e sem contagem; a não recorrente não aparece | Não executado |
 | **TA-30** | RF-28 | Semana no estado *fechada* | 1. Tentar alterar uma atribuição dela | A alteração é recusada, com o motivo informado | Não executado |
 | **TA-31** | RF-29 | Atribuição planejada de tarefa quantitativa, com três participantes | 1. Confirmar a tarefa<br>2. Informar a quantidade de cada um | A atribuição passa a *confirmada* para os três, cada um com o próprio número | Não executado |
 | **TA-32** | RF-29 | Atribuição de tarefa que declara lote específico | 1. Confirmar sem informar o lote | A confirmação é recusada, e a atribuição permanece *planejada* | Não executado |
@@ -136,6 +136,8 @@ qualquer implementação do motor tem de reproduzir.
 | **TA-44** | RF-25 | Protocolo com classificação em 40 dias e uma espécie com 70 dias próprios | 1. Criar um lote da espécie customizada e outro de espécie sem customização, ambos plantados no mesmo dia<br>2. Consultar o vencimento da classificação nos dois | O primeiro vence 70 dias depois do plantio, o segundo 40: cada um usa o tempo que lhe cabe | Não executado |
 | **TA-45** | RF-53 | Lote com tarefas do protocolo lançadas para os próximos dias | 1. Registrar perda que zera o saldo do lote<br>2. Consultar as tarefas daquele lote e as sugestões da semana | O lote encerra, as tarefas ainda não confirmadas aparecem **canceladas** e continuam consultáveis, e o lote deixa de aparecer entre as sugestões | Não executado |
 | **TA-46** | RF-40 | Lote com a limpeza executada em 15 de setembro, próximo vencimento em 14 de dezembro | 1. Dividir o lote em dois, em 20 de dezembro<br>2. Consultar o vencimento da limpeza nos dois resultantes<br>3. Concluir a limpeza apenas no primeiro, em 22 de dezembro<br>4. Consultar os dois de novo | Os dois herdam o vencimento **14 de dezembro**, já em atraso, e não recomeçam em 20 de março; depois do passo 3, o primeiro vence em **22 de março** e o segundo continua em atraso desde 14 de dezembro | Não executado |
+| **TA-82** | RF-66 | Lote com a limpeza vencida em 14 de dezembro e não lançada | 1. Abrir a agenda da semana<br>2. Tocar no lote em "Pedem providência"<br>3. Postergar 15 dias<br>4. Abrir a ficha do lote | O painel mostra o novo prazo, 29 de dezembro, antes de gravar; a limpeza passa a vencer em 29 de dezembro, e o histórico do protocolo registra "postergada 15 dias", com a data e quem registrou | Não executado |
+| **TA-83** | RF-66 | O lote de TA-82, e uma tarefa lançada para outro lote na quinta-feira passada e não confirmada | 1. Tocar no lote em "Pedem providência", escolher "Confirmar tarefa" e registrar a limpeza feita em 20 de dezembro, por uma pessoa, sem perda<br>2. Tocar na tarefa atrasada em "Pedem providência" e postergá-la 7 dias<br>3. Tocar nela de novo e escolher "Marcar na agenda" | A limpeza seguinte vence em 20 de março, sem os 15 dias do adiamento anterior, e a agenda de 20 de dezembro mostra a limpeza confirmada; a tarefa atrasada passa para a quinta-feira desta semana; "Marcar na agenda" abre a alteração da própria tarefa, e não um lançamento novo | Não executado |
 
 > **TA-41 e TA-46 são os casos que decidem se o motor está certo.** Os dois separam a contagem a
 > partir da **execução real** (RN-32, RN-39) de uma contagem de calendário, e é a diferença que o
@@ -206,7 +208,7 @@ requisitos de prioridade *deve ter* sem verificação correspondente.
 |---|---|---|---|---|---|
 | **TA-62** | RF-05 | Sessão de administrador | 1. Criar usuário com perfil gerência<br>2. Autenticar-se como o novo usuário<br>3. Tentar acessar tela restrita à chefia | Usuário criado acessa apenas o que seu perfil permite | Não executado |
 | **TA-63** | RF-11 | Sessão de chefia | 1. Cadastrar recipiente com nome e volume<br>2. Criar um lote usando o novo recipiente | Recipiente cadastrado fica disponível na criação de lote e no item de pedido | Não executado |
-| **TA-64** | RF-43, RF-56 | Lotes prontos, perdas registradas e saída de venda na mesma espécie e recipiente | 1. Consultar o saldo disponível pelo item de pedido<br>2. **Conferir manualmente**: somar os movimentos dos lotes prontos | Os dois valores coincidem | Não executado |
+| **TA-64** | RF-43, RF-56 | Lotes abertos em fases diferentes, perdas registradas e saída de venda na mesma espécie e recipiente | 1. Consultar o saldo disponível pelo item de pedido, sem altura<br>2. **Conferir manualmente**: somar os movimentos de todos os lotes abertos | Os dois valores coincidem, e o lote recém-semeado entra na soma | Não executado |
 | **TA-65** | RF-39 | Lote com saldo calculado diferente do real | 1. Registrar contagem física do lote com a quantidade real<br>2. Consultar o histórico de movimentos | O saldo passa a ser o contado, e o movimento de ajuste aparece no histórico | Não executado |
 | **TA-66** | RF-41 | Perdas registradas em datas distintas | 1. Filtrar as perdas por um intervalo de datas | Retorna somente os registros do intervalo | Não executado |
 | **TA-67** | RF-18 | Cliente cadastrado com nome, telefone e documento | 1. Buscar por parte do nome<br>2. Buscar pelo telefone<br>3. Buscar pelo documento | As três buscas retornam o mesmo cliente | Não executado |
@@ -215,6 +217,7 @@ requisitos de prioridade *deve ter* sem verificação correspondente.
 | **TA-70** | RF-28, RF-26 | Semana fechada, em tela de computador | 1. Tentar arrastar a barra de uma tarefa da semana<br>2. Clicar no turno vazio de uma pessoa | Nada se move e nada é lançado: a semana fechada não se altera | Não executado |
 | **TA-79** | RF-26, RNF-14 | Semana aberta, em tela de computador, com tarefa planejada de duas pessoas, A e B | 1. Arrastar a barra da linha de A para a linha de C<br>2. Arrastar a mesma barra da linha de C para a linha de B<br>3. Desfazer o primeiro movimento pelo aviso | Depois do passo 1 o grupo é B e C, e A saiu (RN-61); o passo 2 é recusado, porque B já está na tarefa; desfazer volta o grupo para A e B | Não executado |
 | **TA-80** | RF-29, RNF-14 | Celular, semana aberta, com uma tarefa não quantitativa e uma quantitativa no dia | 1. Tocar no quadrado da tarefa não quantitativa<br>2. Tocar no quadrado da quantitativa<br>3. Repetir o passo 1 em outra tarefa, sem rede | A primeira fica confirmada com um toque, sem sair da lista; a quantitativa abre a ficha com o campo de quantidade; sem rede, o toque fica guardado no aparelho e vai quando a rede voltar | Não executado |
+| **TA-81** | RF-65, RF-56 | Três lotes abertos da mesma espécie e recipiente, sem altura medida | 1. Medir o primeiro com 1,30 m, o segundo com 1,05 m e deixar o terceiro sem medida<br>2. Lançar item de pedido com altura de 1,20 m e quantidade maior que o saldo do primeiro | O item exibe como disponível só o primeiro lote, e à parte a falta, o segundo como "com até 20 cm a menos" (RN-62) e o terceiro como "sem altura medida" | Não executado |
 
 > **TA-64 confronta o número do sistema com uma apuração manual independente.** É o que valida a
 > decisão de manter o saldo disponível como quantidade derivada, e não como entidade armazenada:
@@ -235,12 +238,12 @@ requisitos de prioridade *deve ter* sem verificação correspondente.
 | Lotes | 6 | RF-32, RF-33, RF-34, RF-35, RF-36, RF-37, RF-46, RNF-01 |
 | Perdas | 4 | RF-38, RF-42, RNF-01, RNF-05 |
 | Agenda da semana | 9 | RF-26, RF-27, RF-28, RF-29, RF-30, RF-31 |
-| Protocolo de atividades por lote | 12 | RF-22, RF-23, RF-24, RF-25, RF-40, RF-46, RF-47, RF-48, RF-49, RF-50, RF-51, RF-52, RF-53 |
+| Protocolo de atividades por lote | 14 | RF-22, RF-23, RF-24, RF-25, RF-40, RF-46, RF-47, RF-48, RF-49, RF-50, RF-51, RF-52, RF-53, RF-66 |
 | Mapa de lotes | 2 | RF-44, RF-45 |
 | Clientes e pedidos | 14 | RF-15, RF-17, RF-54, RF-55, RF-57, RF-58, RF-59, RF-60, RF-61, RF-62, RF-63, RF-64 |
 | Requisitos não funcionais | 7 | RNF-01, RNF-02, RNF-05, RNF-06, RNF-08, RNF-09, RNF-11, RNF-14 |
-| Casos acrescentados pela matriz de rastreabilidade | 11 | RF-05, RF-11, RF-18, RF-26, RF-28, RF-29, RF-39, RF-41, RF-43, RF-56, RNF-14 |
-| **Total** | **80** | **59 dos 59 requisitos de prioridade *deve ter*** |
+| Casos acrescentados pela matriz de rastreabilidade | 12 | RF-05, RF-11, RF-18, RF-26, RF-28, RF-29, RF-39, RF-41, RF-43, RF-56, RF-65, RNF-14 |
+| **Total** | **83** | **61 dos 61 requisitos de prioridade *deve ter*** |
 
 **Todos os requisitos de prioridade *deve ter* têm caso de aceite.**
 

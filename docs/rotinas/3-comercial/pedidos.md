@@ -204,8 +204,12 @@ aquele mesmo apelido é reconhecido sozinho.
 
 ### Saldo ao lado do item
 
-Cada item mostra quanta muda pronta a produção tem daquela espécie e daquele recipiente (RF-56). O
-número é somado dos lotes a cada consulta, e não fica gravado no item: gravá-lo congelaria uma
+Cada item mostra quanta muda a produção tem daquela espécie e daquele recipiente (RF-56). Não há
+muda "pronta": toda muda de lote aberto está à venda, em qualquer fase (RN-06). Quando o item pede
+altura, contam os lotes medidos com altura igual ou maior; se não bastam, a linha diz quanto falta,
+quanto há com até 20 cm a menos para completar e quanto está em lote ainda sem altura medida
+(RN-62). A muda menor fica à parte, e não no saldo, porque não é a pedida: é a chefia que a oferece
+ao cliente. O número é somado dos lotes a cada consulta, e não fica gravado no item: gravá-lo congelaria uma
 leitura que muda a cada perda registrada. **A consulta é de leitura**, e o pedido não reserva, não
 baixa e não move lote.
 
@@ -276,4 +280,4 @@ celular na mão, pela mesma decisão de escopo que os deixa sem acesso ao sistem
 ## Dependências com outras rotinas
 
 - **Cadastros**: cliente, espécie e recipiente vêm de lá.
-- **Lotes**: o saldo de muda pronta por espécie e recipiente é o que o item exibe.
+- **Lotes**: o estoque disponível por espécie, recipiente e altura é o que o item exibe.

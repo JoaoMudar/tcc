@@ -83,6 +83,8 @@ const MAPA = {
   'RF-62': ['*derivada* de `pedidos` e `pedidos_cargas`', 'Cargas do pedido'],
   'RF-63': ['`viagens`, `viagens_paradas`, `pedidos_historico`', 'Cargas do pedido'],
   'RF-64': ['`viagens_paradas`, `pessoas_enderecos`, `pedidos_cargas_itens`', 'Cargas do pedido'],
+  'RF-65': ['`lotes`', 'Lotes'],
+  'RF-66': ['`lotes_etapas_acoes`, `atribuicoes`', 'Agenda da semana'],
 };
 
 // ---------------------------------------------------------------- leitura das fontes

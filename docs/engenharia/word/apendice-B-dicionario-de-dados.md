@@ -43,7 +43,7 @@ quatro módulos do sistema, com o Acesso à frente por atravessar os quatro.
 ## Recorte implementado
 
 Este dicionário descreve o **modelo especificado**, que desde 18/09/2026 é também o construído: as
-34 entidades existem no banco, mais as visões `situacao_lote` e `lotes_etapas_vencimento`. Até
+35 entidades existem no banco, mais as visões `situacao_lote` e `lotes_etapas_vencimento`. Até
 aquela data as quatro entidades do protocolo estavam especificadas e não implementadas, e a
 distinção era registrada entidade por entidade. Não era defeito de modelagem: o modelo responde à especificação completa de requisitos, e
 a construção segue a priorização declarada em
@@ -61,7 +61,8 @@ As quatro entidades que o Comercial ganhou em 21/09/2026, `pedidos_historico`,
 `pedidos_itens_especies_permitidas`, `pedidos_cargas` e `pedidos_cargas_itens`, nasceram já no
 banco, pelas migrations `20260921000001` e `20260921000002`. Nenhuma delas passou pela condição de
 especificada e não implementada, e é por isso que a coluna da direita continua zerada nesta linha.
-O mesmo vale para `viagens` e `viagens_paradas`, de 29/09/2026 (migration `20260929000001`).
+O mesmo vale para `viagens` e `viagens_paradas`, de 29/09/2026 (migration `20260929000001`), e para
+`lotes_etapas_acoes`, da Produção, de 04/10/2026 (migration `20261004000001`).
 
 As 3 do Cadastro único são as do **protocolo de atividades**: `protocolos`, `protocolos_etapas` e
 `especies_protocolos_tempos`. A 1 da Produção é
@@ -579,7 +580,8 @@ respondia o que a muda era e não onde estava. A revisão de escopo está justif
 | `protocolo_id` | uuid | ○ | FK → `protocolos` | Protocolo que rege o lote, fotografado na criação a partir do recipiente (RF-46). Nulo quando o recipiente ainda não tem protocolo. |
 | `quantidade_inicial` | integer | ● | | Quantidade que entrou. Restrição: maior que zero |
 | `quantidade_atual` | integer | ● | | Saldo vivo. Restrição de banco: não negativo (RN-21). **Mantido pela aplicação** na mesma transação do movimento |
-| `fase` | text | ● | | Fase em **lista fechada**: `semeado`, `germinado`, `repicado`, `crescimento`, `rustificacao`, `pronto`, `encerrado` |
+| `fase` | text | ● | | Fase do manejo em **lista fechada**: `semeado`, `germinado`, `repicado`, `crescimento`, `rustificacao`, `pronto`, `encerrado`. Não decide o que se vende: o lote aberto está à venda em qualquer fase (RN-06) |
+| `altura_m` | numeric(4,2) | ○ | | Altura atual da muda, em metros, medida na ficha do lote (RF-65). Guarda só a medida mais recente. **Nula é "ainda não medida"**. Restrição: maior que zero e até 20 m, como `pedidos_itens.altura_m`, com quem é comparada (RN-06, RN-62) |
 | `data_criacao` | date | ● | | Data em que a leva passou a ocupar o canteiro. É a âncora das etapas do protocolo que contam da criação do lote (RN-31), e dela sai o ano do código |
 | `data_plantio` | date | ○ | | Data **real** da conclusão do plantio, gravada pelo protocolo ao concluir a etapa. **Nula significa que ainda não germinou**, e as etapas ancoradas nela não vencem nada |
 | `encerrado_em` | timestamptz | ○ | | Momento do encerramento; a partir dele o lote sai da ocupação |
@@ -735,7 +737,7 @@ marcada declara a sua em `hora_inicio` / `hora_fim`.
 | `area_id` | uuid | ○ | FK → `areas` | Área da tarefa cujo tipo declara área (RF-30) |
 | `canteiro_id` | uuid | ○ | FK → `canteiros` | Canteiro da tarefa cujo tipo declara área (RF-30) |
 | `quantidade_planejada` | numeric(10,2) | ○ | | Quantidade planejada, na unidade do tipo de tarefa, quando aplicável |
-| `e_recorrente` | boolean | ● | | Marca a atribuição como parte da rotina fixa: ao copiar a semana anterior, ela já vem preenchida (RF-27, RN-29) |
+| `e_recorrente` | boolean | ● | | Marca a atribuição como parte da rotina fixa: ela já nasce preenchida na semana seguinte, no primeiro lançamento dela (RF-27, RN-29) |
 | `lote_etapa_id` | uuid | ○ | | Etapa do protocolo cuja sugestão originou esta tarefa. Nula = tarefa lançada sem sugestão nenhuma por trás (RF-47). A coluna existe; **a chave estrangeira não**, porque `lotes_etapas` ainda não foi criada |
 | `vencimento_protocolo` | date | ○ | | Vencimento que esta ordem representa, congelado na geração. Distingue-se de `data_trabalho`, que a gerência pode remarcar |
 | `situacao` | text | ● | | `planejada`, `confirmada`, `nao_confirmada`, `cancelada`: a segunda é a que a gerência marca ao registrar que a tarefa foi feita, a terceira é a que o fechamento assume como realizada (RN-14), e a quarta é a ordem que o encerramento do lote invalidou (RN-38) |
@@ -753,7 +755,7 @@ marcada declara a sua em `hora_inicio` / `hora_fim`.
 > ainda assim, de deixar o esquecimento passar em branco.
 
 > **A recorrência é uma marca, e não uma entidade.** `e_recorrente` diz que a atribuição pertence à
-> rotina fixa e, por isso, vem preenchida na cópia da semana. Uma tabela de recorrência, com dias
+> rotina fixa e, por isso, nasce preenchida na semana seguinte. Uma tabela de recorrência, com dias
 > da semana, hora e vigência, existiria para gerar dias sozinha: neste modelo, o que gera dia
 > sozinho é o protocolo, cujo sujeito é o lote e não a equipe.
 
@@ -873,15 +875,41 @@ Uma linha por par lote e etapa, criada quando o lote nasce. **Guarda fatos, e nu
 > contar de quando o serviço foi de fato feito (RN-32). Usar a data planejada devolveria o
 > comportamento de calendário fixo que o módulo existe para não ter.
 
-> **Não há entidade de eventos do protocolo, e é decisão declarada.** O razão que explica este
-> estado é a própria `atribuicoes`: a ordem sabe a etapa que a gerou, o vencimento que representa e
-> a data em que foi confirmada. Uma segunda tabela criaria duas verdades sobre o mesmo fato.
-> **Consequência aceita:** marcar uma etapa como feita fora da agenda tem de gerar a atribuição
-> correspondente, e não escrever direto aqui.
+> **A conclusão pela agenda continua sem tabela de eventos, e as ações fora dela ganharam uma.** O
+> razão da etapa concluída pela agenda é a própria `atribuicoes`: a ordem sabe a etapa que a gerou,
+> o vencimento que representa e a data em que foi confirmada. Até 04/10/2026, marcar uma etapa como
+> feita fora da agenda tinha de gerar a atribuição correspondente. Desde então, postergar (RF-66)
+> grava em `lotes_etapas_acoes`, porque não tem tarefa por trás. A conclusão sem agenda gravou ali de
+> 04/10/2026 a 05/10/2026. A partir de 05/10/2026, a etapa feita fora da agenda volta a ser uma
+> atribuição, já confirmada, com o dia, quem fez e a perda: o trabalho existiu, e a agenda é o lugar
+> que sabe quem o fez.
+
+## `lotes_etapas_acoes`: histórico das ações sobre a etapa fora da agenda
+
+**Implementada em 04/10/2026** (migration `20261004000001_lotes_etapas_acoes.sql`).
+
+Uma linha por ação da gerência sobre a etapa do lote, fora da agenda (RF-66). Não tem
+`atualizado_em`: a ação registrada não se altera.
+
+| Atributo | Tipo | Ob. | Chave | Descrição |
+|---|---|:--:|:--:|---|
+| `id` | uuid | ● | PK | |
+| `lote_id` | uuid | ● | FK → `lotes_etapas` | Lote da etapa. Chave estrangeira composta com `protocolo_etapa_id` |
+| `protocolo_etapa_id` | uuid | ● | FK → `lotes_etapas` | Etapa do protocolo |
+| `ocorrencia` | integer | ● | | A ocorrência da etapa que a ação afetou. Restrição: maior que zero |
+| `tipo_acao` | text | ● | | **Lista fechada**: `adiamento` ou `conclusao_sem_agenda` (esta, só em linhas gravadas até 05/10/2026) |
+| `dias` | integer | ○ | | Só no adiamento: dias somados ao vencimento da ocorrência. Na etapa já vencida, inclui o atraso até a data da ação, porque o adiamento conta de hoje (RN-63). Restrição: maior que zero no adiamento, nulo nas demais |
+| `data_acao` | date | ● | | Dia da ação, no fuso do viveiro. Na conclusão, é também a data real da execução |
+| `registrado_por` | uuid | ● | FK → `usuarios` | Quem registrou (RN-52) |
+| `observacoes` | text | ○ | | |
+
+> **O adiamento vale para uma ocorrência só** (RN-63). A visão `lotes_etapas_vencimento` soma os
+> `dias` das linhas cuja `ocorrencia` é a que está por vir. Concluída a etapa, a ocorrência muda e
+> o adiamento deixa de contar sozinho, sem que nada seja apagado.
 
 ## `lotes_etapas_vencimento`: vencimento e situação da etapa *(não é tabela)*
 
-**Criada em 18/09/2026** (migration `20260918000001_protocolo_de_atividades.sql`).
+**Criada em 18/09/2026** (migration `20260918000001_protocolo_de_atividades.sql`); o adiamento entrou na conta em 04/10/2026 (migration `20261004000001_lotes_etapas_acoes.sql`).
 
 **Visão.** Devolve, para cada lote aberto e etapa ativa que ainda vence algo, o próximo vencimento
 e a situação que dele decorre (RF-51, RF-52).
@@ -891,7 +919,7 @@ e a situação que dele decorre (RF-51, RF-52).
 | `lote_id`, `protocolo_etapa_id` | `lotes_etapas`, restrito aos lotes abertos e às etapas ativas |
 | `ocorrencia` | `ocorrencias` mais um: a ocorrência que está por vir |
 | `dias_efetivos` | o override da espécie quando existe, senão o valor da etapa; `dias` na primeira ocorrência e `intervalo_dias` nas seguintes (RN-36) |
-| `proximo_vencimento` | `ultima_execucao_em`, ou `data_ancora` quando nunca executada, mais `dias_efetivos` (RN-40) |
+| `proximo_vencimento` | `ultima_execucao_em`, ou `data_ancora` quando nunca executada, mais `dias_efetivos`, mais a soma dos adiamentos da ocorrência que está por vir em `lotes_etapas_acoes` (RN-40, RN-63) |
 | `dias_aviso` | `dias_efetivos` multiplicado pela janela da etapa, ou pelo parâmetro `producao.protocolo_janela_aviso_pct` quando a etapa não a declara (RN-35) |
 | `situacao` | `sem_alerta` quando a etapa tem o alerta desligado; `atraso` quando hoje passou de `proximo_vencimento`; `atencao` quando hoje já entrou na janela; `em_dia` nos demais casos |
 
@@ -1019,7 +1047,7 @@ espécie e de topo: não é genérico nem filho, e não completa a si mesmo.
 > campo errado. O filho do item genérico herda a altura do pai, pela mesma razão que herda o preço.
 
 > **A disponibilidade conferida não é o saldo, e a distinção é o ponto.** O saldo que a tela exibe
-> ao lado do item (RF-56) continua somado dos lotes prontos a cada consulta, e guardá-lo aqui
+> ao lado do item (RF-56) continua somado dos lotes abertos a cada consulta, e guardá-lo aqui
 > congelaria uma leitura que muda a cada perda registrada. As colunas acima guardam outra coisa, a
 > resposta de quem foi ao pátio conferir, com autor e hora em `pedidos_historico`. Uma se recalcula
 > porque o viveiro muda sozinho; a outra se grava porque é afirmação de uma pessoa.
@@ -1118,6 +1146,6 @@ verificação atravessa a situação da viagem (RN-59).
 |---|---:|---|
 | *(transversal)* Acesso e configurações | 5 | `usuarios`, `sessoes`, `eventos_login`, `parametros`, os parâmetros do sistema, e `envios_recebidos`, a chave do registro feito sem conexão |
 | 1 · Cadastro único | 15 | catálogo (`especies`, `especies_nomes_populares`, `especies_fotos`, `recipientes`, `insumos`), endereço do viveiro (`areas`, `canteiros`), trabalho (`tipos_tarefa`, `turnos_trabalho`), protocolo (`protocolos`, `protocolos_etapas`, `especies_protocolos_tempos`) e o esquema `cadastro` (`pessoas`, `pessoas_papeis`, `pessoas_enderecos`) |
-| 2 · Produção | 6 | `semanas`, `atribuicoes`, `atribuicoes_participantes`, `lotes`, `movimentos_lote`, `lotes_etapas` |
+| 2 · Produção | 7 | `semanas`, `atribuicoes`, `atribuicoes_participantes`, `lotes`, `movimentos_lote`, `lotes_etapas`, `lotes_etapas_acoes` |
 | 3 · Comercial | 8 | `pedidos`, `pedidos_itens`, `pedidos_historico`, `pedidos_itens_especies_permitidas`, `pedidos_cargas`, `pedidos_cargas_itens`, `viagens` e `viagens_paradas` |
-| **Total** | **34** | mais `situacao_lote` e `lotes_etapas_vencimento`, que são visões e não tabelas |
+| **Total** | **35** | mais `situacao_lote` e `lotes_etapas_vencimento`, que são visões e não tabelas |

@@ -66,9 +66,10 @@ for (const fonte of fontes) {
   const copia = join(temp, fonte);
   writeFileSync(copia, conteudo);
 
+  // Versão fixa: a 12 do mermaid-cli tirou o `-w`, e sem ele a largura comum se perde
   execFileSync(
     'npx',
-    ['-y', '@mermaid-js/mermaid-cli', '-i', copia, '-o', `${DIR}/${nome}.png`, '-w', String(LARGURA), '-s', String(ESCALA), '-b', 'white'],
+    ['-y', '@mermaid-js/mermaid-cli@11', '-i', copia, '-o', `${DIR}/${nome}.png`, '-w', String(LARGURA), '-s', String(ESCALA), '-b', 'white'],
     { stdio: 'ignore', shell: process.platform === 'win32' }
   );
   console.log(`ok ${nome}`);

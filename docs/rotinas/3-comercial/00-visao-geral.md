@@ -45,7 +45,7 @@ negociação foi.
 | Área | Relação |
 |---|---|
 | **1 · Cadastros** | cliente, espécie e recipiente no item do pedido |
-| **2 · Produção** | o saldo de muda pronta aparece ao lado de cada item (RF-56) |
+| **2 · Produção** | o estoque disponível aparece ao lado de cada item (RF-56) |
 
 **A consulta de saldo é a única ligação entre as duas áreas de movimento**, e ela é de leitura. O
 pedido não reserva, não baixa e não move lote.

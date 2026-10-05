@@ -106,7 +106,7 @@ fundi-las é grande. Elas não são fundidas por duas razões. A primeira é que
 de substantivo é a **fórmula**, e as duas fórmulas são diferentes: a quantidade sai da soma dos
 lotes abertos daquela espécie e recipiente, e o vencimento sai do evento de referência com a última
 execução. Fundi-las guardaria o princípio e jogaria fora o conteúdo, e a primeira delas é o que
-sustenta o saldo de muda pronta que este trabalho existe para demonstrar. A segunda é que "valor
+sustenta o estoque disponível que este trabalho existe para demonstrar. A segunda é que "valor
 derivado não se digita" **falha no teste da §2.1**: apague o sistema e não há onde digitar. É
 princípio de projeto, e não regra do viveiro; a regra é cada fórmula.
 
@@ -155,9 +155,10 @@ e já se diz "fiz tantos saquinhos hoje". Apague o sistema e os enunciados sobre
 | **RN-02** | A espécie tem um nome científico e vários nomes populares | Fato | `A2` §1 | RF-10 | RNF-07, RNF-22 |
 | **RN-03** | A espécie pode ter várias características ao mesmo tempo, como nativa, frutífera e madeireira | Fato | `A2` §1 | RF-10 | RNF-02 |
 | **RN-04** | O recipiente define o porte da muda. Espécie e recipiente formam o produto | Fato | `A2` §2; `CLAUDE.md` | RF-11, RF-43, RF-54, RF-32 | - |
-| **RN-05** | A produção da muda segue uma sequência declarada de etapas com prazo, do plantio à muda pronta | Fato | `A2` §1 | RF-22 | - |
-| **RN-06** | Só a muda pronta pode ser vendida | Restrição | `A2` §1 | RF-43, RF-56 | - |
+| **RN-05** | A produção da muda segue uma sequência declarada de etapas com prazo, do plantio ao fim do manejo | Fato | `A2` §1 | RF-22 | - |
+| **RN-06** | Toda muda de lote aberto pode ser vendida, em qualquer fase. Atende o item a muda da mesma espécie e recipiente com altura igual ou maior que a pedida | Fato | `A2` §1 | RF-43, RF-56, RF-65 | - |
 | **RN-07** | O insumo pertence a uma categoria, que pode ser substrato, adubo, defensivo, recipiente ou outros | Fato | `A2` §2 | RF-12 | RNF-02 |
+| **RN-62** | Quando a muda da altura pedida não basta, a de até 20 cm abaixo é apresentada como a que pode completar o item | Derivação | `rotinas/3-comercial` | RF-56, RF-65 | - |
 
 ### 3.2 Área B: Produção, lote e trabalho
 
@@ -184,7 +185,7 @@ e já se diz "fiz tantos saquinhos hoje". Apague o sistema e os enunciados sobre
 | **RN-26** | O horário dos turnos e os limites de atraso são ajustáveis | Fato | `rotinas/2-producao` | RF-08, RF-09 | - |
 | **RN-27** | Na classificação, as mudas mortas viram perda do lote no mesmo registro | Derivação | `rotinas/2-producao` | RF-29 | - |
 | **RN-28** | A ocupação do canteiro é a soma dos saldos dos lotes abertos nele | Derivação | `rotinas/2-producao` | RF-33, RF-44 | - |
-| **RN-29** | A tarefa recorrente já aparece preenchida na cópia da semana | Fato | `rotinas/2-producao` | RF-27 | - |
+| **RN-29** | A tarefa recorrente já aparece preenchida na semana seguinte | Fato | `rotinas/2-producao` | RF-27 | - |
 | **RN-61** | Remanejar a tarefa de uma pessoa para outra substitui a primeira pela segunda no grupo, e não acrescenta: quem já está na tarefa não entra de novo | Restrição | `rotinas/2-producao` | RF-26 | - |
 
 ### 3.3 Área C: Protocolo de atividades por lote
@@ -203,6 +204,7 @@ e já se diz "fiz tantos saquinhos hoje". Apague o sistema e os enunciados sobre
 | **RN-39** | Na divisão, cada lote novo segue o protocolo sozinho e herda a fase e as datas do original | Derivação | `rotinas/2-producao` | RF-40 | - |
 | **RN-40** | O vencimento da etapa é calculado, nunca digitado | Derivação | `rotinas/2-producao` | RF-45, RF-51 | - |
 | **RN-41** | O protocolo sugere tarefas de acordo com a necessidade do lote | Fato | `rotinas/2-producao` | RF-47 | - |
+| **RN-63** | Postergar a etapa desloca o vencimento só da ocorrência em aberto, contando de hoje quando ela já venceu, e cada adiamento ou conclusão fora da agenda fica no histórico do lote | Restrição | `rotinas/2-producao` | RF-66 | - |
 
 ### 3.4 Área D: Cliente e pedido
 
@@ -260,26 +262,26 @@ sem que a causa aparecesse em tela nenhuma.
 
 | Área | Regras | Quantidade |
 |---|---|---:|
-| A: Domínio e produto | RN-01 a RN-07 | 7 |
+| A: Domínio e produto | RN-01 a RN-07, RN-62 | 8 |
 | B: Produção, lote e trabalho | RN-08 a RN-29, RN-61 | 23 |
-| C: Protocolo de atividades por lote | RN-30 a RN-41 | 12 |
+| C: Protocolo de atividades por lote | RN-30 a RN-41, RN-63 | 13 |
 | D: Cliente e pedido | RN-42 a RN-50 | 9 |
 | E: Acesso e responsabilidade | RN-51 a RN-52 | 2 |
 | F: Conferência e carga | RN-53 a RN-60 | 8 |
-| **Total** | | **61** |
+| **Total** | | **63** |
 
 | Tipo | Quantidade |
 |---|---:|
-| Fato | 29 |
+| Fato | 30 |
 | Restrição | 21 |
-| Derivação | 10 |
+| Derivação | 11 |
 | Acionamento | 1 |
 
 ---
 
 ## 4. Rastreabilidade inversa: requisito funcional → regra que o origina
 
-Os 64 requisitos funcionais de `B2`. Quatro não decorrem de regra de
+Os 66 requisitos funcionais de `B2`. Quatro não decorrem de regra de
 negócio e estão justificados na seção 6.
 
 | RF | Regras que o originam |
@@ -327,6 +329,7 @@ negócio e estão justificados na seção 6.
 | RF-41 | RN-10 |
 | RF-42 | RN-11 |
 | RF-43 | RN-04, RN-06, RN-08, RN-16 |
+| RF-65 | RN-06, RN-62 |
 | RF-44 | RN-28 |
 | RF-45 | RN-40 |
 | RF-46 | RN-30 |
@@ -337,9 +340,10 @@ negócio e estão justificados na seção 6.
 | RF-51 | RN-40 |
 | RF-52 | RN-35 |
 | RF-53 | RN-38 |
+| RF-66 | RN-63 |
 | RF-54 | RN-01, RN-04, RN-42, RN-46 |
 | RF-55 | RN-50 |
-| RF-56 | RN-06, RN-08 |
+| RF-56 | RN-06, RN-62, RN-08 |
 | RF-57 | RN-48, RN-53 |
 | RF-58 | RN-42 |
 | RF-59 | RN-54 |
@@ -378,7 +382,7 @@ diz o que o sistema tem de fazer, e o ambiente diz sob que condições ele tem d
 
 ### 6.1 Requisitos funcionais sem regra de negócio
 
-Quatro dos sessenta e quatro requisitos funcionais não têm regra de negócio que os origine. Os quatro
+Quatro dos sessenta e seis requisitos funcionais não têm regra de negócio que os origine. Os quatro
 são de política do projeto, e nenhum é omissão do catálogo. Eram quatro também até 31/08/2026, mas
 não os mesmos: um deles, que prescrevia a organização de uma tela, foi cortado por não ser
 requisito, e a decisão de interface que ele carregava vive no protótipo
@@ -453,7 +457,7 @@ não dependa de abrir outro arquivo. **Não editar aqui**: a fonte é o `B2`.
 | RF-24 | O sistema deve permitir ligar e desligar o alerta de atraso por etapa do protocolo, e sobrescrever nela a janela de aviso padrão | D | OP |
 | RF-25 | O sistema deve permitir, no cadastro da espécie, sobrescrever o tempo em dias de uma etapa específica do protocolo | DV | DOM |
 | RF-26 | O sistema deve permitir montar a agenda da semana atribuindo, por funcionário e por dia, o tipo de tarefa e o turno, manhã ou tarde, admitindo a mesma tarefa para mais de um funcionário e mais de uma tarefa no mesmo turno com grupos diferentes, e deve permitir declarar a hora de início e de fim da tarefa que tiver hora marcada, sem exigi-la das demais; na apresentação em tela larga (RNF-14) a montagem deve ser direta, numa linha do tempo por pessoa: arrastando a tarefa planejada para remarcá-la no dia e na hora, ou para a linha de outra pessoa, que então substitui a de origem no grupo, puxando a borda dela para declarar a duração, e lançando tarefa nova no turno vazio em que se clicar, sem perguntar de novo a pessoa, o dia e o turno | D | EN, OP |
-| RF-27 | O sistema deve permitir copiar a agenda da semana anterior e marcar tarefas como recorrentes, que passam a nascer preenchidas na cópia | D | OP |
+| RF-27 | O sistema deve permitir marcar tarefas como recorrentes, que passam a nascer preenchidas na semana seguinte, no primeiro lançamento dela | D | OP |
 | RF-28 | O sistema deve controlar a situação da semana (aberta e fechada) e impedir alteração depois do fechamento | D | ORG |
 | RF-29 | O sistema deve permitir confirmar a atribuição como realizada, apresentando os campos que o tipo de tarefa exigir, o lote uma vez para a tarefa e a quantidade uma vez por participante, exigindo o lote quando o tipo declarar lote específico e pedindo a quantidade apenas quando o tipo for quantitativo por unidade | D | OP |
 | RF-30 | O sistema deve permitir registrar a área ou o canteiro da tarefa cujo tipo declarar área, e dispensá-los quando o lote os determinar | D | OP |
@@ -469,7 +473,8 @@ não dependa de abrir outro arquivo. **Não editar aqui**: a fonte é o `B2`.
 | RF-40 | O sistema deve permitir dividir um lote em dois, com cada resultante seguindo o protocolo de forma independente e herdando do original a fase e a data da última execução de cada etapa | D | OP |
 | RF-41 | O sistema deve listar as perdas registradas com filtro por período, espécie e causa | D | EN |
 | RF-42 | O sistema deve calcular a taxa de mortalidade do lote, como a razão entre as perdas dele e a sua quantidade inicial, apresentá-la no mapa e destacar ali o lote cuja taxa ultrapasse o limite definido em Configurações | D | EN |
-| RF-43 | O sistema deve apresentar a quantidade de muda pronta disponível por espécie e recipiente, somada dos lotes abertos | D | OP |
+| RF-43 | O sistema deve apresentar a quantidade de muda disponível por espécie, recipiente e altura, somada de todos os lotes abertos, em qualquer fase | D | OP |
+| RF-65 | O sistema deve permitir registrar a altura atual da muda do lote, em metros, substituindo a medida anterior | D | OP |
 | RF-44 | O sistema deve apresentar o mapa do viveiro com as áreas, os canteiros de cada área e os lotes abertos de cada canteiro, cada lote com a sua situação | D | EN |
 | RF-45 | O sistema deve classificar o lote em saudável, atenção e crítico a partir das etapas do protocolo vencidas ou a vencer nele, sem que a situação seja digitada, e apresentar, ao apontar o lote, a tarefa pendente que determina essa situação e o atraso em dias | D | ORG, OP |
 | RF-46 | O sistema deve atribuir ao lote, na criação, o protocolo vigente do recipiente dele, e acompanhar o lote etapa a etapa | D | ORG |
@@ -480,9 +485,10 @@ não dependa de abrir outro arquivo. **Não editar aqui**: a fonte é o `B2`.
 | RF-51 | O sistema deve apresentar, no lote, as etapas do protocolo com a data da última execução, o próximo vencimento e a situação de cada uma | D | EN |
 | RF-52 | O sistema deve apresentar a etapa em atenção dentro da janela de aviso e em atraso depois do vencimento, e sem indicação de situação quando o alerta da etapa estiver desligado | D | OP |
 | RF-53 | O sistema deve encerrar o protocolo do lote quando ele se encerra por saldo zero, por expedição total ou por divisão, deixando de sugerir etapas dele e cancelando as tarefas ainda não confirmadas sem removê-las | D | ORG |
+| RF-66 | O sistema deve apresentar, abaixo da agenda da semana, os lotes que pedem providência, de qualquer semana, e oferecer, a partir deles e da sugestão do protocolo, três saídas, cada uma na sua tela: postergar por um número de dias, contados de hoje quando o prazo já passou, marcar na agenda pelo mesmo lançamento de RF-47, e confirmar a tarefa feita fora da agenda, que a lança já confirmada no dia em que foi feita, com quem fez, a quantidade e as mudas que morreram; na tarefa já lançada e não confirmada, marcar na agenda remarca a própria tarefa, trazendo-a para a semana de hoje num dia que não seja anterior a hoje, e confirmar abre a confirmação dela; o adiamento da etapa fica registrado no histórico do protocolo do lote | D | OP |
 | RF-54 | O sistema deve permitir registrar pedido com cliente, canal de venda e itens identificados pela espécie ou marcados como genéricos, sem espécie escolhida e com observação opcional do que o cliente pediu, com recipiente, quantidade e altura opcionais no cadastro (exigidos na aprovação), montando os itens um a um ou a partir da lista de texto que o cliente enviou, sempre com revisão de quem registra | D | OP |
 | RF-55 | O sistema deve registrar, depois da conferência de disponibilidade, o preço unitário de cada item vendido e a quantidade combinada, limitada à que a conferência confirmou, e apresentar o total do item e o do pedido | D | EN |
-| RF-56 | O sistema deve apresentar, ao lado de cada item do pedido, a quantidade de muda pronta que a produção tem daquela espécie e recipiente | D | OP |
+| RF-56 | O sistema deve apresentar, ao lado de cada item do pedido, a quantidade de muda que a produção tem daquela espécie e recipiente com altura igual ou maior que a pedida e, quando ela não basta, a quantidade até 20 cm abaixo que pode completar o item | D | OP |
 | RF-57 | O sistema deve controlar a situação do pedido ao longo das oito situações que vão do cadastro ao pronto para envio, impedindo alteração de item depois da aprovação | D | ORG |
 | RF-58 | O sistema deve listar os pedidos do mais recente ao mais antigo, com filtro por cliente que se aplica enquanto se digita | D | OP |
 | RF-59 | O sistema deve registrar, para cada item do pedido, a disponibilidade conferida no viveiro, que pode ser total, parcial ou nenhuma; a parcial registra, do que o cliente especificou (quantidade, recipiente, altura), o que foi encontrado; no item cadastrado sem recipiente, a resposta com muda registra em que recipiente ela está, e no item sem quantidade, opcionalmente, quantas existem | D | OP |

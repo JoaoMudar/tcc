@@ -10,7 +10,7 @@ o que restou aqui é o recorte e o cuidado com a legibilidade impressa. O regist
 renomeado, e do que o aplicativo em outro repositório precisa acompanhar, está em
 [`de-para-ingles-portugues.md`](de-para-ingles-portugues.md).
 
-**São treze figuras para trinta e quatro entidades**, e nenhuma precisa ser girada. Não foi sempre
+**São treze figuras para trinta e cinco entidades**, e nenhuma precisa ser girada. Não foi sempre
 assim: até a redução de escopo eram dezenove figuras para sessenta e duas entidades, com duas
 obrigando a paisagem e várias raspando o piso de legibilidade. O ganho não veio de desenhar melhor,
 veio de haver menos o que desenhar.
@@ -21,7 +21,9 @@ figura 17 abaixo do piso de legibilidade. A divisão foi por assunto, o pedido e
 nele numa figura, a viagem do caminhão na outra, e não por corte arbitrário de tamanho. Em
 29/09/2026 a viagem de entrega (`viagens`, `viagens_paradas`) entrou na figura 18, que é onde o
 assunto já estava. Em 30/09/2026 a figura 8 ganhou a quinta caixa, `envios_recebidos`, e passou de
-9,2 pt para 6,7 pt: continua acima do piso, no mesmo valor da figura 17.
+9,2 pt para 6,7 pt: continua acima do piso, no mesmo valor da figura 17. Em 04/10/2026 a figura 16
+ganhou `lotes_etapas_acoes`, o histórico de postergar e concluir sem agenda, e passou de 21,1 pt
+para 12,4 pt.
 
 Fonte Mermaid em `mmd/`, PNGs em `img/`, layout em `mermaid-config.json` (`nodeSpacing` 30 e
 `rankSpacing` 45 no lugar dos padrões 140 e 80 do Mermaid, que são a causa do espalhamento).
@@ -49,7 +51,7 @@ node scripts/mede-figuras.mjs
 
 | Fig. | Arquivo | Conteúdo | Fonte útil |
 |---:|---|---|---|
-| 6 | `fig06-conceitual-producao` | Conceitual: da semente à muda pronta | 6,9 pt |
+| 6 | `fig06-conceitual-producao` | Conceitual: da semente à muda no canteiro | 6,9 pt |
 | 7 | `fig07-conceitual-comercial` | Conceitual: do cadastro ao pedido | 9,9 pt |
 | 8 | `fig08-acesso` | Acesso e configurações, transversais às três áreas | 6,7 pt |
 | 9 | `fig09-cadastros-especie` | Cadastros: a espécie e seus nomes | 8,7 pt |
@@ -58,8 +60,8 @@ node scripts/mede-figuras.mjs
 | 12 | `fig12-cadastros-pessoas` | Cadastros: identidade única e papéis | 7,3 pt |
 | 13 | `fig13-cadastros-tarefa-protocolo` | Cadastros: tipo de tarefa e protocolo de atividades | 7,5 pt |
 | 14 | `fig14-producao-agenda` | Produção: semana, atribuição e participantes | 8,5 pt |
-| 15 | `fig15-producao-lote` | Produção: o lote e seus movimentos | 8,7 pt |
-| 16 | `fig16-producao-protocolo-do-lote` | Produção: o lote seguindo o protocolo | 21,1 pt |
+| 15 | `fig15-producao-lote` | Produção: o lote e seus movimentos | 8,5 pt |
+| 16 | `fig16-producao-protocolo-do-lote` | Produção: o lote seguindo o protocolo, e o histórico das ações sobre ele | 12,4 pt |
 | 17 | `fig17-comercial-pedido` | Comercial: pedido, item e a disponibilidade conferida | 6,7 pt |
 | 18 | `fig18-comercial-carga` | Comercial: as cargas do pedido, a separação e a viagem de entrega | 8,7 pt |
 

@@ -72,6 +72,6 @@ abertos dela. Sem lote, as três subrotinas funcionam por espécie agregada, e n
 | Rotina | Relação |
 |---|---|
 | **Cadastros** | consome espécie, recipiente, funcionário, tipo de tarefa, área, canteiro e período de trabalho |
-| **Lotes** | perda e contagem física são movimento do lote, registrados no mesmo gesto da atividade; o saldo de muda pronta é a soma dos lotes, e não uma tabela à parte |
+| **Lotes** | perda e contagem física são movimento do lote, registrados no mesmo gesto da atividade; o estoque disponível é a soma dos lotes abertos, e não uma tabela à parte |
 | **Protocolo** | a etapa vencida do lote vira ordem na agenda, e é confirmada como qualquer outra tarefa |
-| **Pedidos** | o saldo de muda pronta é lido pela verificação do pedido, e nada volta de lá |
+| **Pedidos** | o estoque disponível é lido pelo item do pedido, comparando a altura medida do lote com a pedida, e nada volta de lá |

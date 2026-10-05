@@ -30,13 +30,12 @@ banco de dados usam o equivalente em **inglês**, indicado entre parênteses qua
 | **Espécie** | Entidade central do sistema. Tipo botânico de árvore produzido pelo viveiro, identificado por nome científico e um ou mais nomes populares. Tudo no sistema (lote, tarefa, perda, item de pedido) se refere a uma espécie. | "planta", "muda", pelo nome popular | **Espécie** (`especies`) |
 | **Nome popular** | Denominação regional da espécie. Uma mesma espécie admite vários; a busca do sistema deve encontrá-la por qualquer um deles. | o nome usado no dia a dia | **Nome popular** |
 | **Nome científico** | Denominação binomial da espécie. Identificador não ambíguo, usado em documentos oficiais e projetos de compensação ambiental. | "nome de fora", "nome técnico" | **Nome científico** |
-| **Muda** | Exemplar individual de uma espécie, em produção ou pronto para venda. É a unidade de contagem e de venda. | "pé", "planta", "unidade" | **Muda** |
+| **Muda** | Exemplar individual de uma espécie. É a unidade de contagem e de venda, e toda muda de lote aberto está à venda, em qualquer fase. | "pé", "planta", "unidade" | **Muda** |
 | **Característica da espécie** | Classificação de uso e origem, em catálogo fixo: **nativa, exótica, frutífera, ornamental, madeireira, forrageira**. Uma espécie admite **várias** simultaneamente, uma nativa pode ser ao mesmo tempo frutífera e madeireira, e forçar escolha única falsearia o catálogo. | "tipo", "pra que serve" | **Característica** (`tag`) |
 | **Semeadura** | Atividade de deposição da semente no substrato, marco inicial do ciclo produtivo. | "plantar a semente", "semear" | **Semeadura** |
 | **Germinação** | Período entre a semeadura e a emergência da plântula. Varia por espécie e é um dos determinantes da duração das etapas do protocolo. | "nascer" | **Germinação** |
 | **Repicagem** | Transferência da plântula para recipiente individual definitivo. Segunda etapa do ciclo e ponto de maior consumo de mão de obra e substrato. | "repicar", "passar pro saco" | **Repicagem** |
 | **Rustificação** | Fase final, em que a muda é exposta a condições próximas às do campo para ganhar resistência antes da expedição. | "endurecer", "botar no sol" | **Rustificação** |
-| **Muda pronta** | Muda que concluiu o ciclo produtivo e está apta à venda. Só a muda pronta compõe estoque comercializável. | "muda boa", "pronta pra sair" | **Muda pronta** |
 | **Perda** | Muda que não chegará à venda, por qualquer causa. Registrada como **movimento do lote**, com quantidade e causa. | "morreu", "perdeu" | **Perda** (movimento de tipo `perda`) |
 | **Causa da perda** | Motivo da perda, em lista fechada: seca, praga, geada, manuseio, outro. Lista fechada é requisito, campo livre inviabiliza a análise por causa. | - | **Causa** |
 | **Mortalidade** | Razão entre as mudas perdidas de um lote e a quantidade inicial dele. Acima do **limite mantido em Configurações** dispara alerta, é regra de negócio, não convenção de interface. O limite é parâmetro, e começa em 20% na instalação. | "perda", "quanto morreu" | **Taxa de mortalidade** |
@@ -75,7 +74,7 @@ banco de dados usam o equivalente em **inglês**, indicado entre parênteses qua
 | **Pedido** | Registro de uma intenção de compra, com cliente, canal e um ou mais itens. | "encomenda", "pedido" | **Pedido** (`order`) |
 | **Item de pedido** | Linha do pedido: espécie, recipiente, quantidade e **preço unitário digitado** por quem registra. | "linha", "item" | **Item de pedido** |
 | **Preço** | Valor de venda unitário do item, **informado no pedido**. O sistema registra o que foi negociado; não o calcula. | "valor", "quanto tá" | **Preço** |
-| **Saldo disponível** | Quantidade de muda pronta que a produção tem daquela espécie e recipiente, exibida ao lado do item do pedido. É **leitura derivada dos lotes**, não um número digitado, e é o ponto em que a Produção alimenta o Comercial. | "tem quanto?" | **Saldo disponível** |
+| **Saldo disponível** | Quantidade de muda que a produção tem daquela espécie e recipiente, com altura igual ou maior que a pedida, exibida ao lado do item do pedido. É **leitura derivada dos lotes**, não um número digitado, e é o ponto em que a Produção alimenta o Comercial. | "tem quanto?" | **Saldo disponível** |
 
 ## 4. Usuários, acesso e sistema
 
@@ -100,7 +99,7 @@ banco de dados usam o equivalente em **inglês**, indicado entre parênteses qua
 | **Atribuição** | O que a gerência planejou: uma tarefa, num dia, num turno, para um ou mais funcionários. É a célula da agenda. Quando a tarefa tem hora marcada na vida real, como a irrigação das sete às oito, a atribuição também guarda a hora; a maioria não tem, e o turno basta. | "o que tá marcado" | **Atribuição** (`assignment`) |
 | **Situação da atribuição** | Em que pé está a célula da agenda: **planejada**, **confirmada** (a gerência registrou que foi feita, com a quantidade) ou **não confirmada** (a semana fechou sem ninguém confirmar, e o sistema assume como realizada, marcando a condição). | "foi feito?" | **Situação da atribuição** |
 | **Semana** | A unidade de planejamento da agenda, com dois estados: **aberta** e **fechada**. Nasce aberta no primeiro lançamento; fechada, não aceita alteração. | "a semana" | **Semana** (`week_plan`) |
-| **Tarefa recorrente** | Atribuição marcada como fixa da rotina. Ao copiar a semana anterior, ela já vem preenchida, em vez de ser lançada de novo. **Repete por calendário, e o sujeito é a equipe**: é o que a distingue do protocolo de atividades. | "todo dia de manhã", "é fixo" | **Tarefa recorrente** |
+| **Tarefa recorrente** | Atribuição marcada como fixa da rotina. Ela já nasce preenchida na semana seguinte, no primeiro lançamento dela, em vez de ser lançada de novo. **Repete por calendário, e o sujeito é a equipe**: é o que a distingue do protocolo de atividades. | "todo dia de manhã", "é fixo" | **Tarefa recorrente** |
 | **Protocolo de atividades** | A **receita de manejo de um recipiente**: a sequência ordenada de etapas que todo lote daquele recipiente passa a seguir sozinho. Diferente da tarefa recorrente, **o sujeito é o lote** e a repetição conta a partir da execução real, e não do calendário. | "o que tem que fazer no tubete" | **Protocolo de atividades** (`protocol`) |
 | **Etapa do protocolo** | Uma linha do protocolo: aponta para uma tarefa do catálogo e diz **quando** ela ocorre. **Sequencial** ocorre uma vez e avança a fase do lote; **recorrente** repete indefinidamente e não avança fase nenhuma. | "a classificação", "a limpeza" | **Etapa do protocolo** (`protocol_step`) |
 | **Evento de referência** | O acontecimento a partir do qual a etapa conta o prazo: a **criação do lote** ou a **conclusão de uma etapa específica**, que **não é necessariamente a anterior**. "Classificar pós-germinação" conta do plantio, e não da criação do lote, porque a semente pode ficar dias esperando plantio antes de germinar. | "a partir de quando conta" | **Evento de referência**, ou **âncora** (`anchor`) |
@@ -115,7 +114,8 @@ Registrar o que **não** entra no vocabulário evita que reapareça em revisões
 | Termo evitado | Motivo |
 |---|---|
 | **Produto** | Ambíguo entre a espécie e o par espécie + recipiente. Usar sempre o termo específico. |
-| **Estoque** (como entidade) | Estoque é uma **quantidade derivada** da soma dos lotes prontos, não uma entidade própria. Tratá-lo como entidade cria duas verdades sobre o mesmo número. |
+| **Estoque** (como entidade) | Estoque é uma **quantidade derivada** da soma dos lotes abertos, não uma entidade própria. Tratá-lo como entidade cria duas verdades sobre o mesmo número. |
+| **Muda pronta** | Um viveiro de mudas não separa muda pronta de muda em produção: toda muda de lote aberto está à venda a qualquer momento, e o que decide se ela atende o pedido é a espécie, o recipiente e a altura (RN-06). A fase `pronto` existe só como etapa do manejo. Retirado em 03/10/2026. |
 | **Usuário** (como sinônimo de perfil) | Usuário é a pessoa; perfil é o papel. Um não substitui o outro. |
 | **Cadastro** | Genérico demais. Usar o nome da entidade: cadastro de pessoa, de espécie, de recipiente. |
 | **Apontamento de horas** | O sistema não mede a hora de entrada e saída de ninguém. A agenda registra que a tarefa planejada foi feita, e a quantidade; o relógio fica de fora. |

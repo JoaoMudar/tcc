@@ -8,10 +8,24 @@ erDiagram
     timestamptz concluido_em
     uuid        herdado_do_lote_id FK
   }
+  lotes_etapas_acoes {
+    uuid id PK
+    uuid lote_id FK
+    uuid protocolo_etapa_id FK
+    int  ocorrencia
+    text tipo_acao
+    int  dias
+    date data_acao
+    uuid registrado_por FK
+    text observacoes
+  }
   lotes {}
   protocolos_etapas {}
   atribuicoes {}
+  usuarios {}
 
   lotes             ||--o{ lotes_etapas : "percorre"
   protocolos_etapas ||--o{ lotes_etapas : "materializa-se em"
   lotes_etapas      ||--o{ atribuicoes  : "sugere"
+  lotes_etapas      ||--o{ lotes_etapas_acoes : "tem o histórico em"
+  usuarios          ||--o{ lotes_etapas_acoes : "registra"

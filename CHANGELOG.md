@@ -3,6 +3,48 @@
 Uma entrada por migration nova, como pede o `CLAUDE.md`. As migrations até `20260901000008` são o
 schema inicial em português e estão descritas no `C8`.
 
+## 04/10/2026 · `20261004000001_lotes_etapas_acoes.sql`
+
+- **Tabela nova `lotes_etapas_acoes`** (RF-66): o histórico do que a gerência faz com a etapa do
+  protocolo fora da agenda, uma linha por ação. `tipo_acao` é `adiamento` (com `dias` > 0) ou
+  `conclusao_sem_agenda`; `ocorrencia` guarda a ocorrência afetada; `registrado_por` aponta para
+  `usuarios`. Chave estrangeira composta para `lotes_etapas`, com exclusão em cascata.
+- **`lotes_etapas_vencimento` soma o adiamento** (RN-63): `proximo_vencimento` passa a incluir os
+  dias adiados da ocorrência que está por vir. Concluída a etapa, o adiamento deixa de contar sem
+  que nada seja apagado. As colunas da visão não mudam, e `situacao_lote` herda o efeito.
+- `COMMENT ON COLUMN atribuicoes.e_recorrente` reescrito: a cópia manual da semana saiu (RF-27), e a
+  recorrente nasce sozinha na semana seguinte.
+- Compatível: tabela nova e visão com as mesmas colunas.
+- Na mesma alteração, fora do banco: "Pedem providência" entra abaixo da agenda da semana, e cada
+  item, como cada sugestão do protocolo, abre postergar, adicionar na agenda e concluir sem agenda; a
+  tarefa atrasada se posterga mesmo para a semana seguinte. Sai "Copiar semana passada"; o ⋯ da
+  semana vira o botão "+ Tarefa"; saem a linha da jornada da agenda e a observação do estoque
+  disponível; no celular, as setas de semana deixam de aparecer duplicadas.
+- 05/10/2026, sem migration: as saídas viram Postergar, Marcar na agenda e Confirmar tarefa, cada
+  uma na sua tela. Confirmar a etapa feita fora da agenda lança a tarefa já confirmada em
+  `atribuicoes`, e `conclusao_sem_agenda` deixa de ser gravado (o valor continua aceito, para as
+  linhas antigas).
+- 05/10/2026, sem migration: postergar conta de hoje quando o prazo já passou (RN-63). Na etapa
+  vencida, `lotes_etapas_acoes.dias` passa a incluir o atraso até a data da ação, e a visão segue
+  só somando. "Marcar na agenda" da tarefa atrasada a traz para a semana de hoje
+  (`atribuicoes.semana_id` muda na alteração), num dia que não seja anterior a hoje. Na semana que
+  já pode ser fechada, a grade pinta a não confirmada de amarelo com "?" e a confirmada de verde.
+
+## 03/10/2026 · `20261003000001_lote_altura_estoque_disponivel.sql`
+
+- **Não existe mais "muda pronta" como condição de venda** (RN-06). Toda muda de lote aberto está
+  à venda, em qualquer fase, e o que diz se ela atende o item é a espécie, o recipiente e a altura.
+  A fase `pronto` continua como etapa do manejo.
+- **O lote ganha a altura da muda** (RF-65). Coluna nova `lotes.altura_m` (numeric(4,2), nula =
+  "ainda não medida", de 0 a 20 m, como `pedidos_itens.altura_m`), registrada na ficha do lote e
+  guardando só a medida mais recente.
+- O índice parcial `lotes_prontos_idx` (só fase `pronto`) dá lugar a `lotes_disponiveis_idx`, sobre
+  todos os lotes abertos.
+- Compatível: a coluna é opcional, e quem não a conhece segue gravando lote sem ela.
+- Na mesma alteração, fora do banco: o item do pedido mostra "Disponível" (lotes com altura igual ou
+  maior que a pedida) e, faltando, quanto há com até 20 cm a menos e quanto está sem altura medida
+  (RN-62). Sai o "Pronto" e o "em produção". `/producao/saldo` passa a "Estoque disponível".
+
 ## 01/10/2026 · `20261001000002_atribuicoes_prioridade_opcional.sql`
 
 - **A precedência de desenho vira escolha manual** (RF-26). `atribuicoes.prioridade_em` perde o

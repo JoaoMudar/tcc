@@ -43,7 +43,7 @@ const NOME = {
   'RF-24': 'Alerta e janela de aviso por etapa',
   'RF-25': 'Tempo de etapa customizado por espécie',
   'RF-26': 'Montagem da agenda da semana',
-  'RF-27': 'Cópia da semana e tarefa recorrente',
+  'RF-27': 'Tarefa recorrente',
   'RF-28': 'Situação da semana',
   'RF-29': 'Confirmação da tarefa realizada',
   'RF-30': 'Área ou canteiro da tarefa sem lote',
@@ -59,7 +59,7 @@ const NOME = {
   'RF-40': 'Divisão de lote',
   'RF-41': 'Listagem de perdas com filtro',
   'RF-42': 'Taxa de mortalidade e destaque no mapa',
-  'RF-43': 'Quantidade de muda pronta disponível',
+  'RF-43': 'Estoque disponível por espécie, recipiente e altura',
   'RF-44': 'Mapa do viveiro com áreas, canteiros e lotes',
   'RF-45': 'Situação do lote e tarefa pendente que a determina',
   'RF-46': 'Atribuição do protocolo ao lote na criação',
@@ -72,7 +72,7 @@ const NOME = {
   'RF-53': 'Encerramento do protocolo do lote',
   'RF-54': 'Registro de pedido com cliente, canal e itens',
   'RF-55': 'Preço unitário informado no item',
-  'RF-56': 'Saldo disponível ao lado do item',
+  'RF-56': 'Saldo disponível ao lado do item, pela altura pedida',
   'RF-57': 'Situação do pedido',
   'RF-58': 'Listagem de pedidos com filtro',
   'RF-59': 'Disponibilidade conferida item a item',
@@ -81,6 +81,8 @@ const NOME = {
   'RF-62': 'Dia de carregar e calendário de entregas',
   'RF-63': 'Viagem de entrega do dia',
   'RF-64': 'Rota da viagem e ordem de carregamento',
+  'RF-65': 'Altura atual da muda do lote',
+  'RF-66': 'Postergar e concluir o que pede providência',
 };
 
 // ---------------------------------------------------------------- leitura

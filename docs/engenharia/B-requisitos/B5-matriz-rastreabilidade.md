@@ -113,6 +113,7 @@ As seções seguem as **três áreas de negócio** do sistema, na mesma ordem da
 | RF-41 | UC-30 | `movimentos_lote` | Análise de perdas | TA-66 |
 | RF-42 | UC-30 | *derivada* de `movimentos_lote` e `lotes`; limite em `parametros` | Análise de perdas; Mapa de lotes | TA-24, TA-25 |
 | RF-43 | UC-29 | *derivada* de `lotes` | Estoque disponível | TA-64 |
+| RF-65 | UC-26 | `lotes` | Lotes | TA-81 |
 
 ### 2.4.3 Mapa de lotes
 
@@ -133,6 +134,7 @@ As seções seguem as **três áreas de negócio** do sistema, na mesma ordem da
 | RF-51 | UC-28 | `lotes_etapas`, visão `lotes_etapas_vencimento` | Protocolo de atividades | TA-43 |
 | RF-52 | UC-28 | visão `lotes_etapas_vencimento` | Protocolo de atividades | TA-37 |
 | RF-53 | UC-28 | `lotes_etapas`, `atribuicoes` | Protocolo de atividades | TA-45 |
+| RF-66 | UC-19 | `lotes_etapas_acoes`, `atribuicoes` | Agenda da semana | TA-82, TA-83 |
 
 ### 2.5 Área 3 · Comercial
 
@@ -140,7 +142,7 @@ As seções seguem as **três áreas de negócio** do sistema, na mesma ordem da
 |---|---|---|---|---|
 | RF-54 | UC-31 | `pedidos`, `pedidos_itens` | Pedidos | TA-51 |
 | RF-55 | UC-31 | `pedidos_itens` | Pedidos | TA-52 |
-| RF-56 | UC-32 | *derivada* de `lotes` | Estoque disponível | TA-64 |
+| RF-56 | UC-32 | *derivada* de `lotes` | Estoque disponível | TA-64, TA-81 |
 | RF-57 | UC-33, UC-35 | `pedidos` | Confirmação de pedido | TA-53, TA-74 |
 | RF-58 | UC-34 | `pedidos` | Pedidos | TA-54 |
 | RF-59 | UC-35 | `pedidos_itens` | Verificação de pedido | TA-71, TA-72 |
@@ -274,10 +276,10 @@ ser o documento que mais diverge.
 
 | Verificação | Resultado |
 |---|---|
-| Requisitos funcionais com caso de uso | 60 de 64 |
-| Requisitos funcionais com entidade ou derivação declarada | **64 de 64** |
-| Requisitos funcionais com regra de acesso definida | **64 de 64** |
-| Requisitos de prioridade *deve ter* com teste de aceite | 59 de 59 |
+| Requisitos funcionais com caso de uso | 62 de 66 |
+| Requisitos funcionais com entidade ou derivação declarada | **66 de 66** |
+| Requisitos funcionais com regra de acesso definida | **66 de 66** |
+| Requisitos de prioridade *deve ter* com teste de aceite | 61 de 61 |
 | Requisitos *deveria ter* sem teste | 1: deliberado |
 | Casos de uso sem requisito de origem | 0 |
 | Entidades sem requisito de origem | 0 |

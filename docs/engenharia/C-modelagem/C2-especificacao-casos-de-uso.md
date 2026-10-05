@@ -57,7 +57,7 @@ Notação dos fluxos: **FP** fluxo principal, **FA** fluxo alternativo, **FE** f
 4. O sistema solicita o canal de venda e apresenta *atacado* como opção padrão.
 5. A chefia confirma ou altera o canal.
 6. A chefia adiciona um item informando a espécie e, quando o cliente os disse, o recipiente, a altura e a quantidade.
-7. O sistema valida que a quantidade, quando existe, é positiva, apresenta ao lado do item o saldo de muda pronta daquela espécie e recipiente (UC-32) e acrescenta o item ao pedido.
+7. O sistema valida que a quantidade, quando existe, é positiva, apresenta ao lado do item o estoque disponível daquela espécie, recipiente e altura (UC-32) e acrescenta o item ao pedido.
 8. A chefia repete os passos 6 e 7 para os demais itens.
 9. A chefia informa, opcionalmente, a data prevista de entrega e observações.
 10. A chefia conclui o cadastro.
@@ -82,13 +82,13 @@ No passo 3, a chefia não localiza o cliente.
 
 ### FA-2: Saldo menor que a quantidade pedida
 
-No passo 7, o saldo de muda pronta é menor do que a quantidade que o cliente pediu.
+No passo 7, o estoque disponível é menor do que a quantidade que o cliente pediu.
 
 1. O sistema **sinaliza** a diferença ao lado do item, sem recusá-lo.
 2. A chefia decide manter o item como está e prossegue para o passo 8.
 
-> O sistema informa, e não impede. O pedido registra o que foi negociado, e o viveiro vende com
-> frequência muda que ainda vai ficar pronta: bloquear o item pelo saldo de hoje transformaria uma
+> O sistema informa, e não impede. O pedido registra o que foi negociado, e a muda cresce até a
+> entrega: bloquear o item pelo saldo de hoje transformaria uma
 > venda normal em erro de sistema. O saldo existe para que a chefia decida sabendo, e é essa a
 > diferença entre informar e barrar.
 
@@ -111,7 +111,7 @@ mantém o pedido em edição, sem perder os itens já lançados.
 | | |
 |---|---|
 | **Ator principal** | Chefia |
-| **Objetivo** | Saber, no momento em que o item é lançado, quanta muda pronta a produção tem daquela espécie e recipiente |
+| **Objetivo** | Saber, no momento em que o item é lançado, quanta muda a produção tem daquela espécie e recipiente na altura pedida |
 | **Requisitos** | RF-56, RF-43 *(de UC-29)* |
 | **Frequência** | Diária, dentro de UC-31 |
 | **Pré-condições** | Existe ao menos um lote aberto |
@@ -119,19 +119,18 @@ mantém o pedido em edição, sem perder os itens já lançados.
 
 ### FP: Fluxo principal
 
-1. A chefia informa espécie e recipiente num item de pedido.
-2. O sistema soma o saldo dos lotes abertos daquela espécie e recipiente que estão na fase de **muda pronta**.
+1. A chefia informa espécie, recipiente e, quando o cliente a disse, a altura num item de pedido.
+2. O sistema soma o saldo dos lotes abertos daquela espécie e recipiente, em qualquer fase, com altura igual ou maior que a pedida; sem altura no item, soma todos (RN-06).
 3. O sistema apresenta o saldo ao lado do item, com a data da consulta.
 
-### FA-1: Nenhum lote pronto
+### FA-1: Saldo menor que a quantidade, no item com altura
 
-No passo 2, não há lote na fase de muda pronta. O sistema apresenta saldo zero e indica, quando
-houver, a quantidade em produção daquela espécie e recipiente, que **não compõe** o saldo
-disponível (RN-06).
+No passo 2, a muda da altura pedida não basta. O sistema apresenta, ao lado do saldo, quanto falta,
+quanto há com até 20 cm a menos que a pedida e quanto está em lote sem altura medida (RN-62).
 
-> Distinguir "não tenho" de "tenho, mas ainda não está pronto" é o que permite à chefia responder
-> ao cliente com uma data em vez de uma recusa. Somar as duas quantidades num número só faria o
-> sistema prometer muda que não existe.
+> A muda um pouco menor não é a pedida, e por isso **não entra no saldo**: é apresentada à parte,
+> para a chefia oferecer ao cliente como complemento. O lote sem altura medida também fica à parte,
+> porque não se sabe se atende, e a resposta é medi-lo (UC-26).
 
 ### FE-1: Espécie sem recipiente correspondente
 
