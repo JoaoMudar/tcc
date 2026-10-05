@@ -3,7 +3,7 @@ import type { LoteNoMapa } from '../mapa';
 import { parseDiasAdiamento } from '../protocolo-rotulos';
 import { vencimentoDaEtapa } from '../protocolo-motor';
 import type { Sugestao } from '../protocolos';
-import { lancarDaEtapa, prazoAdiado, registrarDaEtapa, providenciaDaSugestao, providenciaDoLote } from '../providencia';
+import { destinoAposAlterar, lancarDaEtapa, prazoAdiado, registrarDaEtapa, providenciaDaSugestao, providenciaDoLote } from '../providencia';
 
 const SEMANA = '2026-09-28';
 
@@ -53,7 +53,7 @@ describe('RF-66: o que se pode fazer com o que pede providência', () => {
     expect(providenciaDoLote(lote({ atribuicaoPendenteId: 'a1' }), null, SEMANA)?.origem).toEqual({
       tipo: 'tarefa',
       atribuicaoId: 'a1',
-      marcarHref: `/producao/agenda/a1/editar?semana=${SEMANA}`,
+      marcarHref: `/producao/agenda/a1/editar?semana=${SEMANA}&voltar=agenda`,
     });
   });
 
@@ -115,5 +115,16 @@ describe('RF-66: o que se pode fazer com o que pede providência', () => {
     const estado = { dataAncora: '2026-01-10', ultimaExecucaoEm: '2026-09-15', ocorrencias: 1 };
     expect(vencimentoDaEtapa(limpeza, estado, null)).toBe('2026-12-14');
     expect(vencimentoDaEtapa(limpeza, { ...estado, diasAdiados: 15 }, null)).toBe('2026-12-29');
+  });
+});
+
+describe('RF-66: para onde vai a tarefa alterada', () => {
+  it('vinda do "Marcar na agenda", volta para a agenda do dia novo, sem abrir a ficha', () => {
+    expect(destinoAposAlterar('a1', '2026-10-07', 'agenda')).toBe('/producao?dia=2026-10-07&feito=alterada');
+  });
+
+  it('a alteração comum volta para a ficha', () => {
+    expect(destinoAposAlterar('a1', '2026-10-07', null)).toBe('/producao/agenda/a1?feito=alterada');
+    expect(destinoAposAlterar('a1', '2026-10-07', '')).toBe('/producao/agenda/a1?feito=alterada');
   });
 });

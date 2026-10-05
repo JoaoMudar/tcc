@@ -26,6 +26,7 @@ interface ProducaoPageProps {
 
 const FEITO: Record<string, string> = {
   lancada: 'Tarefa lançada.',
+  alterada: 'Tarefa alterada.',
   confirmada: 'Tarefa confirmada.',
   excluida: 'Tarefa excluída.',
   fechada: 'Semana fechada. O que ficou sem confirmação entrou como realizado, marcado de não confirmado.',

@@ -10,6 +10,7 @@ import { type FormState, formText } from '@/lib/form-state';
 import { parseDiasAdiamento } from '@/lib/protocolo-rotulos';
 import { can } from '@/lib/permissions';
 import { adiarEtapa } from '@/lib/protocolos';
+import { destinoAposAlterar } from '@/lib/providencia';
 import { inicioDaSemana, isInicioDeSemana } from '@/lib/semanas';
 import { findTipoTarefa } from '@/lib/tipos-tarefa';
 import { withTransaction } from '@/lib/transaction';
@@ -108,7 +109,7 @@ export async function atualizarAtribuicaoAction(_previous: FormState, formData: 
     return { error: toUserMessage(error), fields: resultado.fields };
   }
   revalidarProducao();
-  redirect(`/producao/agenda/${id}?feito=alterada`);
+  redirect(destinoAposAlterar(id, resultado.value.dias[0], formText(formData, 'voltar')));
 }
 
 /**

@@ -14,8 +14,19 @@ import { carregarOpcoes } from './opcoes';
  * Alterar a tarefa ainda planejada: em modal sobre a agenda, ou página pelo
  * endereço. Fica na semana dela, salvo quando `semana` pede uma à frente: é o
  * "Marcar na agenda" da tarefa atrasada (RF-66), e aí o dia vem em branco.
+ * Esse caminho traz `voltar=agenda`: salva, volta para a agenda, não para a ficha.
  */
-export async function EditarTarefa({ id, semana, emModal }: { id: string; semana?: string; emModal: boolean }) {
+export async function EditarTarefa({
+  id,
+  semana,
+  voltar,
+  emModal,
+}: {
+  id: string;
+  semana?: string;
+  voltar?: string;
+  emModal: boolean;
+}) {
   await requirePageAccess('agenda', 'A');
   if (!isUuid(id)) notFound();
   const a = await findAtribuicao(pool, id);
@@ -36,6 +47,7 @@ export async function EditarTarefa({ id, semana, emModal }: { id: string; semana
             semana={destino}
             opcoes={opcoes}
             atribuicaoId={a.id}
+            voltarParaAgenda={voltar === 'agenda'}
             inicial={{
               dias: movendo ? '' : a.data,
               turno_id: a.turnoId,
