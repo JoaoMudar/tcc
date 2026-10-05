@@ -18,6 +18,8 @@ import {
   validarComposicaoGenerico,
 } from './pedidos-rotulos';
 import type { OrigemFrete } from './frete';
+import { ENDERECO_DO_PEDIDO } from './pedidos-entrega';
+import { enderecoEmTexto } from './rotas';
 import type { Db } from './sql';
 
 export {
@@ -174,6 +176,8 @@ export interface FichaPedido extends Omit<PedidoResumo, 'itens' | 'totalCentavos
   freteOrigemEndereco: string | null;
   /** Distância de ida da última sugestão de frete, em km. */
   freteDistanciaKm: number | null;
+  /** P19: o destino do pedido; sem o próprio, o endereço de entrega do cliente. */
+  entrega: { endereco: string | null; propria: boolean };
   itens: ItemPedido[];
 }
 
@@ -240,22 +244,40 @@ export async function listPedidos(db: Db): Promise<PedidoResumo[]> {
 }
 
 export async function findPedido(db: Db, id: string): Promise<FichaPedido | null> {
-  const { rows } = await db.query<Omit<FichaPedido, 'itens'>>(
+  const { rows } = await db.query<
+    Omit<FichaPedido, 'itens' | 'entrega'> & {
+      entregaPropria: boolean | null;
+      entregaLogradouro: string | null;
+      entregaCidade: string | null;
+      entregaUf: string | null;
+    }
+  >(
     `SELECT p.id, p.numero_pedido AS numero, p.cliente_id AS "clienteId", c.nome AS cliente,
             c.telefone AS "clienteTelefone", p.canal_venda AS canal, p.situacao, p.criado_em AS "criadoEm",
             to_char(p.data_entrega, 'YYYY-MM-DD') AS "dataEntrega", p.observacoes,
             u.nome_exibicao AS "criadoPor",
             ROUND(p.frete * 100)::int AS "freteCentavos", p.frete_origem AS "freteOrigem",
             p.frete_origem_endereco AS "freteOrigemEndereco",
-            p.frete_distancia_km::float8 AS "freteDistanciaKm"
+            p.frete_distancia_km::float8 AS "freteDistanciaKm",
+            e.proprio AS "entregaPropria", e.logradouro AS "entregaLogradouro", e.cidade AS "entregaCidade",
+            e.uf AS "entregaUf"
        FROM pedidos p
        JOIN cadastro.pessoas c ON c.id = p.cliente_id
        JOIN usuarios u ON u.id = p.criado_por
+       ${ENDERECO_DO_PEDIDO}
       WHERE p.id = $1`,
     [id],
   );
   if (!rows[0]) return null;
-  return { ...rows[0], itens: await listItens(db, id) };
+  const { entregaPropria, entregaLogradouro, entregaCidade, entregaUf, ...pedido } = rows[0];
+  return {
+    ...pedido,
+    entrega: {
+      endereco: enderecoEmTexto({ logradouro: entregaLogradouro, cidade: entregaCidade, uf: entregaUf }),
+      propria: Boolean(entregaPropria),
+    },
+    itens: await listItens(db, id),
+  };
 }
 
 export async function listItens(db: Db, pedidoId: string): Promise<ItemPedido[]> {

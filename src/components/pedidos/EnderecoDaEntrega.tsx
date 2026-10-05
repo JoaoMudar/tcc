@@ -11,7 +11,7 @@ import type { SugestaoDeEndereco } from '@/lib/rotas';
 
 interface EnderecoDaEntregaProps {
   nomeCliente: string;
-  /** O endereço que o cadastro já tem, quando o mapa não o achou. */
+  /** O texto com que o campo abre. A ficha do pedido o abre vazio; a rota, com o que o mapa não achou. */
   endereco: string | null;
   /** Quem grava: a rota do planejar ou o frete do pedido, cada um com a sua permissão. */
   acao: (previous: FormState, formData: FormData) => Promise<FormState>;
@@ -24,9 +24,9 @@ interface EnderecoDaEntregaProps {
 }
 
 /**
- * P17: o endereço de entrega que falta, sem sair da tela. Digita-se o
- * endereço, com as sugestões do mapa, ou cola-se a localização que o cliente
- * mandou pelo WhatsApp. Grava no cadastro do cliente, e vale para as próximas.
+ * P17, P19: o destino do pedido, sem sair da tela. Digita-se o endereço, com
+ * as sugestões do mapa, ou cola-se a localização que o cliente mandou pelo
+ * WhatsApp. Grava no pedido: o cadastro do cliente não muda.
  */
 export function EnderecoDaEntrega({
   nomeCliente,
@@ -57,7 +57,7 @@ export function EnderecoDaEntrega({
           buscar={buscar}
         />
         <CampoLocalizacao name="localizacao" defaultValue={estado.fields?.localizacao} />
-        <p className="text-sm text-muted">Fica no cadastro do cliente e vale para as próximas entregas.</p>
+        <p className="text-sm text-muted">Vale só para este pedido. O cadastro do cliente não muda.</p>
         {estado.error && <Notice tone="error">{estado.error}</Notice>}
         <Button type="submit" pending={salvando}>
           Salvar endereço

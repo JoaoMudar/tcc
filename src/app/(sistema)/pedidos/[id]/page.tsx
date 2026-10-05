@@ -124,7 +124,7 @@ export default async function PedidoPage({ params }: PedidoPageProps) {
           faltaBloqueia={situacao === 'verificado'}
           frete={{ centavos: pedido.freteCentavos, origem: pedido.freteOrigem,
             origemEndereco: pedido.freteOrigemEndereco,
-            distanciaKm: pedido.freteDistanciaKm }}
+            distanciaKm: pedido.freteDistanciaKm, entrega: pedido.entrega }}
           nomeCliente={pedido.cliente}
           proximoPasso={{
             pedidoId: pedido.id,

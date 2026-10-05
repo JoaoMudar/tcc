@@ -38,7 +38,6 @@ export interface ParadaNaRota {
   pedidoId: string | null;
   numero: number | null;
   cliente: string | null;
-  clienteId: string | null;
   cidade: string | null;
   descricao: string | null;
   endereco: string | null;
@@ -135,7 +134,7 @@ function CartaoDaParada({ parada, marca, primeiro, ultimo, onMover, remover, onE
             : ['Parada extra', parada.endereco].filter(Boolean).join(' · ')}
         </span>
         {aviso && <span className="text-sm font-semibold text-amber-800">{aviso}</span>}
-        {aviso && parada.clienteId && (
+        {aviso && parada.pedidoId && (
           <button
             type="button"
             onClick={onEndereco}
@@ -339,13 +338,13 @@ export function RotaDaViagem({ data, viagemId, partida, chegada, paradas, distan
         </form>
       </div>
 
-      {semEndereco?.clienteId && (
+      {semEndereco?.pedidoId && (
         <EnderecoDaEntrega
           nomeCliente={semEndereco.cliente ?? ''}
           endereco={semEndereco.endereco}
           acao={salvarEnderecoEntregaAction}
           buscar={buscarEnderecosAction}
-          camposOcultos={{ data, viagem_id: viagemId, cliente_id: semEndereco.clienteId }}
+          camposOcultos={{ data, viagem_id: viagemId, pedido_id: semEndereco.pedidoId }}
           onFechar={fecharEndereco}
         />
       )}

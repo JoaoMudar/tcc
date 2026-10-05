@@ -511,38 +511,39 @@ describe('frete do pedido (RN-64)', () => {
     expectNoDatabase();
   });
 
-  it('cliente sem endereço de entrega: a sugestão avisa, e nada consulta o mapa', async () => {
+  it('pedido sem endereço de entrega: a sugestão avisa, e nada consulta o mapa', async () => {
     vi.mocked(pool.query).mockResolvedValueOnce({
-      rows: [{ situacao: 'verificado', numero: 1, enderecoId: null, logradouro: null, cidade: null, uf: null, lat: null, lng: null }],
+      rows: [
+        { situacao: 'verificado', numero: 1, enderecoId: null, proprio: null, logradouro: null, cidade: null, uf: null, lat: null, lng: null },
+      ],
       rowCount: 1,
     } as never);
     await expect(actions.sugerirFreteAction(PEDIDO, 'agrolandia')).resolves.toEqual({
-      error: 'Cliente sem endereço de entrega.',
+      error: 'Pedido sem endereço de entrega.',
       falta: { endereco: null },
     });
   });
 });
 
-describe('endereço de entrega pelo frete (P17)', () => {
-  const CLIENTE = '4f5b3a6c-2d9e-4a6f-9b4c-6d0e1f2a3b4c';
-
+describe('endereço de entrega pelo frete (P17, P19)', () => {
   /** O pedido travado devolve o cliente; o cliente ainda não tem endereço de entrega. */
   function pedidoDoCliente(situacao: string) {
     client.query.mockImplementation((async (sql: string) => {
-      if (/FROM pedidos WHERE id/.test(sql)) return { rows: [{ clienteId: CLIENTE, situacao, numero: 7 }], rowCount: 1 };
+      if (/FROM pedidos WHERE id/.test(sql)) return { rows: [{ situacao, numero: 7 }], rowCount: 1 };
       return { rows: [], rowCount: 0 };
     }) as never);
   }
 
   function gravouEndereco() {
-    return client.query.mock.calls.filter(([sql]) => String(sql).includes('INSERT INTO cadastro.pessoas_enderecos'));
+    return client.query.mock.calls.filter(([sql]) => String(sql).includes('SET entrega_logradouro'));
   }
 
-  it('grava o endereço digitado no cadastro do cliente do pedido', async () => {
+  it('grava o endereço digitado no pedido, e não no cadastro do cliente', async () => {
     pedidoDoCliente('verificado');
     const state = await actions.salvarEnderecoDoPedidoAction({}, form({ pedido_id: PEDIDO, endereco: 'Rua XV, 120' }));
     expect(state).toEqual({ success: 'Endereço salvo.' });
-    expect(gravouEndereco().map(([, valores]) => valores)).toEqual([[CLIENTE, 'Rua XV, 120', null, null, null, null, null]]);
+    expect(gravouEndereco().map(([, valores]) => valores)).toEqual([[PEDIDO, 'Rua XV, 120', null, null, null, null, null]]);
+    expect(client.query.mock.calls.some(([sql]) => String(sql).includes('cadastro.pessoas_enderecos'))).toBe(false);
   });
 
   it('pedido aprovado não completa endereço por aqui', async () => {

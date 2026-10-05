@@ -181,7 +181,10 @@ describe('ItensDaFicha: o orçamento edita a grade do cadastro, gravando ao digi
 });
 
 describe('ItensDaFicha: o fechamento do pedido (RF-67)', () => {
-  function negociacao(itens = [item({ precoCentavos: 300, pesoKg: 0.35 })], frete?: { centavos: number | null }) {
+  function negociacao(
+    itens = [item({ precoCentavos: 300, pesoKg: 0.35 })],
+    frete?: { centavos: number | null; entrega?: { endereco: string | null; propria: boolean } },
+  ) {
     return render(
       <ItensDaFicha
         pedidoId="p1"
@@ -189,7 +192,7 @@ describe('ItensDaFicha: o fechamento do pedido (RF-67)', () => {
         itens={itens}
         saldos={{}}
         proximoPasso={{ ...PASSO, situacao: 'verificado' }}
-        frete={frete ? { centavos: frete.centavos, origem: null, distanciaKm: null } : undefined}
+        frete={frete ? { centavos: frete.centavos, origem: null, distanciaKm: null, entrega: frete.entrega } : undefined}
       />,
     );
   }
@@ -258,9 +261,10 @@ describe('ItensDaFicha: o fechamento do pedido (RF-67)', () => {
     expect((screen.getByLabelText('Frete') as HTMLInputElement).value).toBe('');
   });
 
-  it('cliente sem endereço: o botão abre o endereço, e gravar sugere o frete de novo', async () => {
-    vi.mocked(sugerirFreteAction).mockResolvedValueOnce({ error: 'Cliente sem endereço de entrega.', falta: { endereco: null } });
-    negociacao();
+  it('pedido sem endereço: o botão abre o endereço, e gravar sugere o frete de novo', async () => {
+    vi.mocked(sugerirFreteAction).mockResolvedValueOnce({ error: 'Pedido sem endereço de entrega.', falta: { endereco: null } });
+    negociacao(undefined, { centavos: null, entrega: { endereco: null, propria: false } });
+    expect(screen.getByText('Sem endereço de entrega')).toBeTruthy();
     await act(async () => {
       fireEvent.click(screen.getByText('Sugerir frete pela distância'));
     });
@@ -279,16 +283,36 @@ describe('ItensDaFicha: o fechamento do pedido (RF-67)', () => {
     expect(screen.queryByText('Salvar endereço')).toBeNull();
   });
 
-  it('endereço não achado no mapa vira "Corrigir endereço"', async () => {
+  it('P19: o destino do cliente aparece, e "Trocar endereço" abre o campo vazio', async () => {
+    negociacao(undefined, { centavos: null, entrega: { endereco: 'Rua Velha, Ibirama', propria: false } });
+    const fechamento = screen.getByRole('region', { name: 'Fechamento do pedido' });
+    expect(fechamento.textContent).toContain('Rua Velha, Ibirama');
+    expect(fechamento.textContent).toContain('Do cadastro do cliente');
+    await act(async () => {
+      fireEvent.click(screen.getByText('Trocar endereço'));
+    });
+    expect((screen.getByLabelText('Endereço') as HTMLInputElement).value).toBe('');
+    expect(screen.getByText('Vale só para este pedido. O cadastro do cliente não muda.')).toBeTruthy();
+  });
+
+  it('P19: o destino próprio do pedido não diz "do cadastro"', () => {
+    negociacao(undefined, { centavos: null, entrega: { endereco: 'Sítio Novo, Ituporanga', propria: true } });
+    const fechamento = screen.getByRole('region', { name: 'Fechamento do pedido' });
+    expect(fechamento.textContent).toContain('Sítio Novo, Ituporanga');
+    expect(fechamento.textContent).not.toContain('Do cadastro do cliente');
+  });
+
+  it('endereço não achado no mapa: o aviso aparece, e o botão de trocar continua ali', async () => {
     vi.mocked(sugerirFreteAction).mockResolvedValueOnce({
       error: 'Endereço de entrega não achado no mapa.',
       falta: { endereco: 'Rua Errada, Ibirama' },
     });
-    negociacao();
+    negociacao(undefined, { centavos: null, entrega: { endereco: 'Rua Errada, Ibirama', propria: true } });
     await act(async () => {
       fireEvent.click(screen.getByText('Sugerir frete pela distância'));
     });
-    expect(screen.getByText('Corrigir endereço')).toBeTruthy();
+    expect(screen.getByText('Endereço de entrega não achado no mapa.')).toBeTruthy();
+    expect(screen.getByText('Trocar endereço')).toBeTruthy();
   });
 
   it('item sem peso no recipiente é avisado', () => {

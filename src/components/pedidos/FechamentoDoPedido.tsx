@@ -12,6 +12,8 @@ interface FechamentoDoPedidoProps {
   /** O frete digitado, em centavos. Nulo é "sem frete". */
   freteCentavos: number | null;
   peso: { kg: number; semPeso: number };
+  /** P19: o destino do pedido. Sem o próprio, é o endereço de entrega do cliente. */
+  entrega?: { endereco: string | null; propria: boolean };
   /** Presente só na negociação: sem ele o frete é só leitura. */
   edicao?: {
     freteTexto: string;
@@ -27,8 +29,8 @@ interface FechamentoDoPedidoProps {
     onAlterarEndereco: (texto: string, ponto: { lat: number; lng: number } | null) => void;
     buscar: (texto: string) => Promise<SugestaoDeEndereco[]>;
     onSugerir: () => void;
-    /** Sem endereço de entrega, ou não achado no mapa: o botão de completá-lo, no lugar do aviso. */
-    falta?: { endereco: string | null; onAbrir: () => void } | null;
+    /** Abre o destino do pedido para trocar. */
+    onTrocarEntrega: () => void;
   };
 }
 
@@ -39,8 +41,11 @@ interface FechamentoDoPedidoProps {
  * O frete se sugere pela distância (RN-64), mas **o campo é da chefia**: ela
  * digita o que negociou, mesmo que destoe da conta. O peso é estimado pelo
  * recipiente cheio (RN-65), e diz quantos itens ficaram de fora da conta.
+ *
+ * P19: o frete vai até o **destino do pedido**, que a linha mostra e troca. Ele
+ * tem prioridade sobre o endereço do cliente, e trocá-lo não mexe no cadastro.
  */
-export function FechamentoDoPedido({ subtotalCentavos, freteCentavos, peso, edicao }: FechamentoDoPedidoProps) {
+export function FechamentoDoPedido({ subtotalCentavos, freteCentavos, peso, entrega, edicao }: FechamentoDoPedidoProps) {
   const total = subtotalCentavos === null ? null : subtotalCentavos + (freteCentavos ?? 0);
   const itensSemPeso = peso.semPeso === 1 ? '1 item sem peso' : `${peso.semPeso} itens sem peso`;
 
@@ -81,6 +86,27 @@ export function FechamentoDoPedido({ subtotalCentavos, freteCentavos, peso, edic
           {peso.semPeso > 0 && <span className="block text-xs text-amber-800">{itensSemPeso}</span>}
         </dd>
       </dl>
+
+      {entrega && (
+        <div className="flex flex-col gap-2 border-t border-line pt-3 md:flex-row md:items-center md:justify-between">
+          <p className="flex flex-col text-base">
+            <span className="text-sm text-muted">Entrega em</span>
+            {entrega.endereco ? (
+              <span className="text-ink">{entrega.endereco}</span>
+            ) : (
+              <span className="font-semibold text-amber-900">Sem endereço de entrega</span>
+            )}
+            {entrega.endereco && !entrega.propria && (
+              <span className="text-xs text-muted">Do cadastro do cliente</span>
+            )}
+          </p>
+          {edicao && (
+            <Button variant="outline" className="md:w-auto!" onClick={edicao.onTrocarEntrega}>
+              {entrega.endereco ? 'Trocar endereço' : 'Adicionar endereço'}
+            </Button>
+          )}
+        </div>
+      )}
 
       {edicao && (
         <div className="flex flex-col gap-2 border-t border-line pt-3">
@@ -129,15 +155,6 @@ export function FechamentoDoPedido({ subtotalCentavos, freteCentavos, peso, edic
           <p className="text-sm font-semibold text-amber-900 empty:hidden" aria-live="polite">
             {edicao.aviso}
           </p>
-          {edicao.falta && (
-            <button
-              type="button"
-              onClick={edicao.falta.onAbrir}
-              className="flex min-h-11 items-center self-start rounded-lg border-[1.5px] border-amber-600 bg-amber-50 px-3 text-sm font-bold text-amber-900 active:bg-amber-100"
-            >
-              {edicao.falta.endereco ? 'Corrigir endereço' : 'Adicionar endereço'}
-            </button>
-          )}
         </div>
       )}
     </section>

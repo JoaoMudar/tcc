@@ -2,7 +2,6 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import * as cargas from '@/lib/cargas';
 import { isDataIso } from '@/lib/datas';
 import pool from '@/lib/db';
 import { toUserMessage } from '@/lib/errors';
@@ -157,20 +156,21 @@ function coordenadaDoForm(formData: FormData) {
 }
 
 /**
- * P17: o endereço de entrega que falta, completado tocando no cliente da Tela
- * 2. A leitura do form é a mesma do frete do pedido (`lerEnderecoDeEntrega`).
+ * P17, P19: o endereço de entrega que falta, completado tocando no cliente da
+ * Tela 2. Grava no pedido, e não no cadastro do cliente. A leitura do form é a
+ * mesma do frete do pedido (`lerEnderecoDeEntrega`).
  */
 export async function salvarEnderecoEntregaAction(_previous: FormState, formData: FormData): Promise<FormState> {
   await requirePermission('cargas_pedido', 'A');
   const viagem = lerViagem(formData);
-  const clienteId = formText(formData, 'cliente_id');
-  if (!viagem || !isUuid(clienteId)) return { error: 'Cliente inválido.' };
+  const pedidoId = formText(formData, 'pedido_id');
+  if (!viagem || !isUuid(pedidoId)) return { error: 'Pedido inválido.' };
   const lido = await lerEnderecoDeEntrega(formData);
   if ('error' in lido) return lido;
 
   try {
     await withTransaction(pool, (client) =>
-      viagens.salvarEnderecoDeEntrega(client, viagem.viagemId, clienteId, lido.endereco),
+      viagens.salvarEnderecoDeEntrega(client, viagem.viagemId, pedidoId, lido.endereco),
     );
   } catch (error) {
     return { error: toUserMessage(error), fields: lido.fields };
@@ -291,16 +291,16 @@ export async function iniciarCarregamentoAction(_previous: FormState, formData: 
   voltarComAviso(viagem.data, null);
 }
 
-/** A contagem de um item. Grava o valor final, e não inverte o atual (T8.13). */
+/** P19: a contagem de um item no caminhão. Grava o valor final, e não inverte o atual. */
 export async function marcarItemAction(_previous: FormState, formData: FormData): Promise<FormState> {
   await requirePermission('cargas_pedido', 'A');
   const data = formText(formData, 'data');
   const cargaItemId = formText(formData, 'carga_item_id');
   if (!isDataIso(data) || !isUuid(cargaItemId)) return { error: 'Item inválido.' };
-  const separado = formText(formData, 'separado') === 'sim';
+  const carregado = formText(formData, 'carregado') === 'sim';
 
   try {
-    await withTransaction(pool, (client) => cargas.marcarItemSeparado(client, cargaItemId, separado));
+    await withTransaction(pool, (client) => viagens.marcarItemCarregado(client, cargaItemId, carregado));
   } catch (error) {
     return { error: toUserMessage(error) };
   }
@@ -308,7 +308,7 @@ export async function marcarItemAction(_previous: FormState, formData: FormData)
   return {};
 }
 
-/** "Carga pronta": fecha as cargas de todos os pedidos da viagem. */
+/** "Carga pronta": fecha a viagem, e a separação do que foi carregado direto. */
 export async function concluirViagemAction(_previous: FormState, formData: FormData): Promise<FormState> {
   const user = await requirePermission('cargas_pedido', 'A');
   const viagem = lerViagem(formData);

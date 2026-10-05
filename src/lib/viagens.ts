@@ -5,14 +5,13 @@ import { UserError } from './errors';
 import { nomeEspecieSql } from './lotes';
 import { PARTIDA_AGROLANDIA, PARTIDA_ITAPEMA } from './parametros';
 import { type AutorDaMudanca, travarPedido } from './pedidos';
-import { type EnderecoDeEntrega, salvarEnderecoDeEntrega as gravarEnderecoDeEntrega } from './pessoas';
+import { ENDERECO_DO_PEDIDO, gravarEnderecoDoPedido, guardarCoordenada } from './pedidos-entrega';
+import type { EnderecoDeEntrega } from './pessoas';
 import { SITUACOES_PEDIDO, type SituacaoPedido } from './pedidos-rotulos';
 import { type AvisoDaRota, type SituacaoViagem, aplicarOrdemSugerida, enderecoEmTexto } from './rotas';
 import { type Coordenada, MapaIndisponivel, geocodificarTexto, otimizarOrdem } from './rotas-ors';
 import type { Db } from './sql';
 import { withTransaction } from './transaction';
-
-export { atualizarSituacaoViagem } from './cargas';
 
 /**
  * P14: a viagem de entrega. Junta os pedidos (de aprovado para cima) que saem no mesmo
@@ -54,8 +53,6 @@ export interface ParadaDaViagem {
   pedidoId: string | null;
   numero: number | null;
   cliente: string | null;
-  /** O cliente da entrega: é nele que o endereço que falta se completa (P17). */
-  clienteId: string | null;
   cidade: string | null;
   logradouro: string | null;
   /** O endereço de entrega em uma linha; na parada avulsa, o que foi digitado. */
@@ -67,6 +64,8 @@ export interface ParadaDaViagem {
   naoAchado: boolean;
   /** O endereço de entrega do cadastro, onde a coordenada fica guardada. */
   enderecoId: string | null;
+  /** P19: o destino é o do próprio pedido, e não o do cadastro do cliente. */
+  entregaPropria: boolean;
   itens: ItemResumido[];
 }
 
@@ -91,14 +90,6 @@ const COLUNAS_VIAGEM = `v.id, to_char(v.data, 'YYYY-MM-DD') AS data, v.partida_d
        v.partida_lat::float8 AS "partidaLat", v.partida_lng::float8 AS "partidaLng", v.chegada_descricao AS "chegadaDescricao",
        v.chegada_lat::float8 AS "chegadaLat", v.chegada_lng::float8 AS "chegadaLng", v.situacao,
        v.sugerir_ordem AS "sugerirOrdem", v.distancia_m AS "distanciaM", v.duracao_s AS "duracaoS"`;
-
-/** O primeiro endereço de entrega do cliente: o pedido não tem endereço próprio. */
-const ENDERECO_DE_ENTREGA = `LEFT JOIN LATERAL (
-         SELECT x.id, x.logradouro, x.cidade, x.uf, x.lat, x.lng, x.geocodificado_em
-           FROM cadastro.pessoas_enderecos x
-          WHERE x.pessoa_id = c.id AND x.tipo = 'entrega'
-          ORDER BY x.criado_em, x.id
-          LIMIT 1) e ON true`;
 
 /**
  * A viagem do dia: a que ainda não ficou pronta, e sem ela a última pronta. Com
@@ -157,14 +148,14 @@ type LinhaParada = Omit<ParadaDaViagem, 'itens' | 'endereco'> & {
 async function linhasDasParadas(db: Db, viagemId: string): Promise<LinhaParada[]> {
   const { rows } = await db.query<LinhaParada>(
     `SELECT vp.id, vp.ordem, vp.pedido_id AS "pedidoId", p.numero_pedido AS numero, c.nome AS cliente,
-            c.id AS "clienteId", vp.descricao, vp.endereco AS "enderecoAvulso",
-            e.id AS "enderecoId", e.logradouro, e.cidade, e.uf,
+            vp.descricao, vp.endereco AS "enderecoAvulso",
+            e.id AS "enderecoId", COALESCE(e.proprio, false) AS "entregaPropria", e.logradouro, e.cidade, e.uf,
             COALESCE(vp.lat, e.lat)::float8 AS lat, COALESCE(vp.lng, e.lng)::float8 AS lng,
             (e.geocodificado_em IS NOT NULL AND e.lat IS NULL) AS "naoAchado"
        FROM viagens_paradas vp
        LEFT JOIN pedidos p ON p.id = vp.pedido_id
        LEFT JOIN cadastro.pessoas c ON c.id = p.cliente_id
-       ${ENDERECO_DE_ENTREGA}
+       ${ENDERECO_DO_PEDIDO}
       WHERE vp.viagem_id = $1
       ORDER BY vp.ordem`,
     [viagemId],
@@ -198,7 +189,7 @@ export async function pedidosDisponiveis(db: Db): Promise<PedidoParaViagem[]> {
             to_char(p.data_entrega, 'YYYY-MM-DD') AS "dataEntrega", p.situacao
        FROM pedidos p
        JOIN cadastro.pessoas c ON c.id = p.cliente_id
-       ${ENDERECO_DE_ENTREGA}
+       ${ENDERECO_DO_PEDIDO}
       WHERE p.situacao = ANY($1::text[])
         AND NOT EXISTS (SELECT 1 FROM viagens_paradas vp WHERE vp.pedido_id = p.id)
       ORDER BY p.data_entrega NULLS LAST, p.numero_pedido`,
@@ -352,6 +343,12 @@ export async function tirarPedido(client: Client, viagemId: string, pedidoId: st
   );
   if (!rows[0]) throw new UserError('Este pedido não está nesta viagem.');
   await renumerar(client, viagemId, rows[0].ordem);
+  // O que foi contado no caminhão desta viagem não vale para a próxima
+  await client.query(
+    `UPDATE pedidos_cargas_itens SET carregado = false
+      WHERE carregado AND carga_id IN (SELECT id FROM pedidos_cargas WHERE pedido_id = $1)`,
+    [pedidoId],
+  );
 
   const { rows: restantes } = await client.query<{ n: number }>(
     'SELECT COUNT(*)::int AS n FROM viagens_paradas WHERE viagem_id = $1 AND pedido_id IS NOT NULL',
@@ -487,28 +484,26 @@ export async function removerParada(client: Client, viagemId: string, paradaId: 
 export type { EnderecoDeEntrega } from './pessoas';
 
 /**
- * P17: o endereço de entrega que falta, completado na Tela 2 sem sair da
- * viagem. Grava no cadastro do cliente, que é onde o endereço mora (o pedido
- * não tem endereço próprio), e só de cliente com entrega nesta viagem: a
- * permissão de planejar não é a de editar cadastro qualquer. A viagem passa a
- * pedir a sugestão de ordem, que procura de novo o endereço sem coordenada.
+ * P17, P19: o endereço de entrega que falta, completado na Tela 2 sem sair da
+ * viagem. Grava **no pedido**, que é o destino desta entrega, e não no cadastro
+ * do cliente; e só de pedido desta viagem. A viagem passa a pedir a sugestão de
+ * ordem, que procura de novo o endereço sem coordenada.
  */
 export async function salvarEnderecoDeEntrega(
   client: Client,
   viagemId: string,
-  clienteId: string,
+  pedidoId: string,
   endereco: EnderecoDeEntrega,
 ): Promise<void> {
   const viagem = await travarViagem(client, viagemId);
   exigirEtapa(viagem, 'roteirizando', 'O endereço se completa na etapa da rota.');
-  const { rowCount } = await client.query(
-    `SELECT 1 FROM viagens_paradas vp JOIN pedidos p ON p.id = vp.pedido_id
-      WHERE vp.viagem_id = $1 AND p.cliente_id = $2`,
-    [viagemId, clienteId],
-  );
-  if (!rowCount) throw new UserError('Este cliente não tem entrega nesta viagem.');
+  const { rowCount } = await client.query('SELECT 1 FROM viagens_paradas WHERE viagem_id = $1 AND pedido_id = $2', [
+    viagemId,
+    pedidoId,
+  ]);
+  if (!rowCount) throw new UserError('Este pedido não está nesta viagem.');
 
-  await gravarEnderecoDeEntrega(client, clienteId, endereco);
+  await gravarEnderecoDoPedido(client, pedidoId, endereco);
   await esquecerRota(client, viagemId, { sugerirDeNovo: true });
 }
 
@@ -537,7 +532,7 @@ const ORDEM_DAS_ETAPAS: Record<SituacaoViagem, number> = { montando: 0, roteiriz
 
 /**
  * P17: voltar uma ou duas etapas, pelo cabeçalho ou pela seta. **Do
- * carregamento também se volta**: as cargas e os itens já marcados ficam, e ao
+ * carregamento também se volta**: as cargas e os itens já carregados ficam, e ao
  * avançar de novo `iniciarCarregamento` segue com elas, sem criar outras. Só a
  * viagem pronta não volta, porque a carga dela já foi dada como pronta.
  */
@@ -554,7 +549,8 @@ export async function voltarEtapa(client: Client, viagemId: string, para: 'monta
  * cargas": o pedido que alguém mexeu no meio do caminho recusa a viagem inteira.
  *
  * O pedido que **já tem carga** (separando ou pronto para envio) segue com as
- * dele, todas: o item já separado chega marcado e travado na Tela 3.
+ * dele, todas. P19: separar não é carregar. O item já separado chega à Tela 3
+ * por carregar, com a etiqueta de separado, e é contado de novo no caminhão.
  */
 export async function iniciarCarregamento(client: Client, viagemId: string, autor: AutorDaMudanca): Promise<void> {
   const viagem = await travarViagem(client, viagemId);
@@ -612,10 +608,37 @@ export async function cargasDaViagem(db: Db, viagemId: string): Promise<GrupoDoC
 }
 
 /**
- * Tela 3: "Carga pronta" fecha as cargas de todos os pedidos da viagem, cada
- * uma por `concluirCarga`, que leva o pedido a pronto para envio e a viagem a
- * pronta na última. Item por separar em qualquer entrega recusa tudo.
- * A carga que já chegou pronta fica como está.
+ * P19, Tela 3: a contagem de um item no caminhão. Grava o valor final, e não
+ * inverte o atual, como `marcarItemSeparado`: o toque repetido pela conexão
+ * ruim chega ao mesmo resultado.
+ *
+ * A trava é a viagem em carregamento, e não a separação: o item que já ficou
+ * separado ao lado do carro (carga pronta) é justamente o que se conta agora.
+ */
+export async function marcarItemCarregado(client: Client, cargaItemId: string, carregado: boolean): Promise<void> {
+  const { rowCount } = await client.query(
+    `UPDATE pedidos_cargas_itens SET carregado = $2
+      WHERE id = $1
+        AND carga_id IN (SELECT c.id
+                           FROM pedidos_cargas c
+                           JOIN viagens_paradas vp ON vp.pedido_id = c.pedido_id
+                           JOIN viagens v ON v.id = vp.viagem_id
+                          WHERE v.situacao = 'carregando')`,
+    [cargaItemId, carregado],
+  );
+  if (!rowCount) {
+    throw new UserError('Este item não pode mais ser marcado: a viagem não está em carregamento.');
+  }
+}
+
+/**
+ * Tela 3: "Carga pronta" fecha a viagem. Item por carregar em qualquer entrega
+ * recusa tudo.
+ *
+ * **Carregar direto vale como separar**: a separação é opcional, e o pedido
+ * aprovado que foi direto para o caminhão tem os itens dados como separados e
+ * as cargas fechadas por `concluirCarga`, que leva o pedido a pronto para envio.
+ * A carga que já chegou pronta da separação fica como está.
  */
 export async function concluirViagem(
   client: Client,
@@ -630,12 +653,20 @@ export async function concluirViagem(
        FROM pedidos_cargas_itens ci
        JOIN pedidos_cargas c ON c.id = ci.carga_id
        JOIN viagens_paradas vp ON vp.pedido_id = c.pedido_id
-      WHERE vp.viagem_id = $1 AND ci.separado = false`,
+      WHERE vp.viagem_id = $1 AND ci.carregado = false`,
     [viagemId],
   );
   if (faltam[0].n > 0) {
-    throw new UserError(faltam[0].n === 1 ? 'Falta separar 1 item.' : `Faltam separar ${faltam[0].n} itens.`);
+    throw new UserError(faltam[0].n === 1 ? 'Falta carregar 1 item.' : `Faltam carregar ${faltam[0].n} itens.`);
   }
+
+  await client.query(
+    `UPDATE pedidos_cargas_itens ci SET separado = true
+       FROM pedidos_cargas c
+       JOIN viagens_paradas vp ON vp.pedido_id = c.pedido_id
+      WHERE ci.carga_id = c.id AND vp.viagem_id = $1 AND c.situacao <> 'pronto' AND ci.separado = false`,
+    [viagemId],
+  );
 
   const { rows: cargas } = await client.query<{ id: string }>(
     `SELECT c.id
@@ -646,8 +677,7 @@ export async function concluirViagem(
     [viagemId],
   );
   for (const carga of cargas) await concluirCarga(client, carga.id, autor);
-  // Viagem só com pedido já pronto não passa por `concluirCarga`, que é quem a fecha
-  await client.query("UPDATE viagens SET situacao = 'pronta' WHERE id = $1 AND situacao = 'carregando'", [viagemId]);
+  await client.query("UPDATE viagens SET situacao = 'pronta' WHERE id = $1", [viagemId]);
 
   const { rows: pedidos } = await client.query<{ n: number }>(
     'SELECT COUNT(*)::int AS n FROM viagens_paradas WHERE viagem_id = $1 AND pedido_id IS NOT NULL',
@@ -706,11 +736,12 @@ export async function sugerirRota(pool: Conectavel, viagemId: string): Promise<A
         if (linha.lat !== null && linha.lng !== null) return { id: linha.id, lat: linha.lat, lng: linha.lng };
         if (linha.pedidoId) {
           const texto = enderecoEmTexto({ logradouro: linha.logradouro, cidade: linha.cidade, uf: linha.uf });
-          if (!texto || !linha.enderecoId || linha.naoAchado) return null;
+          if (!texto || !(linha.entregaPropria || linha.enderecoId) || linha.naoAchado) return null;
           const achada = await geocodificarTexto(texto);
-          await pool.query(
-            'UPDATE cadastro.pessoas_enderecos SET lat = $2, lng = $3, geocodificado_em = NOW() WHERE id = $1',
-            [linha.enderecoId, achada?.lat ?? null, achada?.lng ?? null],
+          await guardarCoordenada(
+            pool,
+            { pedidoId: linha.pedidoId, proprio: linha.entregaPropria, enderecoId: linha.enderecoId },
+            achada,
           );
           return achada ? { id: linha.id, ...achada } : null;
         }

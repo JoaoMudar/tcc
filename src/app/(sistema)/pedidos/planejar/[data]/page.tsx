@@ -106,7 +106,6 @@ export default async function PlanejarPage({ params, searchParams }: PlanejarPag
             pedidoId: parada.pedidoId,
             numero: parada.numero,
             cliente: parada.cliente,
-            clienteId: parada.clienteId,
             cidade: parada.cidade,
             descricao: parada.descricao,
             endereco: parada.endereco,
@@ -138,7 +137,7 @@ export default async function PlanejarPage({ params, searchParams }: PlanejarPag
             alturaM: item.alturaM,
             quantidade: item.quantidade,
             separado: item.separado,
-            cargaPronta: item.cargaPronta,
+            carregado: item.carregado,
           })),
         }))}
       />

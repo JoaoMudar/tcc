@@ -25,7 +25,10 @@ export interface ItemDaCarga {
   /** Altura pedida, em metros: quem separa no pátio procura pelo tamanho também. */
   alturaM: number | null;
   quantidade: number;
+  /** Contado e posto ao lado do carro (Separar pedido). */
   separado: boolean;
+  /** Contado e posto no caminhão (aba 3 do planejar). */
+  carregado: boolean;
 }
 
 export interface Carga {
@@ -225,33 +228,12 @@ export async function concluirCarga(
     [carga.pedidoId],
   );
   const pedidoPronto = faltam[0].n === 0;
+  // P19: separar não é carregar. A viagem só fica pronta pelo carregamento
+  // (`concluirViagem`), e não porque o pedido ficou separado ao lado do carro
   if (pedidoPronto) {
     await mudarSituacao(client, carga.pedidoId, 'pronto_envio', autor, 'Todas as cargas foram separadas.');
-    await atualizarSituacaoViagem(client, carga.pedidoId);
   }
   return { numero: carga.numero, pedidoPronto };
-}
-
-/**
- * P14: a viagem fica pronta quando todas as cargas dos pedidos dela estão
- * prontas. Mora aqui, e não em `viagens.ts`, porque é `concluirCarga` quem a
- * chama, e `viagens.ts` já depende deste arquivo: a volta faria um ciclo.
- *
- * Vale também para a carga fechada pela tela do pedido: quem conta pelo
- * "Organizar cargas" e quem conta pela viagem chegam ao mesmo lugar.
- */
-export async function atualizarSituacaoViagem(client: Client, pedidoId: string): Promise<boolean> {
-  const { rowCount } = await client.query(
-    `UPDATE viagens v SET situacao = 'pronta'
-      WHERE v.situacao = 'carregando'
-        AND EXISTS (SELECT 1 FROM viagens_paradas vp WHERE vp.viagem_id = v.id AND vp.pedido_id = $1)
-        AND NOT EXISTS (SELECT 1
-                          FROM viagens_paradas vp
-                          JOIN pedidos_cargas c ON c.pedido_id = vp.pedido_id
-                         WHERE vp.viagem_id = v.id AND c.situacao <> 'pronto')`,
-    [pedidoId],
-  );
-  return Boolean(rowCount);
 }
 
 /** T8.13: as cargas do pedido, com o que vai em cada uma. */
@@ -266,7 +248,7 @@ export async function listCargas(db: Db, pedidoId: string): Promise<Carga[]> {
   if (cargas.length === 0) return [];
 
   const { rows: itens } = await db.query<ItemDaCarga & { cargaId: string }>(
-    `SELECT ci.id, ci.carga_id AS "cargaId", ci.item_id AS "itemId", ci.quantidade, ci.separado,
+    `SELECT ci.id, ci.carga_id AS "cargaId", ci.item_id AS "itemId", ci.quantidade, ci.separado, ci.carregado,
             COALESCE(${nomeEspecieSql('e')}, 'Espécie não definida') AS especie, r.nome AS recipiente,
             i.altura_m::float8 AS "alturaM"
        FROM pedidos_cargas_itens ci
