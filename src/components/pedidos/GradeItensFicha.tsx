@@ -11,6 +11,7 @@ import {
   formatAltura,
   formatMoeda,
   itemVendavel,
+  quantidadeConfirmada,
   rotuloGenerico,
   saldoDoItem,
 } from '@/lib/pedidos-rotulos';
@@ -57,6 +58,41 @@ interface GradeItensFichaProps {
   /** Presente só na negociação: o suplente vira linha do pedido. */
   onUsarSuplente?: (itemId: string) => void;
   usandoSuplente?: boolean;
+  /**
+   * Os itens como a conferência os deixou, sem o que se digitou na negociação:
+   * o título do item dividido mostra o que foi pedido e o que temos, e isso não
+   * muda enquanto a chefia digita. Sem ele, vale `itens`.
+   */
+  conferidos?: readonly ItemDaFicha[];
+}
+
+/** O título do item dividido: o que o cliente pediu e o que a conferência achou, somado. */
+interface Titulo {
+  item: ItemDaFicha;
+  nome: string;
+  saldo: ReturnType<typeof saldoDoItem> | undefined;
+  /** "Temos 30 de 50", ou "Temos em 17x22 e 20x26" quando falta número. */
+  temos: string;
+  completo: boolean;
+}
+
+/**
+ * O que a conferência achou do item dividido, numa frase. Com número em todas
+ * as linhas e quantidade pedida, a conta; sem isso, só onde a muda está.
+ */
+function textoTemos(principal: ItemDaFicha, complementos: readonly ItemDaFicha[]): { temos: string; completo: boolean } {
+  const linhas = [principal, ...complementos];
+  const quantas = linhas.map((linha) => quantidadeConfirmada(linha));
+  if (principal.quantidade !== null && quantas.every((n) => n !== null)) {
+    const soma = quantas.reduce<number>((total, n) => total + n!, 0);
+    return {
+      temos: `Temos ${formatQuantidade(soma)} de ${formatQuantidade(principal.quantidade)}`,
+      completo: soma >= principal.quantidade,
+    };
+  }
+  const onde = linhas.map((linha) => linha.recipienteDisponivel ?? linha.recipiente).filter(Boolean);
+  const lista = onde.length > 1 ? `${onde.slice(0, -1).join(', ')} e ${onde.at(-1)}` : (onde[0] ?? '');
+  return { temos: `Temos em ${lista}`, completo: true };
 }
 
 /** O recipiente pedido e o conferido, quando diferem: a chefia escolhe entre os dois. */
@@ -110,59 +146,99 @@ export function GradeItensFicha({
   suplentes = [],
   onUsarSuplente,
   usandoSuplente = false,
+  conferidos,
 }: GradeItensFichaProps) {
   const negociando = valores !== undefined && onAlterar !== undefined;
   const comPreco = negociando || itens.some((item) => item.precoCentavos !== null);
 
   if (itens.length === 0) return <p className="text-base text-muted">Nenhum item neste pedido.</p>;
 
-  const linhas = itens.map((item) => {
+  const saldoDe = (item: ItemDaFicha) =>
+    item.especieId && item.recipienteId
+      ? saldoDoItem(saldos[chaveSaldo(item.especieId, item.recipienteId)], item.alturaM)
+      : undefined;
+
+  const linhaDe = (item: ItemDaFicha, subitem: boolean) => {
     const falta: CamposFaltando = camposFaltando(item, itens);
-    const filho = item.itemPaiId !== null;
-    const indisponivel = item.disponivel === false && item.quantidadeDisponivel === 0;
     const parcial = item.disponivel === false && (item.quantidadeDisponivel ?? 0) > 0;
-    const quantidade = parcial ? item.quantidadeDisponivel : item.quantidade;
-    const recipiente = item.recipienteDisponivel ?? item.recipiente;
-    const altura = item.alturaDisponivelM ?? item.alturaM;
-    // RN-06: o que atende é o pedido (espécie, recipiente e altura), e não o que a conferência achou
-    const saldo =
-      item.especieId && item.recipienteId
-        ? saldoDoItem(saldos[chaveSaldo(item.especieId, item.recipienteId)], item.alturaM)
-        : undefined;
     // Só o item vendável se negocia; o genérico com quantidade só recebe preço,
     // porque a quantidade dele é a soma dos filhos
     const edita = negociando && itemVendavel(item, itens);
     return {
+      tipo: 'item' as const,
       item,
       falta,
-      filho,
-      indisponivel,
-      quantidade,
-      recipiente,
-      altura,
-      saldo,
+      filho: item.itemPaiId !== null || subitem,
+      indisponivel: item.disponivel === false && item.quantidadeDisponivel === 0,
+      quantidade: parcial ? item.quantidadeDisponivel : item.quantidade,
+      recipiente: item.recipienteDisponivel ?? item.recipiente,
+      altura: item.alturaDisponivelM ?? item.alturaM,
+      // RN-06: o que atende é o pedido (espécie, recipiente e altura), e não o que a conferência achou.
+      // No item dividido o saldo do pedido vai no título, e a linha do principal não o repete
+      saldo: subitem && item.complementaItemId == null ? undefined : saldoDe(item),
       edita,
       editaQuantidade: edita && !item.generico,
       opcoes: edita ? opcoesRecipiente(item) : [],
       nome: item.especie ?? rotuloGenerico(item.especificacao),
     };
-  });
+  };
+  type LinhaItem = ReturnType<typeof linhaDe>;
 
-  const textoQuantidade = (linha: (typeof linhas)[number]) =>
+  /**
+   * O item que se dividiu em mais de um recipiente ("Tem parte" completado,
+   * "Tem tudo" dividido, suplente usado) vira **título com subitens**, como o
+   * genérico: o título diz o que o cliente pediu e o que temos, e embaixo vêm as
+   * linhas de verdade, o próprio item e os complementos, cada uma com seu preço.
+   * O complemento sai do lugar em que a ordem do banco o pôs e vai para baixo do
+   * título. A parte sem complemento continua uma linha só.
+   */
+  const complementosDe = new Map<string, ItemDaFicha[]>();
+  for (const item of itens) {
+    if (!item.complementaItemId || !itens.some((outro) => outro.id === item.complementaItemId)) continue;
+    complementosDe.set(item.complementaItemId, [...(complementosDe.get(item.complementaItemId) ?? []), item]);
+  }
+  const doBanco = (item: ItemDaFicha) => conferidos?.find((outro) => outro.id === item.id) ?? item;
+
+  const linhas: ({ tipo: 'titulo'; titulo: Titulo } | LinhaItem)[] = [];
+  for (const item of itens) {
+    if (item.complementaItemId && complementosDe.has(item.complementaItemId)) continue;
+    const complementos = complementosDe.get(item.id);
+    if (!complementos) {
+      linhas.push(linhaDe(item, false));
+      continue;
+    }
+    const pedido = doBanco(item);
+    linhas.push({
+      tipo: 'titulo',
+      titulo: {
+        item: pedido,
+        nome: item.especie ?? rotuloGenerico(item.especificacao),
+        saldo: saldoDe(pedido),
+        ...textoTemos(pedido, complementos.map(doBanco)),
+      },
+    });
+    linhas.push(linhaDe(item, true));
+    for (const complemento of complementos) linhas.push(linhaDe(complemento, true));
+  }
+  // O número do campo conta as linhas de item: o título não tem campo, e não pula
+  const numero = new Map<string, number>();
+  for (const linha of linhas) if (linha.tipo === 'item') numero.set(linha.item.id, numero.size + 1);
+
+  const textoQuantidade = (linha: LinhaItem) =>
     linha.indisponivel
       ? 'Não tem'
       : valorOuDefinir(linha.quantidade === null ? null : formatQuantidade(linha.quantidade), linha.falta.quantidade, faltaBloqueia);
 
-  const textoPreco = (linha: (typeof linhas)[number]) =>
+  const textoPreco = (linha: LinhaItem) =>
     valorOuDefinir(
       linha.item.precoCentavos === null ? null : formatMoeda(linha.item.precoCentavos),
       linha.falta.preco,
       faltaBloqueia,
     );
 
-  const campoPreco = (linha: (typeof linhas)[number], indice: number, classe: string) => (
+  const campoPreco = (linha: LinhaItem, classe: string) => (
     <input
-      aria-label={`Preço do item ${indice + 1}`}
+      aria-label={`Preço do item ${numero.get(linha.item.id)}`}
       inputMode="decimal"
       autoComplete="off"
       placeholder={linha.falta.preco ? 'Definir' : '0,00'}
@@ -172,9 +248,9 @@ export function GradeItensFicha({
     />
   );
 
-  const campoQuantidade = (linha: (typeof linhas)[number], indice: number, classe: string) => (
+  const campoQuantidade = (linha: LinhaItem, classe: string) => (
     <input
-      aria-label={`Quantidade do item ${indice + 1}`}
+      aria-label={`Quantidade do item ${numero.get(linha.item.id)}`}
       inputMode="numeric"
       autoComplete="off"
       placeholder={linha.falta.quantidade ? 'Definir' : ''}
@@ -184,9 +260,9 @@ export function GradeItensFicha({
     />
   );
 
-  const campoRecipiente = (linha: (typeof linhas)[number], indice: number, classe: string) => (
+  const campoRecipiente = (linha: LinhaItem, classe: string) => (
     <select
-      aria-label={`Recipiente do item ${indice + 1}`}
+      aria-label={`Recipiente do item ${numero.get(linha.item.id)}`}
       value={valores?.[linha.item.id]?.recipienteId ?? ''}
       onChange={(evento) => onAlterar?.(linha.item.id, 'recipienteId', evento.target.value)}
       className={classe}
@@ -237,8 +313,18 @@ export function GradeItensFicha({
     );
   };
 
-  const corDaLinha = (linha: (typeof linhas)[number]) =>
-    linha.item.generico ? 'bg-blue-50' : linha.filho ? 'bg-gray-50' : '';
+  const corDaLinha = (linha: LinhaItem) => (linha.item.generico ? 'bg-blue-50' : linha.filho ? 'bg-gray-50' : '');
+
+  const nomeCientifico = (item: ItemDaFicha) =>
+    item.nomeCientifico && item.nomeCientifico !== item.especie ? item.nomeCientifico : null;
+
+  const textoTemosDo = (titulo: Titulo) => (
+    <span className={`block text-sm font-semibold ${titulo.completo ? 'text-green-800' : 'text-amber-800'}`}>{titulo.temos}</span>
+  );
+
+  // O que o cliente pediu, no celular. O recipiente que ele não disse fica em branco: quem o define é o subitem
+  const textoPedido = (titulo: Titulo) =>
+    [titulo.item.recipiente, titulo.item.alturaM ? formatAltura(titulo.item.alturaM) : null].filter(Boolean).join(' · ');
 
   return (
     <>
@@ -276,48 +362,72 @@ export function GradeItensFicha({
             </tr>
           </thead>
           <tbody>
-            {linhas.map((linha, indice) => (
-              <tr key={linha.item.id} className={`border-t border-line align-top ${corDaLinha(linha)}`}>
-                <td className="px-3 py-2.5">
-                  <span className={`flex flex-wrap items-center gap-2 ${linha.filho ? 'pl-4' : ''}`}>
-                    <span className="font-semibold text-ink">
-                      {linha.filho && <span className="text-muted">↳ </span>}
-                      {linha.nome}
-                    </span>
-                    {linha.falta.composicao && <Definir bloqueia={faltaBloqueia} />}
-                  </span>
-                  {linha.item.nomeCientifico && linha.item.nomeCientifico !== linha.item.especie && (
-                    <span className={`block text-xs text-muted italic ${linha.filho ? 'pl-4' : ''}`}>
-                      {linha.item.nomeCientifico}
-                    </span>
-                  )}
-                  {linha.saldo !== undefined && (
-                    <span className={`block text-xs text-muted ${linha.filho ? 'pl-4' : ''}`}>
-                      {textoSaldo(linha.saldo, linha.item.quantidade)}
-                    </span>
-                  )}
-                  {avisoSuplentes(linha.item)}
-                </td>
-                <td className={`border-l border-line ${linha.opcoes.length > 1 ? 'p-0' : 'px-3 py-2.5'}`}>
-                  {linha.opcoes.length > 1
-                    ? campoRecipiente(linha, indice, CLASSE_CELULA_CAMPO)
-                    : linha.item.generico
-                      ? null
-                      : valorOuDefinir(linha.recipiente, linha.falta.recipiente, faltaBloqueia)}
-                </td>
-                <td className="border-l border-line px-3 py-2.5">{linha.altura ? formatAltura(linha.altura) : null}</td>
-                <td className={`border-l border-line text-right ${linha.editaQuantidade ? 'p-0' : 'px-3 py-2.5'}`}>
-                  {linha.editaQuantidade
-                    ? campoQuantidade(linha, indice, `${CLASSE_CELULA_CAMPO} text-right`)
-                    : textoQuantidade(linha)}
-                </td>
-                {comPreco && (
-                  <td className={`border-l border-line text-right ${linha.edita ? 'p-0' : 'px-3 py-2.5'}`}>
-                    {linha.edita ? campoPreco(linha, indice, `${CLASSE_CELULA_CAMPO} text-right`) : textoPreco(linha)}
+            {linhas.map((linha) =>
+              linha.tipo === 'titulo' ? (
+                <tr key={`titulo-${linha.titulo.item.id}`} className="border-t border-line bg-blue-50 align-top">
+                  <td className="px-3 py-2.5">
+                    <span className="font-semibold text-ink">{linha.titulo.nome}</span>
+                    {nomeCientifico(linha.titulo.item) && (
+                      <span className="block text-xs text-muted italic">{nomeCientifico(linha.titulo.item)}</span>
+                    )}
+                    {linha.titulo.saldo !== undefined && (
+                      <span className="block text-xs text-muted">
+                        {textoSaldo(linha.titulo.saldo, linha.titulo.item.quantidade)}
+                      </span>
+                    )}
+                    {textoTemosDo(linha.titulo)}
+                    {avisoSuplentes(linha.titulo.item)}
                   </td>
-                )}
-              </tr>
-            ))}
+                  <td className="border-l border-line px-3 py-2.5">{linha.titulo.item.recipiente}</td>
+                  <td className="border-l border-line px-3 py-2.5">
+                    {linha.titulo.item.alturaM ? formatAltura(linha.titulo.item.alturaM) : null}
+                  </td>
+                  <td className="border-l border-line px-3 py-2.5 text-right">
+                    {linha.titulo.item.quantidade === null ? null : formatQuantidade(linha.titulo.item.quantidade)}
+                  </td>
+                  {comPreco && <td className="border-l border-line" />}
+                </tr>
+              ) : (
+                <tr key={linha.item.id} className={`border-t border-line align-top ${corDaLinha(linha)}`}>
+                  <td className="px-3 py-2.5">
+                    <span className={`flex flex-wrap items-center gap-2 ${linha.filho ? 'pl-4' : ''}`}>
+                      <span className="font-semibold text-ink">
+                        {linha.filho && <span className="text-muted">↳ </span>}
+                        {linha.nome}
+                      </span>
+                      {linha.falta.composicao && <Definir bloqueia={faltaBloqueia} />}
+                    </span>
+                    {nomeCientifico(linha.item) && (
+                      <span className={`block text-xs text-muted italic ${linha.filho ? 'pl-4' : ''}`}>
+                        {nomeCientifico(linha.item)}
+                      </span>
+                    )}
+                    {linha.saldo !== undefined && (
+                      <span className={`block text-xs text-muted ${linha.filho ? 'pl-4' : ''}`}>
+                        {textoSaldo(linha.saldo, linha.item.quantidade)}
+                      </span>
+                    )}
+                    {!complementosDe.has(linha.item.id) && avisoSuplentes(linha.item)}
+                  </td>
+                  <td className={`border-l border-line ${linha.opcoes.length > 1 ? 'p-0' : 'px-3 py-2.5'}`}>
+                    {linha.opcoes.length > 1
+                      ? campoRecipiente(linha, CLASSE_CELULA_CAMPO)
+                      : linha.item.generico
+                        ? null
+                        : valorOuDefinir(linha.recipiente, linha.falta.recipiente, faltaBloqueia)}
+                  </td>
+                  <td className="border-l border-line px-3 py-2.5">{linha.altura ? formatAltura(linha.altura) : null}</td>
+                  <td className={`border-l border-line text-right ${linha.editaQuantidade ? 'p-0' : 'px-3 py-2.5'}`}>
+                    {linha.editaQuantidade ? campoQuantidade(linha, `${CLASSE_CELULA_CAMPO} text-right`) : textoQuantidade(linha)}
+                  </td>
+                  {comPreco && (
+                    <td className={`border-l border-line text-right ${linha.edita ? 'p-0' : 'px-3 py-2.5'}`}>
+                      {linha.edita ? campoPreco(linha, `${CLASSE_CELULA_CAMPO} text-right`) : textoPreco(linha)}
+                    </td>
+                  )}
+                </tr>
+              ),
+            )}
           </tbody>
         </table>
       </div>
@@ -325,57 +435,72 @@ export function GradeItensFicha({
       {/* Lista: celular */}
       <div className="overflow-hidden rounded-xl border border-line bg-white lg:hidden">
         <ul className="flex flex-col divide-y divide-line">
-          {linhas.map((linha, indice) => (
-            <li key={linha.item.id} className={`flex flex-col gap-2 px-4 py-3 ${corDaLinha(linha)}`}>
-              <div className="grid grid-cols-[1fr_auto] items-start gap-x-3">
-                <span className={`flex min-w-0 flex-col gap-0.5 ${linha.filho ? 'pl-4' : ''}`}>
-                  <span className="flex flex-wrap items-center gap-2 text-base font-semibold text-ink">
-                    <span>
-                      {linha.filho && <span className="text-muted">↳ </span>}
-                      {linha.nome}
-                    </span>
-                    {linha.falta.composicao && <Definir bloqueia={faltaBloqueia} />}
-                  </span>
-                  {!linha.item.generico && (
-                    <span className="flex flex-wrap items-center gap-x-1 text-sm text-muted">
-                      {linha.opcoes.length > 1 ? null : valorOuDefinir(linha.recipiente, linha.falta.recipiente, faltaBloqueia)}
-                      {linha.altura ? <span>· {formatAltura(linha.altura)}</span> : null}
-                    </span>
-                  )}
-                </span>
-                {!linha.editaQuantidade && <span className="text-base font-semibold text-ink">{textoQuantidade(linha)}</span>}
-              </div>
-              {avisoSuplentes(linha.item)}
-
-              {linha.edita ? (
-                <div className="grid grid-cols-2 gap-2">
-                  {linha.opcoes.length > 1 &&
-                    campoRecipiente(
-                      linha,
-                      indice,
-                      'col-span-2 h-11 rounded-lg border-[1.5px] border-gray-300 bg-white px-3 text-base text-ink',
+          {linhas.map((linha) =>
+            linha.tipo === 'titulo' ? (
+              <li key={`titulo-${linha.titulo.item.id}`} className="flex flex-col gap-1 bg-blue-50 px-4 py-3">
+                <div className="grid grid-cols-[1fr_auto] items-start gap-x-3">
+                  <span className="flex min-w-0 flex-col gap-0.5">
+                    <span className="text-base font-semibold text-ink">{linha.titulo.nome}</span>
+                    {textoPedido(linha.titulo) && (
+                      <span className="text-sm text-muted">Pedido: {textoPedido(linha.titulo)}</span>
                     )}
-                  {linha.editaQuantidade ? (
-                    <label className="flex h-11 items-center gap-2 rounded-lg border-[1.5px] border-gray-300 bg-white px-3 focus-within:border-brand-dark">
-                      <span className="text-sm text-muted">Qtd</span>
-                      {campoQuantidade(linha, indice, 'min-w-0 flex-1 bg-transparent text-right text-base text-ink outline-none')}
-                    </label>
-                  ) : (
-                    <span />
+                  </span>
+                  {linha.titulo.item.quantidade !== null && (
+                    <span className="text-base font-semibold text-ink">{formatQuantidade(linha.titulo.item.quantidade)}</span>
                   )}
-                  <label className="flex h-11 items-center gap-2 rounded-lg border-[1.5px] border-gray-300 bg-white px-3 focus-within:border-brand-dark">
-                    <span className="text-sm text-muted">R$</span>
-                    {campoPreco(linha, indice, 'min-w-0 flex-1 bg-transparent text-right text-base text-ink outline-none')}
-                  </label>
                 </div>
-              ) : (
-                comPreco &&
-                itemVendavel(linha.item, itens) && (
-                  <span className="self-end text-sm text-ink">{textoPreco(linha)}</span>
-                )
-              )}
-            </li>
-          ))}
+                {textoTemosDo(linha.titulo)}
+                {avisoSuplentes(linha.titulo.item)}
+              </li>
+            ) : (
+              <li key={linha.item.id} className={`flex flex-col gap-2 px-4 py-3 ${corDaLinha(linha)}`}>
+                <div className="grid grid-cols-[1fr_auto] items-start gap-x-3">
+                  <span className={`flex min-w-0 flex-col gap-0.5 ${linha.filho ? 'pl-4' : ''}`}>
+                    <span className="flex flex-wrap items-center gap-2 text-base font-semibold text-ink">
+                      <span>
+                        {linha.filho && <span className="text-muted">↳ </span>}
+                        {linha.nome}
+                      </span>
+                      {linha.falta.composicao && <Definir bloqueia={faltaBloqueia} />}
+                    </span>
+                    {!linha.item.generico && (
+                      <span className="flex flex-wrap items-center gap-x-1 text-sm text-muted">
+                        {linha.opcoes.length > 1 ? null : valorOuDefinir(linha.recipiente, linha.falta.recipiente, faltaBloqueia)}
+                        {linha.altura ? <span>· {formatAltura(linha.altura)}</span> : null}
+                      </span>
+                    )}
+                  </span>
+                  {!linha.editaQuantidade && <span className="text-base font-semibold text-ink">{textoQuantidade(linha)}</span>}
+                </div>
+                {!complementosDe.has(linha.item.id) && avisoSuplentes(linha.item)}
+
+                {linha.edita ? (
+                  <div className="grid grid-cols-2 gap-2">
+                    {linha.opcoes.length > 1 &&
+                      campoRecipiente(
+                        linha,
+                        'col-span-2 h-11 rounded-lg border-[1.5px] border-gray-300 bg-white px-3 text-base text-ink',
+                      )}
+                    {linha.editaQuantidade ? (
+                      <label className="flex h-11 items-center gap-2 rounded-lg border-[1.5px] border-gray-300 bg-white px-3 focus-within:border-brand-dark">
+                        <span className="text-sm text-muted">Qtd</span>
+                        {campoQuantidade(linha, 'min-w-0 flex-1 bg-transparent text-right text-base text-ink outline-none')}
+                      </label>
+                    ) : (
+                      <span />
+                    )}
+                    <label className="flex h-11 items-center gap-2 rounded-lg border-[1.5px] border-gray-300 bg-white px-3 focus-within:border-brand-dark">
+                      <span className="text-sm text-muted">R$</span>
+                      {campoPreco(linha, 'min-w-0 flex-1 bg-transparent text-right text-base text-ink outline-none')}
+                    </label>
+                  </div>
+                ) : (
+                  comPreco &&
+                  itemVendavel(linha.item, itens) && <span className="self-end text-sm text-ink">{textoPreco(linha)}</span>
+                )}
+              </li>
+            ),
+          )}
         </ul>
       </div>
     </>

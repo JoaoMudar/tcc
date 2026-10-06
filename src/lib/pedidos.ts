@@ -18,6 +18,8 @@ import {
   validarComposicaoGenerico,
 } from './pedidos-rotulos';
 import type { OrigemFrete } from './frete';
+import { ENDERECO_DO_PEDIDO } from './pedidos-entrega';
+import { enderecoEmTexto } from './rotas';
 import type { Db } from './sql';
 
 export {
@@ -170,8 +172,12 @@ export interface FichaPedido extends Omit<PedidoResumo, 'itens' | 'totalCentavos
   /** RN-64: o frete combinado, em centavos. Nulo é "sem frete". */
   freteCentavos: number | null;
   freteOrigem: OrigemFrete | null;
+  /** O endereço de saída digitado, quando a origem é `outro`. */
+  freteOrigemEndereco: string | null;
   /** Distância de ida da última sugestão de frete, em km. */
   freteDistanciaKm: number | null;
+  /** P19: o destino do pedido; sem o próprio, o endereço de entrega do cliente. */
+  entrega: { endereco: string | null; propria: boolean };
   itens: ItemPedido[];
 }
 
@@ -238,21 +244,40 @@ export async function listPedidos(db: Db): Promise<PedidoResumo[]> {
 }
 
 export async function findPedido(db: Db, id: string): Promise<FichaPedido | null> {
-  const { rows } = await db.query<Omit<FichaPedido, 'itens'>>(
+  const { rows } = await db.query<
+    Omit<FichaPedido, 'itens' | 'entrega'> & {
+      entregaPropria: boolean | null;
+      entregaLogradouro: string | null;
+      entregaCidade: string | null;
+      entregaUf: string | null;
+    }
+  >(
     `SELECT p.id, p.numero_pedido AS numero, p.cliente_id AS "clienteId", c.nome AS cliente,
             c.telefone AS "clienteTelefone", p.canal_venda AS canal, p.situacao, p.criado_em AS "criadoEm",
             to_char(p.data_entrega, 'YYYY-MM-DD') AS "dataEntrega", p.observacoes,
             u.nome_exibicao AS "criadoPor",
             ROUND(p.frete * 100)::int AS "freteCentavos", p.frete_origem AS "freteOrigem",
-            p.frete_distancia_km::float8 AS "freteDistanciaKm"
+            p.frete_origem_endereco AS "freteOrigemEndereco",
+            p.frete_distancia_km::float8 AS "freteDistanciaKm",
+            e.proprio AS "entregaPropria", e.logradouro AS "entregaLogradouro", e.cidade AS "entregaCidade",
+            e.uf AS "entregaUf"
        FROM pedidos p
        JOIN cadastro.pessoas c ON c.id = p.cliente_id
        JOIN usuarios u ON u.id = p.criado_por
+       ${ENDERECO_DO_PEDIDO}
       WHERE p.id = $1`,
     [id],
   );
   if (!rows[0]) return null;
-  return { ...rows[0], itens: await listItens(db, id) };
+  const { entregaPropria, entregaLogradouro, entregaCidade, entregaUf, ...pedido } = rows[0];
+  return {
+    ...pedido,
+    entrega: {
+      endereco: enderecoEmTexto({ logradouro: entregaLogradouro, cidade: entregaCidade, uf: entregaUf }),
+      propria: Boolean(entregaPropria),
+    },
+    itens: await listItens(db, id),
+  };
 }
 
 export async function listItens(db: Db, pedidoId: string): Promise<ItemPedido[]> {
@@ -679,12 +704,12 @@ export async function usarSuplente(client: Client, pedidoId: string, itemId: str
 /**
  * RN-64: o frete que a chefia combinou, gravado como o preço dos itens: na
  * negociação, e só por ela. Nulo é "sem frete". A origem fica junto, porque é
- * ela que diz de onde a sugestão foi calculada.
+ * ela que diz de onde a sugestão foi calculada; a origem nula mantém a gravada.
  */
 export async function salvarFrete(
   client: Client,
   pedidoId: string,
-  frete: { centavos: number | null; origem: OrigemFrete | null },
+  frete: { centavos: number | null; origem: OrigemFrete | null; endereco?: string | null },
   autor: AutorDaMudanca,
 ): Promise<void> {
   const pedido = await travarPedido(client, pedidoId);
@@ -695,11 +720,15 @@ export async function salvarFrete(
     );
   }
   if (autor.perfil === 'gerencia') throw new UserError('O frete do pedido é digitado pela chefia.');
-  await client.query('UPDATE pedidos SET frete = $2, frete_origem = COALESCE($3, frete_origem) WHERE id = $1', [
-    pedidoId,
-    frete.centavos === null ? null : centavosParaSql(frete.centavos),
-    frete.origem,
-  ]);
+  const endereco = frete.endereco?.trim() || null;
+  if (frete.origem === 'outro' && !endereco) throw new UserError('Digite o endereço de saída do frete.');
+  await client.query(
+    `UPDATE pedidos SET frete = $2, frete_origem = COALESCE($3, frete_origem),
+            frete_origem_endereco = CASE WHEN $3::text IS NULL THEN frete_origem_endereco
+                                         WHEN $3::text = 'outro' THEN $4 END
+      WHERE id = $1`,
+    [pedidoId, frete.centavos === null ? null : centavosParaSql(frete.centavos), frete.origem, endereco],
+  );
 }
 
 export async function negociarItens(

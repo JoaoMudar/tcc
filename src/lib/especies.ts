@@ -1,6 +1,7 @@
 import type { PoolClient } from 'pg';
 import { UserError } from './errors';
 import { type NomeConhecido, achaConflitoDeNome } from './especies-nomes';
+import { conferirNomeNaFfb } from './especies-ffb';
 import type { EspecieRef } from './especies-form';
 import { type TipoImagem, deleteFoto, fotoIdFromUrl, fotoUrl, insertFoto } from './fotos';
 import { type Db, escapeLike, violatedConstraint } from './sql';
@@ -25,10 +26,16 @@ export interface EspecieFields {
   observacoes: string | null;
 }
 
+export type StatusValidacao = 'validado' | 'pendente' | 'a_identificar' | 'fora_da_ffb';
+
 export interface Especie extends EspecieFields {
   id: string;
   fotoUrl: string | null;
   ativa: boolean;
+  /** RF-69: o nome conferido com a Flora e Funga do Brasil */
+  statusValidacao: StatusValidacao;
+  familia: string | null;
+  autoria: string | null;
 }
 
 const MAX_NOMES = 20;
@@ -94,14 +101,21 @@ const SEM_ACENTO = 'aaaaaeeeeiiiiooooouuuucn';
 const semAcento = (expr: string) => `translate(lower(${expr}), '${COM_ACENTO}', '${SEM_ACENTO}')`;
 
 export function duplicateMessage(error: unknown): string | null {
-  return violatedConstraint(error, '23505') === 'especies_nome_cientifico_key'
-    ? 'Já existe espécie com esse nome científico.'
-    : null;
+  switch (violatedConstraint(error, '23505')) {
+    case 'especies_nome_normalizado_unico':
+      return 'Já existe espécie com esse nome científico.';
+    case 'especies_nome_e_sinonimo':
+      return 'Esse nome científico é um nome antigo de outra espécie já cadastrada.';
+    case 'especies_taxon_ffb_unico':
+      return 'Essa planta já está cadastrada com outro nome.';
+    default:
+      return null;
+  }
 }
 
 const SELECT_ESPECIE = `
   SELECT e.id, e.nome_cientifico AS "nomeCientifico", e.caracteristicas, e.foto_url AS "fotoUrl",
-         e.observacoes, e.ativa,
+         e.observacoes, e.ativa, e.status_validacao AS "statusValidacao", e.familia, e.autoria,
          COALESCE(array_agg(n.nome ORDER BY n.e_principal DESC, n.criado_em, n.nome)
                   FILTER (WHERE n.id IS NOT NULL), '{}') AS "nomesPopulares"
     FROM especies e
@@ -202,8 +216,9 @@ const nomeDaEspecieSql = `COALESCE(
   e.nome_cientifico)`;
 
 /**
- * Todos os nomes por onde uma espécie é chamada, populares e científico, com a
- * dona de cada um. É o que `achaConflitoDeNome` compara antes de gravar.
+ * Todos os nomes por onde uma espécie é chamada (populares, científico e os
+ * científicos antigos, RF-69), com a dona de cada um. É o que
+ * `achaConflitoDeNome` compara antes de gravar.
  */
 export async function listNomesConhecidos(db: Db): Promise<NomeConhecido[]> {
   const { rows } = await db.query<NomeConhecido>(
@@ -212,7 +227,11 @@ export async function listNomesConhecidos(db: Db): Promise<NomeConhecido[]> {
        JOIN especies e ON e.id = n.especie_id
       UNION ALL
      SELECT e.id AS "especieId", e.nome_cientifico AS nome, ${nomeDaEspecieSql} AS especie
-       FROM especies e`,
+       FROM especies e
+      UNION ALL
+     SELECT s.especie_id AS "especieId", s.nome, ${nomeDaEspecieSql} AS especie
+       FROM especies_sinonimos s
+       JOIN especies e ON e.id = s.especie_id`,
   );
   return rows;
 }
@@ -262,6 +281,7 @@ export async function criarEspecieRapida(
 
   const salva = await saveEspecie(client, null, { ...parsed.value, ativa: true }, { nova: null, remover: false });
   if (salva.resultado === 'nao_encontrado') throw new UserError('Não foi possível cadastrar a espécie.');
+  await conferirNomeNaFfb(client, salva.id);
   return { criada: await lerEspecieRef(client, salva.id) };
 }
 

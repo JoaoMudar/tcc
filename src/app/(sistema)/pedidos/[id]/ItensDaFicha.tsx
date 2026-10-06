@@ -51,7 +51,15 @@ interface ItensDaFichaProps {
   faltaBloqueia?: boolean;
   proximoPasso: ProximoPassoProps;
   /** RN-64: o frete gravado no pedido. */
-  frete?: { centavos: number | null; origem: OrigemFrete | null; distanciaKm: number | null };
+  frete?: {
+    centavos: number | null;
+    origem: OrigemFrete | null;
+    /** O endereço de saída digitado, na origem `outro`. */
+    origemEndereco?: string | null;
+    distanciaKm: number | null;
+    /** P19: o destino do pedido, que a linha do frete mostra e troca. */
+    entrega?: { endereco: string | null; propria: boolean };
+  };
   /** O título do modal do endereço de entrega, aberto pelo frete. */
   nomeCliente?: string;
 }
@@ -375,16 +383,25 @@ export function ItensDaFicha({
   const [origem, setOrigem] = useState<OrigemFrete>(frete?.origem ?? ORIGEM_PADRAO);
   const [distancia, setDistancia] = useState(() => textoDistancia(frete?.distanciaKm ?? null));
   const [avisoFrete, setAvisoFrete] = useState<string | null>(null);
-  const [faltaEndereco, setFaltaEndereco] = useState<{ endereco: string | null } | null>(null);
   const [editandoEndereco, setEditandoEndereco] = useState(false);
   const [sugerindo, setSugerindo] = useState(false);
-  const freteRef = useRef({ texto: freteTexto, origem });
+  const enderecoInicial = frete?.origemEndereco ?? '';
+  const freteRef = useRef<{
+    texto: string;
+    origem: OrigemFrete;
+    endereco: string;
+    ponto: { lat: number; lng: number } | null;
+  }>({ texto: freteTexto, origem, endereco: enderecoInicial, ponto: null });
 
   const gravarFrete = useCallback(async () => {
     const dados = new FormData();
     dados.set('pedido_id', pedidoId);
     dados.set('frete', freteRef.current.texto);
-    dados.set('frete_origem', freteRef.current.origem);
+    const { origem: origemAtual, endereco } = freteRef.current;
+    // "Outro" ainda sem endereço não troca a origem gravada
+    const semEndereco = origemAtual === 'outro' && !endereco.trim();
+    dados.set('frete_origem', semEndereco ? '' : origemAtual);
+    dados.set('frete_origem_endereco', origemAtual === 'outro' ? endereco : '');
     registrar(await salvarFreteAction({}, dados));
   }, [pedidoId, registrar]);
 
@@ -400,16 +417,27 @@ export function ItensDaFicha({
     setDistancia(null);
   };
 
+  const alterarEndereco = (endereco: string, ponto: { lat: number; lng: number } | null) => {
+    freteRef.current = { ...freteRef.current, endereco, ponto };
+    setDistancia(null);
+  };
+
   // A sugestão só vem no toque, e o toque é a chefia aceitando-a: preenche e grava
   const sugerir = async () => {
     setSugerindo(true);
     setAvisoFrete(null);
-    setFaltaEndereco(null);
-    const resultado = await sugerirFreteAction(pedidoId, freteRef.current.origem);
+    const { origem: origemAtual, endereco, ponto } = freteRef.current;
+    const resultado =
+      origemAtual === 'outro'
+        ? await sugerirFreteAction(pedidoId, origemAtual, {
+            texto: endereco,
+            lat: ponto ? String(ponto.lat) : '',
+            lng: ponto ? String(ponto.lng) : '',
+          })
+        : await sugerirFreteAction(pedidoId, origemAtual);
     setSugerindo(false);
     if ('error' in resultado) {
       setAvisoFrete(resultado.error);
-      setFaltaEndereco(resultado.falta ?? null);
       return;
     }
     setDistancia(textoDistancia(resultado.distanciaKm));
@@ -455,6 +483,7 @@ export function ItensDaFicha({
       ) : (
         <GradeItensFicha
           itens={itensAgora}
+          conferidos={itens}
           saldos={saldos}
           valores={modo === 'negociacao' ? valores : undefined}
           onAlterar={modo === 'negociacao' ? alterarNegociacao : undefined}
@@ -470,6 +499,7 @@ export function ItensDaFicha({
           subtotalCentavos={subtotal}
           freteCentavos={freteCentavos}
           peso={pesoDaFicha(itensAgora, modo === 'negociacao' ? valores : null)}
+          entrega={frete?.entrega}
           edicao={
             modo === 'negociacao'
               ? {
@@ -480,8 +510,11 @@ export function ItensDaFicha({
                   aviso: avisoFrete,
                   onAlterarFrete: alterarFrete,
                   onAlterarOrigem: alterarOrigem,
+                  endereco: enderecoInicial,
+                  onAlterarEndereco: alterarEndereco,
+                  buscar: buscarEnderecosDoPedidoAction,
                   onSugerir: sugerir,
-                  falta: faltaEndereco && { ...faltaEndereco, onAbrir: () => setEditandoEndereco(true) },
+                  onTrocarEntrega: () => setEditandoEndereco(true),
                 }
               : undefined
           }
@@ -491,7 +524,8 @@ export function ItensDaFicha({
       {editandoEndereco && (
         <EnderecoDaEntrega
           nomeCliente={nomeCliente ?? ''}
-          endereco={faltaEndereco?.endereco ?? null}
+          // Trocar é escrever outro destino: o atual já aparece na linha "Entrega em"
+          endereco={null}
           acao={salvarEnderecoDoPedidoAction}
           buscar={buscarEnderecosDoPedidoAction}
           camposOcultos={{ pedido_id: pedidoId }}

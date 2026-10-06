@@ -156,6 +156,15 @@ describe('otimizarOrdem', () => {
     expect(corpo.vehicles[0].start).toEqual([-49.8, -27.4]);
     expect(corpo.jobs[0]).toEqual({ id: 1, location: [-49.6, -27.2] });
     expect(init.headers.Authorization).toBe('chave-de-teste');
+    // Sem chegada, a rota é aberta
+    expect(corpo.vehicles[0]).not.toHaveProperty('end');
+  });
+
+  it('com a chegada, a rota termina nela', async () => {
+    responde({ routes: [{ steps: [{ type: 'job', id: 1 }], distance: 10, duration: 5 }] });
+    await otimizarOrdem(partida, paradas, { lat: -27.09, lng: -48.61 });
+    const corpo = JSON.parse(String(fetchMock.mock.calls[0][1].body));
+    expect(corpo.vehicles[0].end).toEqual([-48.61, -27.09]);
   });
 
   it('sem parada, não consulta', async () => {

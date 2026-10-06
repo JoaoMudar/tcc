@@ -22,8 +22,10 @@ export interface GrupoParaCarregar {
     recipiente: string;
     alturaM: number | null;
     quantidade: number;
+    /** Já ficou ao lado do carro, pela tela Separar. */
     separado: boolean;
-    cargaPronta: boolean;
+    /** Já foi contado no caminhão, aqui. */
+    carregado: boolean;
   }[];
 }
 
@@ -38,9 +40,14 @@ interface CarregarViagemProps {
 const TONS = ['bg-green-900 text-white', 'bg-green-700 text-white', 'bg-green-600 text-white', 'bg-green-400 text-green-950', 'bg-green-300 text-green-950'];
 
 /**
- * Tela 3: o carregamento. É a contagem do "Organizar cargas", agrupada por
- * pedido na **ordem inversa da rota**: primeiro os itens da última entrega, que
- * vão para o fundo, e por último os da primeira, que ficam perto da porta.
+ * Tela 3: o carregamento, agrupado por pedido na **ordem inversa da rota**:
+ * primeiro os itens da última entrega, que vão para o fundo, e por último os da
+ * primeira, que ficam perto da porta.
+ *
+ * P19: **carregar não é separar.** A separação deixa as mudas ao lado do carro;
+ * aqui se conta de novo o que sobe no caminhão. O item separado chega por
+ * carregar, com a etiqueta "Separado"; o que não passou pela separação também
+ * se carrega, e fecha separado junto com a viagem.
  */
 export function CarregarViagem({ data, viagemId, pronta, grupos }: CarregarViagemProps) {
   const [marcacao, marcar, marcando] = useActionState(marcarItemAction, EMPTY_FORM_STATE);
@@ -48,7 +55,7 @@ export function CarregarViagem({ data, viagemId, pronta, grupos }: CarregarViage
 
   const naOrdem = ordemDeCarregamento(grupos);
   const total = naOrdem.length;
-  const faltam = grupos.reduce((soma, grupo) => soma + grupo.itens.filter((item) => !item.separado).length, 0);
+  const faltam = grupos.reduce((soma, grupo) => soma + grupo.itens.filter((item) => !item.carregado).length, 0);
 
   return (
     <>
@@ -75,7 +82,7 @@ export function CarregarViagem({ data, viagemId, pronta, grupos }: CarregarViage
         {marcacao.error && <Notice tone="error">{marcacao.error}</Notice>}
 
         {naOrdem.map((grupo, indice) => {
-          const feitos = grupo.itens.filter((item) => item.separado).length;
+          const feitos = grupo.itens.filter((item) => item.carregado).length;
           return (
             <section key={grupo.pedidoId} className="flex flex-col gap-2">
               <div className="flex items-baseline justify-between gap-2">
@@ -100,25 +107,32 @@ export function CarregarViagem({ data, viagemId, pronta, grupos }: CarregarViage
                       <input type="hidden" name="carga_item_id" value={item.id} />
                       {/* Grava o valor final, e não inverte o atual: o toque repetido
                           pela conexão ruim do galpão chega ao mesmo resultado */}
-                      <input type="hidden" name="separado" value={item.separado ? 'nao' : 'sim'} />
+                      <input type="hidden" name="carregado" value={item.carregado ? 'nao' : 'sim'} />
                       <button
                         type="submit"
-                        aria-pressed={item.separado}
-                        disabled={marcando || item.cargaPronta}
-                        className={`flex w-full items-center gap-3 rounded-lg border p-3 text-left text-ink ${item.separado ? 'border-green-300 bg-green-50' : 'border-line bg-white'}`}
+                        aria-pressed={item.carregado}
+                        disabled={marcando || pronta}
+                        className={`flex w-full items-center gap-3 rounded-lg border p-3 text-left text-ink ${item.carregado ? 'border-green-300 bg-green-50' : 'border-line bg-white'}`}
                       >
                         <span
                           aria-hidden="true"
-                          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border-2 ${item.separado ? 'border-brand bg-brand' : 'border-gray-400 bg-white'}`}
+                          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border-2 ${item.carregado ? 'border-brand bg-brand' : 'border-gray-400 bg-white'}`}
                         >
-                          {item.separado && (
+                          {item.carregado && (
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3">
                               <path d="M5 12l5 5 9-10" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                           )}
                         </span>
                         <span className="flex flex-1 flex-col gap-0.5">
-                          <span className="text-base font-bold">{item.especie}</span>
+                          <span className="flex items-center gap-2 text-base font-bold">
+                            {item.especie}
+                            {item.separado && (
+                              <span className="rounded-md bg-gray-100 px-1.5 py-0.5 text-xs font-semibold text-muted">
+                                Separado
+                              </span>
+                            )}
+                          </span>
                           <span className="text-sm text-muted">
                             {[`${formatQuantidade(item.quantidade)} mudas`, item.recipiente, formatAltura(item.alturaM)]
                               .filter(Boolean)

@@ -21,9 +21,11 @@ import {
   adicionarPedido,
   cargasDaViagem,
   concluirViagem,
+  definirChegada,
   findViagem,
   iniciarCarregamento,
   listParadas,
+  marcarItemCarregado,
   mudarEtapa,
   pedidosDisponiveis,
   removerParada,
@@ -40,7 +42,7 @@ import {
  * A viagem de entrega (P14) contra Postgres real. O que se confere aqui é o que
  * o teste com mock não alcança: a data gravada no pedido, a troca de posições
  * com a unicidade deferida, a retomada na etapa certa e a viagem ficando pronta
- * junto com a última carga.
+ * pelo carregamento, que é uma contagem própria, e não a da separação (P19).
  */
 
 const pool = new Pool({ connectionString: process.env.TEST_DATABASE_URL });
@@ -202,7 +204,11 @@ describe('montar a carga (Tela 1)', () => {
     const { viagemId } = await tx((c) => adicionarPedido(c, dia, pronto, gerencia()));
     await tx((c) => mudarEtapa(c, viagemId, 'roteirizando'));
     await tx((c) => iniciarCarregamento(c, viagemId, gerencia()));
-    // Viagem só com pedido já pronto: nada a separar, e ela fecha mesmo assim
+    // P19: separado ao lado do carro não é carregado. O item chega por contar no caminhão
+    const [grupo] = await cargasDaViagem(pool, viagemId);
+    expect(grupo.itens[0]).toMatchObject({ separado: true, carregado: false });
+    await expect(tx((c) => concluirViagem(c, viagemId, gerencia()))).rejects.toThrow(/Falta carregar 1 item/);
+    await tx((c) => marcarItemCarregado(c, grupo.itens[0].id, true));
     await expect(tx((c) => concluirViagem(c, viagemId, gerencia()))).resolves.toEqual({ pedidos: 1 });
     expect((await findViagem(pool, viagemId))!.situacao).toBe('pronta');
 
@@ -287,10 +293,28 @@ describe('a rota (Tela 2)', () => {
     expect((await viagemDoDia(pool, dia))!.situacao).toBe('montando');
     expect((await listParadas(pool, viagemId)).map((p) => p.pedidoId)).toEqual([b, a]);
   });
+
+  it('a volta começa igual à saída, e escolhida fica com a coordenada', async () => {
+    const { viagemId } = await viagemNaRota();
+    expect(await findViagem(pool, viagemId)).toMatchObject({ chegadaDescricao: null, chegadaLat: null });
+
+    await pool.query('UPDATE viagens SET sugerir_ordem = false WHERE id = $1', [viagemId]);
+    await tx((c) => definirChegada(c, viagemId, ' Centro, Itapema ', { lat: -27.09, lng: -48.61 }));
+    expect(await findViagem(pool, viagemId)).toMatchObject({
+      chegadaDescricao: 'Centro, Itapema',
+      chegadaLat: -27.09,
+      chegadaLng: -48.61,
+      sugerirOrdem: true,
+    });
+
+    await expect(tx((c) => definirChegada(c, viagemId, '  '))).rejects.toThrow(/endereço de volta/);
+    await tx((c) => mudarEtapa(c, viagemId, 'montando'));
+    await expect(tx((c) => definirChegada(c, viagemId, 'Itapema, SC'))).rejects.toThrow(/etapa da rota/);
+  });
 });
 
 describe('o carregamento (Tela 3)', () => {
-  it('cria uma carga por pedido, e a viagem fica pronta junto com a última', async () => {
+  it('cria uma carga por pedido, e carregar direto vale como separar', async () => {
     const { dia, viagemId, a, b } = await viagemNaRota();
     await tx((c) => adicionarParada(c, viagemId, 'Almoço', null));
 
@@ -306,14 +330,16 @@ describe('o carregamento (Tela 3)', () => {
       [b, 2],
     ]);
 
-    await expect(tx((c) => concluirViagem(c, viagemId, gerencia()))).rejects.toThrow(/Faltam separar 2 itens/);
+    await expect(tx((c) => concluirViagem(c, viagemId, gerencia()))).rejects.toThrow(/Faltam carregar 2 itens/);
 
-    // Sair no meio: o que foi marcado continua marcado
-    await tx((c) => marcarItemSeparado(c, grupos[0].itens[0].id, true));
-    expect((await cargasDaViagem(pool, viagemId))[0].itens[0].separado).toBe(true);
+    // Sair no meio: o que foi marcado continua marcado, e marcar não separa
+    await tx((c) => marcarItemCarregado(c, grupos[0].itens[0].id, true));
+    expect((await cargasDaViagem(pool, viagemId))[0].itens[0]).toMatchObject({ carregado: true, separado: false });
 
-    await tx((c) => marcarItemSeparado(c, grupos[1].itens[0].id, true));
+    await tx((c) => marcarItemCarregado(c, grupos[1].itens[0].id, true));
     await expect(tx((c) => concluirViagem(c, viagemId, gerencia()))).resolves.toEqual({ pedidos: 2 });
+    // Ninguém passou pela tela Separar: fechar a viagem dá os itens como separados
+    expect((await listCargas(pool, a))[0]).toMatchObject({ situacao: 'pronto', itens: [expect.objectContaining({ separado: true })] });
 
     expect((await findPedido(pool, a))!.situacao).toBe('pronto_envio');
     expect((await findPedido(pool, b))!.situacao).toBe('pronto_envio');
@@ -323,7 +349,7 @@ describe('o carregamento (Tela 3)', () => {
     expect(await viagemDoDia(pool, dia, { nova: true })).toBeNull();
   });
 
-  it('a carga fechada pela tela do pedido também leva a viagem a pronta', async () => {
+  it('P19: separar pela tela do pedido não fecha a viagem, e o item continua por carregar', async () => {
     const dia = umDia();
     const pedido = await pedidoAprovado(dia);
     const { viagemId } = await tx((c) => adicionarPedido(c, dia, pedido, gerencia()));
@@ -333,7 +359,36 @@ describe('o carregamento (Tela 3)', () => {
     const [carga] = await listCargas(pool, pedido);
     await tx((c) => marcarItemSeparado(c, carga.itens[0].id, true));
     await tx((c) => concluirCarga(c, carga.id, gerencia()));
+    expect((await findPedido(pool, pedido))!.situacao).toBe('pronto_envio');
+    expect((await viagemDoDia(pool, dia))!.situacao).toBe('carregando');
+
+    // A carga pronta da separação não trava a contagem do caminhão
+    await tx((c) => marcarItemCarregado(c, carga.itens[0].id, true));
+    await tx((c) => concluirViagem(c, viagemId, gerencia()));
     expect((await viagemDoDia(pool, dia))!.situacao).toBe('pronta');
+  });
+
+  it('P19: só se carrega com a viagem em carregamento, e a marcação é idempotente', async () => {
+    const { viagemId, a } = await viagemNaRota();
+    await tx((c) => iniciarCarregamento(c, viagemId, gerencia()));
+    const [carga] = await listCargas(pool, a);
+    const item = carga.itens[0].id;
+    await tx((c) => marcarItemCarregado(c, item, true));
+    await tx((c) => marcarItemCarregado(c, item, true));
+    expect((await listCargas(pool, a))[0].itens[0].carregado).toBe(true);
+
+    await tx((c) => voltarEtapa(c, viagemId, 'roteirizando'));
+    await expect(tx((c) => marcarItemCarregado(c, item, false))).rejects.toThrow(/não está em carregamento/);
+  });
+
+  it('P19: o pedido tirado da viagem perde o que foi carregado nela', async () => {
+    const { viagemId, a } = await viagemNaRota();
+    await tx((c) => iniciarCarregamento(c, viagemId, gerencia()));
+    const [carga] = await listCargas(pool, a);
+    await tx((c) => marcarItemCarregado(c, carga.itens[0].id, true));
+    await tx((c) => voltarEtapa(c, viagemId, 'montando'));
+    await tx((c) => tirarPedido(c, viagemId, a));
+    expect((await listCargas(pool, a))[0].itens[0].carregado).toBe(false);
   });
 
   it('pedido que saiu de aprovado no meio do caminho recusa a viagem inteira', async () => {
@@ -366,7 +421,7 @@ describe('o carregamento (Tela 3)', () => {
     const { dia, viagemId, a, b } = await viagemNaRota();
     await tx((c) => iniciarCarregamento(c, viagemId, gerencia()));
     const [primeiro] = await cargasDaViagem(pool, viagemId);
-    await tx((c) => marcarItemSeparado(c, primeiro.itens[0].id, true));
+    await tx((c) => marcarItemCarregado(c, primeiro.itens[0].id, true));
 
     await tx((c) => voltarEtapa(c, viagemId, 'roteirizando'));
     expect((await viagemDoDia(pool, dia))!.situacao).toBe('roteirizando');
@@ -379,7 +434,7 @@ describe('o carregamento (Tela 3)', () => {
     await tx((c) => iniciarCarregamento(c, viagemId, gerencia()));
     expect(await listCargas(pool, a)).toHaveLength(1);
     expect(await listCargas(pool, b)).toHaveLength(1);
-    expect((await cargasDaViagem(pool, viagemId))[0].itens[0].separado).toBe(true);
+    expect((await cargasDaViagem(pool, viagemId))[0].itens[0].carregado).toBe(true);
   });
 
   it('P17: a viagem pronta não volta de etapa', async () => {
@@ -389,7 +444,7 @@ describe('o carregamento (Tela 3)', () => {
     await tx((c) => mudarEtapa(c, viagemId, 'roteirizando'));
     await tx((c) => iniciarCarregamento(c, viagemId, gerencia()));
     const [grupo] = await cargasDaViagem(pool, viagemId);
-    await tx((c) => marcarItemSeparado(c, grupo.itens[0].id, true));
+    await tx((c) => marcarItemCarregado(c, grupo.itens[0].id, true));
     await tx((c) => concluirViagem(c, viagemId, gerencia()));
     await expect(tx((c) => voltarEtapa(c, viagemId, 'roteirizando'))).rejects.toThrow(/já está pronta/);
   });
@@ -433,7 +488,7 @@ describe('a coordenada guardada no endereço', () => {
   });
 });
 
-describe('P17: o endereço de entrega completado na rota', () => {
+describe('P17, P19: o endereço de entrega completado na rota', () => {
   async function entregaDe(clienteId: string) {
     const { rows } = await pool.query(
       `SELECT logradouro, cidade, uf, lat::float8 AS lat, lng::float8 AS lng, geocodificado_em IS NOT NULL AS geocodificado
@@ -443,19 +498,29 @@ describe('P17: o endereço de entrega completado na rota', () => {
     return rows;
   }
 
+  async function destinoDe(pedidoId: string) {
+    const { rows } = await pool.query(
+      `SELECT entrega_logradouro AS logradouro, entrega_cidade AS cidade, entrega_uf AS uf,
+              entrega_lat::float8 AS lat, entrega_lng::float8 AS lng, entrega_geocodificado_em IS NOT NULL AS geocodificado
+         FROM pedidos WHERE id = $1`,
+      [pedidoId],
+    );
+    return rows[0];
+  }
+
   async function rotaCom(clienteId: string) {
     const dia = umDia();
     const pedido = await pedidoAprovado(dia, clienteId);
     const { viagemId } = await tx((c) => adicionarPedido(c, dia, pedido, gerencia()));
     await tx((c) => mudarEtapa(c, viagemId, 'roteirizando'));
-    return viagemId;
+    return { viagemId, pedido };
   }
 
-  it('cliente sem endereço ganha o de entrega, com o ponto colado', async () => {
+  it('pedido sem endereço ganha o seu, com o ponto colado, e o cadastro do cliente fica vazio', async () => {
     const novo = await tx((c) => insertClienteRapido(c, { nome: `${prefixo} Sem endereço`, telefone: null }));
-    const viagemId = await rotaCom(novo);
+    const { viagemId, pedido } = await rotaCom(novo);
     await tx((c) =>
-      salvarEnderecoDeEntrega(c, viagemId, novo, {
+      salvarEnderecoDeEntrega(c, viagemId, pedido, {
         logradouro: 'Estrada Geral, km 3',
         cidade: 'Ibirama',
         uf: 'SC',
@@ -463,39 +528,50 @@ describe('P17: o endereço de entrega completado na rota', () => {
         ponto: { lat: -27.05, lng: -49.52 },
       }),
     );
-    expect(await entregaDe(novo)).toEqual([
-      { logradouro: 'Estrada Geral, km 3', cidade: 'Ibirama', uf: 'SC', lat: -27.05, lng: -49.52, geocodificado: true },
-    ]);
+    expect(await destinoDe(pedido)).toEqual({
+      logradouro: 'Estrada Geral, km 3',
+      cidade: 'Ibirama',
+      uf: 'SC',
+      lat: -27.05,
+      lng: -49.52,
+      geocodificado: true,
+    });
+    expect(await entregaDe(novo)).toEqual([]);
     // A rota pede outra sugestão, agora com o ponto
     expect((await findViagem(pool, viagemId))!.sugerirOrdem).toBe(true);
     const [parada] = await listParadas(pool, viagemId);
-    expect(parada).toMatchObject({ clienteId: novo, lat: -27.05, naoAchado: false });
+    expect(parada).toMatchObject({ entregaPropria: true, lat: -27.05, naoAchado: false, cidade: 'Ibirama' });
   });
 
-  it('o ponto gravado junto do texto novo fica; o texto novo sem ponto apaga o velho', async () => {
+  it('o destino do pedido tem prioridade sobre o do cliente, sem trocá-lo', async () => {
     const novo = await tx((c) => insertClienteRapido(c, { nome: `${prefixo} Muda de endereço`, telefone: null }));
     await pool.query(
       `INSERT INTO cadastro.pessoas_enderecos (pessoa_id, tipo, logradouro, cidade, lat, lng, geocodificado_em)
        VALUES ($1, 'entrega', 'Rua Velha', 'Lontras', -27.1, -49.5, NOW())`,
       [novo],
     );
-    const viagemId = await rotaCom(novo);
+    const { viagemId, pedido } = await rotaCom(novo);
+    expect((await listParadas(pool, viagemId))[0]).toMatchObject({ entregaPropria: false, cidade: 'Lontras', lat: -27.1 });
+
     const ponto = { lat: -27.2, lng: -49.6 };
-    await tx((c) => salvarEnderecoDeEntrega(c, viagemId, novo, { logradouro: 'Rua Nova', cidade: null, uf: null, cep: null, ponto }));
+    await tx((c) => salvarEnderecoDeEntrega(c, viagemId, pedido, { logradouro: 'Rua Nova', cidade: 'Ituporanga', uf: null, cep: null, ponto }));
+    expect((await listParadas(pool, viagemId))[0]).toMatchObject({ entregaPropria: true, cidade: 'Ituporanga', lat: -27.2 });
+    expect((await findPedido(pool, pedido))!.entrega).toEqual({ endereco: 'Rua Nova, Ituporanga', propria: true });
     expect(await entregaDe(novo)).toEqual([
-      { logradouro: 'Rua Nova', cidade: 'Lontras', uf: null, lat: -27.2, lng: -49.6, geocodificado: true },
+      { logradouro: 'Rua Velha', cidade: 'Lontras', uf: null, lat: -27.1, lng: -49.5, geocodificado: true },
     ]);
 
-    await tx((c) => salvarEnderecoDeEntrega(c, viagemId, novo, { logradouro: 'Rua Outra', cidade: null, uf: null, cep: null, ponto: null }));
-    expect((await entregaDe(novo))[0]).toMatchObject({ logradouro: 'Rua Outra', lat: null, lng: null, geocodificado: false });
+    // O texto novo sem ponto apaga a coordenada do texto velho
+    await tx((c) => salvarEnderecoDeEntrega(c, viagemId, pedido, { logradouro: 'Rua Outra', cidade: null, uf: null, cep: null, ponto: null }));
+    expect(await destinoDe(pedido)).toMatchObject({ logradouro: 'Rua Outra', lat: null, lng: null, geocodificado: false });
   });
 
-  it('só cliente com entrega nesta viagem, e só na etapa da rota', async () => {
-    const viagemId = await rotaCom(cliente);
-    const estranho = await tx((c) => insertClienteRapido(c, { nome: `${prefixo} Estranho`, telefone: null }));
+  it('só pedido desta viagem, e só na etapa da rota', async () => {
+    const { viagemId, pedido } = await rotaCom(cliente);
+    const estranho = await pedidoAprovado(null);
     const endereco = { logradouro: 'Rua X', cidade: null, uf: null, cep: null, ponto: null };
-    await expect(tx((c) => salvarEnderecoDeEntrega(c, viagemId, estranho, endereco))).rejects.toThrow(/não tem entrega/);
+    await expect(tx((c) => salvarEnderecoDeEntrega(c, viagemId, estranho, endereco))).rejects.toThrow(/não está nesta viagem/);
     await tx((c) => mudarEtapa(c, viagemId, 'montando'));
-    await expect(tx((c) => salvarEnderecoDeEntrega(c, viagemId, cliente, endereco))).rejects.toThrow(/etapa da rota/);
+    await expect(tx((c) => salvarEnderecoDeEntrega(c, viagemId, pedido, endereco))).rejects.toThrow(/etapa da rota/);
   });
 });

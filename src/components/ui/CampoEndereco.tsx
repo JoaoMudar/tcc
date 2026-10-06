@@ -17,6 +17,8 @@ interface CampoEnderecoProps {
   className?: string;
   /** Quem procura: a Server Action, para a chave do mapa ficar no servidor. */
   buscar: (texto: string) => Promise<SugestaoDeEndereco[]>;
+  /** Fora de formulário: avisa o texto e a coordenada a cada mudança. */
+  onAlterar?: (texto: string, ponto: { lat: number; lng: number } | null) => void;
 }
 
 /**
@@ -25,7 +27,7 @@ interface CampoEnderecoProps {
  * exato. **O texto livre continua valendo**: sem escolher, ou com o mapa fora do
  * ar, o endereço digitado é procurado depois, como antes.
  */
-export function CampoEndereco({ label, name, defaultValue = '', required = false, className = '', buscar }: CampoEnderecoProps) {
+export function CampoEndereco({ label, name, defaultValue = '', required = false, className = '', buscar, onAlterar }: CampoEnderecoProps) {
   const id = useId();
   const listaId = `${id}-lista`;
   const [texto, setTexto] = useState(defaultValue);
@@ -58,6 +60,7 @@ export function CampoEndereco({ label, name, defaultValue = '', required = false
   function digitar(valor: string) {
     setTexto(valor);
     setPonto(null);
+    onAlterar?.(valor, null);
     setAberta(true);
     if (valor.trim().length < MINIMO) setSugestoes([]);
   }
@@ -66,6 +69,7 @@ export function CampoEndereco({ label, name, defaultValue = '', required = false
     pedido.current++;
     setTexto(sugestao.rotulo);
     setPonto({ lat: sugestao.lat, lng: sugestao.lng });
+    onAlterar?.(sugestao.rotulo, { lat: sugestao.lat, lng: sugestao.lng });
     setSugestoes([]);
     setAberta(false);
   }

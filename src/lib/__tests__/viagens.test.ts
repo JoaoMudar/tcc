@@ -26,6 +26,7 @@ interface Linha {
 }
 
 let partida: { partidaLat: number | null; partidaLng: number | null };
+let chegada: { chegadaDescricao: string | null; chegadaLat: number | null; chegadaLng: number | null };
 let linhas: Linha[];
 
 const client = { query: vi.fn(), release: vi.fn() };
@@ -43,6 +44,7 @@ function responder(sql: unknown) {
           data: '2026-10-02',
           partidaDescricao: 'Agrolândia, SC',
           ...partida,
+          ...chegada,
           situacao: 'roteirizando',
           sugerirOrdem: true,
           distanciaM: null,
@@ -91,6 +93,7 @@ beforeEach(() => {
   mockPool.query.mockImplementation(async (sql: unknown) => responder(sql));
   client.query.mockImplementation(async (sql: unknown) => responder(sql));
   partida = { partidaLat: -27.4, partidaLng: -49.8 };
+  chegada = { chegadaDescricao: null, chegadaLat: null, chegadaLng: null };
   linhas = [
     { id: 'p-situada', pedidoId: 'ped-1', lat: -27.2, lng: -49.6 },
     { id: 'p-a-achar', pedidoId: 'ped-2', logradouro: 'Rua XV, 10', cidade: 'Rio do Sul', uf: 'SC', enderecoId: 'end-2' },
@@ -166,6 +169,38 @@ describe('sugerirRota', () => {
 
     await sugerirRota(pool, VIAGEM);
     expect(gravou('SET partida_lat')[0][1]).toEqual([VIAGEM, -27.41, -49.82]);
-    expect(otimizarOrdem).toHaveBeenCalledWith({ lat: -27.41, lng: -49.82 }, [{ id: 'p-situada', lat: -27.2, lng: -49.6 }]);
+    expect(otimizarOrdem).toHaveBeenCalledWith(
+      { lat: -27.41, lng: -49.82 },
+      [{ id: 'p-situada', lat: -27.2, lng: -49.6 }],
+      { lat: -27.41, lng: -49.82 },
+    );
+  });
+
+  it('sem volta escolhida, a rota termina na saída', async () => {
+    linhas = [{ id: 'p-situada', pedidoId: 'ped-1', lat: -27.2, lng: -49.6 }];
+    vi.mocked(otimizarOrdem).mockResolvedValue({ ordem: ['p-situada'], distanciaM: 1000, duracaoS: 60 });
+
+    await sugerirRota(pool, VIAGEM);
+    expect(vi.mocked(otimizarOrdem).mock.calls[0][2]).toEqual({ lat: -27.4, lng: -49.8 });
+  });
+
+  it('a volta escolhida é procurada, guardada e termina a rota', async () => {
+    chegada = { chegadaDescricao: 'Itapema, SC', chegadaLat: null, chegadaLng: null };
+    linhas = [{ id: 'p-situada', pedidoId: 'ped-1', lat: -27.2, lng: -49.6 }];
+    vi.mocked(geocodificarTexto).mockResolvedValueOnce({ lat: -27.09, lng: -48.61 });
+    vi.mocked(otimizarOrdem).mockResolvedValue({ ordem: ['p-situada'], distanciaM: 1000, duracaoS: 60 });
+
+    await sugerirRota(pool, VIAGEM);
+    expect(geocodificarTexto).toHaveBeenCalledWith('Itapema, SC');
+    expect(gravou('SET chegada_lat')[0][1]).toEqual([VIAGEM, -27.09, -48.61]);
+    expect(vi.mocked(otimizarOrdem).mock.calls[0][2]).toEqual({ lat: -27.09, lng: -48.61 });
+  });
+
+  it('volta que o mapa não acha: avisa sem pedir ordem', async () => {
+    chegada = { chegadaDescricao: 'Lugar Nenhum', chegadaLat: null, chegadaLng: null };
+    vi.mocked(geocodificarTexto).mockResolvedValueOnce(null);
+
+    await expect(sugerirRota(pool, VIAGEM)).resolves.toBe('volta_nao_achada');
+    expect(otimizarOrdem).not.toHaveBeenCalled();
   });
 });

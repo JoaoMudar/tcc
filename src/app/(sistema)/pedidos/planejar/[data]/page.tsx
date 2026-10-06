@@ -81,25 +81,31 @@ export default async function PlanejarPage({ params, searchParams }: PlanejarPag
 
     if (etapa === 'roteirizando') {
       const [paradas, base] = await Promise.all([listParadas(pool, viagem.id), partidasBase(pool)]);
-      const escolha: EscolhaDePartida =
-        viagem.partidaDescricao === base.agrolandia
-          ? 'agrolandia'
-          : viagem.partidaDescricao === base.itapema
-            ? 'itapema'
-            : 'outro';
+      const escolha = (descricao: string): EscolhaDePartida =>
+        descricao === base.agrolandia ? 'agrolandia' : descricao === base.itapema ? 'itapema' : 'outro';
+      // Sem volta escolhida, o caminhão volta para onde saiu
+      const chegada =
+        viagem.chegadaDescricao === null
+          ? { descricao: viagem.partidaDescricao, lat: viagem.partidaLat, lng: viagem.partidaLng }
+          : { descricao: viagem.chegadaDescricao, lat: viagem.chegadaLat, lng: viagem.chegadaLng };
       return (
         <RotaDaViagem
           // A ordem que o servidor devolve é a da tela: a lista só recomeça quando outra pessoa a mudou
           key={paradas.map((parada) => parada.id).join(',')}
           data={data}
           viagemId={viagem.id}
-          partida={{ descricao: viagem.partidaDescricao, lat: viagem.partidaLat, lng: viagem.partidaLng, escolha }}
+          partida={{
+            descricao: viagem.partidaDescricao,
+            lat: viagem.partidaLat,
+            lng: viagem.partidaLng,
+            escolha: escolha(viagem.partidaDescricao),
+          }}
+          chegada={{ ...chegada, escolha: escolha(chegada.descricao) }}
           paradas={paradas.map((parada) => ({
             id: parada.id,
             pedidoId: parada.pedidoId,
             numero: parada.numero,
             cliente: parada.cliente,
-            clienteId: parada.clienteId,
             cidade: parada.cidade,
             descricao: parada.descricao,
             endereco: parada.endereco,
@@ -131,7 +137,7 @@ export default async function PlanejarPage({ params, searchParams }: PlanejarPag
             alturaM: item.alturaM,
             quantidade: item.quantidade,
             separado: item.separado,
-            cargaPronta: item.cargaPronta,
+            carregado: item.carregado,
           })),
         }))}
       />

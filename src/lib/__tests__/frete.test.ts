@@ -45,6 +45,7 @@ describe('textos do fechamento', () => {
   it('só as duas saídas valem como origem', () => {
     expect(isOrigemFrete('agrolandia')).toBe(true);
     expect(isOrigemFrete('itapema')).toBe(true);
+    expect(isOrigemFrete('outro')).toBe(true);
     expect(isOrigemFrete('toString')).toBe(false);
   });
 });

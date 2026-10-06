@@ -56,6 +56,9 @@ function viagemRow() {
     partidaDescricao: 'Agrolândia, SC',
     partidaLat: null,
     partidaLng: null,
+    chegadaDescricao: null,
+    chegadaLat: null,
+    chegadaLng: null,
     situacao: situacaoViagem,
     sugerirOrdem: true,
     distanciaM: null,
@@ -249,6 +252,27 @@ describe('ordem da rota (Tela 2)', () => {
     expect(gravouEm('SET partida_descricao')[0][1]).toEqual([VIAGEM, 'Rodoviária, Ibirama', -27.05, -49.51]);
   });
 
+  it('a volta digitada grava na chegada, e não mexe na saída', async () => {
+    situacaoViagem = 'roteirizando';
+    await expect(
+      actions.definirPartidaAction(
+        {},
+        form({ data: DIA, viagem_id: VIAGEM, ponta: 'volta', partida: 'outro', endereco: 'Centro, Itapema', lat: '-27.09', lng: '-48.61' }),
+      ),
+    ).rejects.toThrow('REDIRECT');
+    expect(gravouEm('SET chegada_descricao')[0][1]).toEqual([VIAGEM, 'Centro, Itapema', -27.09, -48.61]);
+    expect(gravouEm('SET partida_descricao')).toHaveLength(0);
+  });
+
+  it('volta em branco é recusada', async () => {
+    situacaoViagem = 'roteirizando';
+    const state = await actions.definirPartidaAction(
+      {},
+      form({ data: DIA, viagem_id: VIAGEM, ponta: 'volta', partida: 'outro', endereco: ' ' }),
+    );
+    expect(state.error).toBe('Digite o endereço de volta.');
+  });
+
   it('parada extra precisa de descrição', async () => {
     situacaoViagem = 'roteirizando';
     const state = await actions.adicionarParadaAction({}, form({ data: DIA, viagem_id: VIAGEM, descricao: ' ' }));
@@ -269,11 +293,9 @@ describe('sugestões de endereço', () => {
   });
 });
 
-describe('o endereço de entrega completado na rota (P17)', () => {
-  const CLIENTE = '5a8c4b6d-3e0f-4b7a-8c5d-7e1f2a3b4c5d';
-
+describe('o endereço de entrega completado na rota (P17, P19)', () => {
   function enviar(campos: Record<string, string>) {
-    return actions.salvarEnderecoEntregaAction({}, form({ data: DIA, viagem_id: VIAGEM, cliente_id: CLIENTE, ...campos }));
+    return actions.salvarEnderecoEntregaAction({}, form({ data: DIA, viagem_id: VIAGEM, pedido_id: PEDIDO, ...campos }));
   }
 
   beforeEach(() => {
@@ -295,22 +317,48 @@ describe('o endereço de entrega completado na rota (P17)', () => {
     vi.mocked(enderecoDoPonto).mockResolvedValue({ logradouro: 'Estrada Geral', cidade: 'Ibirama', uf: 'SC', cep: null });
     const state = await enviar({ endereco: '', localizacao: 'https://maps.google.com/maps?q=-27.05%2C-49.52&z=17' });
     expect(state.error).toBeUndefined();
-    const [[, valores]] = gravouEm('INSERT INTO cadastro.pessoas_enderecos');
-    expect(valores).toEqual([CLIENTE, 'Estrada Geral', 'Ibirama', 'SC', null, -27.05, -49.52]);
+    const [[, valores]] = gravouEm('SET entrega_logradouro');
+    expect(valores).toEqual([PEDIDO, 'Estrada Geral', 'Ibirama', 'SC', null, -27.05, -49.52]);
     expect(gravouEm('sugerir_ordem = sugerir_ordem OR $2')[0][1]).toEqual([VIAGEM, true]);
+    // P19: o destino é do pedido, e o cadastro do cliente fica como está
+    expect(gravouEm('cadastro.pessoas_enderecos')).toHaveLength(0);
   });
 
   it('o mapa fora do ar não impede: o ponto fica com um texto que diz de onde veio', async () => {
     vi.mocked(enderecoDoPonto).mockRejectedValue(new MapaIndisponivel('sem resposta'));
     await enviar({ endereco: '', localizacao: '-27.05, -49.52' });
-    const [[, valores]] = gravouEm('INSERT INTO cadastro.pessoas_enderecos');
-    expect(valores).toEqual([CLIENTE, 'Localização enviada pelo WhatsApp', null, null, null, -27.05, -49.52]);
+    const [[, valores]] = gravouEm('SET entrega_logradouro');
+    expect(valores).toEqual([PEDIDO, 'Localização enviada pelo WhatsApp', null, null, null, -27.05, -49.52]);
   });
 
   it('o endereço escolhido na lista guarda a rua, e a cidade vai no campo dela', async () => {
     vi.mocked(enderecoDoPonto).mockResolvedValue({ logradouro: 'Rua XV', cidade: 'Rio do Sul', uf: 'SC', cep: '89160-000' });
     await enviar({ endereco: 'Rua XV de Novembro, 120, Rio do Sul, SC, Brasil', lat: '-27.21', lng: '-49.64', localizacao: '' });
-    const [[, valores]] = gravouEm('INSERT INTO cadastro.pessoas_enderecos');
-    expect(valores).toEqual([CLIENTE, 'Rua XV de Novembro, 120', 'Rio do Sul', 'SC', '89160-000', -27.21, -49.64]);
+    const [[, valores]] = gravouEm('SET entrega_logradouro');
+    expect(valores).toEqual([PEDIDO, 'Rua XV de Novembro, 120', 'Rio do Sul', 'SC', '89160-000', -27.21, -49.64]);
+  });
+
+  it('pedido inválido é recusado sem ir ao banco', async () => {
+    const state = await actions.salvarEnderecoEntregaAction({}, form({ data: DIA, viagem_id: VIAGEM, pedido_id: 'x', endereco: 'Rua XV' }));
+    expect(state.error).toBe('Pedido inválido.');
+    expectNoDatabase();
+  });
+});
+
+describe('a contagem do carregamento (P19)', () => {
+  const ITEM = '7d1e2f3a-4b5c-4d6e-8f7a-9b0c1d2e3f4a';
+
+  it('marca o item como carregado, e não como separado', async () => {
+    const state = await actions.marcarItemAction({}, form({ data: DIA, carga_item_id: ITEM, carregado: 'sim' }));
+    expect(state.error).toBeUndefined();
+    const [[sql, valores]] = gravouEm('UPDATE pedidos_cargas_itens SET carregado');
+    expect(String(sql)).toContain("v.situacao = 'carregando'");
+    expect(valores).toEqual([ITEM, true]);
+    expect(gravouEm('SET separado')).toHaveLength(0);
+  });
+
+  it('desmarcar grava falso', async () => {
+    await actions.marcarItemAction({}, form({ data: DIA, carga_item_id: ITEM, carregado: 'nao' }));
+    expect(gravouEm('UPDATE pedidos_cargas_itens SET carregado')[0][1]).toEqual([ITEM, false]);
   });
 });

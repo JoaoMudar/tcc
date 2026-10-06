@@ -24,6 +24,7 @@ export function isSituacaoViagem(valor: string): valor is SituacaoViagem {
 export const AVISOS_DA_ROTA = {
   mapa_indisponivel: 'Mapa indisponível agora. A ordem ficou como estava.',
   saida_nao_achada: 'O endereço de saída não foi achado no mapa. A ordem ficou como estava.',
+  volta_nao_achada: 'O endereço de volta não foi achado no mapa. A ordem ficou como estava.',
 } as const;
 
 export type AvisoDaRota = keyof typeof AVISOS_DA_ROTA;
@@ -108,12 +109,19 @@ function urlDoTrecho(origem: string, destinos: readonly string[]): string {
  * funciona com a API de rotas fora do ar: cada ponto vai pela coordenada ou,
  * sem ela, pelo endereço em texto. O que não tem endereço fica de fora.
  *
- * Com mais de 10 paradas, devolve mais de um link: o segundo parte da 10ª.
+ * Com a chegada, o trajeto termina nela, que conta como mais um ponto. Com mais
+ * de 10 pontos, devolve mais de um link: o segundo parte do 10º.
  */
-export function linkGoogleMaps(partida: PontoDaRota, paradas: readonly PontoDaRota[]): string[] {
+export function linkGoogleMaps(
+  partida: PontoDaRota,
+  paradas: readonly PontoDaRota[],
+  chegada: PontoDaRota | null = null,
+): string[] {
   const origem = pontoEmTexto(partida);
   const destinos = paradas.map(pontoEmTexto).filter((ponto): ponto is string => ponto !== null);
   if (!origem || destinos.length === 0) return [];
+  const fim = chegada && pontoEmTexto(chegada);
+  if (fim) destinos.push(fim);
 
   const links: string[] = [];
   let saida = origem;

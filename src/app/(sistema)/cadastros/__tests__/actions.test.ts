@@ -310,9 +310,11 @@ describe('espécies (RF-10)', () => {
 
   it('chefia cria espécie numa transação e vai para a ficha', async () => {
     loggedAs('chefia');
-    client.query.mockImplementation(async (sql: string) =>
-      sql.includes('INSERT INTO especies ') ? { rows: [{ id: ID }] } : { rows: [], rowCount: 1 },
-    );
+    client.query.mockImplementation(async (sql: string) => {
+      if (sql.includes('INSERT INTO especies ')) return { rows: [{ id: ID }] };
+      if (sql.includes('status_validacao AS status')) return { rows: [{ nome: 'Cedrela fissilis', status: 'pendente', taxon: null }] };
+      return { rows: [], rowCount: 1 };
+    });
     await expect(
       especies.saveEspecieAction({}, form({ nome_cientifico: 'Cedrela fissilis', nomes_populares: 'Cedro-rosa\nCedro' })),
     ).rejects.toThrow(`redirect:/cadastros/especies/${ID}?salvo=1`);
@@ -334,6 +336,7 @@ describe('espécie rápida e aprendizado de nomes (T8.16)', () => {
     client.query.mockImplementation(async (sql: string) => {
       if (sql.includes('UNION ALL')) return { rows: nomes, rowCount: nomes.length };
       if (sql.includes('INSERT INTO especies ')) return { rows: [{ id: ID }] };
+      if (sql.includes('status_validacao AS status')) return { rows: [{ nome: 'Cedrela fissilis', status: 'pendente', taxon: null }] };
       if (sql.includes('SELECT e.id, e.nome_cientifico')) {
         return { rows: [{ id: ID, nomeCientifico: 'Cedrela fissilis', nomesPopulares: ['Cedro-rosa'], caracteristicas: [] }] };
       }

@@ -9,7 +9,7 @@ import { isOrigemFrete } from '@/lib/frete';
 import * as pedidos from '@/lib/pedidos';
 import { lerEnderecoDeEntrega } from '@/lib/endereco-entrega-form';
 import { AVISOS_DO_FRETE, salvarEnderecoDoPedido, sugestaoDeFrete } from '@/lib/pedidos-frete';
-import type { SugestaoDeEndereco } from '@/lib/rotas';
+import { type SugestaoDeEndereco, lerCoordenada } from '@/lib/rotas';
 import { MapaIndisponivel, sugerirEnderecos } from '@/lib/rotas-ors';
 import { withTransaction } from '@/lib/transaction';
 import { isUuid } from '@/lib/uuid';
@@ -329,7 +329,11 @@ export async function salvarFreteAction(_previous: FormState, formData: FormData
       pedidos.salvarFrete(
         client,
         pedidoId,
-        { centavos, origem: textoOrigem === '' ? null : textoOrigem },
+        {
+          centavos,
+          origem: textoOrigem === '' ? null : textoOrigem,
+          endereco: formText(formData, 'frete_origem_endereco'),
+        },
         { perfil: user.perfil, usuarioId: user.usuarioId },
       ),
     );
@@ -347,6 +351,8 @@ export async function salvarFreteAction(_previous: FormState, formData: FormData
 export async function sugerirFreteAction(
   pedidoId: string,
   origem: string,
+  /** Só na origem `outro`: o endereço digitado e, se veio da lista, a coordenada. */
+  endereco?: { texto: string; lat: string; lng: string },
 ): Promise<
   | { error: string; falta?: { endereco: string | null } }
   | { centavos: number; distanciaKm: number }
@@ -356,7 +362,11 @@ export async function sugerirFreteAction(
   if (!isOrigemFrete(origem)) return { error: 'Origem do frete inválida.' };
   if (user.perfil === 'gerencia') return { error: 'O frete do pedido é digitado pela chefia.' };
   try {
-    const sugestao = await sugestaoDeFrete(pool, pedidoId, origem);
+    const outro =
+      origem === 'outro' && endereco
+        ? { texto: String(endereco.texto ?? ''), coordenada: lerCoordenada(String(endereco.lat ?? ''), String(endereco.lng ?? '')) }
+        : null;
+    const sugestao = await sugestaoDeFrete(pool, pedidoId, origem, outro);
     if (!('aviso' in sugestao)) return sugestao;
     const error = AVISOS_DO_FRETE[sugestao.aviso];
     return 'endereco' in sugestao ? { error, falta: { endereco: sugestao.endereco } } : { error };

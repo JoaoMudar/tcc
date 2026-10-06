@@ -34,6 +34,11 @@ export type Linha = Record<string, string> & { __linha: string };
  * começada por `#` (comentário do modelo).
  */
 export function lerCsv(texto: string, arquivo: Arquivo): { error: string } | { value: Linha[] } {
+  return lerPlanilha(texto, arquivo, COLUNAS[arquivo]);
+}
+
+/** O mesmo leitor, para planilha fora de `ARQUIVOS` (a da conciliação com a FFB). */
+export function lerPlanilha(texto: string, arquivo: string, obrigatorias: readonly string[]): { error: string } | { value: Linha[] } {
   const linhas = texto.replace(/^﻿/, '').split(/\r?\n/);
   const celulas = (linha: string) => {
     const saida: string[] = [];
@@ -61,7 +66,7 @@ export function lerCsv(texto: string, arquivo: Arquivo): { error: string } | { v
     const valores = celulas(bruta);
     if (!cabecalho) {
       cabecalho = valores.map((v) => v.toLowerCase());
-      const faltam = COLUNAS[arquivo].filter((c) => !cabecalho!.includes(c));
+      const faltam = obrigatorias.filter((c) => !cabecalho!.includes(c));
       if (faltam.length > 0) return { error: `${arquivo}.csv: falta a coluna ${faltam.join(', ')} no cabeçalho (separe por ponto e vírgula).` };
       continue;
     }
