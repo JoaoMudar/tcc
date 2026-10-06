@@ -5,12 +5,13 @@ import { useRouter } from 'next/navigation';
 import { startTransition, useCallback, useOptimistic, useRef, useState } from 'react';
 import type { AtribuicaoResumo, Funcionario } from '@/lib/agenda';
 import { type Mudanca, aplicarMudanca, dadosDaMudanca, montarGrade } from '@/lib/agenda-linhas';
-import { estadoTarefa, formatHoraTarefa } from '@/lib/agenda-rotulos';
+import { estadoNaGrade, formatHoraTarefa } from '@/lib/agenda-rotulos';
 import { COR_CATEGORIA } from '@/lib/cores-categoria';
 import { somaDias } from '@/lib/datas';
 import { nomeDia, siglaDia } from '@/lib/semanas';
 import type { Turno } from '@/lib/turnos';
 import { BotaoConfirmar } from './BotaoConfirmar';
+import { IconeEstado } from './IconeEstado';
 import { PainelTarefa } from './PainelTarefa';
 import { type AvisoDesfazer, ToastDesfazer } from './ToastDesfazer';
 import { reagendarAtribuicaoAction } from './actions';
@@ -18,13 +19,15 @@ import { reagendarAtribuicaoAction } from './actions';
 interface AgendaDiaCelularProps {
   atribuicoes: AtribuicaoResumo[];
   funcionarios: Funcionario[];
-  /** Os dias do seletor: segunda a sexta, e o sábado só quando tem tarefa. */
+  /** Os dias do seletor: segunda a sexta, e sábado e domingo só quando têm tarefa. */
   dias: string[];
   dia: string;
   hoje: string;
   turnos: Turno[];
   podeConfirmar: boolean;
   podeAlterar: boolean;
+  /** A semana já pode ser fechada: a não confirmada fica âmbar com "?", a confirmada verde. */
+  aFechar?: boolean;
   /** Lançar tarefa no dia, quando a pessoa pode e a semana está aberta. */
   lancarHref?: string;
   className?: string;
@@ -47,6 +50,7 @@ export function AgendaDiaCelular({
   turnos,
   podeConfirmar,
   podeAlterar,
+  aFechar = false,
   lancarHref,
   className = '',
 }: AgendaDiaCelularProps) {
@@ -134,11 +138,16 @@ export function AgendaDiaCelular({
             </h4>
             <ul className="flex flex-col divide-y divide-line rounded-lg border border-line bg-white">
               {(linha.porDia[dia] ?? []).map((a) => {
-                const estado = estadoTarefa(a);
+                const estado = estadoNaGrade(a, aFechar);
                 const hora = formatHoraTarefa(a.horaInicio, a.horaFim)?.replace(' às ', '–');
+                // Na semana a fechar, a faixa e o fundo dizem o que o fechamento vai fazer
+                const confirmada = estado === 'feita' || estado === 'parcial' || estado === 'nao_feita';
+                const tom = !aFechar ? null : estado === 'presumida' ? 'presumida' : confirmada ? 'confirmada' : null;
+                const faixa = tom === 'presumida' ? 'bg-atencao' : tom === 'confirmada' ? 'bg-feito' : COR_CATEGORIA[a.categoria];
+                const fundo = tom === 'presumida' ? 'bg-amber-50' : tom === 'confirmada' ? 'bg-green-50' : '';
                 return (
-                  <li key={a.id} className="relative flex items-center gap-2 py-1 pr-1.5 pl-3">
-                    <span aria-hidden className={`absolute inset-y-0 left-0 w-1 ${COR_CATEGORIA[a.categoria]}`} />
+                  <li key={a.id} className={`relative flex items-center gap-2 py-1 pr-1.5 pl-3 ${fundo}`}>
+                    <span aria-hidden className={`absolute inset-y-0 left-0 w-1 ${faixa}`} />
                     <button
                       type="button"
                       onClick={() => setAberta(a.id)}
@@ -151,7 +160,10 @@ export function AgendaDiaCelular({
                       >
                         {a.tipo}
                       </span>
-                      {hora && <span className="shrink-0 text-sm text-muted tabular-nums">{hora}</span>}
+                      <span className="flex shrink-0 items-center gap-1.5">
+                        {hora && <span className="text-sm text-muted tabular-nums">{hora}</span>}
+                        {estado === 'presumida' && <IconeEstado estado={estado} className="text-base" />}
+                      </span>
                     </button>
                     <BotaoConfirmar atribuicao={a} podeConfirmar={podeConfirmar} />
                   </li>

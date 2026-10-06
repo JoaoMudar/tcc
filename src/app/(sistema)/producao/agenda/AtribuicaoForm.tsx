@@ -7,7 +7,7 @@ import { type SelectOption, SelectField } from '@/components/ui/SelectField';
 import { TextField } from '@/components/ui/TextField';
 import { NENHUM, type UnidadeTarefa } from '@/lib/agenda-rotulos';
 import { EMPTY_FORM_STATE } from '@/lib/form-state';
-import type { Declaracoes } from '@/lib/tipos-tarefa';
+import { CATEGORIA_TAREFA_LABELS, type CategoriaTarefa, type Declaracoes } from '@/lib/tipos-tarefa';
 import { Interruptor } from '../../cadastros/tipos-tarefa/Interruptor';
 import { EscolhaMultipla } from './EscolhaMultipla';
 import { atualizarAtribuicaoAction, criarAtribuicaoAction } from './actions';
@@ -15,6 +15,7 @@ import { atualizarAtribuicaoAction, criarAtribuicaoAction } from './actions';
 export interface TipoOpcao extends Declaracoes {
   id: string;
   nome: string;
+  categoria: CategoriaTarefa;
   unidadeMedida: UnidadeTarefa;
 }
 
@@ -37,6 +38,8 @@ interface AtribuicaoFormProps {
   atribuicaoId?: string;
   /** O clique no Gantt já disse o dia e o turno: o formulário não pergunta de novo. */
   fixos?: { dia: string; turnoId: string };
+  /** O "Marcar na agenda" (RF-66): salvo, volta para a agenda em vez da ficha. */
+  voltarParaAgenda?: boolean;
 }
 
 function comNenhum(opcoes: readonly SelectOption[], rotulo: string): SelectOption[] {
@@ -48,7 +51,7 @@ function comNenhum(opcoes: readonly SelectOption[], rotulo: string): SelectOptio
  * tipo de tarefa declarar. Hora (RN-12), recorrência e observação ficam em
  * "Mais detalhes", e a área só se registra na confirmação (RF-30, UC-20).
  */
-export function AtribuicaoForm({ semana, opcoes, inicial, atribuicaoId, fixos }: AtribuicaoFormProps) {
+export function AtribuicaoForm({ semana, opcoes, inicial, atribuicaoId, fixos, voltarParaAgenda }: AtribuicaoFormProps) {
   const editando = atribuicaoId !== undefined;
   const [state, formAction, pending] = useActionState(editando ? atualizarAtribuicaoAction : criarAtribuicaoAction, EMPTY_FORM_STATE);
   const valores = state.error && state.fields ? state.fields : inicial;
@@ -61,6 +64,7 @@ export function AtribuicaoForm({ semana, opcoes, inicial, atribuicaoId, fixos }:
     <form action={formAction} className="flex flex-col gap-5">
       <input type="hidden" name="semana" value={semana} />
       {editando && <input type="hidden" name="id" value={atribuicaoId} />}
+      {voltarParaAgenda && <input type="hidden" name="voltar" value="agenda" />}
       {/* RF-47: a etapa que originou a sugestão viaja junto; o vencimento dela o servidor lê */}
       {valores.lote_etapa_id && <input type="hidden" name="lote_etapa_id" value={valores.lote_etapa_id} />}
 
@@ -68,7 +72,7 @@ export function AtribuicaoForm({ semana, opcoes, inicial, atribuicaoId, fixos }:
       <SelectField
         label="Tarefa"
         name="tipo_tarefa_id"
-        options={opcoes.tipos.map((t) => ({ value: t.id, label: t.nome }))}
+        options={opcoes.tipos.map((t) => ({ value: t.id, label: t.nome, grupo: CATEGORIA_TAREFA_LABELS[t.categoria] }))}
         defaultValue={valores.tipo_tarefa_id}
         onChange={(event) => setTipoId(event.target.value)}
         required

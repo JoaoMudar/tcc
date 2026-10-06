@@ -47,7 +47,7 @@ export async function POST(request: Request) {
     case 'recusado':
       return Response.json({ error: resultado.error, fields: resultado.fields }, { status: 422 });
     case 'gravado':
-      // Ocupação, ficha, perdas, saldo pronto e agenda leem o que acabou de mudar
+      // Ocupação, ficha, perdas, estoque disponível e agenda leem o que acabou de mudar
       revalidatePath('/producao', 'layout');
       return Response.json({ success: resultado.success, destino: resultado.destino, repetido: resultado.repetido });
   }

@@ -26,7 +26,7 @@ const PENDENTE: ItemParaConferir = {
   recipienteDisponivel: null,
   alturaDisponivelM: null,
   observacoesDisponibilidade: null,
-  complemento: null,
+  complementos: [],
 };
 
 const acao = vi.mocked(marcarDisponibilidadeAction);
@@ -216,7 +216,7 @@ describe('VerificacaoItem, o cartão pinta no toque (P13)', () => {
 });
 
 describe('VerificacaoItem, o "+" completa em outro recipiente (P13)', () => {
-  it('duplica os campos, já com o que falta, e o "+" some', () => {
+  it('duplica os campos, já com o que falta, e o "+" fica para outra linha', () => {
     renderiza();
     fireEvent.click(screen.getByText('Tem parte'));
     fireEvent.change(screen.getByLabelText(/Quantas tem/), { target: { value: '300' } });
@@ -226,7 +226,7 @@ describe('VerificacaoItem, o "+" completa em outro recipiente (P13)', () => {
     const bloco = within(screen.getByRole('group', { name: 'Complemento' }));
     expect((bloco.getByLabelText(/Quantas tem/) as HTMLInputElement).value).toBe('200');
     expect((bloco.getByLabelText(/Com que altura/) as HTMLInputElement).value).toBe('1,20');
-    expect(screen.queryByText('+ Completar com outro recipiente')).toBeNull();
+    expect(screen.getByText('+ Completar com outro recipiente')).toBeTruthy();
   });
 
   it('não aparece em "Tem parte" de item sem quantidade', () => {
@@ -245,8 +245,8 @@ describe('VerificacaoItem, o "+" completa em outro recipiente (P13)', () => {
 
     await waitFor(() => expect(acao).toHaveBeenCalledTimes(1));
     expect(ultimoEnvio().get('quantidade')).toBe('300');
-    expect(ultimoEnvio().get('complemento_quantidade')).toBe('200');
-    expect(ultimoEnvio().get('complemento_recipiente_id')).toBe('saco');
+    expect(ultimoEnvio().get('complemento_0_quantidade')).toBe('200');
+    expect(ultimoEnvio().get('complemento_0_recipiente_id')).toBe('saco');
   });
 
   it('a soma das duas linhas não passa do pedido', () => {
@@ -265,7 +265,7 @@ describe('VerificacaoItem, o "+" completa em outro recipiente (P13)', () => {
     renderiza({
       disponivel: false,
       quantidadeDisponivel: 300,
-      complemento: { quantidade: 200, recipienteId: 'saco', recipiente: 'Saco 10x18', alturaM: 1.2 },
+      complementos: [{ quantidade: 200, recipienteId: 'saco', recipiente: 'Saco 10x18', alturaM: 1.2 }],
     });
     expect(screen.getByText('Tem parte: 300 de 500 + 200, em Saco 10x18, 1,20 m')).toBeTruthy();
     expect(screen.getAllByLabelText(/Quantas tem/)).toHaveLength(2);
@@ -275,11 +275,11 @@ describe('VerificacaoItem, o "+" completa em outro recipiente (P13)', () => {
     renderiza({
       disponivel: false,
       quantidadeDisponivel: 300,
-      complemento: { quantidade: 200, recipienteId: 'saco', recipiente: 'Saco 10x18', alturaM: 1.2 },
+      complementos: [{ quantidade: 200, recipienteId: 'saco', recipiente: 'Saco 10x18', alturaM: 1.2 }],
     });
     fireEvent.click(screen.getByText('Tirar complemento'));
     await waitFor(() => expect(acao).toHaveBeenCalledTimes(1));
-    expect(ultimoEnvio().get('complemento_quantidade')).toBeNull();
+    expect(ultimoEnvio().get('complemento_0_quantidade')).toBeNull();
     expect(screen.getAllByLabelText(/Quantas tem/)).toHaveLength(1);
   });
 });
@@ -293,5 +293,108 @@ describe('VerificacaoItem, sem resumo que repete o botão', () => {
   it('"Tem tudo" gravado não escreve "Tem tudo" de novo', () => {
     renderiza({ disponivel: true });
     expect(screen.getAllByText('Tem tudo')).toHaveLength(1);
+  });
+});
+
+describe('VerificacaoItem, "Tem tudo" dividido em recipientes (P17)', () => {
+  const SEM_RECIPIENTE = { recipiente: null, recipienteId: null, alturaM: null, quantidade: 50 };
+
+  it('o "+" só aparece em "Tem tudo" quando o recipiente é a definir', () => {
+    renderiza();
+    fireEvent.click(screen.getByText('Tem tudo'));
+    expect(screen.queryByText('+ Dividir em outro recipiente')).toBeNull();
+  });
+
+  it('grava 20 num recipiente e 30 noutro', async () => {
+    renderiza(SEM_RECIPIENTE);
+    fireEvent.click(screen.getByText('Tem tudo'));
+    fireEvent.click(screen.getByText('+ Dividir em outro recipiente'));
+    // A primeira linha passa a perguntar quantas
+    fireEvent.change(screen.getAllByLabelText(/Quantas tem/)[0], { target: { value: '20' } });
+    fireEvent.change(screen.getAllByLabelText(/Em que recipiente está/)[0], { target: { value: 'tub' } });
+    const bloco = within(screen.getByRole('group', { name: 'Outro recipiente 1' }));
+    fireEvent.change(bloco.getByLabelText(/Quantas tem/), { target: { value: '30' } });
+    fireEvent.change(bloco.getByLabelText(/Em que recipiente está/), { target: { value: 'saco' } });
+
+    await waitFor(() => expect(ultimoEnvio().get('complemento_0_recipiente_id')).toBe('saco'));
+    expect(ultimoEnvio().get('estado')).toBe('disponivel');
+    expect(ultimoEnvio().get('quantidade')).toBe('20');
+    expect(ultimoEnvio().get('recipiente_id')).toBe('tub');
+    expect(ultimoEnvio().get('complemento_0_quantidade')).toBe('30');
+  });
+
+  it('a soma que não fecha o pedido avisa e não grava', () => {
+    renderiza(SEM_RECIPIENTE);
+    fireEvent.click(screen.getByText('Tem tudo'));
+    fireEvent.click(screen.getByText('+ Dividir em outro recipiente'));
+    acao.mockClear();
+    fireEvent.change(screen.getAllByLabelText(/Quantas tem/)[0], { target: { value: '20' } });
+    fireEvent.change(screen.getAllByLabelText(/Em que recipiente está/)[0], { target: { value: 'tub' } });
+    const bloco = within(screen.getByRole('group', { name: 'Outro recipiente 1' }));
+    fireEvent.change(bloco.getByLabelText(/Quantas tem/), { target: { value: '20' } });
+    fireEvent.change(bloco.getByLabelText(/Em que recipiente está/), { target: { value: 'saco' } });
+    expect(acao).not.toHaveBeenCalled();
+    expect(screen.getByText(/somam 40/)).toBeTruthy();
+  });
+
+  it('gravado dividido: o cartão é "Tem tudo" e o resumo diz os recipientes', () => {
+    renderiza({
+      ...SEM_RECIPIENTE,
+      disponivel: false,
+      quantidadeDisponivel: 20,
+      recipienteDisponivelId: 'tub',
+      recipienteDisponivel: 'Tubete',
+      complementos: [{ quantidade: 30, recipienteId: 'saco', recipiente: 'Saco 10x18', alturaM: null }],
+    });
+    expect(screen.getByText('Tem tudo: 20, em Tubete + 30, em Saco 10x18')).toBeTruthy();
+    expect(screen.getAllByLabelText(/Quantas tem/)).toHaveLength(2);
+  });
+});
+
+describe('VerificacaoItem, o suplente do item sem quantidade (P18)', () => {
+  const PITANGA: Partial<ItemParaConferir> = { quantidade: null, recipiente: null, recipienteId: null, alturaM: null };
+
+  it('"Tem" com outro recipiente não pede quantidade em nenhuma linha', () => {
+    renderiza(PITANGA);
+    fireEvent.click(screen.getByText('Tem'));
+    fireEvent.click(screen.getByText('+ Também tem em outro recipiente'));
+    expect(screen.queryByText('+ Dividir em outro recipiente')).toBeNull();
+    const bloco = within(screen.getByRole('group', { name: 'Também tem em' }));
+    expect(bloco.queryByLabelText(/Quantas tem/)).toBeNull();
+    // Só o campo opcional da primeira linha, como em "Tem" sem divisão
+    expect(screen.getAllByLabelText(/Quantas tem/)).toHaveLength(1);
+    expect((screen.getByLabelText(/Quantas tem/) as HTMLInputElement).required).toBe(false);
+  });
+
+  it('grava a primeira linha e o outro recipiente, sem quantidade', async () => {
+    renderiza(PITANGA);
+    fireEvent.click(screen.getByText('Tem'));
+    fireEvent.change(screen.getAllByLabelText(/Em que recipiente está/)[0], { target: { value: 'tub' } });
+    fireEvent.click(screen.getByText('+ Também tem em outro recipiente'));
+    const bloco = within(screen.getByRole('group', { name: 'Também tem em' }));
+    fireEvent.change(bloco.getByLabelText(/Em que recipiente está/), { target: { value: 'saco' } });
+
+    await waitFor(() => expect(ultimoEnvio().get('complemento_0_recipiente_id')).toBe('saco'));
+    expect(ultimoEnvio().get('estado')).toBe('disponivel');
+    expect(ultimoEnvio().get('recipiente_id')).toBe('tub');
+    expect(ultimoEnvio().get('complemento_0_quantidade')).toBe('');
+  });
+
+  it('o botão de tirar o recipiente é vermelho', () => {
+    renderiza(PITANGA);
+    fireEvent.click(screen.getByText('Tem'));
+    fireEvent.click(screen.getByText('+ Também tem em outro recipiente'));
+    expect(screen.getByText('Tirar este recipiente').className).toContain('border-red-600');
+  });
+
+  it('gravado com suplente: o resumo diz onde mais tem', () => {
+    renderiza({
+      ...PITANGA,
+      disponivel: true,
+      recipienteDisponivelId: 'tub',
+      recipienteDisponivel: 'Tubete',
+      complementos: [{ quantidade: null, recipienteId: 'saco', recipiente: 'Saco 10x18', alturaM: null }],
+    });
+    expect(screen.getByText('Tem: em Tubete · também em Saco 10x18')).toBeTruthy();
   });
 });

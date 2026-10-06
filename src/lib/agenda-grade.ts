@@ -354,6 +354,128 @@ export function sobrepor<T>(
   return trechos.map((t) => ({ ...t, bordaInicio: t.faixa.inicio === t.completa.inicio, bordaFim: t.faixa.fim === t.completa.fim }));
 }
 
+/** Onde duas tarefas se cruzam, a principal fica com a faixa de cima e as secundárias dividem a de baixo. */
+export const OVERLAP_MAIN = 0.6;
+export const OVERLAP_SECONDARY = 0.4;
+
+/** Um pedaço do perfil da tarefa: em que altura ela aparece entre dois limites. */
+export interface Degrau<T> {
+  inicio: number;
+  fim: number;
+  /** 0 é a principal; de 1 em diante, as secundárias; -1 é onde ela foi para o "+N" de outra e não aparece. */
+  camada: number;
+  camadas: number;
+  ocultas: T[];
+}
+
+/** A tarefa inteira, desenhada como um card só, com o perfil em degraus onde outra a cruza. */
+export interface Barra<T> {
+  item: T;
+  /** Do primeiro ao último degrau: o que o card ocupa no eixo. */
+  faixa: Faixa;
+  /** A faixa inteira da tarefa, que é o que o arrasto move. */
+  completa: Faixa;
+  perfil: Degrau<T>[];
+}
+
+/**
+ * Junta os trechos de `sobrepor` por tarefa: a tarefa cruzada continua um card
+ * só, do início ao fim, e o cruzamento muda só a altura do pedaço em que ocorre.
+ */
+export function agruparPorTarefa<T>(trechos: readonly Trecho<T>[]): Barra<T>[] {
+  const porItem = new Map<T, Barra<T>>();
+  for (const t of [...trechos].sort((um, outro) => um.faixa.inicio - outro.faixa.inicio)) {
+    const degrau: Degrau<T> = { inicio: t.faixa.inicio, fim: t.faixa.fim, camada: t.camada, camadas: t.camadas, ocultas: t.ocultas };
+    const barra = porItem.get(t.item);
+    if (!barra) {
+      porItem.set(t.item, { item: t.item, faixa: { ...t.faixa }, completa: t.completa, perfil: [degrau] });
+      continue;
+    }
+    // O pedaço em que ela ficou no "+N" de outra: o card segue, com altura zero ali
+    if (barra.faixa.fim < degrau.inicio) barra.perfil.push({ inicio: barra.faixa.fim, fim: degrau.inicio, camada: -1, camadas: 0, ocultas: [] });
+    barra.perfil.push(degrau);
+    barra.faixa = { ...barra.faixa, fim: degrau.fim };
+  }
+  return [...porItem.values()];
+}
+
+/**
+ * Onde o degrau fica na altura da linha, em porcentagem: sozinho, a altura toda;
+ * cruzado, a principal na faixa de cima e as secundárias dividindo a de baixo.
+ */
+export function faixaVertical(camada: number, camadas: number): { topo: number; altura: number } {
+  if (camada < 0) return { topo: 100, altura: 0 };
+  if (camadas <= 1) return { topo: 0, altura: 100 };
+  const principal = OVERLAP_MAIN * 100;
+  if (camada === 0) return { topo: 0, altura: principal };
+  const altura = (OVERLAP_SECONDARY * 100) / (camadas - 1);
+  return { topo: principal + (camada - 1) * altura, altura };
+}
+
+/**
+ * Onde o texto do card cabe sem ser cortado: a altura comum a todos os degraus.
+ * A tarefa que é principal num trecho e secundária noutro não tem altura comum,
+ * e o texto fica na do primeiro degrau.
+ */
+export function faixaDoTexto(perfil: readonly Degrau<unknown>[]): { topo: number; altura: number } {
+  const visiveis = perfil.filter((d) => d.camada >= 0).map((d) => faixaVertical(d.camada, d.camadas));
+  if (visiveis.length === 0) return { topo: 0, altura: 100 };
+  const topo = Math.max(...visiveis.map((v) => v.topo));
+  const base = Math.min(...visiveis.map((v) => v.topo + v.altura));
+  return base > topo ? { topo, altura: base - topo } : visiveis[0];
+}
+
+/** O recuo, em pixels, entre a caixa da barra e o card dentro dela. */
+export interface Recuo {
+  inicio: number;
+  fim: number;
+  topo: number;
+  base: number;
+}
+
+/** A folga, em pixels, entre a principal e a secundária na divisa das faixas. */
+const FOLGA_DIVISA = 2;
+
+/**
+ * O `clip-path` do card em degraus: a altura toda onde a tarefa está sozinha, e
+ * só a sua faixa onde outra a cruza. A fração vale na caixa da barra; o card fica
+ * dentro dela com `recuo`, e o `calc` converte, para o degrau cair no minuto certo.
+ * Sem cruzamento, nada a recortar.
+ */
+export function recortePerfil(faixa: Faixa, perfil: readonly Degrau<unknown>[], eixo: Eixo, recuo: Recuo): string | undefined {
+  if (perfil.every((d) => d.camada >= 0 && d.camadas <= 1)) return undefined;
+  const { left, width } = posicaoPercentual(faixa, eixo);
+  if (width <= 0) return undefined;
+
+  const medida = (fracao: number, antes: number, depois: number, ajuste = 0) => {
+    const px = fracao * (antes + depois) - antes + ajuste;
+    return `calc(${arredonda(fracao * 100)}% + ${arredonda(px)}px)`;
+  };
+  const x = (minuto: number) => {
+    const fracao = (percentualDoMinuto(Math.min(Math.max(minuto, eixo.inicio), eixo.fim), eixo) - left) / width;
+    return medida(Math.min(1, Math.max(0, fracao)), recuo.inicio, recuo.fim);
+  };
+  const bordas = perfil.map((d) => {
+    const { topo, altura } = faixaVertical(d.camada, d.camadas);
+    const visivel = altura > 0;
+    return {
+      inicio: x(d.inicio),
+      fim: x(d.fim),
+      topo: medida(topo / 100, recuo.topo, recuo.base, visivel && topo > 0 ? FOLGA_DIVISA / 2 : 0),
+      base: medida((topo + altura) / 100, recuo.topo, recuo.base, visivel && topo + altura < 100 ? -FOLGA_DIVISA / 2 : 0),
+    };
+  });
+  const pontos = [
+    ...bordas.flatMap((b) => [`${b.inicio} ${b.topo}`, `${b.fim} ${b.topo}`]),
+    ...[...bordas].reverse().flatMap((b) => [`${b.fim} ${b.base}`, `${b.inicio} ${b.base}`]),
+  ];
+  return `polygon(${pontos.join(', ')})`;
+}
+
+function arredonda(valor: number): number {
+  return Math.round(valor * 1000) / 1000 || 0;
+}
+
 /**
  * Quanto da jornada a pessoa tem no dia: a soma das tarefas no eixo útil. A
  * tarefa cruzada conta duas vezes, de propósito: é o que denuncia o excesso.

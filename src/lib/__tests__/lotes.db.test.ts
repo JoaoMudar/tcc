@@ -2,8 +2,9 @@ import { randomUUID } from 'node:crypto';
 import { Pool, type PoolClient } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { insertArea, insertCanteiro, listAreas } from '../areas';
-import { saldoPronto } from '../estoque';
+import { saldoDisponivel } from '../estoque';
 import {
+  alterarAltura,
   alterarFase,
   contarLote,
   criarLote,
@@ -302,26 +303,47 @@ describe('a porta única contra Postgres real', () => {
 });
 
 describe('saldo e perdas contra Postgres real', () => {
-  it('TA-64: o saldo pronto por espécie e recipiente coincide com a soma manual dos movimentos', async () => {
+  it('TA-64: o estoque disponível por espécie e recipiente coincide com a soma manual dos movimentos', async () => {
+    // Os lotes dos outros testes do arquivo são do mesmo par: o teste mede o acréscimo
+    const semAltura = async () =>
+      (await saldoDisponivel(pool, { especieId: especie, recipienteId: tubete })).find((f) => f.alturaM === null);
+    const antes = (await semAltura()) ?? { quantidade: 0, lotes: 0 };
     const a = await novoLote(1000, 5);
     const b = await novoLote(400, 5);
-    await novoLote(700, 5); // não pronto: fica fora do saldo
-    for (const lote of [a, b]) expect(await alterarFase(pool, lote.id, 'pronto')).toBe('ok');
+    // RN-06: a fase não decide o que se vende; o lote pronto e o semeado entram do mesmo jeito
+    expect(await alterarFase(pool, a.id, 'pronto')).toBe('ok');
     await tx(async (client) => {
       await registrarMovimento(client, { loteId: a.id, tipo: 'perda', quantidade: -35, causa: 'seca', registradoPor: usuario });
       await registrarMovimento(client, { loteId: a.id, tipo: 'venda', quantidade: -200, registradoPor: usuario });
       await registrarMovimento(client, { loteId: b.id, tipo: 'perda', quantidade: -15, causa: 'praga', registradoPor: usuario });
     });
 
-    const [saldo] = await saldoPronto(pool, { especieId: especie, recipienteId: tubete });
+    const saldo = (await semAltura())!;
     const { rows } = await pool.query<{ soma: number }>(
       `SELECT SUM(m.quantidade)::int AS soma
          FROM movimentos_lote m JOIN lotes l ON l.id = m.lote_id
-        WHERE l.especie_id = $1 AND l.recipiente_id = $2 AND l.fase = 'pronto' AND l.encerrado_em IS NULL`,
+        WHERE l.especie_id = $1 AND l.recipiente_id = $2 AND l.altura_m IS NULL AND l.encerrado_em IS NULL`,
       [especie, tubete],
     );
-    expect(saldo).toMatchObject({ quantidade: 1150, lotes: 2 });
+    expect(saldo.quantidade - antes.quantidade).toBe(1150);
+    expect(saldo.lotes - antes.lotes).toBe(2);
     expect(saldo.quantidade).toBe(rows[0].soma);
+  });
+
+  it('RF-65: a altura medida separa o estoque em faixas, e lote encerrado não se mede', async () => {
+    const a = await novoLote(300, 5);
+    const b = await novoLote(200, 5);
+    expect(await alterarAltura(pool, a.id, 1.2)).toBe('ok');
+    expect(await alterarAltura(pool, b.id, 0.9)).toBe('ok');
+    const faixas = (await saldoDisponivel(pool, { especieId: especie, recipienteId: tubete })).filter((f) => f.alturaM !== null);
+    expect(faixas.map((f) => [f.alturaM, f.quantidade])).toEqual([
+      [0.9, 200],
+      [1.2, 300],
+    ]);
+    await expect(alterarAltura(pool, a.id, 25)).rejects.toThrow();
+
+    await tx((client) => registrarMovimento(client, { loteId: b.id, tipo: 'perda', quantidade: -200, causa: 'outro', registradoPor: usuario }));
+    expect(await alterarAltura(pool, b.id, 1)).toBe('nao_encontrado');
   });
 
   it('fase de lote encerrado não se altera', async () => {

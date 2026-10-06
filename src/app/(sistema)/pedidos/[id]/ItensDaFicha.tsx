@@ -1,8 +1,10 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { EspecieRapida } from '@/components/EspecieRapida';
 import { GradeItens } from '@/components/pedidos/GradeItens';
+import { EnderecoDaEntrega } from '@/components/pedidos/EnderecoDaEntrega';
+import { FechamentoDoPedido } from '@/components/pedidos/FechamentoDoPedido';
 import { type ItemDaFicha, GradeItensFicha, type ValoresNegociacao } from '@/components/pedidos/GradeItensFicha';
 import { ItemEmFoco } from '@/components/pedidos/ItemEmFoco';
 import { type Linha, type SaldosPorChave, linhaVazia, proximaChave } from '@/components/pedidos/linhas-pedido';
@@ -10,6 +12,7 @@ import { Notice } from '@/components/ui/Notice';
 import type { SelectOption } from '@/components/ui/SelectField';
 import type { EspecieRef } from '@/lib/especies-form';
 import type { FormState } from '@/lib/form-state';
+import { ORIGEM_PADRAO, type OrigemFrete, freteParaCampo, pesoDoPedido } from '@/lib/frete';
 import { lerQuantidade } from '@/lib/lotes-rotulos';
 import {
   formatAltura,
@@ -18,8 +21,19 @@ import {
   precoParaCampo,
   quantidadeConfirmada,
   resumoFaltas,
+  totalPedido,
 } from '@/lib/pedidos-rotulos';
-import { adicionarItemAction, atualizarItemAction, negociarItensAction, removerItemAction } from '../actions';
+import {
+  adicionarItemAction,
+  atualizarItemAction,
+  buscarEnderecosDoPedidoAction,
+  negociarItensAction,
+  removerItemAction,
+  salvarEnderecoDoPedidoAction,
+  salvarFreteAction,
+  sugerirFreteAction,
+  usarSuplenteAction,
+} from '../actions';
 import { ProximoPasso, type ProximoPassoProps } from './ProximoPasso';
 
 /** Quanto a digitação espera parada antes de gravar: o bastante para não gravar a cada tecla. */
@@ -36,6 +50,10 @@ interface ItensDaFichaProps {
   recipientes?: readonly SelectOption[];
   faltaBloqueia?: boolean;
   proximoPasso: ProximoPassoProps;
+  /** RN-64: o frete gravado no pedido. */
+  frete?: { centavos: number | null; origem: OrigemFrete | null; distanciaKm: number | null };
+  /** O título do modal do endereço de entrega, aberto pelo frete. */
+  nomeCliente?: string;
 }
 
 /**
@@ -106,6 +124,30 @@ function linhaDoItem(item: ItemDaFicha, chave: number): Linha {
 /** O que a linha grava, sem a chave: é o que se compara para saber se mudou. */
 const serial = (linha: Linha) => JSON.stringify({ ...linha, chave: undefined });
 
+/** "≈ 84 km, ida e volta": de onde veio a sugestão. */
+function textoDistancia(km: number | null): string | null {
+  return km === null ? null : `Sugestão para ≈ ${km.toLocaleString('pt-BR')} km, ida e volta.`;
+}
+
+/**
+ * RN-65: o peso que vai no caminhão. A quantidade é a que a grade mostra (a
+ * confirmada no parcial), e o peso é o do recipiente em que o item vai: o
+ * escolhido na negociação, ou o conferido, ou o pedido.
+ */
+function pesoDaFicha(itens: readonly ItemDaFicha[], valores: Readonly<Record<string, ValoresNegociacao>> | null) {
+  return pesoDoPedido(
+    itens
+      .filter((item) => itemVendavel(item, itens) && !item.generico)
+      .map((item) => {
+        const parcial = item.disponivel === false && (item.quantidadeDisponivel ?? 0) > 0;
+        const escolhido = valores?.[item.id]?.recipienteId || item.recipienteDisponivelId || item.recipienteId;
+        const pesoKg =
+          escolhido && escolhido === item.recipienteDisponivelId ? (item.pesoDisponivelKg ?? null) : (item.pesoKg ?? null);
+        return { quantidade: parcial ? item.quantidadeDisponivel : item.quantidade, pesoKg };
+      }),
+  );
+}
+
 function valoresIniciais(itens: readonly ItemDaFicha[]): Record<string, ValoresNegociacao> {
   return Object.fromEntries(
     itens
@@ -138,19 +180,27 @@ function valoresIniciais(itens: readonly ItemDaFicha[]): Record<string, ValoresN
  *
  * O próximo passo fica aqui, e não na página, porque "Aprovar" depende do que
  * está na grade agora: do que falta e de haver gravação em andamento.
+ *
+ * **O suplente não é item** (P18): sai da grade, do total e do peso, e aparece
+ * embaixo do item de que é reserva.
  */
 export function ItensDaFicha({
   pedidoId,
   modo,
-  itens,
+  itens: todos,
   saldos,
   opcoesEspecie = [],
   recipientes = [],
   faltaBloqueia = false,
   proximoPasso,
+  frete,
+  nomeCliente,
 }: ItensDaFichaProps) {
+  const itens = useMemo(() => todos.filter((item) => !item.suplente), [todos]);
+  const suplentes = useMemo(() => todos.filter((item) => item.suplente), [todos]);
   const { agendar, salvando } = useFilaDeGravacao(ATRASO_GRAVACAO_MS);
   const [erro, setErro] = useState<string | null>(null);
+  const [usandoSuplente, setUsandoSuplente] = useState(false);
 
   const registrar = useCallback((resultado: FormState) => {
     setErro(resultado.error ?? null);
@@ -286,6 +336,17 @@ export function ItensDaFicha({
     if (registrar(await negociarItensAction({}, dados))) negociacaoGravada.current = texto;
   }, [itens, pedidoId, registrar]);
 
+  // Antes do "Usar", o que está digitado vai para o banco: a página recomeça dele
+  const usarSuplente = async (itemId: string) => {
+    setUsandoSuplente(true);
+    await gravarNegociacao();
+    const dados = new FormData();
+    dados.set('pedido_id', pedidoId);
+    dados.set('item_id', itemId);
+    registrar(await usarSuplenteAction({}, dados));
+    setUsandoSuplente(false);
+  };
+
   const alterarNegociacao = (itemId: string, campo: keyof ValoresNegociacao, valor: string) => {
     valoresRef.current = { ...valoresRef.current, [itemId]: { ...valoresRef.current[itemId], [campo]: valor } };
     setValores(valoresRef.current);
@@ -308,6 +369,68 @@ export function ItensDaFicha({
           };
         })
       : [...itens];
+
+  // ------------------------------------------------------------------ frete
+  const [freteTexto, setFreteTexto] = useState(() => freteParaCampo(frete?.centavos ?? null));
+  const [origem, setOrigem] = useState<OrigemFrete>(frete?.origem ?? ORIGEM_PADRAO);
+  const [distancia, setDistancia] = useState(() => textoDistancia(frete?.distanciaKm ?? null));
+  const [avisoFrete, setAvisoFrete] = useState<string | null>(null);
+  const [faltaEndereco, setFaltaEndereco] = useState<{ endereco: string | null } | null>(null);
+  const [editandoEndereco, setEditandoEndereco] = useState(false);
+  const [sugerindo, setSugerindo] = useState(false);
+  const freteRef = useRef({ texto: freteTexto, origem });
+
+  const gravarFrete = useCallback(async () => {
+    const dados = new FormData();
+    dados.set('pedido_id', pedidoId);
+    dados.set('frete', freteRef.current.texto);
+    dados.set('frete_origem', freteRef.current.origem);
+    registrar(await salvarFreteAction({}, dados));
+  }, [pedidoId, registrar]);
+
+  const alterarFrete = (texto: string) => {
+    freteRef.current = { ...freteRef.current, texto };
+    setFreteTexto(texto);
+    agendar('frete', gravarFrete);
+  };
+
+  const alterarOrigem = (nova: OrigemFrete) => {
+    freteRef.current = { ...freteRef.current, origem: nova };
+    setOrigem(nova);
+    setDistancia(null);
+  };
+
+  // A sugestão só vem no toque, e o toque é a chefia aceitando-a: preenche e grava
+  const sugerir = async () => {
+    setSugerindo(true);
+    setAvisoFrete(null);
+    setFaltaEndereco(null);
+    const resultado = await sugerirFreteAction(pedidoId, freteRef.current.origem);
+    setSugerindo(false);
+    if ('error' in resultado) {
+      setAvisoFrete(resultado.error);
+      setFaltaEndereco(resultado.falta ?? null);
+      return;
+    }
+    setDistancia(textoDistancia(resultado.distanciaKm));
+    alterarFrete(freteParaCampo(resultado.centavos));
+  };
+
+  // Endereço gravado: fecha e sugere de novo, que era o que a chefia queria
+  const sugerirRef = useRef(sugerir);
+  useEffect(() => {
+    sugerirRef.current = sugerir;
+  });
+  const fecharEndereco = useCallback(() => setEditandoEndereco(false), []);
+  const enderecoSalvo = useCallback(() => {
+    setEditandoEndereco(false);
+    void sugerirRef.current();
+  }, []);
+
+  const freteLido = parsePreco(freteTexto);
+  const freteCentavos = modo === 'negociacao' ? ('value' in freteLido ? freteLido.value : null) : (frete?.centavos ?? null);
+  const subtotal = totalPedido(itensAgora);
+  const mostraFechamento = modo === 'negociacao' || (modo === 'leitura' && itens.some((item) => item.precoCentavos !== null));
 
   const linhaEmFoco = linhas.find((linha) => linha.chave === emFoco);
 
@@ -336,6 +459,44 @@ export function ItensDaFicha({
           valores={modo === 'negociacao' ? valores : undefined}
           onAlterar={modo === 'negociacao' ? alterarNegociacao : undefined}
           faltaBloqueia={faltaBloqueia}
+          suplentes={suplentes}
+          onUsarSuplente={modo === 'negociacao' ? usarSuplente : undefined}
+          usandoSuplente={usandoSuplente}
+        />
+      )}
+
+      {mostraFechamento && (
+        <FechamentoDoPedido
+          subtotalCentavos={subtotal}
+          freteCentavos={freteCentavos}
+          peso={pesoDaFicha(itensAgora, modo === 'negociacao' ? valores : null)}
+          edicao={
+            modo === 'negociacao'
+              ? {
+                  freteTexto,
+                  origem,
+                  distancia,
+                  sugerindo,
+                  aviso: avisoFrete,
+                  onAlterarFrete: alterarFrete,
+                  onAlterarOrigem: alterarOrigem,
+                  onSugerir: sugerir,
+                  falta: faltaEndereco && { ...faltaEndereco, onAbrir: () => setEditandoEndereco(true) },
+                }
+              : undefined
+          }
+        />
+      )}
+
+      {editandoEndereco && (
+        <EnderecoDaEntrega
+          nomeCliente={nomeCliente ?? ''}
+          endereco={faltaEndereco?.endereco ?? null}
+          acao={salvarEnderecoDoPedidoAction}
+          buscar={buscarEnderecosDoPedidoAction}
+          camposOcultos={{ pedido_id: pedidoId }}
+          onFechar={fecharEndereco}
+          onSalvo={enderecoSalvo}
         />
       )}
 

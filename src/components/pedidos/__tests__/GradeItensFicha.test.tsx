@@ -102,3 +102,15 @@ describe('GradeItensFicha (T8.1, RF-55)', () => {
     expect(quantidade.className).toContain('placeholder:text-red-600');
   });
 });
+
+describe('estoque disponível na ficha (RF-56, RN-06)', () => {
+  it('o item sem altura soma todos os lotes do par', () => {
+    render(
+      <GradeItensFicha
+        itens={[item()]}
+        saldos={{ 'e1:t': [{ alturaM: 0.5, quantidade: 60 }, { alturaM: null, quantidade: 70 }] }}
+      />,
+    );
+    expect(screen.getByText('Disponível: 130')).toBeInTheDocument();
+  });
+});

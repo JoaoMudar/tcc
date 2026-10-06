@@ -9,6 +9,8 @@ import {
   TRANSICOES,
   centavosParaSql,
   chaveSaldo,
+  saldoDoItem,
+  filtraPedidosPorCliente,
   formatAltura,
   formatMoeda,
   formatTotal,
@@ -31,7 +33,6 @@ import {
 } from '../pedidos-rotulos';
 import {
   parseDataEntrega,
-  parseFiltroPedidos,
   parseObservacoesPedido,
   parseQuantidadeItem,
   parseQuantidadeOpcional,
@@ -467,31 +468,30 @@ describe('campos opcionais do pedido', () => {
   });
 });
 
-describe('filtro da lista (RF-58)', () => {
-  const hoje = '2026-09-21';
-  const cliente = '0b9f3f3e-8a5b-4c1a-9d0e-2f6a7b8c9d0e';
+describe('filtro da lista por cliente (RF-58)', () => {
+  const pedidos = [
+    { id: '1', clienteId: 'c1', cliente: 'José Antônio' },
+    { id: '2', clienteId: 'c2', cliente: 'Prefeitura de Ibirama' },
+    { id: '3', clienteId: 'c3', cliente: 'José Antônio' },
+    { id: '4', clienteId: 'c1', cliente: 'José Antônio' },
+  ];
+  const ids = (lista: readonly { id: string }[]) => lista.map((p) => p.id);
 
-  it('sem nada no endereço, são os últimos 90 dias', () => {
-    expect(parseFiltroPedidos({}, hoje)).toEqual({ de: '2026-06-23', ate: hoje, clienteId: null, canal: null });
+  it('sem texto nem escolha, mostra todos', () => {
+    expect(ids(filtraPedidosPorCliente(pedidos, { clienteId: '', texto: '  ' }))).toEqual(['1', '2', '3', '4']);
   });
 
-  it('lê cliente, canal e período', () => {
-    expect(parseFiltroPedidos({ de: '2026-09-01', ate: '2026-09-10', cliente, canal: 'varejo' }, hoje)).toEqual({
-      de: '2026-09-01',
-      ate: '2026-09-10',
-      clienteId: cliente,
-      canal: 'varejo',
-    });
+  it('pedaço do nome acha sem acento nem caixa, em qualquer ordem', () => {
+    expect(ids(filtraPedidosPorCliente(pedidos, { clienteId: '', texto: 'jose' }))).toEqual(['1', '3', '4']);
+    expect(ids(filtraPedidosPorCliente(pedidos, { clienteId: '', texto: 'IBI pref' }))).toEqual(['2']);
   });
 
-  it('período invertido é endireitado, em vez de devolver lista vazia', () => {
-    const filtro = parseFiltroPedidos({ de: '2026-09-10', ate: '2026-09-01' }, hoje);
-    expect([filtro.de, filtro.ate]).toEqual(['2026-09-01', '2026-09-10']);
+  it('cliente escolhido na lista vale pelo id, e não pelo nome igual de outro', () => {
+    expect(ids(filtraPedidosPorCliente(pedidos, { clienteId: 'c1', texto: 'José Antônio' }))).toEqual(['1', '4']);
   });
 
-  it('o que não vale cai no padrão, e não chega ao SQL', () => {
-    const filtro = parseFiltroPedidos({ de: 'ontem', cliente: 'x', canal: 'escambo' }, hoje);
-    expect(filtro).toEqual({ de: '2026-06-23', ate: hoje, clienteId: null, canal: null });
+  it('texto que não acha ninguém devolve lista vazia', () => {
+    expect(filtraPedidosPorCliente(pedidos, { clienteId: '', texto: 'xyz' })).toEqual([]);
   });
 });
 
@@ -600,5 +600,31 @@ describe('máquina de estados do pedido (T8.5, RN-53)', () => {
     expect(daChefia).toContain('aprovado');
     expect(daChefia).toContain('pendente_alteracao');
     expect(transicoesDe('verificado', 'gerencia')).toEqual([]);
+  });
+});
+
+describe('saldo do item por altura (RN-06, RN-62)', () => {
+  const faixas = [
+    { alturaM: 1.5, quantidade: 10 },
+    { alturaM: 1.2, quantidade: 100 },
+    { alturaM: 1, quantidade: 30 },
+    { alturaM: 0.99, quantidade: 5 },
+    { alturaM: null, quantidade: 40 },
+  ];
+
+  it('item sem altura é atendido por todos os lotes do par, medidos ou não', () => {
+    expect(saldoDoItem(faixas, null)).toEqual({ disponivel: 185, abaixo: 0, semAltura: 0 });
+  });
+
+  it('com altura, atende a muda igual ou maior; até 20 cm abaixo completa, e a borda dos 20 cm entra', () => {
+    expect(saldoDoItem(faixas, 1.2)).toEqual({ disponivel: 110, abaixo: 30, semAltura: 40 });
+  });
+
+  it('a muda mais de 20 cm abaixo não aparece, nem como complemento', () => {
+    expect(saldoDoItem(faixas, 1.21)).toEqual({ disponivel: 10, abaixo: 100, semAltura: 40 });
+  });
+
+  it('sem estoque do par, tudo zero', () => {
+    expect(saldoDoItem(undefined, 1)).toEqual({ disponivel: 0, abaixo: 0, semAltura: 0 });
   });
 });

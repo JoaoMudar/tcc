@@ -148,17 +148,15 @@ async function confirmarTarefa(campos: Campos, envio: Envio, user: SessionUser):
   if ('error' in confirmacao) return { status: 'recusado', error: confirmacao.error, fields };
   if (confirmacao.value.perda && !can(user.perfil, 'perdas', 'C')) return { status: 'proibido' };
 
-  const { loteId, perda } = confirmacao.value;
-  // UC-20 FA-1: a repicagem precisa do destino das mudas, e continua no formulário do lote
-  // O toque único da agenda do celular fica onde está: a lista se atualiza sozinha
+  const { perda } = confirmacao.value;
+  // Confirmada, volta à agenda do dia; o toque único da agenda do celular fica onde está, e a lista se atualiza sozinha
+  const agendaDoDia = `/producao?dia=${atribuicao.data}&feito=confirmada`;
   const destino =
     campo(campos, 'depois') === 'ficar'
       ? undefined
-      : campo(campos, 'depois') === 'repicar' && loteId
-      ? `/producao/lotes/${loteId}?repicar=${id}`
       : perda
-        ? `/producao/agenda/${id}?feito=confirmada&perda=${perda.quantidade}&causa=${perda.causa}`
-        : `/producao/agenda/${id}?feito=confirmada`;
+        ? `${agendaDoDia}&perda=${perda.quantidade}&causa=${perda.causa}`
+        : agendaDoDia;
 
   return gravar(envio, fields, async (client) => {
     await agenda.confirmarAtribuicao(client, id, confirmacao.value, envio.usuarioId);

@@ -185,13 +185,13 @@ describe('chave de idempotência (T9.3) contra Postgres real', () => {
             },
             usuario,
           );
-          return { success: 'Tarefa confirmada.', destino: `/producao/agenda/${id}?feito=confirmada` };
+          return { success: 'Tarefa confirmada.', destino: '/producao?dia=2026-09-14&feito=confirmada' };
         }),
       );
 
     await confirmar();
     const reenvio = await confirmar();
-    expect(reenvio).toEqual({ resposta: { success: 'Tarefa confirmada.', destino: `/producao/agenda/${id}?feito=confirmada` }, repetido: true });
+    expect(reenvio).toEqual({ resposta: { success: 'Tarefa confirmada.', destino: '/producao?dia=2026-09-14&feito=confirmada' }, repetido: true });
     expect((await findAtribuicao(pool, id))?.situacao).toBe('confirmada');
     expect(await saldoConferido()).toBe(425);
     expect(await contarPerdas(id)).toBe(1);

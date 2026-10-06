@@ -3,6 +3,7 @@
 import { useActionState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Notice } from '@/components/ui/Notice';
+import { Toast } from '@/components/ui/Toast';
 import { SelectField } from '@/components/ui/SelectField';
 import { EMPTY_FORM_STATE } from '@/lib/form-state';
 import { FASES, FASES_EDITAVEIS, type Fase } from '@/lib/lotes-rotulos';
@@ -12,7 +13,8 @@ const OPCOES = FASES_EDITAVEIS.map((fase) => ({ value: fase, label: FASES[fase] 
 
 /**
  * A fase à mão. Com protocolo, ela avança sozinha ao concluir etapa sequencial
- * (RF-48); sem protocolo, este é o único caminho até `pronto`.
+ * (RF-48); sem protocolo, este é o único caminho para avançar. A fase é do
+ * manejo e não decide o que se vende (RN-06).
  */
 export function FaseForm({ loteId, fase }: { loteId: string; fase: Fase }) {
   const [state, formAction, pending] = useActionState(alterarFaseAction, EMPTY_FORM_STATE);
@@ -22,7 +24,11 @@ export function FaseForm({ loteId, fase }: { loteId: string; fase: Fase }) {
       <input type="hidden" name="lote_id" value={loteId} />
       <SelectField label="Fase do lote" name="fase" options={OPCOES} defaultValue={fase} required />
       {state.error && <Notice tone="error">{state.error}</Notice>}
-      {state.success && <Notice tone="success">{state.success}</Notice>}
+      {state.success && (
+        <Toast tone="success" limpar={[]} gatilho={state}>
+          {state.success}
+        </Toast>
+      )}
       <Button type="submit" variant="outline" pending={pending}>
         Alterar fase
       </Button>

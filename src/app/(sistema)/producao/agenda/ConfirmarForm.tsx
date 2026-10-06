@@ -1,15 +1,13 @@
 'use client';
 
-import { useState } from 'react';
 import { useRegistroCampo } from '@/components/useRegistroCampo';
 import { Button } from '@/components/ui/Button';
 import { Notice } from '@/components/ui/Notice';
 import { type SelectOption, SelectField } from '@/components/ui/SelectField';
 import { TextField } from '@/components/ui/TextField';
 import type { UnidadeTarefa } from '@/lib/agenda-rotulos';
-import { lerQuantidade } from '@/lib/lotes-rotulos';
-import { CausaPicker } from '../lotes/CausaPicker';
 import { type AreaOpcao, AreaCanteiroOpcional } from './AreaCanteiroOpcional';
+import { PerdaNaConfirmacao } from './PerdaNaConfirmacao';
 
 interface ConfirmarFormProps {
   atribuicaoId: string;
@@ -30,8 +28,7 @@ interface ConfirmarFormProps {
 /**
  * T5.5, UC-20: o lote uma vez, um número por participante só se a tarefa for
  * quantitativa, e as mudas que morreram no mesmo gesto, para a perda não ser esquecida.
- * Sem rede fica no aparelho e vai depois (UC-20 FA-3); a repicagem, que precisa
- * escolher o destino das mudas no servidor, espera a rede.
+ * Sem rede fica no aparelho e vai depois (UC-20 FA-3). Confirmada, volta à agenda do dia.
  */
 export function ConfirmarForm({
   atribuicaoId,
@@ -49,11 +46,8 @@ export function ConfirmarForm({
 }: ConfirmarFormProps) {
   const [state, formAction, pending] = useRegistroCampo('confirmacao_tarefa', {
     rotulo: () => `Confirmação: ${descricao}`,
-    complementoGuardado: (campos) =>
-      campos.depois === 'repicar' ? 'A repicagem se registra na ficha do lote, com rede.' : undefined,
   });
   const fields = state.error ? state.fields : undefined;
-  const [perdidas, setPerdidas] = useState(lerQuantidade(fields?.perdidas ?? '') ?? 0);
 
   // A tarefa confirma uma vez só: guardada no aparelho, o formulário sai para não ser confirmada de novo
   if (state.guardado) return <Notice tone="warning">{state.guardado}</Notice>;
@@ -89,34 +83,12 @@ export function ConfirmarForm({
         </fieldset>
       )}
 
-      {exigeLote && (
-        <details open={perdidas > 0} className="rounded-xl border border-line">
-          <summary className="flex min-h-touch cursor-pointer list-none items-center px-4 text-base font-semibold text-ink">
-            Morreu alguma?
-          </summary>
-          <div className="flex flex-col gap-4 border-t border-line p-4">
-            <TextField
-              label="Quantas morreram"
-              name="perdidas"
-              inputMode="numeric"
-              autoComplete="off"
-              defaultValue={fields?.perdidas}
-              onChange={(event) => setPerdidas(lerQuantidade(event.target.value) ?? 0)}
-            />
-            {perdidas > 0 && <CausaPicker defaultValue={fields?.causa} />}
-          </div>
-        </details>
-      )}
+      {exigeLote && <PerdaNaConfirmacao perdidas={fields?.perdidas} causa={fields?.causa} />}
 
       {state.error && <Notice tone="error">{state.error}</Notice>}
       <Button type="submit" pending={pending}>
         Confirmar tarefa
       </Button>
-      {exigeLote && (
-        <Button type="submit" name="depois" value="repicar" variant="outline" pending={pending}>
-          Confirmar e registrar a repicagem
-        </Button>
-      )}
     </form>
   );
 }

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { PageHeader } from '@/components/PageHeader';
 import { Notice } from '@/components/ui/Notice';
+import { Toast } from '@/components/ui/Toast';
 import pool from '@/lib/db';
 import { can } from '@/lib/permissions';
 import { CATEGORIA_TAREFA_LABELS, findTipoTarefa } from '@/lib/tipos-tarefa';
@@ -26,7 +27,11 @@ export default async function TipoTarefaPage({ params, searchParams }: PageProps
         <Link href="/cadastros/tipos-tarefa" className="text-base font-semibold text-brand-dark">
           Voltar
         </Link>
-        {salvo && <Notice tone="success">Tipo de tarefa cadastrado.</Notice>}
+        {salvo && (
+          <Toast tone="success" limpar={['salvo']}>
+            Tipo de tarefa cadastrado.
+          </Toast>
+        )}
         {!podeEditar && (
           <Notice tone="info">Quem ajusta os tipos de tarefa é a gerência. Seu perfil pode consultar e criar tipo novo.</Notice>
         )}

@@ -335,7 +335,7 @@ export function ComposicaoGenerico({ pedidoId, item, especies, recipientes }: Co
                   />
                 )}
                 {linhas.length > 1 && (
-                  <Button variant="secondary" onClick={() => tirar(linha.chave)}>
+                  <Button variant="danger" onClick={() => tirar(linha.chave)}>
                     Tirar esta espécie
                   </Button>
                 )}

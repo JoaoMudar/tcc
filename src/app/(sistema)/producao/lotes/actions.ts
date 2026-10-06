@@ -9,12 +9,13 @@ import { type FormState, formText } from '@/lib/form-state';
 import { hojeNoViveiro } from '@/lib/datas';
 import * as lotes from '@/lib/lotes';
 import { isCausaPerda, registrarMovimento } from '@/lib/movimentos';
+import { formatAltura, parseAltura } from '@/lib/pedidos-rotulos';
 import { withTransaction } from '@/lib/transaction';
 import { isUuid } from '@/lib/uuid';
 import { requirePermission } from '@/lib/auth/guards';
 
 function revalidarProducao() {
-  // Ocupação, ficha, perdas e saldo pronto leem o mesmo saldo
+  // Ocupação, ficha, perdas e estoque disponível leem o mesmo saldo
   revalidatePath('/producao', 'layout');
 }
 
@@ -199,4 +200,24 @@ export async function alterarFaseAction(_previous: FormState, formData: FormData
   }
   revalidarProducao();
   return { success: `Fase alterada para ${lotes.FASES[fase.value].toLowerCase()}.` };
+}
+
+/** RF-65: a altura medida da muda do lote. Vazio apaga a medida. */
+export async function alterarAlturaAction(_previous: FormState, formData: FormData): Promise<FormState> {
+  await requirePermission('lotes', 'A');
+  const loteId = formText(formData, 'lote_id');
+  if (!isUuid(loteId)) return { error: 'Lote inválido.' };
+  const fields = { altura: formText(formData, 'altura') };
+  const altura = parseAltura(fields.altura);
+  if ('error' in altura) return { error: altura.error, fields };
+
+  try {
+    if ((await lotes.alterarAltura(pool, loteId, altura.value)) === 'nao_encontrado') {
+      return { error: 'Lote não encontrado, ou já encerrado.', fields };
+    }
+  } catch (error) {
+    return { error: toUserMessage(error), fields };
+  }
+  revalidarProducao();
+  return { success: altura.value === null ? 'Altura apagada.' : `Altura registrada: ${formatAltura(altura.value)}.` };
 }

@@ -3,6 +3,7 @@
 import { useRegistroCampo } from '@/components/useRegistroCampo';
 import { Button } from '@/components/ui/Button';
 import { Notice } from '@/components/ui/Notice';
+import { Toast } from '@/components/ui/Toast';
 import { TextField } from '@/components/ui/TextField';
 import { formatQuantidade } from '@/lib/lotes-rotulos';
 import { CausaPicker } from '../CausaPicker';
@@ -32,7 +33,11 @@ export function PerdaForm({ loteId, codigo, saldo }: { loteId: string; codigo: s
       <CausaPicker defaultValue={fields?.causa} />
       <TextField label="Observação" name="observacoes" maxLength={500} defaultValue={fields?.observacoes} />
       {state.error && <Notice tone="error">{state.error}</Notice>}
-      {state.success && <Notice tone="success">{state.success}</Notice>}
+      {state.success && (
+        <Toast tone="success" limpar={[]} gatilho={state}>
+          {state.success}
+        </Toast>
+      )}
       {state.guardado && <Notice tone="warning">{state.guardado}</Notice>}
       <Button type="submit" pending={pending}>
         Registrar perda

@@ -2,6 +2,7 @@
  * Rótulos e contas do pedido que o navegador pode receber: sem SQL e sem `pg`
  * (RNF-11, TA-60). O servidor usa os mesmos, pelas reexportações de `pedidos.ts`.
  */
+import { normalizeTexto } from './busca-opcoes';
 import { somaDias } from './datas';
 import type { Perfil } from './perfis';
 
@@ -163,7 +164,7 @@ export function parsePreco(text: string): { error: string } | { value: number } 
 
 /** Altura maior que isto no campo do pedido é dedo escorregando, e não muda. */
 const ALTURA_MAXIMA_M = 20;
-/** Abaixo disto seria semente, e não muda pronta para venda. */
+/** Abaixo disto seria semente, e não muda para venda. */
 const ALTURA_MINIMA_M = 0.05;
 
 /**
@@ -254,6 +255,45 @@ export function chaveSaldo(especieId: string, recipienteId: string): string {
   return `${especieId}:${recipienteId}`;
 }
 
+/** Os lotes abertos de um par espécie e recipiente que têm a mesma altura medida. */
+export interface FaixaDeAltura {
+  /** Nula é "ainda não medida". */
+  alturaM: number | null;
+  quantidade: number;
+}
+
+/** RN-62: quanto abaixo da altura pedida a muda ainda é oferecida para completar o item. */
+export const TOLERANCIA_ALTURA_M = 0.2;
+
+export interface SaldoDoItem {
+  /** O que atende o item: a mesma espécie e recipiente, com altura igual ou maior que a pedida. */
+  disponivel: number;
+  /** Até 20 cm abaixo da pedida: não atende, mas pode completar o que falta (RN-62). */
+  abaixo: number;
+  /** Lotes sem altura medida, quando o item pede altura: não se sabe se atendem. */
+  semAltura: number;
+}
+
+/**
+ * RN-06, RN-62: o saldo que atende o item. Toda muda de lote aberto está à
+ * venda, em qualquer fase; o que decide é a espécie, o recipiente e a altura.
+ * Item sem altura é atendido por todos os lotes do par. A comparação é em
+ * centímetros inteiros, para 1,00 - 0,20 não virar 0,7999.
+ */
+export function saldoDoItem(faixas: readonly FaixaDeAltura[] | undefined, alturaPedidaM: number | null): SaldoDoItem {
+  const saldo: SaldoDoItem = { disponivel: 0, abaixo: 0, semAltura: 0 };
+  const pedida = alturaPedidaM === null ? null : Math.round(alturaPedidaM * 100);
+  const piso = pedida === null ? null : pedida - Math.round(TOLERANCIA_ALTURA_M * 100);
+  for (const faixa of faixas ?? []) {
+    const altura = faixa.alturaM === null ? null : Math.round(faixa.alturaM * 100);
+    if (pedida === null) saldo.disponivel += faixa.quantidade;
+    else if (altura === null) saldo.semAltura += faixa.quantidade;
+    else if (altura >= pedida) saldo.disponivel += faixa.quantidade;
+    else if (altura >= piso!) saldo.abaixo += faixa.quantidade;
+  }
+  return saldo;
+}
+
 export interface ItemCalculavel {
   /** Só é preciso para achar o pai do filho de um item genérico. */
   id?: string;
@@ -266,6 +306,8 @@ export interface ItemCalculavel {
   generico?: boolean;
   disponivel?: boolean | null;
   quantidadeDisponivel?: number | null;
+  /** P18: o recipiente reserva do item sem quantidade; não é linha até a chefia o usar. */
+  suplente?: boolean;
 }
 
 /**
@@ -279,8 +321,10 @@ export interface ItemCalculavel {
  *   uma lista montada pela gerência, e cada espécie dela é uma venda.
  *
  * O que a gerência disse que não tem nenhuma não é vendido: a aprovação o tira.
+ * O suplente também não (P18), até a chefia o usar.
  */
 export function itemVendavel(item: ItemCalculavel, itens: readonly ItemCalculavel[]): boolean {
+  if (item.suplente) return false;
   if (item.disponivel === false && item.quantidadeDisponivel === 0) return false;
   if (!item.itemPaiId) return !item.generico || item.quantidade !== null;
   const pai = itens.find((outro) => outro.id === item.itemPaiId);
@@ -416,6 +460,24 @@ export function resumoFaltas(itens: readonly ItemParaAprovar[]): string | null {
 /** O total que a tela imprime: "R$ 1.250,00" ou "a definir" enquanto faltar preço. */
 export function formatTotal(centavos: number | null): string {
   return centavos === null ? 'a definir' : formatMoeda(centavos);
+}
+
+/**
+ * RF-58: o filtro da lista de pedidos, que corre enquanto se digita. Com um
+ * cliente tocado na lista, vale o id: dois clientes podem ter nome parecido.
+ * Sem ele, vale o texto, em pedaços soltos e sem acento, como na busca de espécie.
+ */
+export function filtraPedidosPorCliente<T extends { clienteId: string; cliente: string }>(
+  pedidos: readonly T[],
+  filtro: { clienteId: string; texto: string },
+): T[] {
+  if (filtro.clienteId) return pedidos.filter((pedido) => pedido.clienteId === filtro.clienteId);
+  const termos = normalizeTexto(filtro.texto).split(/\s+/).filter(Boolean);
+  if (termos.length === 0) return [...pedidos];
+  return pedidos.filter((pedido) => {
+    const nome = normalizeTexto(pedido.cliente);
+    return termos.every((termo) => nome.includes(termo));
+  });
 }
 
 // ------------------------------------------------------------
@@ -596,16 +658,16 @@ export function resolveComplemento(
   principal: { quantidade?: number | null; recipienteId?: string | null; alturaM?: number | null },
   complemento: { quantidade?: number | null; recipienteId?: string | null; alturaM?: number | null },
 ): { error: string } | { value: ComplementoConferido } {
-  if (item.quantidade === null) return { error: 'Só se completa o item que tem quantidade pedida.' };
   const quantidade = complemento.quantidade ?? null;
   if (quantidade === null || quantidadeInvalida(quantidade)) {
     return { error: 'Informe quantas mudas completam, um número inteiro maior que zero.' };
   }
   if (!complemento.recipienteId) return { error: 'Escolha o recipiente do complemento.' };
 
+  // Sem quantidade pedida não há teto: o cliente não disse quantas
   const soma = (principal.quantidade ?? 0) + quantidade;
-  if (soma > item.quantidade) {
-    return { error: `As duas linhas passam do pedido: são ${item.quantidade} mudas.` };
+  if (item.quantidade !== null && soma > item.quantidade) {
+    return { error: `As linhas passam do pedido: são ${item.quantidade} mudas.` };
   }
 
   const alturaPrincipal = item.alturaM === null ? null : (principal.alturaM ?? item.alturaM);
@@ -616,6 +678,132 @@ export function resolveComplemento(
   }
 
   return { value: { quantidade, recipienteId: complemento.recipienteId, alturaM: altura } };
+}
+
+type LinhaInformada = { quantidade?: number | null; recipienteId?: string | null; alturaM?: number | null };
+
+/** P18: outro recipiente em que a espécie também está, no item sem quantidade. */
+export interface SuplenteConferido {
+  recipienteId: string;
+}
+
+/** A resposta inteira de um item: as colunas dele, as linhas que o completam e os suplentes. */
+export interface RespostaConferida {
+  disponibilidade: Disponibilidade;
+  complementos: ComplementoConferido[];
+  suplentes: SuplenteConferido[];
+}
+
+/**
+ * P18: o item sem quantidade não se divide em linhas, porque não há soma a
+ * conferir. Os outros recipientes em que a espécie está viram **suplentes**:
+ * só o recipiente, para a chefia usar se faltar quando combinar a quantidade.
+ * A primeira linha é a resposta de sempre, com a quantidade opcional.
+ */
+function resolveComSuplentes(
+  estado: EstadoDisponibilidade,
+  item: ItemParaResponder,
+  principal: LinhaInformada,
+  linhas: readonly LinhaInformada[],
+): { error: string } | { value: RespostaConferida } {
+  const resolvida = resolveDisponibilidade(estado, item, principal);
+  if ('error' in resolvida) return resolvida;
+  const recipientePrincipal = resolvida.value.recipienteDisponivelId ?? item.recipienteId;
+
+  const suplentes: SuplenteConferido[] = [];
+  for (const linha of linhas) {
+    if (!linha.recipienteId) return { error: 'Escolha o outro recipiente em que também tem.' };
+    if (linha.recipienteId === recipientePrincipal) {
+      return { error: 'Este recipiente já é o da primeira linha: escolha outro ou tire a linha.' };
+    }
+    if (suplentes.some((outro) => outro.recipienteId === linha.recipienteId)) {
+      return { error: 'O mesmo recipiente apareceu duas vezes: tire uma das linhas.' };
+    }
+    suplentes.push({ recipienteId: linha.recipienteId });
+  }
+  return { value: { disponibilidade: resolvida.value, complementos: [], suplentes } };
+}
+
+/**
+ * P17: a resposta com quantas linhas a pessoa abrir. Sem linha extra, é
+ * `resolveDisponibilidade`, como sempre.
+ *
+ * - **"Tem parte"** se completa com uma ou mais linhas, cada uma em outro
+ *   recipiente, e a soma vai até o pedido.
+ * - **"Tem tudo" se divide só no item com recipiente a definir**: o cliente
+ *   pediu 50 sem dizer o saco, e o viveiro tem 20 num e 30 noutro. A soma tem de
+ *   ser o pedido. A primeira linha grava como "tem 20 das 50" (a forma que o
+ *   CHECK `disponibilidade_coerente` já aceita), e as outras viram complementos.
+ * - **Item sem quantidade não tem soma a conferir** (P18): as linhas extras são
+ *   suplentes, em qualquer resposta com muda (`resolveComSuplentes`).
+ */
+export function resolveResposta(
+  estado: EstadoDisponibilidade,
+  item: ItemParaResponder,
+  principal: LinhaInformada,
+  linhas: readonly LinhaInformada[] = [],
+): { error: string } | { value: RespostaConferida } {
+  if (linhas.length === 0) {
+    const resolvida = resolveDisponibilidade(estado, item, principal);
+    return 'error' in resolvida ? resolvida : { value: { disponibilidade: resolvida.value, complementos: [], suplentes: [] } };
+  }
+  if (estado === 'indisponivel') return { error: 'Quem não tem não se divide em recipientes.' };
+  if (item.quantidade === null) return resolveComSuplentes(estado, item, principal, linhas);
+  if (estado === 'disponivel' && item.recipienteId !== null) {
+    return { error: 'Só se divide em recipientes o item com recipiente a definir.' };
+  }
+
+  let disponibilidade: Disponibilidade;
+  if (estado === 'disponivel') {
+    const quantidade = principal.quantidade ?? null;
+    if (quantidade === null || quantidadeInvalida(quantidade)) {
+      return { error: 'Informe quantas estão no primeiro recipiente.' };
+    }
+    if (!principal.recipienteId) return { error: 'Escolha o recipiente em que a muda está.' };
+    // A primeira linha é "parte": as outras completam
+    disponibilidade = {
+      disponivel: false,
+      quantidadeDisponivel: quantidade,
+      recipienteDisponivelId: principal.recipienteId,
+      alturaDisponivelM: null,
+    };
+  } else {
+    const resolvida = resolveDisponibilidade(estado, item, principal);
+    if ('error' in resolvida) return resolvida;
+    disponibilidade = resolvida.value;
+  }
+
+  const complementos: ComplementoConferido[] = [];
+  for (const linha of linhas) {
+    const resolvido = resolveComplemento(item, principal, linha);
+    if ('error' in resolvido) return resolvido;
+    const repetida = complementos.some(
+      (outra) => outra.recipienteId === resolvido.value.recipienteId && outra.alturaM === resolvido.value.alturaM,
+    );
+    if (repetida) return { error: 'Duas linhas no mesmo recipiente: some as duas numa só.' };
+    complementos.push(resolvido.value);
+  }
+
+  const soma = (principal.quantidade ?? 0) + complementos.reduce((total, linha) => total + linha.quantidade, 0);
+  if (soma > item.quantidade) return { error: `As linhas passam do pedido: são ${item.quantidade} mudas.` };
+  if (estado === 'disponivel' && soma < item.quantidade) {
+    return { error: `As linhas somam ${soma}, e o pedido é de ${item.quantidade} mudas. Se falta muda, use "Tem parte".` };
+  }
+  return { value: { disponibilidade, complementos, suplentes: [] } };
+}
+
+/**
+ * P17: "Tem tudo" dividido grava a primeira linha como parte, e quem a lê de
+ * volta precisa somar os complementos para saber que era tudo.
+ */
+export function estadoComComplementos(
+  item: Parameters<typeof estadoDaResposta>[0] & { quantidade: number | null },
+  complementos: readonly { quantidade: number | null }[],
+): EstadoDaResposta {
+  const estado = estadoDaResposta(item);
+  if (estado !== 'parte' || item.recipienteId !== null || item.quantidade === null || complementos.length === 0) return estado;
+  const soma = (item.quantidadeDisponivel ?? 0) + complementos.reduce((total, linha) => total + (linha.quantidade ?? 0), 0);
+  return soma === item.quantidade ? 'tudo' : estado;
 }
 
 /** Como a tela pinta o item: branco é o que ainda não foi olhado. */

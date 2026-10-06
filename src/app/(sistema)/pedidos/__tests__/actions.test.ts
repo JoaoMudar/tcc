@@ -379,6 +379,13 @@ describe('negociação depois da conferência (RF-55, RN-50)', () => {
     expect(client.query.mock.calls.some(([sql]) => String(sql).startsWith('DELETE FROM pedidos_itens'))).toBe(true);
   });
 
+  it('o suplente não se negocia antes de ser usado (P18)', async () => {
+    conferido({ quantidade: null, disponivel: true, quantidadeDisponivel: null, suplente: true });
+    const state = await actions.negociarItensAction({}, form({ pedido_id: PEDIDO, negociar_item_id: ITEM, negociar_preco: '2,50' }));
+    expect(state.error).toMatch(/suplente/);
+    expect(gravacoes()).toEqual([]);
+  });
+
   it('recipiente que não é o pedido nem o conferido é recusado', async () => {
     conferido();
     const state = await actions.negociarItensAction(
@@ -431,5 +438,134 @@ describe('cancelamento (T8.5)', () => {
     expect(state.error).toMatch(/não pode passar/i);
     const gravou = client.query.mock.calls.filter(([sql]) => String(sql).includes('UPDATE pedidos SET situacao'));
     expect(gravou).toEqual([]);
+  });
+});
+
+describe('frete do pedido (RN-64)', () => {
+  function gravouFrete() {
+    return client.query.mock.calls.filter(([sql]) => String(sql).includes('UPDATE pedidos SET frete'));
+  }
+
+  it('a chefia grava o frete digitado, em reais, com a origem', async () => {
+    emSituacao('verificado');
+    const state = await actions.salvarFreteAction({}, form({ pedido_id: PEDIDO, frete: '84,50', frete_origem: 'itapema' }));
+    expect(state.error).toBeUndefined();
+    expect(gravouFrete().map(([, valores]) => valores)).toEqual([[PEDIDO, '84.50', 'itapema']]);
+  });
+
+  it('frete em branco é "sem frete"', async () => {
+    emSituacao('verificado');
+    await actions.salvarFreteAction({}, form({ pedido_id: PEDIDO, frete: '', frete_origem: '' }));
+    expect(gravouFrete().map(([, valores]) => valores)).toEqual([[PEDIDO, null, null]]);
+  });
+
+  it('valor que não é dinheiro e origem desconhecida são recusados antes do banco', async () => {
+    expect((await actions.salvarFreteAction({}, form({ pedido_id: PEDIDO, frete: 'oitenta' }))).error).toMatch(/84,00/);
+    expect((await actions.salvarFreteAction({}, form({ pedido_id: PEDIDO, frete: '10', frete_origem: 'blumenau' }))).error).toMatch(
+      /origem/i,
+    );
+    expectNoDatabase();
+  });
+
+  it('a gerência não digita frete', async () => {
+    loggedAs('gerencia');
+    emSituacao('verificado');
+    const state = await actions.salvarFreteAction({}, form({ pedido_id: PEDIDO, frete: '50' }));
+    expect(state.error).toBeTruthy();
+    expect(gravouFrete()).toEqual([]);
+  });
+
+  it('pedido aprovado não muda o frete', async () => {
+    emSituacao('aprovado');
+    const state = await actions.salvarFreteAction({}, form({ pedido_id: PEDIDO, frete: '50' }));
+    expect(state.error).toMatch(/depois da conferência/);
+    expect(gravouFrete()).toEqual([]);
+  });
+
+  it('a sugestão recusa origem desconhecida antes do banco', async () => {
+    await expect(actions.sugerirFreteAction(PEDIDO, 'blumenau')).resolves.toEqual({ error: 'Origem do frete inválida.' });
+    expectNoDatabase();
+  });
+
+  it('cliente sem endereço de entrega: a sugestão avisa, e nada consulta o mapa', async () => {
+    vi.mocked(pool.query).mockResolvedValueOnce({
+      rows: [{ situacao: 'verificado', numero: 1, enderecoId: null, logradouro: null, cidade: null, uf: null, lat: null, lng: null }],
+      rowCount: 1,
+    } as never);
+    await expect(actions.sugerirFreteAction(PEDIDO, 'agrolandia')).resolves.toEqual({
+      error: 'Cliente sem endereço de entrega.',
+      falta: { endereco: null },
+    });
+  });
+});
+
+describe('endereço de entrega pelo frete (P17)', () => {
+  const CLIENTE = '4f5b3a6c-2d9e-4a6f-9b4c-6d0e1f2a3b4c';
+
+  /** O pedido travado devolve o cliente; o cliente ainda não tem endereço de entrega. */
+  function pedidoDoCliente(situacao: string) {
+    client.query.mockImplementation((async (sql: string) => {
+      if (/FROM pedidos WHERE id/.test(sql)) return { rows: [{ clienteId: CLIENTE, situacao, numero: 7 }], rowCount: 1 };
+      return { rows: [], rowCount: 0 };
+    }) as never);
+  }
+
+  function gravouEndereco() {
+    return client.query.mock.calls.filter(([sql]) => String(sql).includes('INSERT INTO cadastro.pessoas_enderecos'));
+  }
+
+  it('grava o endereço digitado no cadastro do cliente do pedido', async () => {
+    pedidoDoCliente('verificado');
+    const state = await actions.salvarEnderecoDoPedidoAction({}, form({ pedido_id: PEDIDO, endereco: 'Rua XV, 120' }));
+    expect(state).toEqual({ success: 'Endereço salvo.' });
+    expect(gravouEndereco().map(([, valores]) => valores)).toEqual([[CLIENTE, 'Rua XV, 120', null, null, null, null, null]]);
+  });
+
+  it('pedido aprovado não completa endereço por aqui', async () => {
+    pedidoDoCliente('aprovado');
+    const state = await actions.salvarEnderecoDoPedidoAction({}, form({ pedido_id: PEDIDO, endereco: 'Rua XV' }));
+    expect(state.error).toMatch(/depois da conferência/);
+    expect(state.fields).toEqual({ endereco: 'Rua XV', localizacao: '' });
+    expect(gravouEndereco()).toEqual([]);
+  });
+
+  it('sem endereço nem localização, recusa antes do banco', async () => {
+    const state = await actions.salvarEnderecoDoPedidoAction({}, form({ pedido_id: PEDIDO, endereco: ' ' }));
+    expect(state.error).toBe('Digite o endereço ou cole a localização.');
+    expectNoDatabase();
+  });
+
+  it('a gerência não completa o endereço do frete', async () => {
+    loggedAs('gerencia');
+    const state = await actions.salvarEnderecoDoPedidoAction({}, form({ pedido_id: PEDIDO, endereco: 'Rua XV' }));
+    expect(state.error).toBeTruthy();
+    expectNoDatabase();
+  });
+
+  it('a busca de endereços ignora texto curto', async () => {
+    await expect(actions.buscarEnderecosDoPedidoAction('ab')).resolves.toEqual([]);
+  });
+});
+
+describe('usarSuplenteAction (P18)', () => {
+  it('o suplente vira linha do pedido na negociação', async () => {
+    emSituacao('verificado');
+    const state = await actions.usarSuplenteAction({}, form({ pedido_id: PEDIDO, item_id: ITEM }));
+    expect(state.success).toMatch(/virou linha/);
+    const update = client.query.mock.calls.find(([sql]) => String(sql).includes('SET suplente = false'));
+    expect(update?.[1]).toEqual([PEDIDO, ITEM]);
+  });
+
+  it('fora da negociação é recusado, e nada é gravado', async () => {
+    emSituacao('cadastrado');
+    const state = await actions.usarSuplenteAction({}, form({ pedido_id: PEDIDO, item_id: ITEM }));
+    expect(state.error).toMatch(/negociação/);
+    expect(client.query.mock.calls.some(([sql]) => String(sql).includes('SET suplente = false'))).toBe(false);
+  });
+
+  it('item inválido não chega ao banco', async () => {
+    const state = await actions.usarSuplenteAction({}, form({ pedido_id: PEDIDO, item_id: 'x' }));
+    expect(state.error).toBe('Item inválido.');
+    expectNoDatabase();
   });
 });

@@ -165,3 +165,67 @@ export async function otimizarOrdem(
     duracaoS: typeof rota.duration === 'number' ? Math.round(rota.duration) : null,
   };
 }
+
+/**
+ * P17: a distância de carro entre dois pontos (`/v2/directions/driving-car`),
+ * em metros. É a base da sugestão de frete (RN-64).
+ */
+export async function distanciaDeCarro(origem: Coordenada, destino: Coordenada): Promise<number> {
+  const busca = new URLSearchParams({
+    api_key: chave(),
+    start: `${origem.lng},${origem.lat}`,
+    end: `${destino.lng},${destino.lat}`,
+  });
+  const corpo = (await pedir(`${BASE}/v2/directions/driving-car?${busca.toString()}`)) as {
+    features?: { properties?: { summary?: { distance?: number } } }[];
+  };
+  const distancia = corpo.features?.[0]?.properties?.summary?.distance;
+  if (typeof distancia !== 'number' || !Number.isFinite(distancia)) throw new MapaIndisponivel('sem rota');
+  return Math.round(distancia);
+}
+
+/** O endereço achado para um ponto, nos campos do cadastro. */
+export interface EnderecoDoPonto {
+  logradouro: string | null;
+  cidade: string | null;
+  uf: string | null;
+  cep: string | null;
+}
+
+/**
+ * P17: o ponto vira endereço (`/geocode/reverse`). Serve à localização colada
+ * do WhatsApp, que chega só com a coordenada. `null` é "a API não achou nada".
+ */
+export async function enderecoDoPonto(ponto: Coordenada): Promise<EnderecoDoPonto | null> {
+  const busca = new URLSearchParams({
+    api_key: chave(),
+    'point.lat': String(ponto.lat),
+    'point.lon': String(ponto.lng),
+    'boundary.country': 'BR',
+    size: '1',
+  });
+  const corpo = (await pedir(`${BASE}/geocode/reverse?${busca.toString()}`)) as {
+    features?: {
+      properties?: {
+        name?: string;
+        street?: string;
+        housenumber?: string;
+        locality?: string;
+        localadmin?: string;
+        county?: string;
+        region_a?: string;
+        postalcode?: string;
+      };
+    }[];
+  };
+  const lugar = corpo.features?.[0]?.properties;
+  if (!lugar) return null;
+  const logradouro = lugar.street ? [lugar.street, lugar.housenumber].filter(Boolean).join(', ') : (lugar.name ?? null);
+  const uf = lugar.region_a && /^[A-Z]{2}$/i.test(lugar.region_a) ? lugar.region_a.toUpperCase() : null;
+  return {
+    logradouro,
+    cidade: lugar.locality ?? lugar.localadmin ?? lugar.county ?? null,
+    uf,
+    cep: lugar.postalcode ?? null,
+  };
+}

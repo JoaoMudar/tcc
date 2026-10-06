@@ -4,8 +4,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { abrirSemana, confirmarAtribuicao, criarAtribuicoes, fecharSemana, findAtribuicao, type AtribuicaoInput } from '../agenda';
 import { insertArea, insertCanteiro } from '../areas';
 import { hojeNoViveiro } from '../datas';
-import { saldoPronto } from '../estoque';
-import { alterarFase, contarLote, criarLote, findLote, listMovimentos, saldoDosMovimentos } from '../lotes';
+import { saldoDisponivel } from '../estoque';
+import { contarLote, criarLote, findLote, listMovimentos, saldoDosMovimentos } from '../lotes';
 import { registrarMovimento } from '../movimentos';
 import { confirmarPedido, criarPedido, findPedido, listItens, mudarSituacao } from '../pedidos';
 import { insertClienteRapido } from '../pessoas';
@@ -177,7 +177,7 @@ describe('fluxo 2: semana montada e fechada', () => {
   });
 
   it('fechar a semana assume a não confirmada como feita, e depois dela nada muda', async () => {
-    const { naoConfirmadas } = await tx((client) => fecharSemana(client, SEMANA));
+    const { naoConfirmadas } = await tx((client) => fecharSemana(client, SEMANA, '2032-03-15'));
     expect(naoConfirmadas).toBe(1);
     expect((await findAtribuicao(pool, ids.irrigacao))?.situacao).toBe('nao_confirmada');
 
@@ -191,11 +191,9 @@ describe('fluxo 2: semana montada e fechada', () => {
 });
 
 describe('fluxo 3: pedido com saldo', () => {
-  it('o saldo exibido no item sai do lote pronto, e a perda de campo o muda sem tocar o pedido', async () => {
-    // Antes de pronto, o lote não é oferecido à venda (RN-06)
-    expect(await saldoPronto(pool, { especieId: especie, recipienteId: tubete })).toHaveLength(0);
-    await alterarFase(pool, lote, 'pronto');
-    expect((await saldoPronto(pool, { especieId: especie, recipienteId: tubete }))[0].quantidade).toBe(920);
+  it('o saldo exibido no item sai do lote aberto, e a perda de campo o muda sem tocar o pedido', async () => {
+    // RN-06: o lote é oferecido à venda em qualquer fase
+    expect((await saldoDisponivel(pool, { especieId: especie, recipienteId: tubete }))[0].quantidade).toBe(920);
 
     ({ id: pedido } = await tx((client) =>
       criarPedido(client, {
@@ -209,7 +207,7 @@ describe('fluxo 3: pedido com saldo', () => {
     ));
 
     await tx((client) => registrarMovimento(client, { loteId: lote, tipo: 'perda', quantidade: -100, causa: 'praga', registradoPor: gerencia }));
-    expect((await saldoPronto(pool, { especieId: especie, recipienteId: tubete }))[0].quantidade).toBe(820);
+    expect((await saldoDisponivel(pool, { especieId: especie, recipienteId: tubete }))[0].quantidade).toBe(820);
     expect((await listItens(pool, pedido))[0].quantidade).toBe(300);
     expect(await saldoConferido()).toBe(820);
   });
@@ -222,7 +220,7 @@ describe('fluxo 3: pedido com saldo', () => {
 
     // Nenhuma tela grava a saída de venda ainda (RF-37): a porta a aceita, e o saldo acompanha
     await tx((client) => registrarMovimento(client, { loteId: lote, tipo: 'venda', quantidade: -300, registradoPor: chefia }));
-    expect((await saldoPronto(pool, { especieId: especie, recipienteId: tubete }))[0].quantidade).toBe(520);
+    expect((await saldoDisponivel(pool, { especieId: especie, recipienteId: tubete }))[0].quantidade).toBe(520);
     expect(await saldoConferido()).toBe(520);
   });
 });

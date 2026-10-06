@@ -183,3 +183,18 @@ describe('planilha de itens do pedido (T8.1, RF-54)', () => {
     expect(screen.getByText('Tubete · 0,05 L · 1,20 m')).toBeInTheDocument();
   });
 });
+
+describe('estoque disponível na linha (RF-56, RN-06)', () => {
+  it('fala em disponível, sem "pronto" nem "em produção", e avisa a falta com o que há até 20 cm abaixo', () => {
+    montar([preenchida()], {
+      saldos: {
+        'ipe:tub': [
+          { alturaM: 1.3, quantidade: 400 },
+          { alturaM: 1.05, quantidade: 80 },
+        ],
+      },
+    });
+    expect(screen.getByText('Disponível: 400 · faltam 100 · 80 com até 20 cm a menos')).toBeInTheDocument();
+    expect(screen.queryByText(/Pronto|em produção/)).toBeNull();
+  });
+});

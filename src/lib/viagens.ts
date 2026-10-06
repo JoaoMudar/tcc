@@ -5,6 +5,7 @@ import { UserError } from './errors';
 import { nomeEspecieSql } from './lotes';
 import { PARTIDA_AGROLANDIA, PARTIDA_ITAPEMA } from './parametros';
 import { type AutorDaMudanca, travarPedido } from './pedidos';
+import { type EnderecoDeEntrega, salvarEnderecoDeEntrega as gravarEnderecoDeEntrega } from './pessoas';
 import { SITUACOES_PEDIDO, type SituacaoPedido } from './pedidos-rotulos';
 import { type AvisoDaRota, type SituacaoViagem, aplicarOrdemSugerida, enderecoEmTexto } from './rotas';
 import { type Coordenada, MapaIndisponivel, geocodificarTexto, otimizarOrdem } from './rotas-ors';
@@ -49,6 +50,8 @@ export interface ParadaDaViagem {
   pedidoId: string | null;
   numero: number | null;
   cliente: string | null;
+  /** O cliente da entrega: é nele que o endereço que falta se completa (P17). */
+  clienteId: string | null;
   cidade: string | null;
   logradouro: string | null;
   /** O endereço de entrega em uma linha; na parada avulsa, o que foi digitado. */
@@ -149,7 +152,7 @@ type LinhaParada = Omit<ParadaDaViagem, 'itens' | 'endereco'> & {
 async function linhasDasParadas(db: Db, viagemId: string): Promise<LinhaParada[]> {
   const { rows } = await db.query<LinhaParada>(
     `SELECT vp.id, vp.ordem, vp.pedido_id AS "pedidoId", p.numero_pedido AS numero, c.nome AS cliente,
-            vp.descricao, vp.endereco AS "enderecoAvulso",
+            c.id AS "clienteId", vp.descricao, vp.endereco AS "enderecoAvulso",
             e.id AS "enderecoId", e.logradouro, e.cidade, e.uf,
             COALESCE(vp.lat, e.lat)::float8 AS lat, COALESCE(vp.lng, e.lng)::float8 AS lng,
             (e.geocodificado_em IS NOT NULL AND e.lat IS NULL) AS "naoAchado"
@@ -453,6 +456,34 @@ export async function removerParada(client: Client, viagemId: string, paradaId: 
   await esquecerRota(client, viagemId, { sugerirDeNovo: false });
 }
 
+export type { EnderecoDeEntrega } from './pessoas';
+
+/**
+ * P17: o endereço de entrega que falta, completado na Tela 2 sem sair da
+ * viagem. Grava no cadastro do cliente, que é onde o endereço mora (o pedido
+ * não tem endereço próprio), e só de cliente com entrega nesta viagem: a
+ * permissão de planejar não é a de editar cadastro qualquer. A viagem passa a
+ * pedir a sugestão de ordem, que procura de novo o endereço sem coordenada.
+ */
+export async function salvarEnderecoDeEntrega(
+  client: Client,
+  viagemId: string,
+  clienteId: string,
+  endereco: EnderecoDeEntrega,
+): Promise<void> {
+  const viagem = await travarViagem(client, viagemId);
+  exigirEtapa(viagem, 'roteirizando', 'O endereço se completa na etapa da rota.');
+  const { rowCount } = await client.query(
+    `SELECT 1 FROM viagens_paradas vp JOIN pedidos p ON p.id = vp.pedido_id
+      WHERE vp.viagem_id = $1 AND p.cliente_id = $2`,
+    [viagemId, clienteId],
+  );
+  if (!rowCount) throw new UserError('Este cliente não tem entrega nesta viagem.');
+
+  await gravarEnderecoDeEntrega(client, clienteId, endereco);
+  await esquecerRota(client, viagemId, { sugerirDeNovo: true });
+}
+
 /** Tela 1 ↔ Tela 2: "Confirmar carga" e a seta de voltar. */
 export async function mudarEtapa(
   client: Client,
@@ -472,6 +503,21 @@ export async function mudarEtapa(
   }
   await client.query('UPDATE viagens SET situacao = $2 WHERE id = $1', [viagemId, para]);
   return { ...viagem, situacao: para };
+}
+
+const ORDEM_DAS_ETAPAS: Record<SituacaoViagem, number> = { montando: 0, roteirizando: 1, carregando: 2, pronta: 3 };
+
+/**
+ * P17: voltar uma ou duas etapas, pelo cabeçalho ou pela seta. **Do
+ * carregamento também se volta**: as cargas e os itens já marcados ficam, e ao
+ * avançar de novo `iniciarCarregamento` segue com elas, sem criar outras. Só a
+ * viagem pronta não volta, porque a carga dela já foi dada como pronta.
+ */
+export async function voltarEtapa(client: Client, viagemId: string, para: 'montando' | 'roteirizando'): Promise<void> {
+  const viagem = await travarViagem(client, viagemId);
+  if (viagem.situacao === 'pronta') throw new UserError('A viagem já está pronta, e não volta de etapa.');
+  if (ORDEM_DAS_ETAPAS[para] >= ORDEM_DAS_ETAPAS[viagem.situacao]) throw new UserError('A viagem já está nesta etapa.');
+  await client.query('UPDATE viagens SET situacao = $2 WHERE id = $1', [viagemId, para]);
 }
 
 /**

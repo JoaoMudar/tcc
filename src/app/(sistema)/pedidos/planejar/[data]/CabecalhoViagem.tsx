@@ -5,7 +5,7 @@ import { useActionState } from 'react';
 import { Notice } from '@/components/ui/Notice';
 import { EMPTY_FORM_STATE } from '@/lib/form-state';
 import { type SituacaoViagem, formatDiaDaViagem } from '@/lib/rotas';
-import { voltarParaCargaAction } from './actions';
+import { irParaEtapaAction } from './actions';
 
 interface CabecalhoViagemProps {
   data: string;
@@ -34,12 +34,31 @@ function SetaVoltar() {
 
 /**
  * O cabeçalho das três telas. "Sair" volta ao calendário em qualquer etapa sem
- * perder nada, porque tudo já foi gravado. A seta anda uma etapa para trás, e
- * some no carregamento: as cargas já foram criadas, e dali só se sai.
+ * perder nada, porque tudo já foi gravado. A seta anda uma etapa para trás.
+ *
+ * P17: **os passos são botões**. O anterior volta direto a ele, e o seguinte
+ * faz o que o botão da etapa faria ("Confirmar carga", "Iniciar
+ * carregamento"). Do carregamento também se volta: as cargas ficam, com o que
+ * já foi marcado. Só a viagem pronta não anda.
  */
 export function CabecalhoViagem({ data, viagemId, etapa }: CabecalhoViagemProps) {
-  const [volta, voltar, voltando] = useActionState(voltarParaCargaAction, EMPTY_FORM_STATE);
+  const [resultado, ir, indo] = useActionState(irParaEtapaAction, EMPTY_FORM_STATE);
   const atual = INDICE[etapa];
+  const anterior = etapa === 'pronta' ? null : (PASSOS[atual - 1]?.etapa ?? null);
+  // Só a etapa vizinha anda, e nunca a partir da viagem pronta
+  const alcancavel = (indice: number) =>
+    viagemId !== null && etapa !== 'pronta' && indice !== atual && (indice < atual || indice === atual + 1);
+
+  function campos(para: SituacaoViagem) {
+    return (
+      <>
+        <input type="hidden" name="data" value={data} />
+        <input type="hidden" name="viagem_id" value={viagemId ?? ''} />
+        <input type="hidden" name="atual" value={etapa} />
+        <input type="hidden" name="para" value={para} />
+      </>
+    );
+  }
 
   return (
     <header className="flex flex-col gap-3 border-b border-line bg-white px-4 pt-4 pb-3">
@@ -49,11 +68,10 @@ export function CabecalhoViagem({ data, viagemId, etapa }: CabecalhoViagemProps)
             <SetaVoltar />
           </Link>
         )}
-        {etapa === 'roteirizando' && viagemId && (
-          <form action={voltar}>
-            <input type="hidden" name="data" value={data} />
-            <input type="hidden" name="viagem_id" value={viagemId} />
-            <button type="submit" aria-label="Voltar" disabled={voltando} className={BOTAO_QUADRADO}>
+        {anterior && viagemId && (
+          <form action={ir}>
+            {campos(anterior)}
+            <button type="submit" aria-label="Voltar" disabled={indo} className={BOTAO_QUADRADO}>
               <SetaVoltar />
             </button>
           </form>
@@ -71,17 +89,38 @@ export function CabecalhoViagem({ data, viagemId, etapa }: CabecalhoViagemProps)
       </div>
 
       <ol className="grid grid-cols-3 gap-1.5">
-        {PASSOS.map((passo, indice) => (
-          <li key={passo.etapa} className="flex flex-col gap-1" aria-current={indice === atual ? 'step' : undefined}>
-            <span className={`h-1.5 rounded ${indice <= atual ? 'bg-brand' : 'bg-gray-200'}`} />
-            <span className={`text-sm ${indice === atual ? 'font-bold text-ink' : 'font-semibold text-muted'}`}>
-              {passo.nome}
-            </span>
-          </li>
-        ))}
+        {PASSOS.map((passo, indice) => {
+          const conteudo = (
+            <>
+              <span className={`h-1.5 w-full rounded ${indice <= atual ? 'bg-brand' : 'bg-gray-200'}`} />
+              <span className={`text-sm ${indice === atual ? 'font-bold text-ink' : 'font-semibold text-muted'}`}>
+                {passo.nome}
+              </span>
+            </>
+          );
+          return (
+            <li key={passo.etapa} aria-current={indice === atual ? 'step' : undefined}>
+              {alcancavel(indice) ? (
+                <form action={ir}>
+                  {campos(passo.etapa)}
+                  <button
+                    type="submit"
+                    disabled={indo}
+                    aria-label={indice < atual ? `Voltar para ${passo.nome}` : `Seguir para ${passo.nome}`}
+                    className="flex min-h-11 w-full flex-col items-start gap-1 text-left underline-offset-4 hover:underline"
+                  >
+                    {conteudo}
+                  </button>
+                </form>
+              ) : (
+                <span className="flex flex-col gap-1">{conteudo}</span>
+              )}
+            </li>
+          );
+        })}
       </ol>
 
-      {volta.error && <Notice tone="error">{volta.error}</Notice>}
+      {resultado.error && <Notice tone="error">{resultado.error}</Notice>}
     </header>
   );
 }

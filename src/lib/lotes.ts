@@ -403,11 +403,25 @@ export async function contarLote(
  * **Continua existindo depois do protocolo (T6.7), e deixou de ser provisório.**
  * O protocolo avança a fase sozinho ao concluir etapa sequencial que declare
  * fase resultante (RF-48), mas o lote de recipiente sem protocolo não tem etapa
- * nenhuma, e sem este caminho ele nunca chegaria a `pronto`, que é o que o saldo
- * do pedido lê (RF-43). Serve também para corrigir engano.
+ * nenhuma, e sem este caminho ele ficaria parado na primeira. A fase é do
+ * manejo: não decide o que se vende, porque toda muda de lote aberto está à
+ * venda (RN-06). Serve também para corrigir engano.
  */
 export async function alterarFase(db: Db, loteId: string, fase: Exclude<Fase, 'encerrado'>): Promise<'ok' | 'nao_encontrado'> {
   const { rowCount } = await db.query('UPDATE lotes SET fase = $2 WHERE id = $1 AND encerrado_em IS NULL', [loteId, fase]);
+  return rowCount ? 'ok' : 'nao_encontrado';
+}
+
+/**
+ * RF-65: a altura atual da muda do lote, medida na ficha. Nula apaga a medida.
+ * É o que o item de pedido compara com a altura pedida (RN-06, RN-62), e por
+ * isso guarda só a última: a muda cresce, e a medida antiga não vende nada.
+ */
+export async function alterarAltura(db: Db, loteId: string, alturaM: number | null): Promise<'ok' | 'nao_encontrado'> {
+  const { rowCount } = await db.query('UPDATE lotes SET altura_m = $2 WHERE id = $1 AND encerrado_em IS NULL', [
+    loteId,
+    alturaM,
+  ]);
   return rowCount ? 'ok' : 'nao_encontrado';
 }
 
@@ -428,18 +442,25 @@ export interface LoteAberto {
   id: string;
   codigo: string;
   canteiroId: string;
+  areaLetra: string;
+  canteiroNumero: number;
   posicao: number | null;
   especie: string;
   recipiente: string;
   fase: Fase;
+  /** Altura medida, em metros. Nula é "ainda não medida". */
+  alturaM: number | null;
   saldo: number;
 }
 
 export async function listLotesAbertos(db: Db): Promise<LoteAberto[]> {
   const { rows } = await db.query<LoteAberto>(
-    `SELECT l.id, l.codigo, l.canteiro_id AS "canteiroId", l.posicao, ${nomeEspecieSql('e')} AS especie,
-            r.nome AS recipiente, l.fase, l.quantidade_atual AS saldo
+    `SELECT l.id, l.codigo, l.canteiro_id AS "canteiroId", a.letra AS "areaLetra", c.numero AS "canteiroNumero",
+            l.posicao, ${nomeEspecieSql('e')} AS especie, r.nome AS recipiente, l.fase,
+            l.altura_m::float8 AS "alturaM", l.quantidade_atual AS saldo
        FROM lotes l
+       JOIN canteiros c ON c.id = l.canteiro_id
+       JOIN areas a ON a.id = c.area_id
        JOIN especies e ON e.id = l.especie_id
        JOIN recipientes r ON r.id = l.recipiente_id
       WHERE l.encerrado_em IS NULL
@@ -495,6 +516,8 @@ export interface FichaLote {
   canteiroId: string | null;
   canteiro: string | null;
   fase: Fase;
+  /** Altura medida, em metros (RF-65). Nula é "ainda não medida". */
+  alturaM: number | null;
   quantidadeInicial: number;
   quantidadeAtual: number;
   dataCriacao: string;
@@ -515,7 +538,7 @@ export async function findLote(db: Db, id: string): Promise<FichaLote | null> {
     `SELECT l.id, l.codigo, l.especie_id AS "especieId", ${nomeEspecieSql('e')} AS especie,
             e.nome_cientifico AS "nomeCientifico", l.recipiente_id AS "recipienteId", r.nome AS recipiente,
             l.canteiro_id AS "canteiroId", a.letra || '-' || c.numero AS canteiro, l.fase,
-            l.quantidade_inicial AS "quantidadeInicial", l.quantidade_atual AS "quantidadeAtual",
+            l.altura_m::float8 AS "alturaM", l.quantidade_inicial AS "quantidadeInicial", l.quantidade_atual AS "quantidadeAtual",
             to_char(l.data_criacao, 'YYYY-MM-DD') AS "dataCriacao",
             to_char(l.data_plantio, 'YYYY-MM-DD') AS "dataPlantio", l.encerrado_em AS "encerradoEm",
             l.motivo_encerramento AS "motivoEncerramento", l.observacoes,

@@ -4,7 +4,9 @@ import {
   formatTelefone,
   isCnpj,
   isCpf,
+  mascaraTelefone,
   onlyDigits,
+  telefoneCompleto,
   validateDocumento,
   validateTelefone,
 } from '../documento';
@@ -56,6 +58,20 @@ describe('validateTelefone', () => {
   it('recusa sem DDD', () => {
     expect(validateTelefone('99612-4408')).toHaveProperty('error');
   });
+
+  it('recusa DDD que não existe', () => {
+    expect(validateTelefone('(20) 99612-4408')).toEqual({ error: 'DDD 20 não existe. Confira os dois primeiros números.' });
+    expect(validateTelefone('(01) 3521-0000')).toHaveProperty('error');
+  });
+
+  it('celular de 11 dígitos começa em 9', () => {
+    expect(validateTelefone('(47) 89612-4408')).toEqual({ error: 'Celular com 11 dígitos começa em 9, depois do DDD.' });
+  });
+
+  it('dez dígitos começando em 6 a 9 é celular sem o 9', () => {
+    expect(validateTelefone('(47) 9612-4408')).toEqual({ error: 'Falta o 9 do celular, depois do DDD.' });
+    expect(validateTelefone('(47) 1521-0000')).toHaveProperty('error');
+  });
 });
 
 describe('formatação', () => {
@@ -66,5 +82,41 @@ describe('formatação', () => {
     expect(formatTelefone('4735210000')).toBe('(47) 3521-0000');
     expect(formatTelefone(null)).toBe('');
     expect(onlyDigits('a1-2 3')).toBe('123');
+  });
+});
+
+describe('mascaraTelefone', () => {
+  it('monta a máscara a cada dígito, com o celular em 5-4 desde o 9', () => {
+    expect(mascaraTelefone('4')).toBe('(4');
+    expect(mascaraTelefone('47')).toBe('(47');
+    expect(mascaraTelefone('479')).toBe('(47) 9');
+    expect(mascaraTelefone('4799612')).toBe('(47) 99612');
+    expect(mascaraTelefone('47996124')).toBe('(47) 99612-4');
+    expect(mascaraTelefone('47996124408')).toBe('(47) 99612-4408');
+  });
+
+  it('fixo fica em 4-4', () => {
+    expect(mascaraTelefone('473521')).toBe('(47) 3521');
+    expect(mascaraTelefone('4735210000')).toBe('(47) 3521-0000');
+  });
+
+  it('tira o 55 do número colado do WhatsApp e corta no 11º dígito', () => {
+    expect(mascaraTelefone('+55 47 99612-4408')).toBe('(47) 99612-4408');
+    expect(mascaraTelefone('479961244089')).toBe('(47) 99612-4408');
+  });
+
+  it('apagar o traço apaga o dígito de antes', () => {
+    expect(mascaraTelefone('(47) 99612', '(47) 99612-')).toBe('(47) 9961');
+    expect(mascaraTelefone('(47 ', '(47) ')).toBe('(4');
+    expect(mascaraTelefone('', '(4')).toBe('');
+  });
+});
+
+describe('telefoneCompleto', () => {
+  it('celular com 11 dígitos, fixo com 10', () => {
+    expect(telefoneCompleto('(47) 99612-4408')).toBe(true);
+    expect(telefoneCompleto('(47) 99612-440')).toBe(false);
+    expect(telefoneCompleto('(47) 3521-0000')).toBe(true);
+    expect(telefoneCompleto('(47) 3521-000')).toBe(false);
   });
 });

@@ -8,6 +8,7 @@ import {
   lerSemana,
   nomeDia,
   rotuloSemana,
+  semanaJaPassou,
   siglaDia,
 } from '../semanas';
 
@@ -19,14 +20,14 @@ describe('semana da agenda', () => {
     expect(inicioDaSemana('2026-01-01')).toBe('2025-12-29');
   });
 
-  it('vai de segunda a sábado', () => {
-    expect(diasDaSemana('2026-09-14')).toEqual(['2026-09-14', '2026-09-15', '2026-09-16', '2026-09-17', '2026-09-18', '2026-09-19']);
+  it('vai de segunda a domingo', () => {
+    expect(diasDaSemana('2026-09-14')).toEqual(['2026-09-14', '2026-09-15', '2026-09-16', '2026-09-17', '2026-09-18', '2026-09-19', '2026-09-20']);
   });
 
   it('a grade de tela larga desenha só de segunda a sexta (RNF-14)', () => {
     expect(diasUteisDaSemana('2026-09-14')).toEqual(['2026-09-14', '2026-09-15', '2026-09-16', '2026-09-17', '2026-09-18']);
-    // O sábado continua na semana, só não na grade
-    expect(diasDaSemana('2026-09-14')).toHaveLength(6);
+    // Sábado e domingo continuam na semana, só não na grade do zoom Semana
+    expect(diasDaSemana('2026-09-14')).toHaveLength(7);
   });
 
   it('lê a semana da URL, e cai na de hoje quando não vale', () => {
@@ -45,6 +46,14 @@ describe('semana da agenda', () => {
     expect(nomeDia('2026-09-14')).toBe('Segunda');
     expect(siglaDia('2026-09-19')).toBe('SÁB');
     expect(diaMes('2026-09-14')).toBe('14/09');
-    expect(rotuloSemana('2026-09-14')).toBe('14/09 a 19/09');
+    expect(rotuloSemana('2026-09-14')).toBe('14/09 a 20/09');
+  });
+
+  it('RF-28: a semana só passou depois do domingo dela', () => {
+    expect(semanaJaPassou('2026-09-14', '2026-09-14')).toBe(false);
+    expect(semanaJaPassou('2026-09-14', '2026-09-20')).toBe(false);
+    expect(semanaJaPassou('2026-09-14', '2026-09-21')).toBe(true);
+    // Qualquer dia da semana serve de referência
+    expect(semanaJaPassou('2026-09-17', '2026-09-21')).toBe(true);
   });
 });

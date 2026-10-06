@@ -3,6 +3,7 @@
 import { useActionState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Notice } from '@/components/ui/Notice';
+import { Toast } from '@/components/ui/Toast';
 import { type SelectOption, SelectField } from '@/components/ui/SelectField';
 import { TextField } from '@/components/ui/TextField';
 import { EMPTY_FORM_STATE } from '@/lib/form-state';
@@ -29,7 +30,11 @@ export function NovoInsumoForm({ categorias, unidades }: NovoInsumoFormProps) {
         <SelectField label="Unidade" name="unidade_medida" options={unidades} defaultValue={fields?.unidade_medida} required />
       </div>
       {state.error && <Notice tone="error">{state.error}</Notice>}
-      {state.success && <Notice tone="success">{state.success}</Notice>}
+      {state.success && (
+        <Toast tone="success" limpar={[]} gatilho={state}>
+          {state.success}
+        </Toast>
+      )}
       <Button type="submit" variant="outline" pending={pending}>
         + Criar insumo
       </Button>

@@ -5,7 +5,12 @@ import { redirect } from 'next/navigation';
 import pool from '@/lib/db';
 import { toUserMessage } from '@/lib/errors';
 import { type FormState, formText } from '@/lib/form-state';
+import { isOrigemFrete } from '@/lib/frete';
 import * as pedidos from '@/lib/pedidos';
+import { lerEnderecoDeEntrega } from '@/lib/endereco-entrega-form';
+import { AVISOS_DO_FRETE, salvarEnderecoDoPedido, sugestaoDeFrete } from '@/lib/pedidos-frete';
+import type { SugestaoDeEndereco } from '@/lib/rotas';
+import { MapaIndisponivel, sugerirEnderecos } from '@/lib/rotas-ors';
 import { withTransaction } from '@/lib/transaction';
 import { isUuid } from '@/lib/uuid';
 import { requirePermission } from '@/lib/auth/guards';
@@ -279,6 +284,116 @@ export async function negociarItensAction(_previous: FormState, formData: FormDa
   revalidarPedidos(pedidoId);
   if (removidos > 0) return { success: removidos === 1 ? 'Item tirado do pedido.' : `${removidos} itens tirados do pedido.` };
   return { success: 'Negociação salva.' };
+}
+
+/**
+ * P18: o suplente vira linha do pedido, com quantidade e preço a digitar. O
+ * guard é o da negociação, que é onde a chefia descobre que vai faltar.
+ */
+export async function usarSuplenteAction(_previous: FormState, formData: FormData): Promise<FormState> {
+  const user = await requirePermission('confirmacao_pedido', 'A');
+  const pedidoId = formText(formData, 'pedido_id');
+  const itemId = formText(formData, 'item_id');
+  if (!isUuid(pedidoId) || !isUuid(itemId)) return { error: 'Item inválido.' };
+  try {
+    await withTransaction(pool, (client) =>
+      pedidos.usarSuplente(client, pedidoId, itemId, { perfil: user.perfil, usuarioId: user.usuarioId }),
+    );
+  } catch (error) {
+    return { error: toUserMessage(error) };
+  }
+  revalidarPedidos(pedidoId);
+  return { success: 'O recipiente virou linha do pedido: digite a quantidade e o preço.' };
+}
+
+/**
+ * RN-64: o frete combinado, gravado enquanto se digita, como o preço dos itens.
+ * Em branco é "sem frete". O guard é o da negociação.
+ */
+export async function salvarFreteAction(_previous: FormState, formData: FormData): Promise<FormState> {
+  const user = await requirePermission('confirmacao_pedido', 'A');
+  const pedidoId = formText(formData, 'pedido_id');
+  if (!isUuid(pedidoId)) return { error: 'Pedido inválido.' };
+  const textoOrigem = formText(formData, 'frete_origem');
+  if (textoOrigem !== '' && !isOrigemFrete(textoOrigem)) return { error: 'Origem do frete inválida.' };
+  const textoFrete = formText(formData, 'frete').trim();
+  let centavos: number | null = null;
+  if (textoFrete !== '' && textoFrete !== '0' && textoFrete !== '0,00') {
+    const lido = pedidos.parsePreco(textoFrete);
+    if ('error' in lido) return { error: 'O frete precisa ser um valor como 84,00.' };
+    centavos = lido.value;
+  }
+
+  try {
+    await withTransaction(pool, (client) =>
+      pedidos.salvarFrete(
+        client,
+        pedidoId,
+        { centavos, origem: textoOrigem === '' ? null : textoOrigem },
+        { perfil: user.perfil, usuarioId: user.usuarioId },
+      ),
+    );
+  } catch (error) {
+    return { error: toUserMessage(error) };
+  }
+  revalidarPedidos(pedidoId);
+  return { success: 'Frete salvo.' };
+}
+
+/**
+ * RN-64: a sugestão de frete pela distância. Não grava o frete: devolve o
+ * valor para a chefia ver, e é ela quem o aceita ou digita outro.
+ */
+export async function sugerirFreteAction(
+  pedidoId: string,
+  origem: string,
+): Promise<
+  | { error: string; falta?: { endereco: string | null } }
+  | { centavos: number; distanciaKm: number }
+> {
+  const user = await requirePermission('confirmacao_pedido', 'A');
+  if (!isUuid(pedidoId)) return { error: 'Pedido inválido.' };
+  if (!isOrigemFrete(origem)) return { error: 'Origem do frete inválida.' };
+  if (user.perfil === 'gerencia') return { error: 'O frete do pedido é digitado pela chefia.' };
+  try {
+    const sugestao = await sugestaoDeFrete(pool, pedidoId, origem);
+    if (!('aviso' in sugestao)) return sugestao;
+    const error = AVISOS_DO_FRETE[sugestao.aviso];
+    return 'endereco' in sugestao ? { error, falta: { endereco: sugestao.endereco } } : { error };
+  } catch (error) {
+    return { error: toUserMessage(error) };
+  }
+}
+
+/** A lista de endereços do modal do frete, com a permissão do pedido. Mapa fora do ar é lista vazia. */
+export async function buscarEnderecosDoPedidoAction(texto: string): Promise<SugestaoDeEndereco[]> {
+  await requirePermission('confirmacao_pedido', 'A');
+  const busca = typeof texto === 'string' ? texto.trim() : '';
+  if (busca.length < 3 || busca.length > 200) return [];
+  try {
+    return await sugerirEnderecos(busca);
+  } catch (error) {
+    if (error instanceof MapaIndisponivel) return [];
+    throw error;
+  }
+}
+
+/** P17: o endereço de entrega que faltou para sugerir o frete, sem sair do pedido. */
+export async function salvarEnderecoDoPedidoAction(_previous: FormState, formData: FormData): Promise<FormState> {
+  const user = await requirePermission('confirmacao_pedido', 'A');
+  if (user.perfil === 'gerencia') return { error: 'O frete do pedido é digitado pela chefia.' };
+  const pedidoId = formText(formData, 'pedido_id');
+  if (!isUuid(pedidoId)) return { error: 'Pedido inválido.' };
+  const lido = await lerEnderecoDeEntrega(formData);
+  if ('error' in lido) return lido;
+
+  try {
+    await withTransaction(pool, (client) => salvarEnderecoDoPedido(client, pedidoId, lido.endereco));
+  } catch (error) {
+    return { error: toUserMessage(error), fields: lido.fields };
+  }
+  revalidarPedidos(pedidoId);
+  return { success: 'Endereço salvo.' };
 }
 
 /** T8.3, RF-57: confirmar trava os itens. O guard é o do D4, `confirmacao_pedido`. */

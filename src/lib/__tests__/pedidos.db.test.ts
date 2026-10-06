@@ -4,8 +4,8 @@ import path from 'node:path';
 import { Pool, type PoolClient } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { insertArea, insertCanteiro } from '../areas';
-import { hojeNoViveiro, somaDias } from '../datas';
-import { saldoPronto } from '../estoque';
+import { hojeNoViveiro } from '../datas';
+import { saldoDisponivel } from '../estoque';
 import { alterarFase, criarLote } from '../lotes';
 import { registrarMovimento } from '../movimentos';
 import {
@@ -29,8 +29,10 @@ import {
   mudarSituacao,
   negociarItens,
   removerItem,
+  salvarFrete,
   salvarObservacoesVerificacao,
   totalPedido,
+  usarSuplente,
 } from '../pedidos';
 import { insertClienteRapido } from '../pessoas';
 import { insertRecipiente } from '../recipientes';
@@ -151,7 +153,7 @@ describe('cadastro do pedido (T8.1, RF-54, RF-55)', () => {
     // 200 × 2,50 + 50 × 12,50 + 1 × 9,99
     expect(totalPedido(ficha.itens)).toBe(50_000 + 62_500 + 999);
 
-    const naLista = (await listPedidos(pool, { de: hojeNoViveiro(), ate: hojeNoViveiro(), clienteId: null, canal: null })).find(
+    const naLista = (await listPedidos(pool)).find(
       (p) => p.id === id,
     )!;
     // A lista soma no SQL, e tem de dar o mesmo que a soma dos itens
@@ -159,9 +161,30 @@ describe('cadastro do pedido (T8.1, RF-54, RF-55)', () => {
     expect(naLista.itens).toBe(3);
   });
 
+  it('P17: o frete entra no total da carteira e volta na ficha (RN-64)', async () => {
+    const { id } = await novoPedido();
+    await pool.query("UPDATE pedidos SET situacao = 'verificado' WHERE id = $1", [id]);
+    await tx((c) => salvarFrete(c, id, { centavos: 8450, origem: 'itapema' }, chefia()));
+
+    const ficha = (await findPedido(pool, id))!;
+    expect(ficha).toMatchObject({ freteCentavos: 8450, freteOrigem: 'itapema' });
+    const naLista = (await listPedidos(pool)).find((p) => p.id === id)!;
+    expect(naLista.totalCentavos).toBe(totalPedido(ficha.itens)! + 8450);
+
+    await expect(tx((c) => salvarFrete(c, id, { centavos: 100, origem: null }, gerencia()))).rejects.toThrow(/chefia/);
+  });
+
+  it('P17: o item traz o peso do recipiente cheio (RN-65)', async () => {
+    await pool.query('UPDATE recipientes SET peso_kg = 0.35 WHERE id = $1', [tubete]);
+    const { id } = await novoPedido();
+    const item = (await listItens(pool, id)).find((i) => i.recipienteId === tubete)!;
+    expect(item.pesoKg).toBe(0.35);
+    await expect(pool.query('UPDATE recipientes SET peso_kg = 0 WHERE id = $1', [tubete])).rejects.toThrow(/peso_positivo/);
+  });
+
   it('o pedido sem preço não vale zero na carteira: o total é indefinido', async () => {
     const { id } = await novoPedido({ itens: itens().map((item) => ({ ...item, precoCentavos: null })) });
-    const naLista = (await listPedidos(pool, { de: hojeNoViveiro(), ate: hojeNoViveiro(), clienteId: null, canal: null })).find(
+    const naLista = (await listPedidos(pool)).find(
       (p) => p.id === id,
     )!;
     expect(naLista.totalCentavos).toBeNull();
@@ -281,41 +304,20 @@ describe('situação do pedido (T8.3, T8.6, RF-57)', () => {
   });
 });
 
-describe('lista com filtro (T8.4, RF-58, TA-54)', () => {
-  const hoje = hojeNoViveiro();
-  const periodoDeHoje = { de: hoje, ate: hoje };
+describe('lista da carteira (T8.4, RF-58, TA-54)', () => {
+  it('vem do mais novo ao mais antigo, sem corte de data', async () => {
+    const antigo = await novoPedido({ clienteId: outroCliente });
+    await pool.query(`UPDATE pedidos SET criado_em = now() - interval '400 days' WHERE id = $1`, [antigo.id]);
+    const novo = await novoPedido();
 
-  it('filtra por cliente', async () => {
-    const meu = await novoPedido();
-    const alheio = await novoPedido({ clienteId: outroCliente });
-    const lista = await listPedidos(pool, { ...periodoDeHoje, clienteId: cliente, canal: null });
-    const ids = lista.map((p) => p.id);
-    expect(ids).toContain(meu.id);
-    expect(ids).not.toContain(alheio.id);
-  });
-
-  it('filtra por canal', async () => {
-    const varejo = await novoPedido({ canal: 'varejo' });
-    const atacado = await novoPedido();
-    const lista = await listPedidos(pool, { ...periodoDeHoje, clienteId: null, canal: 'varejo' });
-    const ids = lista.map((p) => p.id);
-    expect(ids).toContain(varejo.id);
-    expect(ids).not.toContain(atacado.id);
-  });
-
-  it('filtra por período, e o pedido de hoje fica fora do intervalo de ontem', async () => {
-    const { id } = await novoPedido();
-    const ontem = somaDias(hoje, -1);
-    const deOntem = await listPedidos(pool, { de: somaDias(hoje, -2), ate: ontem, clienteId: null, canal: null });
-    expect(deOntem.map((p) => p.id)).not.toContain(id);
-
-    const deHoje = await listPedidos(pool, { ...periodoDeHoje, clienteId: null, canal: null });
-    expect(deHoje.map((p) => p.id)).toContain(id);
+    const ids = (await listPedidos(pool)).map((p) => p.id);
+    expect(ids).toContain(antigo.id);
+    expect(ids.indexOf(novo.id)).toBeLessThan(ids.indexOf(antigo.id));
   });
 });
 
-describe('saldo de muda pronta no item (T8.2, RF-56, UC-32)', () => {
-  it('sai dos lotes prontos, e a perda registrada muda o número exibido (TA-64)', async () => {
+describe('estoque disponível no item (T8.2, RF-56, UC-32)', () => {
+  it('sai de todo lote aberto, e a perda registrada muda o número exibido (TA-64)', async () => {
     const lote = await tx((client) =>
       criarLote(client, {
         especieId: especie,
@@ -328,19 +330,18 @@ describe('saldo de muda pronta no item (T8.2, RF-56, UC-32)', () => {
       }),
     );
 
-    // Lote que ainda não está pronto não entra no saldo do item (RN-06)
-    const antesDePronto = await saldoPronto(pool, { especieId: especie, recipienteId: tubete });
-    expect(antesDePronto).toHaveLength(0);
-
+    // RN-06: o lote recém-semeado já entra no saldo do item; não há fase de "muda pronta"
+    const [antes] = await saldoDisponivel(pool, { especieId: especie, recipienteId: tubete });
+    expect(antes.quantidade).toBe(500);
     await alterarFase(pool, lote.id, 'pronto');
-    const [pronto] = await saldoPronto(pool, { especieId: especie, recipienteId: tubete });
-    expect(pronto.quantidade).toBe(500);
+    const [mesmo] = await saldoDisponivel(pool, { especieId: especie, recipienteId: tubete });
+    expect(mesmo.quantidade).toBe(500);
 
     // É esta a interligação da Fase 8: a perda no lote muda o saldo do item
     await tx((client) =>
       registrarMovimento(client, { loteId: lote.id, tipo: 'perda', quantidade: -120, causa: 'seca', registradoPor: usuario }),
     );
-    const [depois] = await saldoPronto(pool, { especieId: especie, recipienteId: tubete });
+    const [depois] = await saldoDisponivel(pool, { especieId: especie, recipienteId: tubete });
     expect(depois.quantidade).toBe(380);
 
     // E o item do pedido daquela espécie e recipiente continua o mesmo: o pedido lê, e não reserva
@@ -788,7 +789,7 @@ describe('os sete jeitos de o pedido chegar (pedidos-como-chegam.md)', () => {
     const [grande, pequeno] = porQuantidade(filhos);
     const ficha = await fecharCom(id, [soPreco(grande.id, 250), soPreco(pequeno.id, 900)], false);
     expect(totalPedido(ficha.itens)).toBe(1200 * 250 + 300 * 900);
-    const lista = await listPedidos(pool, { de: '2000-01-01', ate: '2999-12-31', clienteId: cliente, canal: null });
+    const lista = await listPedidos(pool);
     expect(lista.find((p) => p.id === id)!.totalCentavos).toBe(1200 * 250 + 300 * 900);
   });
 
@@ -1155,7 +1156,7 @@ describe('conferência por tipo de item (P12, 20260925000001)', () => {
     await tx((c) =>
       marcarDisponibilidade(c, id, item.id, 'parcial', gerencia(), {
         quantidade: 300,
-        complemento: { quantidade: 200, recipienteId: saco, alturaM: null },
+        complementos: [{ quantidade: 200, recipienteId: saco, alturaM: null }],
       }),
     );
     const conferidos = await listItens(pool, id);
@@ -1181,16 +1182,105 @@ describe('conferência por tipo de item (P12, 20260925000001)', () => {
     ]);
   });
 
+  it('P17: "tem tudo" dividido do item sem recipiente aprova uma linha por recipiente', async () => {
+    const { id } = await novoPedido({ itens: [{ especieId: especie, recipienteId: null, quantidade: 50, precoCentavos: null }] });
+    const [item] = await listItens(pool, id);
+    await tx((c) =>
+      marcarDisponibilidade(c, id, item.id, 'disponivel', gerencia(), {
+        quantidade: 20,
+        recipienteId: tubete,
+        complementos: [{ quantidade: 30, recipienteId: saco, alturaM: null }],
+      }),
+    );
+    // A soma fecha o pedido: a conferência conta o item como disponível
+    const { resumo } = await tx((c) => concluirVerificacao(c, id, gerencia()));
+    expect(resumo).toBe('1 de 1 disponíveis.');
+
+    const conferidos = await listItens(pool, id);
+    const complemento = conferidos.find((i) => i.complementaItemId === item.id)!;
+    await tx((c) => negociarItens(c, id, [soPreco(item.id, 300), soPreco(complemento.id, 900)], chefia()));
+    await tx((c) => confirmarPedido(c, id, chefia()));
+    const aprovados = (await listItens(pool, id)).sort((a, b) => a.quantidade! - b.quantidade!);
+    expect(aprovados.map((i) => [i.quantidade, i.recipienteId, i.precoCentavos])).toEqual([
+      [20, tubete, 300],
+      [30, saco, 900],
+    ]);
+  });
+
+  it('P18: o item sem quantidade guarda o outro recipiente como suplente, que não é linha e sai na aprovação', async () => {
+    const { id } = await novoPedido({ itens: [{ especieId: especie, recipienteId: null, quantidade: null, precoCentavos: null }] });
+    const [item] = await listItens(pool, id);
+    await tx((c) =>
+      marcarDisponibilidade(c, id, item.id, 'disponivel', gerencia(), {
+        recipienteId: tubete,
+        complementos: [{ quantidade: null, recipienteId: saco, alturaM: null }],
+      }),
+    );
+    const suplente = (await listItens(pool, id)).find((i) => i.complementaItemId === item.id)!;
+    expect(suplente).toMatchObject({ suplente: true, recipienteId: saco, quantidade: null, precoCentavos: null });
+    // A lista conta uma espécie, e não duas
+    expect((await listPedidos(pool)).find((p) => p.id === id)?.itens).toBe(1);
+
+    const { resumo } = await tx((c) => concluirVerificacao(c, id, gerencia()));
+    expect(resumo).toBe('1 de 1 disponíveis.');
+    // O suplente não se negocia, e a falta dele não segura a aprovação
+    await expect(tx((c) => negociarItens(c, id, [soPreco(suplente.id, 900)], chefia()))).rejects.toThrow(/suplente/);
+    await tx((c) => negociarItens(c, id, [{ itemId: item.id, precoCentavos: 300, quantidade: 100, recipienteId: null }], chefia()));
+    await tx((c) => confirmarPedido(c, id, chefia()));
+    const aprovados = await listItens(pool, id);
+    expect(aprovados.map((i) => [i.quantidade, i.recipienteId, i.precoCentavos])).toEqual([[100, tubete, 300]]);
+  });
+
+  it('P18: o suplente usado vira linha, com quantidade e preço da chefia', async () => {
+    const { id } = await novoPedido({ itens: [{ especieId: especie, recipienteId: null, quantidade: null, precoCentavos: null }] });
+    const [item] = await listItens(pool, id);
+    await tx((c) =>
+      marcarDisponibilidade(c, id, item.id, 'disponivel', gerencia(), {
+        recipienteId: tubete,
+        complementos: [{ quantidade: null, recipienteId: saco, alturaM: null }],
+      }),
+    );
+    await tx((c) => concluirVerificacao(c, id, gerencia()));
+    const suplente = (await listItens(pool, id)).find((i) => i.complementaItemId === item.id)!;
+    await expect(tx((c) => usarSuplente(c, id, suplente.id, gerencia()))).rejects.toThrow(/chefia/);
+    await tx((c) => usarSuplente(c, id, suplente.id, chefia()));
+    await expect(tx((c) => usarSuplente(c, id, suplente.id, chefia()))).rejects.toThrow(/não é mais suplente/);
+
+    await tx((c) =>
+      negociarItens(
+        c,
+        id,
+        [
+          { itemId: item.id, precoCentavos: 300, quantidade: 100, recipienteId: null },
+          { itemId: suplente.id, precoCentavos: 900, quantidade: 40, recipienteId: null },
+        ],
+        chefia(),
+      ),
+    );
+    await tx((c) => confirmarPedido(c, id, chefia()));
+    const aprovados = (await listItens(pool, id)).sort((a, b) => b.quantidade! - a.quantidade!);
+    expect(aprovados.map((i) => [i.quantidade, i.recipienteId, i.precoCentavos])).toEqual([
+      [100, tubete, 300],
+      [40, saco, 900],
+    ]);
+  });
+
+  it('P18: o CHECK recusa suplente com quantidade ou sem o item que completa', async () => {
+    const { id } = await novoPedido({ itens: [{ especieId: especie, recipienteId: tubete, quantidade: 10, precoCentavos: null }] });
+    const [item] = await listItens(pool, id);
+    await expect(pool.query('UPDATE pedidos_itens SET suplente = true WHERE id = $1', [item.id])).rejects.toThrow();
+  });
+
   it('responder de novo sem o "+" apaga o complemento', async () => {
     const { id } = await novoPedido({
       itens: [{ especieId: especie, recipienteId: tubete, quantidade: 500, precoCentavos: 300 }],
     });
     const [item] = await listItens(pool, id);
     const complemento = { quantidade: 200, recipienteId: saco, alturaM: null };
-    await tx((c) => marcarDisponibilidade(c, id, item.id, 'parcial', gerencia(), { quantidade: 300, complemento }));
+    await tx((c) => marcarDisponibilidade(c, id, item.id, 'parcial', gerencia(), { quantidade: 300, complementos: [complemento] }));
     expect(await listItens(pool, id)).toHaveLength(2);
     await expect(
-      tx((c) => marcarDisponibilidade(c, id, item.id, 'parcial', gerencia(), { quantidade: 300, complemento: { ...complemento, quantidade: 201 } })),
+      tx((c) => marcarDisponibilidade(c, id, item.id, 'parcial', gerencia(), { quantidade: 300, complementos: [{ ...complemento, quantidade: 201 }] })),
     ).rejects.toThrow(/passam do pedido/);
     expect(await listItens(pool, id)).toHaveLength(2);
 
@@ -1206,7 +1296,7 @@ describe('conferência por tipo de item (P12, 20260925000001)', () => {
     await tx((c) =>
       marcarDisponibilidade(c, id, item.id, 'parcial', gerencia(), {
         quantidade: 300,
-        complemento: { quantidade: 200, recipienteId: saco, alturaM: null },
+        complementos: [{ quantidade: 200, recipienteId: saco, alturaM: null }],
       }),
     );
     const complemento = (await listItens(pool, id)).find((i) => i.complementaItemId === item.id)!;

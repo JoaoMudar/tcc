@@ -4,14 +4,19 @@ import Link from 'next/link';
 import { type MouseEvent, startTransition, useCallback, useEffect, useMemo, useOptimistic, useRef, useState } from 'react';
 import type { AtribuicaoResumo, Funcionario } from '@/lib/agenda';
 import {
+  type Barra,
+  type Degrau,
   type Eixo,
   type Faixa,
   type Trecho,
+  OVERLAP_SECONDARY,
   PASSO_MINUTOS,
+  agruparPorTarefa,
   ancorasDaJornada,
   comparaPrecedencia,
   duracaoUtil,
   faixaDaBarra,
+  faixaVertical,
   formatMinuto,
   janelaDoDia,
   marcasDeHora,
@@ -23,6 +28,7 @@ import {
   turnoParaMinuto,
   vaoParaLancar,
 } from '@/lib/agenda-grade';
+import { diasDaJanela, passoDoZoom, zoomVizinho } from '@/lib/agenda-zoom';
 import { type Mudanca, aplicarMudanca, dadosDaMudanca, montarGrade, prioridadeAgora } from '@/lib/agenda-linhas';
 import { COR_CATEGORIA } from '@/lib/cores-categoria';
 import { nomeDia, siglaDia } from '@/lib/semanas';
@@ -35,20 +41,23 @@ import { type AvisoDesfazer, ToastDesfazer } from './ToastDesfazer';
 import { promoverAtribuicaoAction, reagendarAtribuicaoAction } from './actions';
 import { ATRIBUTO_DIA, ATRIBUTO_LINHA, type Reagendamento, useArrasteBarra } from './useArrasteBarra';
 import { useAtalhosSemana } from './useAtalhosSemana';
+import { useZoomAgenda } from './ZoomAgenda';
 
 interface GanttSemanaProps {
   atribuicoes: AtribuicaoResumo[];
   funcionarios: Funcionario[];
+  /** Os dias da semana, de segunda a domingo: o zoom recorta deles a janela que a grade desenha. */
   dias: string[];
+  /** O dia escolhido: é onde a janela começa nos zooms 3 dias e Dia. Sem ele, hoje. */
+  dia?: string;
   /** Os turnos em uso, mais o desativado que ainda tem tarefa nesta semana. */
   turnos: Turno[];
   hoje: string;
   semana: string;
-  /** Endereços dos atalhos ← e →. */
-  anterior: string;
-  proxima: string;
   /** Arrastar remarca, e exige alterar a agenda em semana aberta. */
   podeArrastar?: boolean;
+  /** A semana já pode ser fechada: a não confirmada fica âmbar, a confirmada verde. */
+  aFechar?: boolean;
   /** As listas do formulário: só chegam quando se pode lançar. */
   opcoes?: OpcoesAtribuicao;
   className?: string;
@@ -56,9 +65,6 @@ interface GanttSemanaProps {
 
 /** Altura da linha da pessoa, em pixels. É fixa: a sobreposição divide a altura, e não a aumenta (RF-26). */
 const ALTURA_LINHA = 60;
-/** Onde duas tarefas se cruzam, a principal fica com a faixa de cima e as secundárias dividem a de baixo. */
-export const OVERLAP_MAIN = 0.6;
-export const OVERLAP_SECONDARY = 0.4;
 /** Abaixo disto a faixa secundária não comporta uma linha de texto, e a tarefa vai para o "+N". */
 const ALTURA_MINIMA_FAIXA = 16;
 const MAX_CAMADAS = 1 + Math.floor((ALTURA_LINHA * OVERLAP_SECONDARY) / ALTURA_MINIMA_FAIXA);
@@ -66,6 +72,9 @@ const MAX_CAMADAS = 1 + Math.floor((ALTURA_LINHA * OVERLAP_SECONDARY) / ALTURA_M
 export const HOVER_EXPAND = 1.6;
 /** Quanto o mouse precisa parar no dia antes de ele crescer: atravessar a grade não faz nada pular. */
 const ESPERA_FOCO_MS = 150;
+/** Quanto de roda com Ctrl vale um passo de zoom, e o intervalo mínimo entre dois passos: a pinça do touchpad manda muitos eventos pequenos. */
+const LIMIAR_RODA = 60;
+const INTERVALO_RODA_MS = 250;
 const LARGURA_NOME = 'w-36';
 
 /** As colunas dos dias, com a do foco maior. Cabeçalho e linhas usam a mesma, ou desalinham. */
@@ -87,13 +96,13 @@ function colunasDaGrade(quantos: number, foco: number | null): string {
 export function GanttSemana({
   atribuicoes,
   funcionarios,
-  dias,
+  dias: diasSemana,
   turnos,
   hoje,
+  dia = hoje,
   semana,
-  anterior,
-  proxima,
   podeArrastar = false,
+  aFechar = false,
   opcoes,
   className = '',
 }: GanttSemanaProps) {
@@ -107,7 +116,38 @@ export function GanttSemana({
   const [anuncio, setAnuncio] = useState('');
   const fecharAviso = useCallback(() => setAviso(null), []);
 
-  useAtalhosSemana({ anterior, proxima, hoje: '/producao' });
+  // O zoom recorta a semana; as setas do teclado andam no passo dele, como as do cabeçalho
+  const { zoom, setZoom } = useZoomAgenda();
+  const dias = useMemo(() => diasDaJanela(zoom, dia, diasSemana), [zoom, dia, diasSemana]);
+  useAtalhosSemana({
+    anterior: `/producao?dia=${passoDoZoom(zoom, dia, -1)}`,
+    proxima: `/producao?dia=${passoDoZoom(zoom, dia, 1)}`,
+    hoje: '/producao',
+  });
+
+  // Ctrl + roda sobre a grade troca o zoom. O onWheel do React é passivo e não impediria o zoom do navegador
+  const gradeRef = useRef<HTMLDivElement>(null);
+  const roda = useRef({ acumulado: 0, ultimo: -Infinity });
+  useEffect(() => {
+    const grade = gradeRef.current;
+    if (!grade) return;
+    const aoRolar = (evento: WheelEvent) => {
+      if (!evento.ctrlKey) return;
+      evento.preventDefault();
+      const estado = roda.current;
+      // Logo depois de um passo, o resto do mesmo gesto se descarta
+      if (Date.now() - estado.ultimo < INTERVALO_RODA_MS) return;
+      estado.acumulado += evento.deltaY;
+      if (Math.abs(estado.acumulado) < LIMIAR_RODA) return;
+      // Roda para cima aproxima
+      const novo = zoomVizinho(zoom, estado.acumulado < 0 ? 1 : -1);
+      estado.acumulado = 0;
+      estado.ultimo = Date.now();
+      if (novo !== zoom) setZoom(novo);
+    };
+    grade.addEventListener('wheel', aoRolar, { passive: false });
+    return () => grade.removeEventListener('wheel', aoRolar);
+  }, [zoom, setZoom]);
 
   /** A tarefa vai para o lugar novo antes da resposta; o erro a devolve e diz por quê. */
   const mandar = useCallback(
@@ -299,17 +339,18 @@ export function GanttSemana({
     if (mira?.pessoa !== pessoa || mira.dia !== dia || mira.minuto !== minuto) setMira({ pessoa, dia, minuto });
   };
 
-  const colunas = colunasDaGrade(dias.length, foco);
+  // Numa coluna só não há o que crescer
+  const colunas = colunasDaGrade(dias.length, dias.length > 1 ? foco : null);
   const transicaoColunas = 'transition-[grid-template-columns] duration-[180ms] ease-out';
   const arrastavel = (a: AtribuicaoResumo) => podeArrastar && a.situacao === 'planejada' && a.semanaSituacao === 'aberta';
   const linhas = grade.map((linha) => {
     const chave = linha.pessoa?.id ?? null;
-    return { linha, chave, porDia: dias.map((dia) => trechosDe(chave, dia, linha.porDia[dia] ?? [])) };
+    return { linha, chave, porDia: dias.map((dia) => agruparPorTarefa(trechosDe(chave, dia, linha.porDia[dia] ?? []))) };
   });
 
   return (
     <div className={`animate-surgir ${className}`}>
-      <div className="overflow-x-auto rounded-lg border border-line bg-white">
+      <div ref={gradeRef} className="overflow-x-auto rounded-lg border border-line bg-white">
         <div className="min-w-[56rem]" onPointerLeave={() => apontar(null)}>
           {/* Cabeçalho: o dia e as horas, todas no dia em foco */}
           <div className="flex items-end border-b border-line">
@@ -331,7 +372,7 @@ export function GanttSemana({
                     {siglaDia(dia)} {dia.slice(8)}
                   </Link>
                   <div className="relative mt-1">
-                    <ReguaDeHoras janela={janela} todas={indice === foco} />
+                    <ReguaDeHoras janela={janela} todas={zoom !== 'semana' || indice === foco} />
                     <DivisorAlmoco janela={janela} />
                     {dia === hoje && <LinhaAgora janela={janela} ponto />}
                   </div>
@@ -356,7 +397,7 @@ export function GanttSemana({
                 >
                   {dias.map((dia, indice) => {
                     const doDia = linha.porDia[dia] ?? [];
-                    const trechos = porDia[indice];
+                    const barras = porDia[indice];
                     const sombra =
                       sessao?.modo === 'mover' && emArrasto && dia === sessao.diaOriginal && chave === sessao.pessoaOriginal ? sessao.faixaOriginal : null;
                     const miraAqui = mira && mira.pessoa === chave && mira.dia === dia ? mira.minuto : null;
@@ -384,23 +425,21 @@ export function GanttSemana({
                         )}
                         {miraAqui !== null && !sessao && <Mira minuto={miraAqui} janela={janela} />}
                         {sombra && emArrasto && <SombraOriginal faixa={sombra} janela={janela} categoria={emArrasto.categoria} />}
-                        {trechos.map((trecho) => {
-                          const ehSessao = sessao?.id === trecho.item.id && sessao.pessoa === chave && sessao.dia === dia;
+                        {barras.map((barra) => {
+                          const ehSessao = sessao?.id === barra.item.id && sessao.pessoa === chave && sessao.dia === dia;
                           return (
                             <BarraTarefa
-                              key={`${trecho.item.id}-${trecho.camada}-${trecho.faixa.inicio}`}
-                              atribuicao={trecho.item}
-                              alvo={{ id: trecho.item.id, dia, faixa: trecho.completa, pessoa: chave }}
-                              desenho={trecho.faixa}
-                              camada={trecho.camada}
-                              alcas={{ inicio: trecho.bordaInicio, fim: trecho.bordaFim }}
-                              ocultas={trecho.ocultas}
+                              key={barra.item.id}
+                              atribuicao={barra.item}
+                              alvo={{ id: barra.item.id, dia, faixa: barra.completa, pessoa: chave }}
+                              desenho={barra.faixa}
+                              perfil={barra.perfil}
                               janela={janela}
-                              livreDepois={livreDepois(trecho, trechos, janela)}
-                              encosta={encostas(trecho, trechos)}
-                              {...alturaDoTrecho(trecho)}
-                              arrastavel={arrastavel(trecho.item)}
-                              promovivel={podeArrastar && trecho.item.semanaSituacao === 'aberta'}
+                              livreDepois={livreDepois(barra, barras, janela)}
+                              encosta={encostas(barra, barras)}
+                              arrastavel={arrastavel(barra.item)}
+                              promovivel={podeArrastar && barra.item.semanaSituacao === 'aberta'}
+                              aFechar={aFechar}
                               emArrasto={ehSessao}
                               destino={ehSessao && sessao.pessoa !== sessao.pessoaOriginal ? nomeDe(sessao.pessoa) : null}
                               onPromover={promover}
@@ -432,39 +471,34 @@ export function GanttSemana({
   );
 }
 
-/**
- * Onde o trecho desenha na altura da linha, em porcentagem: sozinho, a altura
- * toda; cruzado, a principal na faixa de cima e as secundárias dividindo a de baixo.
- */
-function alturaDoTrecho(trecho: Trecho<unknown>): { topo: number; altura: number } {
-  if (trecho.camadas <= 1) return { topo: 0, altura: 100 };
-  const principal = OVERLAP_MAIN * 100;
-  if (trecho.camada === 0) return { topo: 0, altura: principal };
-  const altura = (OVERLAP_SECONDARY * 100) / (trecho.camadas - 1);
-  return { topo: principal + (trecho.camada - 1) * altura, altura };
+/** Dois degraus que dividem alguma altura da linha. */
+function mesmaAltura(um: Degrau<unknown>, outro: Degrau<unknown>): boolean {
+  const a = faixaVertical(um.camada, um.camadas);
+  const b = faixaVertical(outro.camada, outro.camadas);
+  return a.topo < b.topo + b.altura && b.topo < a.topo + a.altura;
 }
 
 /**
- * Os lados em que o trecho encosta em outro na mesma altura: a que termina às
+ * Os lados em que a barra encosta em outra na mesma altura: a que termina às
  * 9h45 e a que começa às 9h45 se tocam, sem o recuo que sugere um vão de tempo.
  */
-function encostas(trecho: Trecho<unknown>, todos: readonly Trecho<unknown>[]): { inicio: boolean; fim: boolean } {
-  const { topo, altura } = alturaDoTrecho(trecho);
-  const mesmaAltura = (outro: Trecho<unknown>) => {
-    const o = alturaDoTrecho(outro);
-    return o.topo < topo + altura && topo < o.topo + o.altura;
-  };
-  const vizinhos = todos.filter((outro) => outro !== trecho && mesmaAltura(outro));
+function encostas(barra: Barra<unknown>, todas: readonly Barra<unknown>[]): { inicio: boolean; fim: boolean } {
+  const primeiro = barra.perfil[0];
+  const ultimo = barra.perfil[barra.perfil.length - 1];
+  const outras = todas.filter((outra) => outra !== barra);
   return {
-    inicio: vizinhos.some((outro) => outro.faixa.fim === trecho.faixa.inicio),
-    fim: vizinhos.some((outro) => outro.faixa.inicio === trecho.faixa.fim),
+    inicio: outras.some((outra) => {
+      const fim = outra.perfil[outra.perfil.length - 1];
+      return fim.fim === primeiro.inicio && mesmaAltura(fim, primeiro);
+    }),
+    fim: outras.some((outra) => outra.perfil[0].inicio === ultimo.fim && mesmaAltura(outra.perfil[0], ultimo)),
   };
 }
 
-/** Os minutos de eixo livres à direita do trecho, até o próximo que começa ou o fim do dia. */
-function livreDepois(trecho: Trecho<unknown>, todos: readonly Trecho<unknown>[], janela: Eixo): number {
-  const proximo = todos.reduce((menor, t) => (t.faixa.inicio >= trecho.faixa.fim ? Math.min(menor, t.faixa.inicio) : menor), janela.fim);
-  return duracaoUtil({ inicio: trecho.faixa.fim, fim: proximo }, janela);
+/** Os minutos de eixo livres à direita da barra, até a próxima que começa ou o fim do dia. */
+function livreDepois(barra: Barra<unknown>, todas: readonly Barra<unknown>[], janela: Eixo): number {
+  const proximo = todas.reduce((menor, b) => (b.faixa.inicio >= barra.faixa.fim ? Math.min(menor, b.faixa.inicio) : menor), janela.fim);
+  return duracaoUtil({ inicio: barra.faixa.fim, fim: proximo }, janela);
 }
 
 /** O almoço: um divisor fino entre manhã e tarde, no lugar da largura que ele ocupava. */

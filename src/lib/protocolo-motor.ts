@@ -34,6 +34,8 @@ export interface EstadoDaEtapa {
   /** Data real da execução anterior, nunca a planejada (RN-32). */
   ultimaExecucaoEm: string | null;
   ocorrencias: number;
+  /** RN-63: soma dos adiamentos da ocorrência que está por vir. Ausente vale zero. */
+  diasAdiados?: number;
 }
 
 /** O que a espécie sobrescreve, quando sobrescreve (RN-36). */
@@ -59,7 +61,7 @@ export function diasEfetivos(
 
 /**
  * RN-40: conta da execução real quando já houve uma, e da âncora quando nunca
- * houve. **Âncora não resolvida não vence nada**, e o nulo é informação: é o
+ * houve, mais o adiamento da ocorrência (RN-63). **Âncora não resolvida não vence nada**, e o nulo é informação: é o
  * estado de "classificar pós-germinação" enquanto o plantio não foi concluído.
  */
 export function vencimentoDaEtapa(
@@ -71,7 +73,7 @@ export function vencimentoDaEtapa(
   if (partida === null) return null;
   const dias = diasEfetivos(etapa, estado, especie);
   if (dias === null) return null;
-  return somaDias(partida, dias);
+  return somaDias(partida, dias + (estado.diasAdiados ?? 0));
 }
 
 /** Dias de aviso: percentual do tempo efetivo, truncado. 20% de 90 dias são 18. */

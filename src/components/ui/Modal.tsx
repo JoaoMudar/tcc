@@ -16,7 +16,7 @@ const CAIXA: Record<'folha' | 'centro', string> = {
 };
 
 /**
- * A folha por cima da tela, sem sair dela. Escape fecha, clicar fora fecha, e o
+ * A folha por cima da tela, sem sair dela. Escape, o × e clicar fora fecham, e o
  * clique de dentro não vaza para o fundo.
  */
 export function Modal({ titulo, onFechar, posicao = 'folha', children }: ModalProps) {
@@ -43,9 +43,19 @@ export function Modal({ titulo, onFechar, posicao = 'folha', children }: ModalPr
         onClick={(event) => event.stopPropagation()}
       >
         {posicao === 'folha' && <div aria-hidden="true" className="mx-auto h-1 w-9 rounded bg-gray-300" />}
-        <h2 id={tituloId} className="text-lg font-bold text-ink">
-          {titulo}
-        </h2>
+        <div className="flex items-start justify-between gap-3">
+          <h2 id={tituloId} className="text-lg font-bold text-ink">
+            {titulo}
+          </h2>
+          <button
+            type="button"
+            onClick={onFechar}
+            aria-label="Fechar"
+            className="-mt-2 -mr-2 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-xl text-muted hover:bg-surface"
+          >
+            ×
+          </button>
+        </div>
         {children}
       </div>
     </div>

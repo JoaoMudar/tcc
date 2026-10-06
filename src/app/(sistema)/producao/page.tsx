@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { PageHeader } from '@/components/PageHeader';
-import { Notice } from '@/components/ui/Notice';
+import { Toast } from '@/components/ui/Toast';
 import { hojeNoViveiro, isDataIso } from '@/lib/datas';
+import { CAUSAS_PERDA, formatQuantidade, isCausaPerda, lerQuantidade } from '@/lib/lotes-rotulos';
 import { type Recurso, can } from '@/lib/permissions';
 import { requirePageAccess } from '@/lib/auth/guards';
 import { MapaProducao } from './MapaProducao';
@@ -16,15 +17,17 @@ const SECOES: readonly { href: string; title: string; description: string; recur
     recurso: 'lotes',
   },
   { href: '/producao/perdas', title: 'Perdas', description: 'Perdas por período, espécie e causa, e a mortalidade de cada lote.', recurso: 'analise_perdas' },
-  { href: '/producao/saldo', title: 'Muda pronta', description: 'Quanto há pronto para vender, por espécie e recipiente.', recurso: 'estoque_disponivel' },
+  { href: '/producao/saldo', title: 'Estoque disponível', description: 'Quanto há para vender, por espécie, recipiente e altura.', recurso: 'estoque_disponivel' },
 ];
 
 interface ProducaoPageProps {
-  searchParams: Promise<{ dia?: string; aba?: string; feito?: string }>;
+  searchParams: Promise<{ dia?: string; aba?: string; feito?: string; perda?: string; causa?: string; }>;
 }
 
 const FEITO: Record<string, string> = {
   lancada: 'Tarefa lançada.',
+  alterada: 'Tarefa alterada.',
+  confirmada: 'Tarefa confirmada.',
   excluida: 'Tarefa excluída.',
   fechada: 'Semana fechada. O que ficou sem confirmação entrou como realizado, marcado de não confirmado.',
 };
@@ -34,12 +37,19 @@ const FEITO: Record<string, string> = {
  * agenda é uma tela só: a semana inteira no computador, e o dia dela no celular.
  */
 export default async function ProducaoPage({ searchParams }: ProducaoPageProps) {
-  const { dia: diaPedido, aba, feito } = await searchParams;
+  const { dia: diaPedido, aba, feito, perda, causa } = await searchParams;
   const mapa = aba === 'mapa';
   // Cada aba tem o seu recurso na matriz do D4: o mapa é leitura dos três perfis
   const user = await requirePageAccess(mapa ? 'mapa_lotes' : 'agenda');
   const hoje = hojeNoViveiro();
   const dia = diaPedido && isDataIso(diaPedido) ? diaPedido : hoje;
+  // A confirmação que registrou mudas mortas diz isso junto (UC-20)
+  const perdaRegistrada = feito === 'confirmada' ? lerQuantidade(perda ?? '') : null;
+  const avisoPerda =
+    perdaRegistrada !== null && causa && isCausaPerda(causa)
+      ? ` Perda de ${formatQuantidade(perdaRegistrada)} por ${CAUSAS_PERDA[causa].toLowerCase()} registrada no lote.`
+      : '';
+  const avisoFeito = feito ? FEITO[feito] : undefined;
 
   return (
     <main>
@@ -51,7 +61,12 @@ export default async function ProducaoPage({ searchParams }: ProducaoPageProps) 
           <MapaProducao />
         ) : (
           <>
-            {feito && FEITO[feito] && <Notice tone="success">{FEITO[feito]}</Notice>}
+            {avisoFeito && (
+              <Toast tone="success" limpar={['feito', 'perda', 'causa']}>
+                {avisoFeito}
+                {avisoPerda}
+              </Toast>
+            )}
             <AgendaDaSemana dia={dia} hoje={hoje} perfil={user.perfil} />
           </>
         )}

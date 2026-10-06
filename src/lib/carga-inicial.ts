@@ -86,7 +86,8 @@ export async function importarCarga(client: PoolClient, carga: Partial<Record<Ar
   const erro = (linha: Linha, msg: string) => r.erros.push(`${linha.__linha}: ${msg}`);
 
   for (const linha of carga.recipientes ?? []) {
-    const campos = parseRecipienteFields({ nome: linha.nome, volume: linha.volume_litros });
+    // `peso_kg` é opcional: a planilha antiga, sem a coluna, continua valendo
+    const campos = parseRecipienteFields({ nome: linha.nome, volume: linha.volume_litros, peso: linha.peso_kg ?? '' });
     if ('error' in campos) {
       erro(linha, campos.error);
       continue;

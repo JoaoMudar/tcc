@@ -13,6 +13,7 @@ vi.mock('@/lib/rotas-ors', async (importOriginal) => ({
   geocodificarTexto: vi.fn(),
   otimizarOrdem: vi.fn(),
   sugerirEnderecos: vi.fn(),
+  enderecoDoPonto: vi.fn(),
 }));
 
 const client = { query: vi.fn(), release: vi.fn() };
@@ -20,7 +21,7 @@ vi.mock('@/lib/db', () => ({ default: { query: vi.fn(), connect: vi.fn(async () 
 
 const { requireUser } = await import('@/lib/auth/dal');
 const { default: pool } = await import('@/lib/db');
-const { MapaIndisponivel, geocodificarTexto, sugerirEnderecos } = await import('@/lib/rotas-ors');
+const { MapaIndisponivel, enderecoDoPonto, geocodificarTexto, sugerirEnderecos } = await import('@/lib/rotas-ors');
 const actions = await import('../actions');
 
 const DIA = '2026-10-02';
@@ -178,6 +179,41 @@ describe('confirmar carga (Tela 1 → Tela 2)', () => {
   });
 });
 
+describe('os passos do cabeçalho (P17)', () => {
+  it('do carregamento volta à rota, sem tocar nas cargas', async () => {
+    situacaoViagem = 'carregando';
+    const state = await actions.irParaEtapaAction({}, form({ data: DIA, viagem_id: VIAGEM, atual: 'carregando', para: 'roteirizando' }));
+    expect(state.error).toBeUndefined();
+    expect(gravouEm('UPDATE viagens SET situacao = $2')[0][1]).toEqual([VIAGEM, 'roteirizando']);
+    expect(gravouEm('pedidos_cargas')).toHaveLength(0);
+  });
+
+  it('do carregamento volta direto à carga', async () => {
+    situacaoViagem = 'carregando';
+    await actions.irParaEtapaAction({}, form({ data: DIA, viagem_id: VIAGEM, atual: 'carregando', para: 'montando' }));
+    expect(gravouEm('UPDATE viagens SET situacao = $2')[0][1]).toEqual([VIAGEM, 'montando']);
+  });
+
+  it('a viagem pronta não volta', async () => {
+    situacaoViagem = 'pronta';
+    const state = await actions.irParaEtapaAction({}, form({ data: DIA, viagem_id: VIAGEM, atual: 'pronta', para: 'roteirizando' }));
+    expect(state.error).toMatch(/já está pronta/);
+  });
+
+  it('avançar da carga é o mesmo "Confirmar carga"', async () => {
+    vi.mocked(geocodificarTexto).mockRejectedValue(new MapaIndisponivel('sem chave'));
+    await expect(
+      actions.irParaEtapaAction({}, form({ data: DIA, viagem_id: VIAGEM, atual: 'montando', para: 'roteirizando' })),
+    ).rejects.toThrow(`REDIRECT /pedidos/planejar/${DIA}?aviso=mapa_indisponivel`);
+  });
+
+  it('etapa que não existe é recusada', async () => {
+    const state = await actions.irParaEtapaAction({}, form({ data: DIA, viagem_id: VIAGEM, atual: 'montando', para: 'pronta' }));
+    expect(state.error).toBe('Etapa inválida.');
+    expectNoDatabase();
+  });
+});
+
 describe('ordem da rota (Tela 2)', () => {
   it('recusa lista com id que não é uuid, sem ir ao banco', async () => {
     const state = await actions.salvarOrdemAction(DIA, VIAGEM, [PARADA, 'x']);
@@ -230,5 +266,51 @@ describe('sugestões de endereço', () => {
   it('mapa fora do ar é lista vazia, e não erro', async () => {
     vi.mocked(sugerirEnderecos).mockRejectedValue(new MapaIndisponivel('sem chave'));
     await expect(actions.buscarEnderecosAction('Rio do Sul')).resolves.toEqual([]);
+  });
+});
+
+describe('o endereço de entrega completado na rota (P17)', () => {
+  const CLIENTE = '5a8c4b6d-3e0f-4b7a-8c5d-7e1f2a3b4c5d';
+
+  function enviar(campos: Record<string, string>) {
+    return actions.salvarEnderecoEntregaAction({}, form({ data: DIA, viagem_id: VIAGEM, cliente_id: CLIENTE, ...campos }));
+  }
+
+  beforeEach(() => {
+    situacaoViagem = 'roteirizando';
+  });
+
+  it('a localização colada que não se lê volta como erro, sem ir ao banco', async () => {
+    const state = await enviar({ endereco: '', localizacao: 'perto do posto' });
+    expect(state.error).toMatch(/não deu para ler a localização/i);
+    expect(state.fields?.localizacao).toBe('perto do posto');
+    expectNoDatabase();
+  });
+
+  it('nada digitado nem colado é recusado', async () => {
+    expect((await enviar({ endereco: '', localizacao: '' })).error).toBe('Digite o endereço ou cole a localização.');
+  });
+
+  it('só a localização do WhatsApp: o ponto vira o endereço, com a rua achada no mapa', async () => {
+    vi.mocked(enderecoDoPonto).mockResolvedValue({ logradouro: 'Estrada Geral', cidade: 'Ibirama', uf: 'SC', cep: null });
+    const state = await enviar({ endereco: '', localizacao: 'https://maps.google.com/maps?q=-27.05%2C-49.52&z=17' });
+    expect(state.error).toBeUndefined();
+    const [[, valores]] = gravouEm('INSERT INTO cadastro.pessoas_enderecos');
+    expect(valores).toEqual([CLIENTE, 'Estrada Geral', 'Ibirama', 'SC', null, -27.05, -49.52]);
+    expect(gravouEm('sugerir_ordem = sugerir_ordem OR $2')[0][1]).toEqual([VIAGEM, true]);
+  });
+
+  it('o mapa fora do ar não impede: o ponto fica com um texto que diz de onde veio', async () => {
+    vi.mocked(enderecoDoPonto).mockRejectedValue(new MapaIndisponivel('sem resposta'));
+    await enviar({ endereco: '', localizacao: '-27.05, -49.52' });
+    const [[, valores]] = gravouEm('INSERT INTO cadastro.pessoas_enderecos');
+    expect(valores).toEqual([CLIENTE, 'Localização enviada pelo WhatsApp', null, null, null, -27.05, -49.52]);
+  });
+
+  it('o endereço escolhido na lista guarda a rua, e a cidade vai no campo dela', async () => {
+    vi.mocked(enderecoDoPonto).mockResolvedValue({ logradouro: 'Rua XV', cidade: 'Rio do Sul', uf: 'SC', cep: '89160-000' });
+    await enviar({ endereco: 'Rua XV de Novembro, 120, Rio do Sul, SC, Brasil', lat: '-27.21', lng: '-49.64', localizacao: '' });
+    const [[, valores]] = gravouEm('INSERT INTO cadastro.pessoas_enderecos');
+    expect(valores).toEqual([CLIENTE, 'Rua XV de Novembro, 120', 'Rio do Sul', 'SC', '89160-000', -27.21, -49.64]);
   });
 });

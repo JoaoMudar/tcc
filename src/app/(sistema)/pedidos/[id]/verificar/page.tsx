@@ -10,7 +10,7 @@ import { isUuid } from '@/lib/uuid';
 import { requirePageAccess } from '@/lib/auth/guards';
 import { AcoesVerificacao } from './AcoesVerificacao';
 import { ComposicaoGenerico } from './ComposicaoGenerico';
-import { VerificacaoItem } from './VerificacaoItem';
+import { type ItemParaConferir, VerificacaoItem } from './VerificacaoItem';
 
 interface VerificarPageProps {
   params: Promise<{ id: string }>;
@@ -40,14 +40,13 @@ export default async function VerificarPage({ params }: VerificarPageProps) {
 
   // O complemento (P13) é parte da resposta do item que ele completa: sai no cartão dele
   const topo = pedido.itens.filter((item) => item.itemPaiId === null && item.complementaItemId === null);
-  const complementoDe = new Map(
-    pedido.itens
-      .filter((item) => item.complementaItemId !== null)
-      .map((item) => [
-        item.complementaItemId!,
-        { quantidade: item.quantidade, recipienteId: item.recipienteId, recipiente: item.recipiente, alturaM: item.alturaM },
-      ]),
-  );
+  const complementosDe = new Map<string, ItemParaConferir['complementos']>();
+  for (const item of pedido.itens) {
+    if (item.complementaItemId === null) continue;
+    const linhas = complementosDe.get(item.complementaItemId) ?? [];
+    linhas.push({ quantidade: item.quantidade, recipienteId: item.recipienteId, recipiente: item.recipiente, alturaM: item.alturaM });
+    complementosDe.set(item.complementaItemId, linhas);
+  }
   const genericos = topo.filter((item) => item.generico);
   const especificos = topo.filter((item) => !item.generico);
   const respondidos = topo.filter((item) => item.disponivel !== null).length;
@@ -143,7 +142,7 @@ export default async function VerificarPage({ params }: VerificarPageProps) {
                   recipienteDisponivel: item.recipienteDisponivel,
                   alturaDisponivelM: item.alturaDisponivelM,
                   observacoesDisponibilidade: item.observacoesDisponibilidade,
-                  complemento: complementoDe.get(item.id) ?? null,
+                  complementos: complementosDe.get(item.id) ?? [],
                 }}
                 recipientes={opcoesRecipiente}
               />

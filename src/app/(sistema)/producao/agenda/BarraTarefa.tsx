@@ -3,8 +3,18 @@
 import Link from 'next/link';
 import { type KeyboardEvent, type PointerEvent as ReactPointerEvent, useEffect, useRef, useState } from 'react';
 import type { AtribuicaoResumo } from '@/lib/agenda';
-import { type Eixo, type Faixa, duracaoUtil, formatMinuto, posicaoPercentual } from '@/lib/agenda-grade';
-import { ESTADOS_TAREFA, estadoTarefa, formatHoraTarefa } from '@/lib/agenda-rotulos';
+import {
+  type Degrau,
+  type Eixo,
+  type Faixa,
+  duracaoUtil,
+  faixaDoTexto,
+  faixaVertical,
+  formatMinuto,
+  posicaoPercentual,
+  recortePerfil,
+} from '@/lib/agenda-grade';
+import { ESTADOS_TAREFA, type EstadoTarefa, estadoNaGrade, formatHoraTarefa } from '@/lib/agenda-rotulos';
 import { COR_CATEGORIA, FUNDO_CATEGORIA } from '@/lib/cores-categoria';
 import { nomeDia } from '@/lib/semanas';
 import { turnoLabel } from '@/lib/turnos';
@@ -21,25 +31,20 @@ interface BarraTarefaProps {
   atribuicao: AtribuicaoResumo;
   /** A faixa inteira da tarefa vai no alvo: é ela que o arrasto move. */
   alvo: AlvoArrasto;
-  /** O pedaço desenhado: cruzada por outra, a tarefa sai em mais de um (RF-26). */
+  /** O que o card ocupa no eixo: a tarefa inteira, mesmo cruzada por outra. */
   desenho: Faixa;
-  /** 0 é a principal; de 1 em diante, as secundárias da faixa de baixo. */
-  camada: number;
-  /** As bordas do pedaço que são bordas reais da tarefa: só nelas a alça aparece. */
-  alcas: { inicio: boolean; fim: boolean };
-  /** Na última faixa: as tarefas que também se cruzam ali e não couberam na altura. */
-  ocultas: readonly AtribuicaoResumo[];
+  /** A altura em cada pedaço: cruzada por outra, só ali ela perde a faixa da outra (RF-26). */
+  perfil: readonly Degrau<AtribuicaoResumo>[];
   janela: Eixo;
-  /** Minutos de eixo livres à direita do pedaço: onde o título do card estreito pode ficar. */
+  /** Minutos de eixo livres à direita do card: onde o título do card estreito pode ficar. */
   livreDepois: number;
   /** Os lados que tocam outro card na mesma altura: ali não há recuo, porque não há vão de tempo. */
   encosta?: { inicio: boolean; fim: boolean };
-  /** Em porcentagem da altura da linha. */
-  topo: number;
-  altura: number;
   arrastavel: boolean;
   /** Pode virar a principal: a semana está aberta e quem vê pode alterar. */
   promovivel: boolean;
+  /** A semana já pode ser fechada: o card diz, pela cor cheia, o que falta confirmar. */
+  aFechar?: boolean;
   /** É o fantasma do arrasto, desenhado onde o ponteiro está. */
   emArrasto: boolean;
   /** No arrasto para a linha de outra pessoa, quem passa a fazer: vai no balão. */
@@ -79,6 +84,22 @@ function nivelDa(largura: number | null): Nivel {
   return largura >= LARGURA_MINIMA_TEXTO ? 'linha' : 'barra';
 }
 
+/** O recuo do card dentro da caixa da barra, em pixels (o `p-0.5`). */
+const RECUO = 2;
+
+/**
+ * A cor cheia do card. Na semana que já pode ser fechada, ela diz o que o
+ * fechamento vai fazer: âmbar para o que ninguém confirmou (entra presumido),
+ * verde para o confirmado. Nas outras, o confirmado ganha a cor da categoria.
+ * Nula quando o card fica só tingido.
+ */
+export function corCheia(estado: EstadoTarefa, categoria: keyof typeof COR_CATEGORIA, aFechar: boolean): string | null {
+  const confirmada = estado === 'feita' || estado === 'parcial' || estado === 'nao_feita';
+  if (aFechar && estado === 'presumida') return 'bg-atencao';
+  if (aFechar && confirmada) return 'bg-feito';
+  return confirmada ? COR_CATEGORIA[categoria] : null;
+}
+
 /** Quebra só entre palavras: nunca "Adub/ar". */
 const SEM_QUEBRA_NA_PALAVRA = '[word-break:normal] [overflow-wrap:normal] hyphens-none';
 
@@ -88,34 +109,51 @@ const SEM_QUEBRA_NA_PALAVRA = '[word-break:normal] [overflow-wrap:normal] hyphen
  * foge do planejado, e o que foi feito pesa menos. O conteúdo segue a largura:
  * título e horário a partir de 110px, título numa linha a partir de 48px, e só a
  * faixa abaixo disso. Toca para abrir a ficha; o corpo se arrasta e as bordas se
- * puxam. Cruzada com outra da mesma pessoa, a secundária ocupa a faixa de baixo
- * com o título numa linha e pode virar a principal (RF-26).
+ * puxam. Cruzada com outra da mesma pessoa, a tarefa continua um card só, do
+ * início ao fim: só o pedaço cruzado perde altura, a principal fica com a faixa
+ * de cima, a secundária com a de baixo, e ela pode virar a principal (RF-26).
  */
 export function BarraTarefa({
   atribuicao: a,
   alvo,
   desenho,
-  camada,
-  alcas,
-  ocultas,
+  perfil,
   janela,
   livreDepois,
   encosta = { inicio: false, fim: false },
-  topo,
-  altura,
   arrastavel,
   promovivel,
+  aFechar = false,
   emArrasto,
   destino,
   onPromover,
   iniciar,
   aoTeclar,
 }: BarraTarefaProps) {
-  const estado = estadoTarefa(a);
+  const estado = estadoNaGrade(a, aFechar);
   const hora = formatHoraTarefa(a.horaInicio, a.horaFim)?.replace(' às ', '–');
-  const apagada = estado === 'feita' || estado === 'cancelada';
-  const secundaria = camada > 0;
+  // O que já foi feito (ou, na semana a fechar, o que falta confirmar) ganha cor cheia: precisa saltar aos olhos
+  const cheia = emArrasto ? null : corCheia(estado, a.categoria, aFechar);
+  const confirmada = cheia !== null;
+  const apagada = estado === 'cancelada';
+  const secundaria = perfil.some((d) => d.camada > 0);
   const { left, width } = posicaoPercentual(desenho, janela);
+  const recuo = { inicio: encosta.inicio ? 0 : RECUO, fim: encosta.fim ? 0 : RECUO, topo: RECUO, base: RECUO };
+  const recorte = recortePerfil(desenho, perfil, janela, recuo);
+  // O texto fica no começo do card, na altura que nenhum cruzamento corta
+  const texto = faixaDoTexto(perfil);
+  const compacto = texto.altura < 100;
+  const embaixo = texto.topo > 0;
+  /** O pedaço do degrau dentro do card, em porcentagem da largura dele. */
+  const noCard = (d: Degrau<AtribuicaoResumo>) => {
+    const p = posicaoPercentual({ inicio: d.inicio, fim: d.fim, derivada: false }, janela);
+    return width > 0 ? { left: ((p.left - left) / width) * 100, width: (p.width / width) * 100 } : { left: 0, width: 100 };
+  };
+  // O "Tornar principal" vai no primeiro pedaço em que ela está embaixo; o "+N", em cada pedaço que o tem
+  const primeiraEmbaixo = perfil.findIndex((d) => d.camada > 0);
+  const extras = perfil
+    .map((d, indice) => ({ d, indice, promover: indice === primeiraEmbaixo && promovivel, ocultas: d.ocultas }))
+    .filter((e) => e.promover || e.ocultas.length > 0);
   const { ref, largura } = useLargura<HTMLAnchorElement>();
   const nivel = nivelDa(largura);
   // O título do card estreito vai para o vão à direita, se o vão comporta texto
@@ -132,12 +170,10 @@ export function BarraTarefa({
 
   return (
     <div
-      style={{ left: `${left}%`, width: `${width}%`, top: `${topo}%`, height: `${altura}%` }}
-      className={`group/barra absolute flex items-stretch ${secundaria ? 'pb-0.5' : 'py-0.5'} ${encosta.inicio ? '' : 'pl-0.5'} ${
+      style={{ left: `${left}%`, width: `${width}%` }}
+      className={`group/barra pointer-events-none absolute inset-y-0 flex items-stretch py-0.5 ${encosta.inicio ? '' : 'pl-0.5'} ${
         encosta.fim ? '' : 'pr-0.5'
-      } ${
-        emArrasto ? 'z-20' : 'z-10 transition-[left,width,top,height] duration-150 ease-out'
-      }`}
+      } ${emArrasto ? 'z-20' : 'z-10 transition-[left,width] duration-150 ease-out'}`}
     >
       {emArrasto && <EtiquetaHora faixa={alvo.faixa} destino={destino ?? null} />}
       <Link
@@ -145,6 +181,8 @@ export function BarraTarefa({
         href={`/producao/agenda/${a.id}`}
         aria-label={`${a.tipo}, ${nomeDia(alvo.dia)}, ${hora ?? turnoLabel(a.turno)}, ${ESTADOS_TAREFA[estado]}${secundaria ? ', na faixa de baixo' : ''}`}
         title={titulo}
+        style={recorte ? { clipPath: recorte } : undefined}
+        data-recorte={recorte}
         onPointerDown={(evento) => {
           if (!arrastavel) return;
           arrastouDe.current = { x: evento.clientX, y: evento.clientY };
@@ -160,35 +198,43 @@ export function BarraTarefa({
             onPromover(a.id);
           } else if (arrastavel) aoTeclar(evento, alvo);
         }}
-        className={`relative flex min-w-0 flex-1 gap-1 overflow-hidden rounded-md ${encosta.inicio ? 'rounded-l-none' : ''} ${
+        className={`pointer-events-auto relative flex min-w-0 flex-1 gap-1 overflow-hidden rounded-md ${encosta.inicio ? 'rounded-l-none' : ''} ${
           encosta.fim ? 'rounded-r-none border-r-0' : ''
-        } border border-line pr-1 pl-2 text-left hover:border-gray-400 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-dark ${
-          FUNDO_CATEGORIA[a.categoria]
-        } ${secundaria ? 'items-center' : 'items-start py-1'} ${arrastavel ? 'cursor-grab touch-none active:cursor-grabbing' : ''} ${
+        } border pr-1 pl-2 text-left hover:border-gray-400 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-dark ${
+          cheia ? `${cheia} border-transparent` : `${FUNDO_CATEGORIA[a.categoria]} border-line`
+        } ${compacto ? '' : 'items-start py-1'} ${arrastavel ? 'cursor-grab touch-none active:cursor-grabbing' : ''} ${
           emArrasto ? 'bg-white shadow-lg ring-2 ring-brand' : ''
         }`}
       >
         <span aria-hidden className={`absolute inset-y-0 left-0 w-1 ${COR_CATEGORIA[a.categoria]}`} />
         {nivel !== 'barra' && (
-          <span className="flex min-w-0 flex-1 flex-col">
-            <span
-              className={`${SEM_QUEBRA_NA_PALAVRA} leading-tight font-medium ${secundaria ? 'text-[11px]' : 'text-xs'} ${
-                nivel === 'completo' && !secundaria ? 'line-clamp-2' : 'truncate'
-              } ${apagada ? 'text-muted' : 'text-ink'} ${estado === 'cancelada' ? 'line-through' : ''}`}
-            >
-              {a.tipo}
+          <span
+            style={compacto ? { top: `${texto.topo}%`, height: `${texto.altura}%` } : undefined}
+            className={`flex min-w-0 flex-1 gap-1 ${compacto ? `absolute inset-x-0 pr-1 pl-2 ${embaixo ? 'items-center' : 'items-start pt-0.5'}` : ''}`}
+          >
+            <span className="flex min-w-0 flex-1 flex-col">
+              <span
+                className={`${SEM_QUEBRA_NA_PALAVRA} leading-tight font-medium ${embaixo ? 'text-[11px]' : 'text-xs'} ${
+                  nivel === 'completo' && !compacto ? 'line-clamp-2' : 'truncate'
+                } ${confirmada ? 'text-white' : apagada ? 'text-muted' : 'text-ink'} ${estado === 'cancelada' ? 'line-through' : ''}`}
+              >
+                {a.tipo}
+              </span>
+              {nivel === 'completo' && !embaixo && (
+                <span className={`truncate text-[11px] leading-tight tabular-nums ${confirmada ? 'text-white/85' : 'text-muted'}`}>
+                  {hora ?? turnoLabel(a.turno)}
+                </span>
+              )}
             </span>
-            {nivel === 'completo' && !secundaria && (
-              <span className="truncate text-[11px] leading-tight text-muted tabular-nums">{hora ?? turnoLabel(a.turno)}</span>
-            )}
+            {/* Sobre a cor cheia, o verde, o âmbar e o vermelho do ícone só leem num fundo branco */}
+            <IconeEstado estado={estado} className={`text-xs ${confirmada ? 'h-4 self-start rounded-full bg-white px-1 items-center' : ''}`} />
           </span>
         )}
-        {nivel !== 'barra' && <IconeEstado estado={estado} className="text-xs" />}
 
-        {arrastavel && alcas.inicio && (
+        {arrastavel && (
           <Alca posicao="inicio" rotulo={`Mudar o início de ${a.tipo}`} onIniciar={(evento) => iniciar(evento, alvo, 'inicio')} />
         )}
-        {arrastavel && alcas.fim && <Alca posicao="fim" rotulo={`Mudar o fim de ${a.tipo}`} onIniciar={(evento) => iniciar(evento, alvo, 'fim')} />}
+        {arrastavel && <Alca posicao="fim" rotulo={`Mudar o fim de ${a.tipo}`} onIniciar={(evento) => iniciar(evento, alvo, 'fim')} />}
       </Link>
 
       {larguraFora >= LARGURA_MINIMA_TEXTO && (
@@ -201,22 +247,35 @@ export function BarraTarefa({
         </span>
       )}
 
-      {!emArrasto && ((secundaria && promovivel) || ocultas.length > 0) && (
-        <span className="absolute inset-y-0 right-2 z-10 flex items-center gap-0.5 pb-0.5">
-          {secundaria && promovivel && (
-            <button
-              type="button"
-              onClick={() => onPromover(a.id)}
-              aria-label={`Tornar principal: ${a.tipo}`}
-              title="Tornar principal"
-              className="rounded bg-white/80 px-1 text-xs leading-4 text-muted opacity-0 group-hover/barra:opacity-100 hover:text-ink focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-brand-dark"
+      {!emArrasto &&
+        extras.map(({ d, indice, promover, ocultas }) => {
+          const { topo, altura } = faixaVertical(d.camada, d.camadas);
+          const { left: esquerda, width: largo } = noCard(d);
+          return (
+            <span
+              key={indice}
+              style={{ left: `${esquerda}%`, width: `${largo}%`, top: `${topo}%`, height: `${altura}%` }}
+              className="absolute z-10 flex items-center justify-end gap-0.5 pr-2"
             >
-              ⤒
-            </button>
-          )}
-          {ocultas.length > 0 && <ListaSobrepostas tarefas={ocultas} promovivel={promovivel} onPromover={onPromover} />}
-        </span>
-      )}
+              {promover && (
+                <button
+                  type="button"
+                  onClick={() => onPromover(a.id)}
+                  aria-label={`Tornar principal: ${a.tipo}`}
+                  title="Tornar principal"
+                  className="pointer-events-auto rounded bg-white/80 px-1 text-xs leading-4 text-muted opacity-0 group-hover/barra:opacity-100 hover:text-ink focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-brand-dark"
+                >
+                  ⤒
+                </button>
+              )}
+              {ocultas.length > 0 && (
+                <span className="pointer-events-auto">
+                  <ListaSobrepostas tarefas={ocultas} promovivel={promovivel} onPromover={onPromover} />
+                </span>
+              )}
+            </span>
+          );
+        })}
     </div>
   );
 }

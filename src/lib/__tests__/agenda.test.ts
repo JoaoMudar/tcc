@@ -4,6 +4,7 @@ import {
   type AtribuicaoResumo,
   type EstadoTarefaInput,
   detalhesAtribuicao,
+  estadoNaGrade,
   estadoTarefa,
   formatHoraTarefa,
   formatQuantidadeMedida,
@@ -168,6 +169,26 @@ describe('estadoTarefa (RF-29, RF-31, RN-14)', () => {
   });
 });
 
+describe('estadoNaGrade: a semana que já pode ser fechada (RF-31, RN-14)', () => {
+  const planejada: EstadoTarefaInput = { situacao: 'planejada', eQuantitativa: false, quantidadePlanejada: null, participantes: [{ quantidade: null }] };
+
+  it('a planejada com gente já mostra o "?" que o fechamento vai dar', () => {
+    expect(estadoNaGrade(planejada, true)).toBe('presumida');
+  });
+
+  it('antes de a semana poder fechar, a planejada segue planejada', () => {
+    expect(estadoNaGrade(planejada, false)).toBe('planejada');
+  });
+
+  it('a sem ninguém fica planejada: o fechamento a deixa pendente', () => {
+    expect(estadoNaGrade({ ...planejada, participantes: [] }, true)).toBe('planejada');
+  });
+
+  it('a confirmada não muda', () => {
+    expect(estadoNaGrade({ ...planejada, situacao: 'confirmada' }, true)).toBe('feita');
+  });
+});
+
 describe('parseAtribuicao (RF-21, RF-26, RF-30)', () => {
   it('aceita pessoas, dias e turno, sem repetir', () => {
     const v = valor(parseAtribuicao(SIMPLES, bruta({ participantes: [P1, P2, P1], dias: ['2026-09-16', SEMANA, SEMANA] })));
@@ -176,10 +197,14 @@ describe('parseAtribuicao (RF-21, RF-26, RF-30)', () => {
     expect(v.horaInicio).toBeNull();
   });
 
+  it('o domingo é da semana, e aceita tarefa', () => {
+    expect(valor(parseAtribuicao(SIMPLES, bruta({ dias: ['2026-09-20'] }))).dias).toEqual(['2026-09-20']);
+  });
+
   it('exige ao menos uma pessoa, um dia da semana e o turno', () => {
     expect(parseAtribuicao(SIMPLES, bruta({ participantes: [] }))).toEqual({ error: 'Escolha ao menos uma pessoa.' });
     expect(parseAtribuicao(SIMPLES, bruta({ dias: [] }))).toEqual({ error: 'Escolha ao menos um dia.' });
-    expect(parseAtribuicao(SIMPLES, bruta({ dias: ['2026-09-20'] }))).toEqual({ error: expect.stringContaining('dias desta semana') });
+    expect(parseAtribuicao(SIMPLES, bruta({ dias: ['2026-09-21'] }))).toEqual({ error: expect.stringContaining('dias desta semana') });
     expect(parseAtribuicao(SIMPLES, bruta({ turnoId: '' }))).toEqual({ error: expect.stringContaining('turno') });
     expect(parseAtribuicao(SIMPLES, bruta({ semana: '2026-09-15' }))).toEqual({ error: 'Semana inválida.' });
   });

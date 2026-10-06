@@ -24,6 +24,8 @@ vi.mock('../NovaTarefaModal', () => ({
 
 const { promoverAtribuicaoAction, reagendarAtribuicaoAction } = await import('../actions');
 const { GanttSemana, HOVER_EXPAND } = await import('../GanttSemana');
+const { ZoomAgenda } = await import('../ZoomAgenda');
+const { SeletorZoom } = await import('../SeletorZoom');
 
 const TERCA = '2026-09-29';
 const DIAS = [SEMANA, TERCA];
@@ -39,8 +41,6 @@ function montar(atribuicoes: AtribuicaoResumo[] = [tarefa()], props: Partial<Par
       turnos={[MANHA, TARDE]}
       hoje={SEMANA}
       semana={SEMANA}
-      anterior="/producao?dia=2026-09-21"
-      proxima="/producao?dia=2026-10-05"
       podeArrastar
       {...props}
     />,
@@ -91,6 +91,14 @@ describe('GanttSemana: desenho (T5.1, RNF-14)', () => {
     expect(barra).toHaveAttribute('href', '/producao/agenda/a1');
     expect(barra.querySelector('.bg-orange-800')).not.toBeNull();
     expect(barra.className).toContain('bg-orange-800/[0.08]');
+  });
+
+  it('confirmada, a barra ganha a cor cheia da categoria e o título branco', () => {
+    montar([tarefa({ situacao: 'confirmada' })]);
+    const barra = screen.getByRole('link', { name: TITULO });
+    expect(barra.className).not.toContain('bg-orange-800/[0.08]');
+    expect(barra.className.split(' ')).toContain('bg-orange-800');
+    expect(within(barra).getByText(TITULO).className).toContain('text-white');
   });
 
   it('o almoço não ocupa largura: a manhã é a primeira metade e a tarde a segunda, sem tracejado (RN-12)', () => {
@@ -151,15 +159,28 @@ describe('GanttSemana: sobreposição em duas faixas (RF-26)', () => {
   it('a linha não cresce: a mais longa fica em cima com 60%, e a outra embaixo com 40%', () => {
     montar([tarefa(), tarefa(IRRIGACAO)]);
     expect((linhaDe(GILBERTO.id) as HTMLElement).style.height).toBe('60px');
-    // A manhã sai antes, durante (em cima) e depois da irrigação
+    // A manhã é um card só, do começo ao fim, recortado embaixo só durante a irrigação
     const principais = screen.getAllByRole('link', { name: /^Encher saquinhos.*Planejada$/ });
-    expect(principais.map((b) => [estilo(b).left, estilo(b).height])).toEqual([
-      ['0%', '100%'],
-      ['12.5%', '60%'],
-      ['25%', '100%'],
-    ]);
+    expect(principais).toHaveLength(1);
+    expect(estilo(principais[0])).toMatchObject({ left: '0%', width: '50%' });
+    const recorte = principais[0].getAttribute('data-recorte');
+    expect(recorte).toContain('calc(25% + -1px) calc(60% + -0.6px)');
+    expect(recorte).toContain('calc(50% + 0px) calc(60% + -0.6px)');
     const irrigar = screen.getByRole('link', { name: /^Irrigação.*faixa de baixo/ });
-    expect(estilo(irrigar)).toMatchObject({ top: '60%', height: '40%', left: '12.5%' });
+    expect(estilo(irrigar)).toMatchObject({ left: '12.5%', width: '12.5%' });
+    expect(irrigar.getAttribute('data-recorte')).toContain('calc(60% + 1.4px)');
+  });
+
+  it('a tarefa longa cruzada por outra é um card só, com um título e uma faixa de cor', () => {
+    montar([
+      tarefa({ tipo: 'Adubar', turnoId: MANHA.id, horaInicio: '07:30', horaFim: '17:30' }),
+      tarefa({ id: 'a2', tipo: 'Semear', horaInicio: '09:30', horaFim: '10:30' }),
+    ]);
+    const adubar = screen.getAllByRole('link', { name: /^Adubar/ });
+    expect(adubar).toHaveLength(1);
+    expect(adubar[0].querySelectorAll('.bg-orange-800')).toHaveLength(1);
+    expect(screen.getAllByText('Adubar')).toHaveLength(1);
+    expect(screen.getByRole('link', { name: /^Semear.*faixa de baixo/ })).toBeInTheDocument();
   });
 
   it('a secundária mostra só o título, sem horário', () => {
@@ -171,7 +192,8 @@ describe('GanttSemana: sobreposição em duas faixas (RF-26)', () => {
   it('a escolhida à mão fica em cima, mesmo sendo a mais curta', () => {
     montar([tarefa(), tarefa({ ...IRRIGACAO, prioridadeEm: '2026-09-21T12:00:00.000000Z' })]);
     expect(screen.getByRole('link', { name: /Encher saquinhos.*faixa de baixo/ })).toBeInTheDocument();
-    expect(estilo(screen.getByRole('link', { name: /^Irrigação.*Planejada$/ })).height).toBe('60%');
+    // A irrigação, só no seu horário, fica com a faixa de cima: o recorte a corta em 60%
+    expect(screen.getByRole('link', { name: /^Irrigação.*Planejada$/ }).getAttribute('data-recorte')).toContain('calc(60% + -0.6px)');
   });
 
   it('"Tornar principal" na secundária grava a escolha', async () => {
@@ -483,5 +505,69 @@ describe('GanttSemana: linha do agora e sem balões de instrução', () => {
     expect(screen.queryByRole('note')).toBeNull();
     expect(screen.queryByText(/Arraste para remarcar/)).toBeNull();
     expect(document.querySelector('[title="Clique para lançar tarefa aqui"]')).toBeNull();
+  });
+});
+
+describe('GanttSemana: zoom', () => {
+  const DIAS_SEMANA = [SEMANA, TERCA, '2026-09-30', '2026-10-01', '2026-10-02', '2026-10-03', '2026-10-04'];
+
+  function comZoom(inicial: 'semana' | '3dias' | 'dia', dia = '2026-09-30') {
+    return render(
+      <ZoomAgenda inicial={inicial}>
+        <SeletorZoom />
+        <GanttSemana atribuicoes={[]} funcionarios={[GILBERTO]} dias={DIAS_SEMANA} dia={dia} turnos={[MANHA, TARDE]} hoje={SEMANA} semana={SEMANA} />
+      </ZoomAgenda>,
+    );
+  }
+
+  const colunas = () => Array.from(linhaDe(GILBERTO.id).children).map((celula) => celula.getAttribute('aria-label'));
+
+  it('a semana mostra os cinco dias úteis, o 3 dias começa no dia, e o Dia só ele', () => {
+    const { unmount } = comZoom('semana');
+    expect(colunas()).toEqual(['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta']);
+    unmount();
+    const outro = comZoom('3dias');
+    expect(colunas()).toEqual(['Quarta', 'Quinta', 'Sexta']);
+    outro.unmount();
+    comZoom('dia');
+    expect(colunas()).toEqual(['Quarta']);
+  });
+
+  it('sábado e domingo entram na grade pelos zooms 3 dias e Dia', () => {
+    const { unmount } = comZoom('3dias', '2026-10-02');
+    expect(colunas()).toEqual(['Sexta', 'Sábado', 'Domingo']);
+    unmount();
+    comZoom('dia', '2026-10-04');
+    expect(colunas()).toEqual(['Domingo']);
+  });
+
+  it('o seletor troca o zoom e o guarda no cookie', () => {
+    comZoom('semana');
+    fireEvent.click(screen.getByRole('button', { name: 'Dia' }));
+    expect(colunas()).toEqual(['Quarta']);
+    expect(screen.getByRole('button', { name: 'Dia' }).getAttribute('aria-pressed')).toBe('true');
+    expect(document.cookie).toContain('agenda_zoom=dia');
+  });
+
+  it('Ctrl + roda para cima aproxima, para baixo afasta; sem Ctrl, nada muda', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    comZoom('semana');
+    const grade = linhaDe(GILBERTO.id).closest('.overflow-x-auto')!;
+    fireEvent.wheel(grade, { deltaY: -100 });
+    expect(colunas()).toHaveLength(5);
+    fireEvent.wheel(grade, { deltaY: -100, ctrlKey: true });
+    expect(colunas()).toHaveLength(3);
+    // A pinça do touchpad manda vários eventos seguidos: só um passo por vez
+    fireEvent.wheel(grade, { deltaY: -100, ctrlKey: true });
+    expect(colunas()).toHaveLength(3);
+    vi.advanceTimersByTime(300);
+    fireEvent.wheel(grade, { deltaY: 100, ctrlKey: true });
+    expect(colunas()).toHaveLength(5);
+  });
+
+  it('no zoom Dia, ← e → andam um dia corrido, sábado inclusive', () => {
+    comZoom('dia', '2026-10-02');
+    fireEvent.keyDown(document.body, { key: 'ArrowRight' });
+    expect(push).toHaveBeenLastCalledWith('/producao?dia=2026-10-03', { scroll: false });
   });
 });
