@@ -377,6 +377,56 @@ export async function tirarPedido(client: Client, viagemId: string, pedidoId: st
 }
 
 /**
+ * "Cancelar entrega": apaga a viagem, em qualquer etapa, e tira a data de
+ * entrega dos pedidos que iam nela, com nota no histórico. Diferente de
+ * `tirarPedido`, aqui a data cai junto: quem cancela a entrega desfaz o dia
+ * combinado, e o calendário deixa de mostrá-lo.
+ *
+ * As cargas ficam, como no voltar de etapa: o que foi separado continua
+ * separado. Só o que foi contado no caminhão volta a ser por carregar.
+ */
+export async function cancelarViagem(
+  client: Client,
+  viagemId: string,
+  autor: AutorDaMudanca,
+): Promise<{ pedidos: number }> {
+  const viagem = await travarViagem(client, viagemId);
+  const { rows: pedidos } = await client.query<{ id: string }>(
+    'SELECT pedido_id AS id FROM viagens_paradas WHERE viagem_id = $1 AND pedido_id IS NOT NULL',
+    [viagemId],
+  );
+  const ids = pedidos.map((pedido) => pedido.id);
+
+  await client.query(
+    `UPDATE pedidos_cargas_itens SET carregado = false
+      WHERE carregado AND carga_id IN (SELECT id FROM pedidos_cargas WHERE pedido_id = ANY($1::uuid[]))`,
+    [ids],
+  );
+  // As paradas saem em cascata
+  await client.query('DELETE FROM viagens WHERE id = $1', [viagemId]);
+
+  const { rows: semData } = await client.query<{ id: string; situacao: SituacaoPedido }>(
+    `UPDATE pedidos SET data_entrega = NULL
+      WHERE id = ANY($1::uuid[]) AND data_entrega = $2::date AND situacao = ANY($3::text[])
+      RETURNING id, situacao`,
+    [ids, viagem.data, SITUACOES_DA_VIAGEM],
+  );
+  for (const pedido of semData) {
+    await client.query(
+      `INSERT INTO pedidos_historico (pedido_id, situacao_anterior, situacao_nova, alterado_por, observacoes)
+       VALUES ($1, $2, $2, $3, $4)`,
+      [
+        pedido.id,
+        pedido.situacao,
+        autor.usuarioId,
+        `Entrega de ${formatData(viagem.data).slice(0, 5)} cancelada no planejamento da viagem.`,
+      ],
+    );
+  }
+  return { pedidos: ids.length };
+}
+
+/**
  * Tela 2: grava a ordem inteira, que é o que o arraste e as setas produzem.
  * Com `rota`, a ordem veio da sugestão, e a distância e o tempo dela ficam.
  *

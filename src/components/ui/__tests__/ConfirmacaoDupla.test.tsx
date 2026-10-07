@@ -18,6 +18,22 @@ function montar(props: Partial<Parameters<typeof ConfirmacaoDupla>[0]> = {}) {
 }
 
 describe('ConfirmacaoDupla', () => {
+  it('o tom danger pinta de vermelho o primeiro botão e o que confirma', () => {
+    montar({ tom: 'danger' });
+    expect(screen.getByRole('button', { name: 'Cancelar pedido' }).className).toContain('text-red-700');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar pedido' }));
+
+    expect(screen.getByRole('button', { name: 'Sim, cancelar o pedido' }).className).toContain('text-red-700');
+  });
+
+  it('sem tom, o botão que confirma fica apagado', () => {
+    montar();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar pedido' }));
+
+    expect(screen.getByRole('button', { name: 'Sim, cancelar o pedido' }).className).not.toContain('text-red-700');
+  });
+
   it('o primeiro toque só abre a folha, e não envia nada', () => {
     const { action } = montar();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();

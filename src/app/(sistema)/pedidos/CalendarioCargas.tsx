@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { useState } from 'react';
-import { SITUACOES_VIAGEM, type SituacaoViagem } from '@/lib/rotas';
+import Link from "next/link";
+import { useState } from "react";
+import type { SituacaoViagem } from "@/lib/rotas";
 
 export interface DiaDoPedido {
   id: string;
@@ -35,21 +35,17 @@ function planejar(dia: string): string {
   return `/pedidos/planejar/${dia}`;
 }
 
-function diaEMes(iso: string): string {
-  return `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
-}
-
-const COR_ATRASADA = 'bg-red-200 text-red-900';
-const COR_PRONTA = 'bg-green-200 text-green-900';
-const COR_A_CONFIGURAR = 'bg-amber-200 text-amber-900';
+const COR_ATRASADA = "bg-red-200 text-red-900";
+const COR_PRONTA = "bg-green-200 text-green-900";
+const COR_A_CONFIGURAR = "bg-amber-200 text-amber-900";
 
 const LEGENDA = [
-  { cor: COR_A_CONFIGURAR, texto: 'entrega não terminada de configurar' },
-  { cor: COR_PRONTA, texto: 'entrega' },
-  { cor: COR_ATRASADA, texto: 'entrega passou sem o pedido ficar pronto' },
+  { cor: COR_A_CONFIGURAR, texto: "não confirmada" },
+  { cor: COR_PRONTA, texto: "entrega" },
+  { cor: COR_ATRASADA, texto: "atrasada" },
 ];
 
-const DIAS_DA_SEMANA = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'];
+const DIAS_DA_SEMANA = ["seg", "ter", "qua", "qui", "sex", "sáb", "dom"];
 
 /** Segunda é 0 e domingo é 6: a semana do viveiro começa na segunda. */
 function colunaDe(iso: string): number {
@@ -57,9 +53,12 @@ function colunaDe(iso: string): number {
 }
 
 function diasDoMes(mes: string): string[] {
-  const [ano, mesNumero] = mes.split('-').map(Number);
+  const [ano, mesNumero] = mes.split("-").map(Number);
   const ultimo = new Date(Date.UTC(ano, mesNumero, 0)).getUTCDate();
-  return Array.from({ length: ultimo }, (_, i) => `${mes.slice(0, 7)}-${String(i + 1).padStart(2, '0')}`);
+  return Array.from(
+    { length: ultimo },
+    (_, i) => `${mes.slice(0, 7)}-${String(i + 1).padStart(2, "0")}`,
+  );
 }
 
 /**
@@ -72,16 +71,26 @@ function diasDoMes(mes: string): string[] {
  *
  * Grade em CSS, sem biblioteca: são 42 células e um contador.
  *
- * P14: o dia com entrega abre a rotina "Planejar pedido", e o dia com viagem em
- * andamento ganha um ponto. Os outros dias abrem o painel, que também oferece
- * planejar uma entrega ali.
+ * P14: o dia com entrega abre a rotina "Planejar pedido". O dia com viagem em
+ * andamento fica amarelo mesmo sem pedido, ganha um ponto e também abre a
+ * rotina: é por ele que se continua a viagem. Os outros dias abrem o painel,
+ * que também oferece planejar uma entrega ali.
  */
-export function CalendarioCargas({ mes, hoje, pedidos, viagens = [], diasProntos = [] }: CalendarioCargasProps) {
+export function CalendarioCargas({
+  mes,
+  hoje,
+  pedidos,
+  viagens = [],
+  diasProntos = [],
+}: CalendarioCargasProps) {
   const [aberto, setAberto] = useState<string | null>(null);
 
   const entregas = new Map<string, DiaDoPedido[]>();
   for (const pedido of pedidos) {
-    entregas.set(pedido.dataEntrega, [...(entregas.get(pedido.dataEntrega) ?? []), pedido]);
+    entregas.set(pedido.dataEntrega, [
+      ...(entregas.get(pedido.dataEntrega) ?? []),
+      pedido,
+    ]);
   }
 
   const comViagem = new Set(viagens.map((viagem) => viagem.data));
@@ -90,102 +99,96 @@ export function CalendarioCargas({ mes, hoje, pedidos, viagens = [], diasProntos
   const vazias = colunaDe(dias[0]);
 
   return (
-    <>
-      {viagens.map((viagem) => (
-        <section
-          key={viagem.id}
-          className="flex items-center gap-3 rounded-xl border border-brand-muted bg-white py-3 pr-3 pl-4"
-        >
-          <span className="flex flex-1 flex-col gap-0.5">
-            <span className="text-base font-bold text-ink">Entrega de {diaEMes(viagem.data)}</span>
-            <span className="text-sm text-muted">Parou em {SITUACOES_VIAGEM[viagem.situacao]}</span>
-          </span>
-          <Link
-            href={planejar(viagem.data)}
-            className="flex min-h-11 shrink-0 items-center rounded-lg bg-brand px-4 text-base font-bold text-white active:bg-brand-dark"
+    <section className="flex flex-col gap-3 rounded-xl border border-line bg-white p-4">
+      <h2 className="text-sm font-bold tracking-widest text-muted uppercase">
+        Entregas
+      </h2>
+
+      <div className="grid grid-cols-7 gap-1">
+        {DIAS_DA_SEMANA.map((dia) => (
+          <span
+            key={dia}
+            className="py-1 text-center text-sm font-semibold text-muted"
           >
-            Continuar
-          </Link>
-        </section>
-      ))}
-      <section className="flex flex-col gap-3 rounded-xl border border-line bg-white p-4">
-        <h2 className="text-sm font-bold tracking-widest text-muted uppercase">Entregas</h2>
+            {dia}
+          </span>
+        ))}
 
-        <div className="grid grid-cols-7 gap-1">
-          {DIAS_DA_SEMANA.map((dia) => (
-            <span key={dia} className="py-1 text-center text-sm font-semibold text-muted">
-              {dia}
-            </span>
-          ))}
+        {Array.from({ length: vazias }, (_, i) => (
+          <span key={`vazia-${i}`} />
+        ))}
 
-          {Array.from({ length: vazias }, (_, i) => (
-            <span key={`vazia-${i}`} />
-          ))}
+        {dias.map((dia) => {
+          const entrega = entregas.get(dia) ?? [];
+          // Entrega que passou com o pedido ainda não pronto é o que precisa saltar
+          const atrasada = entrega.some(
+            (p) => dia < hoje && p.situacao !== "pronto_envio",
+          );
+          const cor = atrasada
+            ? `${COR_ATRASADA} font-bold`
+            : entrega.length === 0 && !comViagem.has(dia)
+              ? "text-ink"
+              : `${prontos.has(dia) ? COR_PRONTA : COR_A_CONFIGURAR} font-bold`;
+          const marcado = dia === hoje ? "ring-2 ring-brand" : "";
+          const classe = `flex min-h-touch flex-col items-center justify-center gap-0.5 rounded-lg text-base ${cor} ${marcado} active:bg-brand-light`;
+          const conteudo = (
+            <>
+              <span>{Number(dia.slice(-2))}</span>
+              {comViagem.has(dia) && (
+                <span
+                  aria-label="viagem em andamento"
+                  className="h-1.5 w-1.5 rounded-full bg-brand-dark"
+                />
+              )}
+            </>
+          );
 
-          {dias.map((dia) => {
-            const entrega = entregas.get(dia) ?? [];
-            // Entrega que passou com o pedido ainda não pronto é o que precisa saltar
-            const atrasada = entrega.some((p) => dia < hoje && p.situacao !== 'pronto_envio');
-            const cor = atrasada
-              ? `${COR_ATRASADA} font-bold`
-              : entrega.length === 0
-                ? 'text-ink'
-                : `${prontos.has(dia) ? COR_PRONTA : COR_A_CONFIGURAR} font-bold`;
-            const marcado = dia === hoje ? 'ring-2 ring-brand' : '';
-            const classe = `flex min-h-touch flex-col items-center justify-center gap-0.5 rounded-lg text-base ${cor} ${marcado} active:bg-brand-light`;
-            const conteudo = (
-              <>
-                <span>{Number(dia.slice(-2))}</span>
-                {comViagem.has(dia) && (
-                  <span aria-label="viagem em andamento" className="h-1.5 w-1.5 rounded-full bg-brand-dark" />
-                )}
-              </>
-            );
-
-            // Dia com entrega, ou com viagem começada, vai direto para a rotina
-            if (entrega.length > 0 || comViagem.has(dia)) {
-              return (
-                <Link key={dia} href={planejar(dia)} className={classe}>
-                  {conteudo}
-                </Link>
-              );
-            }
+          // Dia com entrega, ou com viagem começada, vai direto para a rotina
+          if (entrega.length > 0 || comViagem.has(dia)) {
             return (
-              <button
-                key={dia}
-                type="button"
-                onClick={() => setAberto(aberto === dia ? null : dia)}
-                aria-pressed={aberto === dia}
-                className={classe}
-              >
+              <Link key={dia} href={planejar(dia)} className={classe}>
                 {conteudo}
-              </button>
+              </Link>
             );
-          })}
-        </div>
-
-        <ul className="flex flex-col gap-1 text-sm text-muted">
-          {LEGENDA.map(({ cor, texto }) => (
-            <li key={texto} className="flex items-center gap-2">
-              <span aria-hidden className={`inline-block h-3 w-3 shrink-0 rounded-sm ${cor}`} />
-              {texto}
-            </li>
-          ))}
-        </ul>
-
-        {aberto && (
-          <div className="flex flex-col gap-2 rounded-lg border border-line p-3">
-            {/* O painel só abre em dia sem entrega: o dia com entrega já vai para a rotina */}
-            <p className="text-base text-muted">Nada marcado neste dia.</p>
-            <Link
-              href={planejar(aberto)}
-              className="flex min-h-touch items-center justify-center rounded-xl border-2 border-brand bg-white px-4 text-base font-bold text-brand active:bg-brand-light"
+          }
+          return (
+            <button
+              key={dia}
+              type="button"
+              onClick={() => setAberto(aberto === dia ? null : dia)}
+              aria-pressed={aberto === dia}
+              className={classe}
             >
-              Planejar entrega neste dia
-            </Link>
-          </div>
-        )}
-      </section>
-    </>
+              {conteudo}
+            </button>
+          );
+        })}
+      </div>
+
+      <ul className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted">
+        {LEGENDA.map(({ cor, texto }) => (
+          <li key={texto} className="flex items-center gap-2">
+            <span
+              aria-hidden
+              className={`inline-block h-3 w-3 shrink-0 rounded-sm ${cor}`}
+            />
+            {texto}
+          </li>
+        ))}
+      </ul>
+
+      {aberto && (
+        <div className="flex flex-col gap-2 rounded-lg border border-line p-3">
+          {/* O painel só abre em dia sem entrega: o dia com entrega já vai para a rotina */}
+          <p className="text-base text-muted">Nada marcado neste dia.</p>
+          <Link
+            href={planejar(aberto)}
+            className="flex min-h-touch items-center justify-center rounded-xl border-2 border-brand bg-white px-4 text-base font-bold text-brand active:bg-brand-light"
+          >
+            Planejar entrega neste dia
+          </Link>
+        </div>
+      )}
+    </section>
   );
 }

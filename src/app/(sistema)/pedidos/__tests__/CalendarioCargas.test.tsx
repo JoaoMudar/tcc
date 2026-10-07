@@ -34,7 +34,7 @@ describe('CalendarioCargas e a rotina "Planejar pedido" (P14)', () => {
     expect(screen.queryByRole('link', { name: /Prefeitura de Rio do Sul/ })).toBeNull();
   });
 
-  it('viagem em andamento: cartão "Continuar" na etapa em que parou, e ponto no dia', () => {
+  it('viagem em andamento: sem cartão, o dia fica amarelo, com ponto, e abre a rotina', () => {
     render(
       <CalendarioCargas
         mes="2026-10-01"
@@ -43,10 +43,24 @@ describe('CalendarioCargas e a rotina "Planejar pedido" (P14)', () => {
         viagens={[{ id: 'v1', data: '2026-10-02', situacao: 'roteirizando' }]}
       />,
     );
-    const cartao = screen.getByText('Entrega de 02/10').closest('section')!;
-    expect(within(cartao).getByText('Parou em Rota')).toBeTruthy();
-    expect(within(cartao).getByRole('link', { name: 'Continuar' }).getAttribute('href')).toBe('/pedidos/planejar/2026-10-02');
+    expect(screen.queryByText(/Entrega de/)).toBeNull();
+    expect(screen.queryByText('Continuar')).toBeNull();
+    expect(dia(2).className).toContain('bg-amber-200');
+    expect(dia(2).getAttribute('href')).toBe('/pedidos/planejar/2026-10-02');
     expect(within(dia(2)).getByLabelText('viagem em andamento')).toBeTruthy();
+  });
+
+  it('viagem em andamento num dia sem pedido também fica amarela e abre a rotina', () => {
+    render(
+      <CalendarioCargas
+        mes="2026-10-01"
+        hoje="2026-09-29"
+        pedidos={[PEDIDO]}
+        viagens={[{ id: 'v1', data: '2026-10-07', situacao: 'carregando' }]}
+      />,
+    );
+    expect(dia(7).className).toContain('bg-amber-200');
+    expect(dia(7).getAttribute('href')).toBe('/pedidos/planejar/2026-10-07');
   });
 
   it('sem viagem, não há cartão nem ponto', () => {
@@ -69,7 +83,7 @@ describe('CalendarioCargas e a rotina "Planejar pedido" (P14)', () => {
 
   it('a legenda mostra a cor num quadradinho, sem escrever o nome dela', () => {
     render(<CalendarioCargas mes="2026-10-01" hoje="2026-09-29" pedidos={[PEDIDO]} />);
-    const item = screen.getByText('entrega não terminada de configurar');
+    const item = screen.getByText('não confirmada');
     expect(item.querySelector('span')!.className).toContain('bg-amber-200');
     expect(screen.queryByText(/Amarelo|Verde|Vermelho/)).toBeNull();
   });

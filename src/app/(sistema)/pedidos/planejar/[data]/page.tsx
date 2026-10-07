@@ -6,6 +6,7 @@ import { AVISOS_DA_ROTA, formatDistancia, isAvisoDaRota } from '@/lib/rotas';
 import { type PedidoParaViagem, cargasDaViagem, listParadas, partidasBase, pedidosDisponiveis, viagemDoDia } from '@/lib/viagens';
 import { requirePageAccess } from '@/lib/auth/guards';
 import { CabecalhoViagem } from './CabecalhoViagem';
+import { CancelarEntrega } from './CancelarEntrega';
 import { CarregarViagem } from './CarregarViagem';
 import { MontarCarga, type PedidoParaEscolher } from './MontarCarga';
 import { type EscolhaDePartida, RotaDaViagem } from './RotaDaViagem';
@@ -50,7 +51,10 @@ export default async function PlanejarPage({ params, searchParams }: PlanejarPag
   return (
     <main className="flex min-h-dvh flex-col bg-surface">
       <CabecalhoViagem data={data} viagemId={viagem?.id ?? null} etapa={etapa} />
-      <div className="mx-auto flex w-full max-w-xl flex-1 flex-col">{await conteudo()}</div>
+      <div className="mx-auto flex w-full max-w-xl flex-1 flex-col">
+        {await conteudo()}
+        {viagem && <CancelarEntrega data={data} viagemId={viagem.id} />}
+      </div>
     </main>
   );
 

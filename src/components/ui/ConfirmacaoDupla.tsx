@@ -22,6 +22,8 @@ interface ConfirmacaoDuplaProps {
   erro?: string;
   /** Campos ocultos e o que mais o formulário precisar enviar. */
   children?: ReactNode;
+  /** `danger` pinta de vermelho o botão da tela e o que confirma, para a ação que desfaz um dia de trabalho. */
+  tom?: 'secondary' | 'danger';
 }
 
 /**
@@ -42,12 +44,13 @@ export function ConfirmacaoDupla({
   pendente = false,
   erro,
   children,
+  tom = 'secondary',
 }: ConfirmacaoDuplaProps) {
   const [aberta, setAberta] = useState(false);
 
   return (
     <>
-      <Button type="button" variant="secondary" onClick={() => setAberta(true)}>
+      <Button type="button" variant={tom} onClick={() => setAberta(true)}>
         {rotuloBotao}
       </Button>
 
@@ -57,7 +60,7 @@ export function ConfirmacaoDupla({
             {aviso && <Notice tone="warning">{aviso}</Notice>}
             {children}
             {erro && <Notice tone="error">{erro}</Notice>}
-            <Button type="submit" variant="secondary" pending={pendente} pendingLabel="Confirmando…">
+            <Button type="submit" variant={tom} pending={pendente} pendingLabel="Confirmando…">
               {rotuloConfirmar}
             </Button>
             <Button variant="primary" onClick={() => setAberta(false)}>
