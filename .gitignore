@@ -31,3 +31,28 @@ npm-debug.log*
 
 # carga inicial real (T10.5): nome e telefone de gente, fora do repositório público
 /carga-inicial/
+
+# documentação do trabalho: fica só na máquina, fora do repositório público
+# (o histórico foi reescrito em 07/10/2026 para tirar dado pessoal de funcionário)
+/docs/
+/plans/
+/.claude/skills/
+/.agents/
+/CHANGELOG.md
+/CLAUDE.md
+/AGENTS.md
+/LEIA-ME-copia.md
+/RELATORIO-SEGURANCA.md
+/resposta-orientacao-*.md
+/quadros-regras-de-negocio-e-requisitos.docx
+/ultima-resposta-escrita-tcc.txt
+/skills-lock.json
+/scripts/verifica-rastreabilidade.mjs
+/scripts/build-*.mjs
+/scripts/confere-modelo-pt.mjs
+/scripts/confere-mapas.mjs
+/scripts/render-mapas.mjs
+/scripts/mede-figuras.mjs
+/scripts/renumerar.mjs
+/scripts/leia.mjs
+/scripts/tmp-*.mjs

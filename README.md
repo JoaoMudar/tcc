@@ -83,7 +83,7 @@ testes. O CI (`.github/workflows/ci.yml`) roda o mesmo, mais typecheck e `test:d
 3. Em *Settings > Environment Variables*, criar `DATABASE_URL` com a URL do Neon, marcada **só em
    Production**.
 4. Publicar. O `npm run build` aplica as migrações pendentes antes do `next build`: se uma falhar,
-   a publicação para e a versão anterior continua no ar ([`D3` §4](docs/engenharia/D-arquitetura/D3-diagrama-implantacao.md)).
+   a publicação para e a versão anterior continua no ar.
    Publicação de preview pula as migrações, para nunca mexer no banco de produção.
 5. Conferir a página inicial: ela mostra **Banco de dados conectado**. A Vercel serve só por HTTPS
    (RNF-12).
@@ -95,10 +95,7 @@ testes. O CI (`.github/workflows/ci.yml`) roda o mesmo, mais typecheck e `test:d
 ## Estrutura do projeto
 
 ```
-docs/              Documentação de referência (ver docs/README.md, mapa de tudo)
 migrations/        Migrações SQL (psql puro), aplicadas em ordem cronológica
-data/seeds/        Fontes de carga inicial (seed), ex.: export das 142 espécies
-plans/             Roadmap de implementação, em quatro fases
 scripts/           migrate.ts, seed-admin.ts, geração de ícones, hooks de git
 src/
   app/             Rotas (App Router), organizadas pelas três áreas
@@ -128,7 +125,7 @@ São três papéis, e correspondem às três pessoas que operam o sistema:
 > **Não há perfil de campo.** Os seis colaboradores do viveiro não operam o sistema: o trabalho
 > deles é planejado e confirmado pela gerência. Eles existem em `cadastro.pessoas_papeis` com o papel
 > `funcionario`, que diz *esta pessoa trabalha aqui* e não implica acesso. A matriz completa está em
-> [`docs/engenharia/D-arquitetura/D4-matriz-rbac.md`](docs/engenharia/D-arquitetura/D4-matriz-rbac.md).
+> `src/lib/permissions.ts`.
 
 ---
 
@@ -140,7 +137,7 @@ São três papéis, e correspondem às três pessoas que operam o sistema:
   servidor, menu por perfil, usuários pelo administrador, aparelhos conectados e registro de acessos.
 
 As telas de Cadastro único, Produção e Comercial ainda não existem: o modelo de dados está no
-banco, e as fases seguintes do [`P1`](plans/P1-sistema-reduzido.md) constroem as telas.
+banco, e as fases seguintes constroem as telas.
 
 ---
 
@@ -156,9 +153,6 @@ Fase 1 (acesso e cadastro) ─┬─> Fase 2 (lotes) ─┬─> Fase 4 (mapa e p
 **A Fase 1 bloqueia tudo**: a agenda escala pessoas, o lote referencia espécie e canteiro, e o
 pedido referencia pessoa. **O mapa é o último a funcionar**, porque depende das duas fontes de
 pendência, a atribuição lançada à mão e a ordem gerada pelo protocolo.
-
-O plano detalhado, tarefa a tarefa, está em
-[`plans/P1-sistema-reduzido.md`](plans/P1-sistema-reduzido.md).
 
 ---
 
@@ -185,5 +179,4 @@ O plano detalhado, tarefa a tarefa, está em
   O pre-commit hook roda lint e testes: commits são bloqueados se algo falhar.
 - Formulários de campo: no máximo 5 campos por tela, dropdowns pré-definidos, botões grandes
   e feedback visual imediato.
-
-Mais detalhes e regras de negócio em [`CLAUDE.md`](CLAUDE.md).
+- A documentação do trabalho (requisitos, modelagem, planos) é mantida fora deste repositório.

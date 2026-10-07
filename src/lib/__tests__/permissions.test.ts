@@ -1,15 +1,17 @@
 // @vitest-environment node
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { ACCESS_MATRIX, type Recurso, can } from '../permissions';
 
+// A documentação fica fora do repositório público: no CI o D4 não existe, e a conferência
+// célula a célula só roda na máquina que tem a pasta docs/.
+const D4 = path.join(process.cwd(), 'docs/engenharia/D-arquitetura/D4-matriz-rbac.md');
+const TEM_D4 = existsSync(D4);
+
 /** Lê a tabela do D4 §2: rótulo e as letras de chefia, gerência e administrador. */
 function readD4Matrix(): Map<string, [string, string, string]> {
-  const doc = readFileSync(
-    path.join(process.cwd(), 'docs/engenharia/D-arquitetura/D4-matriz-rbac.md'),
-    'utf8',
-  );
+  const doc = readFileSync(D4, 'utf8');
   const section = doc.slice(doc.indexOf('## 2. Matriz'), doc.indexOf('## 3.'));
   const rows = new Map<string, [string, string, string]>();
   for (const line of section.split('\n')) {
@@ -23,8 +25,8 @@ function readD4Matrix(): Map<string, [string, string, string]> {
   return rows;
 }
 
-describe('ACCESS_MATRIX x D4 §2', () => {
-  const doc = readD4Matrix();
+describe.skipIf(!TEM_D4)('ACCESS_MATRIX x D4 §2', () => {
+  const doc = TEM_D4 ? readD4Matrix() : new Map<string, [string, string, string]>();
 
   it('tem exatamente os 27 recursos do documento', () => {
     expect(doc.size).toBe(27);
