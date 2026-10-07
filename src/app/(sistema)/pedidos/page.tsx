@@ -2,11 +2,11 @@ import Link from 'next/link';
 import { PageHeader } from '@/components/PageHeader';
 import { Toast } from '@/components/ui/Toast';
 import { pedidosDoPeriodo } from '@/lib/cargas';
-import { diaUtilAnterior, hojeNoViveiro, somaDias } from '@/lib/datas';
+import { hojeNoViveiro, somaDias } from '@/lib/datas';
 import pool from '@/lib/db';
 import { listPedidos } from '@/lib/pedidos';
 import { can } from '@/lib/permissions';
-import { viagensEmAndamento } from '@/lib/viagens';
+import { diasComViagemPronta, viagensEmAndamento } from '@/lib/viagens';
 import { requirePageAccess } from '@/lib/auth/guards';
 import { CalendarioCargas } from './CalendarioCargas';
 import { ListaPedidos } from './ListaPedidos';
@@ -26,10 +26,12 @@ export default async function PedidosPage({ searchParams }: PedidosPageProps) {
   const mes = `${hoje.slice(0, 7)}-01`;
   const fimDoMes = somaDias(`${somaDias(mes, 31).slice(0, 7)}-01`, -1);
 
-  const [lista, doMes, viagens] = await Promise.all([
+  const inicioDoPeriodo = somaDias(mes, -7);
+  const [lista, doMes, viagens, diasProntos] = await Promise.all([
     listPedidos(pool),
-    pedidosDoPeriodo(pool, somaDias(mes, -7), fimDoMes),
+    pedidosDoPeriodo(pool, inicioDoPeriodo, fimDoMes),
     viagensEmAndamento(pool),
+    diasComViagemPronta(pool, inicioDoPeriodo, fimDoMes),
   ]);
   // O calendário é ferramenta de quem separa, e a chefia também o usa para saber
   // o que está por sair. Quem não mexe em carga não o vê.
@@ -62,10 +64,8 @@ export default async function PedidosPage({ searchParams }: PedidosPageProps) {
             mes={mes}
             hoje={hoje}
             viagens={viagens}
-            pedidos={doMes.map((pedido) => ({
-              ...pedido,
-              diaDeCarregar: diaUtilAnterior(pedido.dataEntrega),
-            }))}
+            diasProntos={diasProntos}
+            pedidos={doMes}
           />
         )}
 

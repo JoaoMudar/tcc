@@ -95,3 +95,11 @@ export function validateNewPassword(password: string, context: { login?: string;
   if (names.some((name) => simple.includes(name))) return 'A senha não pode conter o seu nome.';
   return null;
 }
+
+/** Senha provisória aleatória que já passa pela política: para os scripts de criar e de resetar admin. */
+export function generatePassword(context: { login?: string; nome?: string } = {}): string {
+  for (;;) {
+    const senha = randomBytes(9).toString('base64url');
+    if (!validateNewPassword(senha, context)) return senha;
+  }
+}

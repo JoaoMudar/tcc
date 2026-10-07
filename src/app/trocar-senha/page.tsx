@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { BotaoSair } from '@/components/BotaoSair';
 import { PageHeader } from '@/components/PageHeader';
 import { Notice } from '@/components/ui/Notice';
 import { requireUser } from '@/lib/auth/dal';
+import { logout } from '../(sistema)/actions';
 import { ChangePasswordForm } from './ChangePasswordForm';
 
 export const metadata: Metadata = { title: 'Trocar senha · Viveiro Mudar' };
@@ -22,6 +24,8 @@ export default async function TrocarSenhaPage() {
           </Link>
         )}
         <ChangePasswordForm />
+        {/* No primeiro acesso o resto do sistema redireciona para cá: sem Sair, quem não tem a senha atual fica preso */}
+        {user.deveTrocarSenha && <BotaoSair logoutAction={logout} />}
       </div>
     </main>
   );

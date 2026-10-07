@@ -56,7 +56,6 @@ export function AtribuicaoForm({ semana, opcoes, inicial, atribuicaoId, fixos, v
   const [state, formAction, pending] = useActionState(editando ? atualizarAtribuicaoAction : criarAtribuicaoAction, EMPTY_FORM_STATE);
   const valores = state.error && state.fields ? state.fields : inicial;
   const [tipoId, setTipoId] = useState(valores.tipo_tarefa_id ?? '');
-  const [temHora, setTemHora] = useState(Boolean(valores.hora_inicio));
   const tipo = opcoes.tipos.find((t) => t.id === tipoId);
   const lista = (nome: string) => new Set((valores[nome] ?? '').split(',').filter(Boolean));
 
@@ -141,18 +140,11 @@ export function AtribuicaoForm({ semana, opcoes, inicial, atribuicaoId, fixos, v
           Mais detalhes
         </summary>
         <div className="flex flex-col gap-4 px-4 pb-4">
-          <Interruptor
-            name="tem_hora"
-            label="Tem hora marcada"
-            checked={temHora}
-            onChange={(event) => setTemHora(event.target.checked)}
-          />
-          {temHora && (
-            <div className="grid grid-cols-2 gap-3">
-              <TextField label="Início" name="hora_inicio" type="time" defaultValue={valores.hora_inicio} required />
-              <TextField label="Fim" name="hora_fim" type="time" defaultValue={valores.hora_fim} />
-            </div>
-          )}
+          {/* Início preenchido é hora marcada (RN-12): não há chave à parte para dizer isso */}
+          <div className="grid grid-cols-2 gap-3">
+            <TextField label="Início" name="hora_inicio" type="time" defaultValue={valores.hora_inicio} />
+            <TextField label="Fim" name="hora_fim" type="time" defaultValue={valores.hora_fim} />
+          </div>
           <Interruptor name="recorrente" label="Repete toda semana" defaultChecked={valores.recorrente === 'on'} />
           <TextField label="Observação" name="observacoes" maxLength={500} defaultValue={valores.observacoes} />
         </div>

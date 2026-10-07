@@ -123,6 +123,20 @@ export async function viagensEmAndamento(db: Db): Promise<{ id: string; data: st
   return rows;
 }
 
+/** Os dias do período em que toda viagem chegou a "pronta": o verde do calendário. */
+export async function diasComViagemPronta(db: Db, inicio: string, fim: string): Promise<string[]> {
+  const { rows } = await db.query<{ data: string }>(
+    `SELECT to_char(data, 'YYYY-MM-DD') AS data
+       FROM viagens
+      WHERE data BETWEEN $1 AND $2
+      GROUP BY data
+     HAVING bool_and(situacao = 'pronta')
+      ORDER BY data`,
+    [inicio, fim],
+  );
+  return rows.map((row) => row.data);
+}
+
 async function itensDosPedidos(db: Db, pedidoIds: readonly string[]): Promise<Map<string, ItemResumido[]>> {
   const porPedido = new Map<string, ItemResumido[]>();
   if (pedidoIds.length === 0) return porPedido;
