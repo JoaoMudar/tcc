@@ -4,6 +4,7 @@ import {
   MAX_VERIFICACOES_SIMULTANEAS,
   comVagaDeVerificacao,
   dummyVerify,
+  generatePassword,
   hashPassword,
   validateNewPassword,
   verifyPassword,
@@ -85,5 +86,14 @@ describe('validateNewPassword', () => {
     ['contém o nome, com acento', 'Débora#2026x', 'usuário'],
   ])('recusa senha %s', (_caso, senha, trecho) => {
     expect(validateNewPassword(senha, context)).toContain(trecho);
+  });
+});
+
+describe('generatePassword', () => {
+  it('gera senha que já passa pela política, diferente a cada chamada', () => {
+    const contexto = { login: 'joao', nome: 'João' };
+    const a = generatePassword(contexto);
+    expect(validateNewPassword(a, contexto)).toBeNull();
+    expect(a).not.toBe(generatePassword(contexto));
   });
 });

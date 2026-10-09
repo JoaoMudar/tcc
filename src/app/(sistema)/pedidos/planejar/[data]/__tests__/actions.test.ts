@@ -217,6 +217,23 @@ describe('os passos do cabeçalho (P17)', () => {
   });
 });
 
+describe('cancelar a entrega', () => {
+  it('em qualquer etapa, apaga a viagem e volta ao calendário', async () => {
+    situacaoViagem = 'carregando';
+    await expect(actions.cancelarEntregaAction({}, form({ data: DIA, viagem_id: VIAGEM }))).rejects.toThrow(
+      /^REDIRECT \/pedidos$/,
+    );
+    expect(gravouEm('DELETE FROM viagens WHERE id')[0][1]).toEqual([VIAGEM]);
+    expect(gravouEm('UPDATE pedidos SET data_entrega = NULL')).toHaveLength(1);
+  });
+
+  it('viagem inválida não toca no banco', async () => {
+    const state = await actions.cancelarEntregaAction({}, form({ data: DIA, viagem_id: 'x' }));
+    expect(state.error).toBe('Viagem inválida.');
+    expectNoDatabase();
+  });
+});
+
 describe('ordem da rota (Tela 2)', () => {
   it('recusa lista com id que não é uuid, sem ir ao banco', async () => {
     const state = await actions.salvarOrdemAction(DIA, VIAGEM, [PARADA, 'x']);

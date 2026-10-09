@@ -114,10 +114,6 @@ export async function AgendaDaSemana({ dia, hoje, perfil }: AgendaDaSemanaProps)
           </div>
         </div>
 
-        {atribuicoes.length === 0 && (
-          <p className="rounded-lg border border-line bg-white p-6 text-sm text-muted md:p-4">Nenhuma tarefa nesta semana.</p>
-        )}
-
         {/* O Gantt aparece mesmo vazio: é nele que se clica para lançar */}
         {turnosNaGrade.length > 0 && (
           <GanttSemana

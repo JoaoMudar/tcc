@@ -76,6 +76,23 @@ export async function tirarPedidoAction(_previous: FormState, formData: FormData
   return {};
 }
 
+/** "Cancelar entrega", em qualquer etapa: a viagem some, e a tela volta ao calendário. */
+export async function cancelarEntregaAction(_previous: FormState, formData: FormData): Promise<FormState> {
+  const user = await requirePermission('cargas_pedido', 'A');
+  const viagem = lerViagem(formData);
+  if (!viagem) return { error: 'Viagem inválida.' };
+
+  try {
+    await withTransaction(pool, (client) =>
+      viagens.cancelarViagem(client, viagem.viagemId, { perfil: user.perfil, usuarioId: user.usuarioId }),
+    );
+  } catch (error) {
+    return { error: toUserMessage(error) };
+  }
+  revalidar(viagem.data);
+  redirect('/pedidos');
+}
+
 /**
  * "Confirmar carga": vai à Tela 2 e, se as entregas mudaram desde a última vez,
  * pede a ordem à API. A ordem arrumada a mão não é refeita ao voltar.

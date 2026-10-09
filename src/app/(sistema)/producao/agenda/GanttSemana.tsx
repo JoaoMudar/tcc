@@ -383,12 +383,10 @@ export function GanttSemana({
 
           {linhas.map(({ linha, chave, porDia }) => {
             const pessoa = linha.pessoa;
-            const semTarefa = pessoa && porDia.every((barras) => barras.length === 0);
             return (
               <div key={chave ?? 'sem-ninguem'} className="flex items-stretch border-b border-line last:border-b-0">
                 <div className={`${LARGURA_NOME} flex shrink-0 flex-col justify-center px-3 py-1`}>
                   <span className={`truncate text-sm font-semibold ${pessoa ? 'text-ink' : 'text-atencao'}`}>{pessoa?.nome ?? 'Sem ninguém'}</span>
-                  {semTarefa && <span className="text-xs text-atencao">Sem tarefa na semana</span>}
                 </div>
                 <div
                   {...{ [ATRIBUTO_LINHA]: chave ?? '' }}

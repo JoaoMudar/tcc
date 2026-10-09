@@ -19,6 +19,7 @@ import { withTransaction } from '../transaction';
 import {
   adicionarParada,
   adicionarPedido,
+  cancelarViagem,
   cargasDaViagem,
   concluirViagem,
   definirChegada,
@@ -389,6 +390,24 @@ describe('o carregamento (Tela 3)', () => {
     await tx((c) => voltarEtapa(c, viagemId, 'montando'));
     await tx((c) => tirarPedido(c, viagemId, a));
     expect((await listCargas(pool, a))[0].itens[0].carregado).toBe(false);
+  });
+
+  it('cancelar a entrega apaga a viagem, tira a data dos pedidos e deixa as cargas', async () => {
+    const { dia, viagemId, a, b } = await viagemNaRota();
+    await tx((c) => iniciarCarregamento(c, viagemId, gerencia()));
+    const [carga] = await listCargas(pool, a);
+    await tx((c) => marcarItemCarregado(c, carga.itens[0].id, true));
+
+    await expect(tx((c) => cancelarViagem(c, viagemId, gerencia()))).resolves.toEqual({ pedidos: 2 });
+    expect(await findViagem(pool, viagemId)).toBeNull();
+    expect(await viagemDoDia(pool, dia)).toBeNull();
+    for (const pedido of [a, b]) {
+      expect((await findPedido(pool, pedido))!.dataEntrega).toBeNull();
+      expect((await listHistorico(pool, pedido)).some((h) => /Entrega de .* cancelada/.test(h.observacoes ?? ''))).toBe(true);
+    }
+    // A carga continua, sem o que foi contado no caminhão, e o pedido volta à lista
+    expect((await listCargas(pool, a))[0].itens[0].carregado).toBe(false);
+    expect((await pedidosDisponiveis(pool)).map((p) => p.id)).toContain(a);
   });
 
   it('pedido que saiu de aprovado no meio do caminho recusa a viagem inteira', async () => {

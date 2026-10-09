@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { PageHeader } from '@/components/PageHeader';
-import { Notice } from '@/components/ui/Notice';
 import { listCargas } from '@/lib/cargas';
 import { diaUtilAnterior, formatData, hojeNoViveiro } from '@/lib/datas';
 import pool from '@/lib/db';
@@ -79,21 +78,16 @@ export default async function SepararPage({ params }: SepararPageProps) {
         )}
 
         {organizando ? (
-          <>
-            <Notice tone="info">
-              Antes de separar, diga em quantas viagens o pedido sai. Cada carga é conferida por inteiro.
-            </Notice>
-            <OrganizarCargas
-              pedidoId={pedido.id}
-              itens={itensReais.map((item) => ({
-                id: item.id,
-                especie: item.especie ?? 'Espécie não definida',
-                // A aprovação exige recipiente e quantidade: os fallbacks são só para o tipo
-                recipiente: item.recipiente ?? '',
-                quantidade: item.quantidade ?? 0,
-              }))}
-            />
-          </>
+          <OrganizarCargas
+            pedidoId={pedido.id}
+            itens={itensReais.map((item) => ({
+              id: item.id,
+              especie: item.especie ?? 'Espécie não definida',
+              // A aprovação exige recipiente e quantidade: os fallbacks são só para o tipo
+              recipiente: item.recipiente ?? '',
+              quantidade: item.quantidade ?? 0,
+            }))}
+          />
         ) : (
           <ContarCarga
             pedidoId={pedido.id}

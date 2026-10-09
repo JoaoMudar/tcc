@@ -139,7 +139,7 @@ describe('GanttSemana: desenho (T5.1, RNF-14)', () => {
     expect(screen.queryByText('9')).toBeNull();
     expect(screen.queryByText('12')).toBeNull();
     expect(screen.getByText('Ana')).toBeInTheDocument();
-    expect(screen.getAllByText('Sem tarefa na semana')).toHaveLength(3);
+    expect(screen.queryByText('Sem tarefa na semana')).toBeNull();
   });
 
   it('não há mais o parágrafo de instruções sob a grade', () => {
