@@ -45,6 +45,7 @@ function lerItens(formData: FormData): { error: string } | { value: pedidos.Novo
   const alturas = formData.getAll('item_altura').map(String);
   const genericos = formData.getAll('item_generico').map(String);
   const especificacoes = formData.getAll('item_especificacao').map(String);
+  const grupos = formData.getAll('item_especies_permitidas').map(String);
   const itens: pedidos.NovoItem[] = [];
 
   for (let i = 0; i < especies.length; i++) {
@@ -61,6 +62,8 @@ function lerItens(formData: FormData): { error: string } | { value: pedidos.Novo
     if ('error' in altura) return { error: `No ${posicao}: ${altura.error.toLowerCase()}` };
     const especificacao = pedidos.parseObservacoesPedido(especificacoes[i] ?? '');
     if ('error' in especificacao) return { error: `No ${posicao}: a observação é longa demais.` };
+    const grupo = pedidos.parseEspeciesPermitidas(generico ? (grupos[i] ?? '') : '');
+    if ('error' in grupo) return { error: `No ${posicao}: ${grupo.error.toLowerCase()}` };
     itens.push({
       especieId: generico ? null : especies[i],
       recipienteId,
@@ -69,6 +72,7 @@ function lerItens(formData: FormData): { error: string } | { value: pedidos.Novo
       precoCentavos: null,
       generico,
       especificacao: generico ? especificacao.value : null,
+      especiesPermitidas: grupo.value,
     });
   }
 
@@ -170,7 +174,19 @@ export async function atualizarItemAction(_previous: FormState, formData: FormDa
     if (!generico && !isUuid(especieId)) return { error: 'Escolha a espécie do item.', fields };
     const especificacao = pedidos.parseObservacoesPedido(formText(formData, 'item_especificacao'));
     if ('error' in especificacao) return { error: 'A observação é longa demais.', fields };
-    identidade = { generico, especieId: generico ? null : especieId, especificacao: especificacao.value };
+    // O grupo só muda quando o campo vem: quem não o manda não está dizendo "qualquer espécie"
+    let especiesPermitidas: string[] | undefined;
+    if (generico && formData.has('item_especies_permitidas')) {
+      const grupo = pedidos.parseEspeciesPermitidas(formText(formData, 'item_especies_permitidas'));
+      if ('error' in grupo) return { error: grupo.error, fields };
+      especiesPermitidas = grupo.value;
+    }
+    identidade = {
+      generico,
+      especieId: generico ? null : especieId,
+      especificacao: especificacao.value,
+      ...(especiesPermitidas ? { especiesPermitidas } : {}),
+    };
   }
 
   try {
@@ -202,6 +218,34 @@ export async function removerItemAction(_previous: FormState, formData: FormData
   }
   revalidarPedidos(pedidoId);
   return { success: 'Item removido.' };
+}
+
+/** Cliente, canal e entrega prevista, gravados da ficha a cada troca. A recusa da fase é de `atualizarCabecalho`. */
+export async function atualizarCabecalhoAction(_previous: FormState, formData: FormData): Promise<FormState> {
+  const user = await requirePermission('pedidos', 'A');
+  const pedidoId = formText(formData, 'pedido_id');
+  if (!isUuid(pedidoId)) return { error: 'Pedido inválido.' };
+  const clienteId = formText(formData, 'cliente_id');
+  if (!isUuid(clienteId)) return { error: 'Escolha o cliente.' };
+  const canal = formText(formData, 'canal');
+  if (!pedidos.isCanalVenda(canal)) return { error: 'Escolha o canal de venda.' };
+  const dataEntrega = pedidos.parseDataEntrega(formText(formData, 'data_entrega'));
+  if ('error' in dataEntrega) return { error: dataEntrega.error };
+
+  try {
+    await withTransaction(pool, (client) =>
+      pedidos.atualizarCabecalho(
+        client,
+        pedidoId,
+        { clienteId, canal, dataEntrega: dataEntrega.value },
+        { perfil: user.perfil, usuarioId: user.usuarioId },
+      ),
+    );
+  } catch (error) {
+    return { error: toUserMessage(error) };
+  }
+  revalidarPedidos(pedidoId);
+  return { success: 'Pedido alterado.' };
 }
 
 /**

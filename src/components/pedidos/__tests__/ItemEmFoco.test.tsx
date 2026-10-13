@@ -89,6 +89,49 @@ describe('item do pedido em tela cheia (T8.1)', () => {
     expect(onAlterar).toHaveBeenCalledWith(4, 'generico', false);
     expect(onAlterar).toHaveBeenLastCalledWith(4, 'especieId', 'ipe');
   });
+
+  it('o grupo de espécies fica entre a espécie e a observação, e só no genérico', () => {
+    const props = {
+      indice: 0,
+      opcoesEspecie: [{ value: 'ipe', label: 'Ipê-amarelo' }],
+      recipientes: [{ value: 'tub', label: 'Tubete' }],
+      saldos: {},
+      onAlterar: vi.fn(),
+      onRemover: vi.fn(),
+      onFechar: vi.fn(),
+      onCriarEspecie: vi.fn(),
+    };
+    const { rerender } = render(<ItemEmFoco {...props} linha={{ ...linhaVazia(5), especieId: 'ipe' }} />);
+    expect(screen.queryByText('+ Adicionar espécie do grupo')).toBeNull();
+
+    rerender(<ItemEmFoco {...props} linha={{ ...linhaVazia(5), generico: true }} />);
+    const botao = screen.getByText('+ Adicionar espécie do grupo');
+    const observacao = screen.getByLabelText('Observação');
+    expect(screen.getByLabelText('Espécie').compareDocumentPosition(botao) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(botao.compareDocumentPosition(observacao) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    fireEvent.click(botao);
+    expect(props.onAlterar).toHaveBeenCalledWith(5, 'grupo', [{ chave: 1, especieId: '' }]);
+  });
+
+  it('trocar o genérico por uma espécie desfaz o grupo', () => {
+    const onAlterar = vi.fn();
+    render(
+      <ItemEmFoco
+        linha={{ ...linhaVazia(6), generico: true, grupo: [{ chave: 1, especieId: 'ipe' }] }}
+        indice={0}
+        opcoesEspecie={[{ value: 'ipe', label: 'Ipê-amarelo' }]}
+        recipientes={[]}
+        saldos={{}}
+        onAlterar={onAlterar}
+        onRemover={vi.fn()}
+        onFechar={vi.fn()}
+        onCriarEspecie={vi.fn()}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText('Espécie'), { target: { value: 'ip' } });
+    expect(onAlterar).toHaveBeenCalledWith(6, 'grupo', []);
+  });
 });
 
 describe('estoque disponível no item em tela cheia (RF-56, RN-06)', () => {

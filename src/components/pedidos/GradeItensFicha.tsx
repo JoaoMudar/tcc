@@ -1,6 +1,5 @@
 'use client';
 
-import type { ReactNode } from 'react';
 import { MARCA_OBRIGATORIO } from '@/components/ui/marcaObrigatorio';
 import { formatQuantidade } from '@/lib/lotes-rotulos';
 import {
@@ -13,9 +12,18 @@ import {
   itemVendavel,
   quantidadeConfirmada,
   rotuloGenerico,
+  rotuloGrupo,
   saldoDoItem,
 } from '@/lib/pedidos-rotulos';
-import { type SaldosPorChave, textoSaldo } from './linhas-pedido';
+import {
+  BARRA_CONFERENCIA,
+  CLASSE_LINHA_PAI,
+  CLASSE_OBRIGATORIO,
+  type SaldosPorChave,
+  TEXTO_OBRIGATORIO,
+  conferenciaDoItem,
+  textoSaldo,
+} from './linhas-pedido';
 
 /** O item como a ficha o recebe do servidor: o pedido e o que a conferência achou. */
 export interface ItemDaFicha extends ItemParaAprovar {
@@ -29,6 +37,8 @@ export interface ItemDaFicha extends ItemParaAprovar {
   alturaDisponivelM: number | null;
   itemPaiId: string | null;
   especificacao: string | null;
+  /** O grupo do genérico (T8.7). Ausente ou vazio é "qualquer espécie serve". */
+  especiesPermitidas?: readonly string[];
   disponivel: boolean | null;
   quantidadeDisponivel: number | null;
   /** Peso do recipiente cheio, pedido e conferido (RN-65). Ausente é "sem peso". */
@@ -36,6 +46,12 @@ export interface ItemDaFicha extends ItemParaAprovar {
   pesoDisponivelKg?: number | null;
   /** O item que este completa (P13); no suplente, o item de que ele é reserva (P18). */
   complementaItemId?: string | null;
+}
+
+/** A espécie, ou o genérico com a observação e o tamanho do grupo: "Genérico: nativas · grupo de 3 espécies". */
+function nomeDoItem(item: ItemDaFicha): string {
+  if (item.especie) return item.especie;
+  return [rotuloGenerico(item.especificacao), rotuloGrupo(item.especiesPermitidas?.length ?? 0)].filter(Boolean).join(' · ');
 }
 
 /** O que a chefia digita na negociação, por item. Texto, porque os campos são controlados. */
@@ -51,8 +67,12 @@ interface GradeItensFichaProps {
   /** Presente só na negociação: sem ele a grade é só leitura. */
   valores?: Readonly<Record<string, ValoresNegociacao>>;
   onAlterar?: (itemId: string, campo: keyof ValoresNegociacao, valor: string) => void;
-  /** Na fase de aprovação a falta impede o próximo passo, e o "Definir" fica vermelho. */
-  faltaBloqueia?: boolean;
+  /**
+   * Pinta a barra da verificação no começo de cada linha (verde, amarelo,
+   * vermelho). Só até a aprovação: depois dela todo item é "tem", e a cor não
+   * diria nada.
+   */
+  mostraConferencia?: boolean;
   /** P18: os outros recipientes em que a espécie do item sem quantidade também está. Fora de `itens`. */
   suplentes?: readonly ItemDaFicha[];
   /** Presente só na negociação: o suplente vira linha do pedido. */
@@ -80,7 +100,7 @@ interface Titulo {
  * O que a conferência achou do item dividido, numa frase. Com número em todas
  * as linhas e quantidade pedida, a conta; sem isso, só onde a muda está.
  */
-function textoTemos(principal: ItemDaFicha, complementos: readonly ItemDaFicha[]): { temos: string; completo: boolean } {
+export function textoTemos(principal: ItemDaFicha, complementos: readonly ItemDaFicha[]): { temos: string; completo: boolean } {
   const linhas = [principal, ...complementos];
   const quantas = linhas.map((linha) => quantidadeConfirmada(linha));
   if (principal.quantidade !== null && quantas.every((n) => n !== null)) {
@@ -100,27 +120,25 @@ function opcoesRecipiente(item: ItemDaFicha) {
   return [
     ...(item.recipienteId && item.recipiente ? [{ value: item.recipienteId, label: item.recipiente }] : []),
     ...(item.recipienteDisponivelId && item.recipienteDisponivel && item.recipienteDisponivelId !== item.recipienteId
-      ? [{ value: item.recipienteDisponivelId, label: item.recipienteDisponivel }]
+      ? [
+          {
+            value: item.recipienteDisponivelId,
+            label: item.recipienteDisponivel,
+          },
+        ]
       : []),
   ];
 }
 
-function Definir({ bloqueia }: { bloqueia: boolean }) {
-  return (
-    <span
-      className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-bold ${
-        bloqueia ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'
-      }`}
-    >
-      Definir
-    </span>
-  );
+/** A célula obrigatória vazia não tem texto na tela: o vermelho diz, e o leitor de tela lê isto. */
+function Obrigatorio() {
+  return <span className="sr-only">{TEXTO_OBRIGATORIO}</span>;
 }
 
-/** O que a célula mostra: o valor, "Definir" quando falta, ou nada quando o campo não se aplica. */
-function valorOuDefinir(texto: string | null, falta: boolean, bloqueia: boolean): ReactNode {
+/** O valor, ou a marca de obrigatório quando falta; nada quando o campo não se aplica. */
+function valorOuObrigatorio(texto: string | null, falta: boolean) {
   if (texto) return texto;
-  return falta ? <Definir bloqueia={bloqueia} /> : null;
+  return falta ? <Obrigatorio /> : null;
 }
 
 const CLASSE_CELULA_CAMPO =
@@ -131,8 +149,8 @@ const CLASSE_CELULA_CAMPO =
  * cadastro** (`GradeItens`): planilha de `lg` para cima, lista no celular.
  *
  * Fora do orçamento a grade é leitura, e na negociação ganha a coluna de preço
- * e a quantidade vira campo. A célula que a aprovação ainda cobra diz "Definir"
- * (`camposFaltando`), no lugar de um texto explicando o que falta.
+ * e a quantidade vira campo. A célula que a aprovação ainda cobra fica vazia e
+ * vermelha (`camposFaltando`), no lugar de um texto explicando o que falta.
  *
  * Os valores mostrados já são os que a aprovação vai gravar: a quantidade que a
  * conferência achou no parcial e o recipiente conferido no lugar do pedido.
@@ -142,7 +160,7 @@ export function GradeItensFicha({
   saldos,
   valores,
   onAlterar,
-  faltaBloqueia = false,
+  mostraConferencia = false,
   suplentes = [],
   onUsarSuplente,
   usandoSuplente = false,
@@ -170,6 +188,7 @@ export function GradeItensFicha({
       falta,
       filho: item.itemPaiId !== null || subitem,
       indisponivel: item.disponivel === false && item.quantidadeDisponivel === 0,
+      conferencia: mostraConferencia ? conferenciaDoItem(item, itens) : null,
       quantidade: parcial ? item.quantidadeDisponivel : item.quantidade,
       recipiente: item.recipienteDisponivel ?? item.recipiente,
       altura: item.alturaDisponivelM ?? item.alturaM,
@@ -179,7 +198,7 @@ export function GradeItensFicha({
       edita,
       editaQuantidade: edita && !item.generico,
       opcoes: edita ? opcoesRecipiente(item) : [],
-      nome: item.especie ?? rotuloGenerico(item.especificacao),
+      nome: nomeDoItem(item),
     };
   };
   type LinhaItem = ReturnType<typeof linhaDe>;
@@ -212,7 +231,7 @@ export function GradeItensFicha({
       tipo: 'titulo',
       titulo: {
         item: pedido,
-        nome: item.especie ?? rotuloGenerico(item.especificacao),
+        nome: nomeDoItem(item),
         saldo: saldoDe(pedido),
         ...textoTemos(pedido, complementos.map(doBanco)),
       },
@@ -224,27 +243,28 @@ export function GradeItensFicha({
   const numero = new Map<string, number>();
   for (const linha of linhas) if (linha.tipo === 'item') numero.set(linha.item.id, numero.size + 1);
 
+  // O "Não tem" já está na frase da verificação: a quantidade fica vazia, porque não há o que vender
   const textoQuantidade = (linha: LinhaItem) =>
     linha.indisponivel
-      ? 'Não tem'
-      : valorOuDefinir(linha.quantidade === null ? null : formatQuantidade(linha.quantidade), linha.falta.quantidade, faltaBloqueia);
+      ? ''
+      : valorOuObrigatorio(linha.quantidade === null ? null : formatQuantidade(linha.quantidade), linha.falta.quantidade);
 
   const textoPreco = (linha: LinhaItem) =>
-    valorOuDefinir(
-      linha.item.precoCentavos === null ? null : formatMoeda(linha.item.precoCentavos),
-      linha.falta.preco,
-      faltaBloqueia,
-    );
+    valorOuObrigatorio(linha.item.precoCentavos === null ? null : formatMoeda(linha.item.precoCentavos), linha.falta.preco);
+
+  /** A classe da célula de leitura: vermelha quando a aprovação ainda cobra o campo. */
+  const celula = (falta: boolean) => (falta ? CLASSE_OBRIGATORIO : '');
 
   const campoPreco = (linha: LinhaItem, classe: string) => (
     <input
       aria-label={`Preço do item ${numero.get(linha.item.id)}`}
       inputMode="decimal"
       autoComplete="off"
-      placeholder={linha.falta.preco ? 'Definir' : '0,00'}
+      aria-invalid={linha.falta.preco || undefined}
+      title={linha.falta.preco ? TEXTO_OBRIGATORIO : undefined}
       value={valores?.[linha.item.id]?.preco ?? ''}
       onChange={(evento) => onAlterar?.(linha.item.id, 'preco', evento.target.value)}
-      className={`${classe} ${linha.falta.preco ? (faltaBloqueia ? 'placeholder:text-red-600' : 'placeholder:text-amber-700') : ''}`}
+      className={`${classe} ${celula(linha.falta.preco)}`}
     />
   );
 
@@ -253,10 +273,11 @@ export function GradeItensFicha({
       aria-label={`Quantidade do item ${numero.get(linha.item.id)}`}
       inputMode="numeric"
       autoComplete="off"
-      placeholder={linha.falta.quantidade ? 'Definir' : ''}
+      aria-invalid={linha.falta.quantidade || undefined}
+      title={linha.falta.quantidade ? TEXTO_OBRIGATORIO : undefined}
       value={valores?.[linha.item.id]?.quantidade ?? ''}
       onChange={(evento) => onAlterar?.(linha.item.id, 'quantidade', evento.target.value)}
-      className={`${classe} ${linha.falta.quantidade ? (faltaBloqueia ? 'placeholder:text-red-600' : 'placeholder:text-amber-700') : ''}`}
+      className={`${classe} ${celula(linha.falta.quantidade)}`}
     />
   );
 
@@ -314,12 +335,14 @@ export function GradeItensFicha({
   };
 
   const corDaLinha = (linha: LinhaItem) => (linha.item.generico ? 'bg-blue-50' : linha.filho ? 'bg-gray-50' : '');
+  const barraDa = (linha: LinhaItem) => (linha.conferencia ? BARRA_CONFERENCIA[linha.conferencia] : '');
 
   const nomeCientifico = (item: ItemDaFicha) =>
     item.nomeCientifico && item.nomeCientifico !== item.especie ? item.nomeCientifico : null;
 
+  // Na linha pai (fundo escuro) o verde e o amarelo são os claros
   const textoTemosDo = (titulo: Titulo) => (
-    <span className={`block text-sm font-semibold ${titulo.completo ? 'text-green-800' : 'text-amber-800'}`}>{titulo.temos}</span>
+    <span className={`block text-sm font-semibold ${titulo.completo ? 'text-green-300' : 'text-amber-300'}`}>{titulo.temos}</span>
   );
 
   // O que o cliente pediu, no celular. O recipiente que ele não disse fica em branco: quem o define é o subitem
@@ -364,38 +387,38 @@ export function GradeItensFicha({
           <tbody>
             {linhas.map((linha) =>
               linha.tipo === 'titulo' ? (
-                <tr key={`titulo-${linha.titulo.item.id}`} className="border-t border-line bg-blue-50 align-top">
+                <tr key={`titulo-${linha.titulo.item.id}`} className={`border-t border-line align-top ${CLASSE_LINHA_PAI}`}>
                   <td className="px-3 py-2.5">
-                    <span className="font-semibold text-ink">{linha.titulo.nome}</span>
+                    <span className="font-semibold">{linha.titulo.nome}</span>
                     {nomeCientifico(linha.titulo.item) && (
-                      <span className="block text-xs text-muted italic">{nomeCientifico(linha.titulo.item)}</span>
+                      <span className="block text-xs text-gray-300 italic">{nomeCientifico(linha.titulo.item)}</span>
                     )}
                     {linha.titulo.saldo !== undefined && (
-                      <span className="block text-xs text-muted">
+                      <span className="block text-xs text-gray-300">
                         {textoSaldo(linha.titulo.saldo, linha.titulo.item.quantidade)}
                       </span>
                     )}
                     {textoTemosDo(linha.titulo)}
                     {avisoSuplentes(linha.titulo.item)}
                   </td>
-                  <td className="border-l border-line px-3 py-2.5">{linha.titulo.item.recipiente}</td>
-                  <td className="border-l border-line px-3 py-2.5">
+                  <td className="border-l border-gray-600 px-3 py-2.5">{linha.titulo.item.recipiente}</td>
+                  <td className="border-l border-gray-600 px-3 py-2.5">
                     {linha.titulo.item.alturaM ? formatAltura(linha.titulo.item.alturaM) : null}
                   </td>
-                  <td className="border-l border-line px-3 py-2.5 text-right">
+                  <td className="border-l border-gray-600 px-3 py-2.5 text-right">
                     {linha.titulo.item.quantidade === null ? null : formatQuantidade(linha.titulo.item.quantidade)}
                   </td>
-                  {comPreco && <td className="border-l border-line" />}
+                  {comPreco && <td className="border-l border-gray-600" />}
                 </tr>
               ) : (
                 <tr key={linha.item.id} className={`border-t border-line align-top ${corDaLinha(linha)}`}>
-                  <td className="px-3 py-2.5">
+                  <td className={`px-3 py-2.5 ${barraDa(linha)} ${celula(linha.falta.composicao)}`}>
                     <span className={`flex flex-wrap items-center gap-2 ${linha.filho ? 'pl-4' : ''}`}>
                       <span className="font-semibold text-ink">
                         {linha.filho && <span className="text-muted">↳ </span>}
                         {linha.nome}
                       </span>
-                      {linha.falta.composicao && <Definir bloqueia={faltaBloqueia} />}
+                      {linha.falta.composicao && <Obrigatorio />}
                     </span>
                     {nomeCientifico(linha.item) && (
                       <span className={`block text-xs text-muted italic ${linha.filho ? 'pl-4' : ''}`}>
@@ -409,19 +432,31 @@ export function GradeItensFicha({
                     )}
                     {!complementosDe.has(linha.item.id) && avisoSuplentes(linha.item)}
                   </td>
-                  <td className={`border-l border-line ${linha.opcoes.length > 1 ? 'p-0' : 'px-3 py-2.5'}`}>
+                  <td
+                    className={`border-l border-line ${linha.opcoes.length > 1 ? 'p-0' : 'px-3 py-2.5'} ${
+                      linha.opcoes.length > 1 || linha.item.generico ? '' : celula(linha.falta.recipiente)
+                    }`}
+                  >
                     {linha.opcoes.length > 1
                       ? campoRecipiente(linha, CLASSE_CELULA_CAMPO)
                       : linha.item.generico
                         ? null
-                        : valorOuDefinir(linha.recipiente, linha.falta.recipiente, faltaBloqueia)}
+                        : valorOuObrigatorio(linha.recipiente, linha.falta.recipiente)}
                   </td>
                   <td className="border-l border-line px-3 py-2.5">{linha.altura ? formatAltura(linha.altura) : null}</td>
-                  <td className={`border-l border-line text-right ${linha.editaQuantidade ? 'p-0' : 'px-3 py-2.5'}`}>
+                  <td
+                    className={`border-l border-line text-right ${
+                      linha.editaQuantidade ? 'p-0' : `px-3 py-2.5 ${celula(linha.falta.quantidade)}`
+                    }`}
+                  >
                     {linha.editaQuantidade ? campoQuantidade(linha, `${CLASSE_CELULA_CAMPO} text-right`) : textoQuantidade(linha)}
                   </td>
                   {comPreco && (
-                    <td className={`border-l border-line text-right ${linha.edita ? 'p-0' : 'px-3 py-2.5'}`}>
+                    <td
+                      className={`border-l border-line text-right ${
+                        linha.edita ? 'p-0' : `px-3 py-2.5 ${celula(linha.falta.preco)}`
+                      }`}
+                    >
                       {linha.edita ? campoPreco(linha, `${CLASSE_CELULA_CAMPO} text-right`) : textoPreco(linha)}
                     </td>
                   )}
@@ -437,40 +472,54 @@ export function GradeItensFicha({
         <ul className="flex flex-col divide-y divide-line">
           {linhas.map((linha) =>
             linha.tipo === 'titulo' ? (
-              <li key={`titulo-${linha.titulo.item.id}`} className="flex flex-col gap-1 bg-blue-50 px-4 py-3">
+              <li key={`titulo-${linha.titulo.item.id}`} className={`flex flex-col gap-1 px-4 py-3 ${CLASSE_LINHA_PAI}`}>
                 <div className="grid grid-cols-[1fr_auto] items-start gap-x-3">
                   <span className="flex min-w-0 flex-col gap-0.5">
-                    <span className="text-base font-semibold text-ink">{linha.titulo.nome}</span>
+                    <span className="text-base font-semibold">{linha.titulo.nome}</span>
                     {textoPedido(linha.titulo) && (
-                      <span className="text-sm text-muted">Pedido: {textoPedido(linha.titulo)}</span>
+                      <span className="text-sm text-gray-300">Pedido: {textoPedido(linha.titulo)}</span>
                     )}
                   </span>
                   {linha.titulo.item.quantidade !== null && (
-                    <span className="text-base font-semibold text-ink">{formatQuantidade(linha.titulo.item.quantidade)}</span>
+                    <span className="text-base font-semibold">{formatQuantidade(linha.titulo.item.quantidade)}</span>
                   )}
                 </div>
                 {textoTemosDo(linha.titulo)}
                 {avisoSuplentes(linha.titulo.item)}
               </li>
             ) : (
-              <li key={linha.item.id} className={`flex flex-col gap-2 px-4 py-3 ${corDaLinha(linha)}`}>
+              <li key={linha.item.id} className={`flex flex-col gap-2 px-4 py-3 ${corDaLinha(linha)} ${barraDa(linha)}`}>
                 <div className="grid grid-cols-[1fr_auto] items-start gap-x-3">
                   <span className={`flex min-w-0 flex-col gap-0.5 ${linha.filho ? 'pl-4' : ''}`}>
                     <span className="flex flex-wrap items-center gap-2 text-base font-semibold text-ink">
-                      <span>
+                      <span className={linha.falta.composicao ? `rounded px-1 ${CLASSE_OBRIGATORIO}` : undefined}>
                         {linha.filho && <span className="text-muted">↳ </span>}
                         {linha.nome}
+                        {linha.falta.composicao && <Obrigatorio />}
                       </span>
-                      {linha.falta.composicao && <Definir bloqueia={faltaBloqueia} />}
                     </span>
                     {!linha.item.generico && (
                       <span className="flex flex-wrap items-center gap-x-1 text-sm text-muted">
-                        {linha.opcoes.length > 1 ? null : valorOuDefinir(linha.recipiente, linha.falta.recipiente, faltaBloqueia)}
+                        {linha.opcoes.length > 1 ? null : (
+                          <span
+                            className={linha.falta.recipiente ? `inline-block h-5 w-16 rounded ${CLASSE_OBRIGATORIO}` : undefined}
+                          >
+                            {valorOuObrigatorio(linha.recipiente, linha.falta.recipiente)}
+                          </span>
+                        )}
                         {linha.altura ? <span>· {formatAltura(linha.altura)}</span> : null}
                       </span>
                     )}
                   </span>
-                  {!linha.editaQuantidade && <span className="text-base font-semibold text-ink">{textoQuantidade(linha)}</span>}
+                  {!linha.editaQuantidade && (
+                    <span
+                      className={`text-base font-semibold text-ink ${
+                        linha.falta.quantidade ? `inline-block h-7 w-14 rounded ${CLASSE_OBRIGATORIO}` : ''
+                      }`}
+                    >
+                      {textoQuantidade(linha)}
+                    </span>
+                  )}
                 </div>
                 {!complementosDe.has(linha.item.id) && avisoSuplentes(linha.item)}
 
@@ -482,21 +531,31 @@ export function GradeItensFicha({
                         'col-span-2 h-11 rounded-lg border-[1.5px] border-gray-300 bg-white px-3 text-base text-ink',
                       )}
                     {linha.editaQuantidade ? (
-                      <label className="flex h-11 items-center gap-2 rounded-lg border-[1.5px] border-gray-300 bg-white px-3 focus-within:border-brand-dark">
+                      <label
+                        className={`flex h-11 items-center gap-2 rounded-lg border-[1.5px] border-gray-300 bg-white px-3 focus-within:border-brand-dark ${celula(linha.falta.quantidade)}`}
+                      >
                         <span className="text-sm text-muted">Qtd</span>
                         {campoQuantidade(linha, 'min-w-0 flex-1 bg-transparent text-right text-base text-ink outline-none')}
                       </label>
                     ) : (
                       <span />
                     )}
-                    <label className="flex h-11 items-center gap-2 rounded-lg border-[1.5px] border-gray-300 bg-white px-3 focus-within:border-brand-dark">
+                    <label
+                      className={`flex h-11 items-center gap-2 rounded-lg border-[1.5px] border-gray-300 bg-white px-3 focus-within:border-brand-dark ${celula(linha.falta.preco)}`}
+                    >
                       <span className="text-sm text-muted">R$</span>
                       {campoPreco(linha, 'min-w-0 flex-1 bg-transparent text-right text-base text-ink outline-none')}
                     </label>
                   </div>
                 ) : (
                   comPreco &&
-                  itemVendavel(linha.item, itens) && <span className="self-end text-sm text-ink">{textoPreco(linha)}</span>
+                  itemVendavel(linha.item, itens) && (
+                    <span
+                      className={`self-end text-sm text-ink ${linha.falta.preco ? `inline-block h-7 w-20 rounded ${CLASSE_OBRIGATORIO}` : ''}`}
+                    >
+                      {textoPreco(linha)}
+                    </span>
+                  )
                 )}
               </li>
             ),

@@ -4,7 +4,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { Notice } from '@/components/ui/Notice';
 import pool from '@/lib/db';
 import { nomeExibido, searchEspecies } from '@/lib/especies';
-import { findPedido, listEspeciesPermitidas } from '@/lib/pedidos';
+import { findPedido } from '@/lib/pedidos';
 import { formatVolume, listRecipientes } from '@/lib/recipientes';
 import { isUuid } from '@/lib/uuid';
 import { requirePageAccess } from '@/lib/auth/guards';
@@ -52,12 +52,10 @@ export default async function VerificarPage({ params }: VerificarPageProps) {
   const respondidos = topo.filter((item) => item.disponivel !== null).length;
   const pendentes = topo.length - respondidos;
 
-  const [especies, recipientes, escopos] = await Promise.all([
+  const [especies, recipientes] = await Promise.all([
     genericos.length > 0 ? searchEspecies(pool) : [],
     listRecipientes(pool),
-    Promise.all(genericos.map(async (item) => [item.id, await listEspeciesPermitidas(pool, item.id)] as const)),
   ]);
-  const permitidasPor = new Map(escopos);
 
   const opcoesRecipiente = recipientes
     .filter((r) => r.ativo)
@@ -109,7 +107,7 @@ export default async function VerificarPage({ params }: VerificarPageProps) {
                   disponivel: item.disponivel,
                   quantidadeDisponivel: item.quantidadeDisponivel,
                   observacoesDisponibilidade: item.observacoesDisponibilidade,
-                  especiesPermitidas: permitidasPor.get(item.id) ?? [],
+                  especiesPermitidas: item.especiesPermitidas ?? [],
                   filhos: pedido.itens
                     .filter((filho) => filho.itemPaiId === item.id)
                     .map((filho) => ({

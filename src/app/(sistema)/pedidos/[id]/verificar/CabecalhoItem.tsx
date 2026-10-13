@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { formatQuantidade } from '@/lib/lotes-rotulos';
-import { type EstadoDaResposta, formatAltura } from '@/lib/pedidos-rotulos';
+import { type EstadoDaResposta, formatAltura, rotuloGrupo } from '@/lib/pedidos-rotulos';
 
 /** Branco é o que ainda não foi olhado, e é o que a pessoa procura na tela. */
 export const COR_DO_ESTADO: Record<EstadoDaResposta, string> = {
@@ -26,6 +26,8 @@ interface CabecalhoItemProps {
   estado: EstadoDaResposta;
   /** O que a gerência respondeu, numa linha. Vazio enquanto pendente. */
   resumo?: string;
+  /** No genérico com grupo, os nomes das espécies que o cliente aceita (T8.7). */
+  grupo?: readonly string[];
   children?: ReactNode;
 }
 
@@ -42,8 +44,10 @@ export function CabecalhoItem({
   alturaM,
   estado,
   resumo,
+  grupo = [],
   children,
 }: CabecalhoItemProps) {
+  const etiquetaGrupo = rotuloGrupo(grupo.length);
   const etiquetas = [
     quantidade === null ? 'quantidade a definir' : `${formatQuantidade(quantidade)} mudas`,
     recipiente ?? 'recipiente a definir',
@@ -65,7 +69,18 @@ export function CabecalhoItem({
             {texto}
           </li>
         ))}
+        {/* O grupo vem junto do que o cliente pediu, em destaque: muda o que a busca oferece */}
+        {etiquetaGrupo && (
+          <li className="rounded-full bg-amber-100 px-2.5 py-0.5 text-sm font-semibold text-amber-900 ring-1 ring-amber-300">
+            {etiquetaGrupo}
+          </li>
+        )}
       </ul>
+      {grupo.length > 0 && (
+        <p className="text-sm text-amber-900">
+          Só estas aparecem na busca: <span className="font-semibold">{grupo.join(', ')}</span>
+        </p>
+      )}
       {children}
       {estado !== 'pendente' && resumo && (
         <p className={`text-base font-bold ${COR_DO_RESUMO[estado]}`} aria-live="polite">

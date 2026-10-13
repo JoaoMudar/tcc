@@ -7,7 +7,8 @@ import type { SelectOption } from '@/components/ui/SelectField';
 import { TextField } from '@/components/ui/TextField';
 import { lerQuantidade } from '@/lib/lotes-rotulos';
 import { chaveSaldo, mascaraAltura, parseAltura, saldoDoItem } from '@/lib/pedidos-rotulos';
-import { type Linha, type SaldosPorChave, textoSaldo } from './linhas-pedido';
+import { GrupoEspecies } from './GrupoEspecies';
+import { type Linha, type SaldosPorChave, type ValorLinha, textoSaldo } from './linhas-pedido';
 
 interface ItemEmFocoProps {
   linha: Linha;
@@ -15,7 +16,7 @@ interface ItemEmFocoProps {
   opcoesEspecie: readonly SelectOption[];
   recipientes: readonly SelectOption[];
   saldos: SaldosPorChave;
-  onAlterar: (chave: number, campo: keyof Omit<Linha, 'chave'>, valor: string | boolean) => void;
+  onAlterar: (chave: number, campo: keyof Omit<Linha, 'chave'>, valor: ValorLinha) => void;
   onRemover: (chave: number) => void;
   onFechar: () => void;
   /** O nome digitado que não está no catálogo, para cadastrar e voltar escolhido aqui. */
@@ -54,8 +55,11 @@ export function ItemEmFoco({
         options={opcoesEspecie}
         value={linha.especieId}
         onChange={(valor) => {
-          // Escolher ou digitar outra espécie desfaz o genérico
-          if (linha.generico) onAlterar(linha.chave, 'generico', false);
+          // Escolher ou digitar outra espécie desfaz o genérico, e o grupo vai junto
+          if (linha.generico) {
+            onAlterar(linha.chave, 'generico', false);
+            onAlterar(linha.chave, 'grupo', []);
+          }
           onAlterar(linha.chave, 'especieId', valor);
         }}
         onCriarNova={(nome) => onCriarEspecie(linha.chave, nome)}
@@ -71,6 +75,15 @@ export function ItemEmFoco({
         }}
         required
       />
+      {/* O genérico pode restringir as espécies: só estas aparecem na conferência */}
+      {linha.generico && (
+        <GrupoEspecies
+          doItem={`do item ${indice + 1}`}
+          grupo={linha.grupo}
+          opcoesEspecie={opcoesEspecie}
+          onAlterar={(grupo) => onAlterar(linha.chave, 'grupo', grupo)}
+        />
+      )}
       {/* O genérico pode levar uma observação: é o texto que a gerência lê para montar o item */}
       {linha.generico && (
         <TextField

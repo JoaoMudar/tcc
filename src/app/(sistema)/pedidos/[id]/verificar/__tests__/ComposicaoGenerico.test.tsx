@@ -79,6 +79,23 @@ describe('ComposicaoGenerico (P12)', () => {
     expect(screen.getByText('Faltam 500')).toBeTruthy();
   });
 
+  it('o grupo do cliente vira etiqueta junto da quantidade, e só ele aparece na busca (T8.7)', () => {
+    renderiza({ especiesPermitidas: ['ipe'] });
+    const etiquetas = screen.getByRole('list', { name: 'O que o cliente pediu' });
+    expect(etiquetas).toHaveTextContent('500 mudas');
+    expect(etiquetas).toHaveTextContent('grupo de 1 espécie');
+    expect(screen.getByText('Ipê-amarelo', { selector: 'span' })).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Tem tudo'));
+    fireEvent.focus(screen.getByLabelText(/^Espécie/));
+    expect(screen.getByRole('button', { name: 'Ipê-amarelo' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Aroeira' })).toBeNull();
+  });
+
+  it('sem grupo, nenhuma etiqueta de grupo', () => {
+    renderiza();
+    expect(screen.queryByText(/grupo de/)).toBeNull();
+  });
+
   it('não tem botão "Gravar": grava ao sair do campo, e só quando a soma fecha', async () => {
     renderiza({ disponivel: true, filhos: [filho('ipe', 300), filho('aroeira', 200)] });
     expect(screen.queryByText('Gravar')).toBeNull();

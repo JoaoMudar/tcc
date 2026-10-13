@@ -250,13 +250,8 @@ export function ComposicaoGenerico({ pedidoId, item, especies, recipientes }: Co
         alturaM={item.alturaM}
         estado={gravada}
         resumo={resumoDoGenerico(item, gravada)}
-      >
-        {item.especiesPermitidas.length > 0 && (
-          <p className="text-sm font-semibold text-amber-900">
-            O cliente aceita {item.especiesPermitidas.length} espécie(s), e só elas aparecem na busca.
-          </p>
-        )}
-      </CabecalhoItem>
+        grupo={item.especiesPermitidas.length > 0 ? oferecidas.map((opcao) => opcao.label) : []}
+      />
 
       {item.filhos.length > 0 && !aberta && (
         <ul className="flex flex-col gap-1 rounded-lg border border-line bg-white p-3">

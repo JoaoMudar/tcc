@@ -26,9 +26,13 @@ function item(sobre: Partial<ItemDaFicha> = {}): ItemDaFicha {
 }
 
 describe('GradeItensFicha (T8.1, RF-55)', () => {
-  it('na leitura, o que falta diz "Definir", e não há campo nem total', () => {
+  it('na leitura, o que falta fica vazio e vermelho, sem texto, e não há campo nem total', () => {
     render(<GradeItensFicha itens={[item({ recipienteId: null, recipiente: null })]} saldos={{}} />);
-    expect(screen.getAllByText('Definir').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Definir')).toBeNull();
+    const marcas = screen.getAllByText('Obrigatório preencher');
+    expect(marcas.length).toBeGreaterThan(0);
+    expect(marcas[0].className).toContain('sr-only');
+    expect(marcas[0].closest('td')?.className).toContain('bg-red-50');
     expect(screen.queryByRole('textbox')).toBeNull();
     expect(screen.queryByText(/total do pedido/i)).toBeNull();
     expect(screen.queryByText(/a definir na conferência/i)).toBeNull();
@@ -82,24 +86,64 @@ describe('GradeItensFicha (T8.1, RF-55)', () => {
     expect(screen.queryByLabelText('Preço do item 2')).toBeNull();
   });
 
-  it('o "Definir" fica vermelho quando a falta impede a aprovação', () => {
-    render(<GradeItensFicha itens={[item({ quantidade: null })]} saldos={{}} faltaBloqueia />);
-    expect(screen.getAllByText('Definir')[0].className).toMatch(/red/);
+  it('a quantidade que falta é a célula vermelha, sem texto', () => {
+    render(<GradeItensFicha itens={[item({ quantidade: null })]} saldos={{}} />);
+    const [celula] = Array.from(document.querySelectorAll('tbody td')).slice(3, 4);
+    expect(celula.textContent).toBe('Obrigatório preencher');
+    expect(celula.className).toContain('bg-red-50');
   });
 
-  it('na aprovação, a quantidade que falta fica vermelha no campo, como o preço', () => {
+  it('na negociação, a quantidade que falta fica vermelha no campo, como o preço, sem placeholder', () => {
     render(
       <GradeItensFicha
         itens={[item({ quantidade: null })]}
         saldos={{}}
         valores={{ a: { preco: '', quantidade: '', recipienteId: 't' } }}
         onAlterar={vi.fn()}
-        faltaBloqueia
       />,
     );
     const [quantidade] = screen.getAllByLabelText('Quantidade do item 1');
-    expect(quantidade.getAttribute('placeholder')).toBe('Definir');
-    expect(quantidade.className).toContain('placeholder:text-red-600');
+    expect(quantidade.getAttribute('placeholder')).toBeNull();
+    expect(quantidade.getAttribute('aria-invalid')).toBe('true');
+    expect(quantidade.className).toContain('bg-red-50');
+    const [preco] = screen.getAllByLabelText('Preço do item 1');
+    expect(preco.className).toContain('bg-red-50');
+  });
+});
+
+describe('o que a verificação achou (barra no começo da linha)', () => {
+  const tem = item({ id: 't1', disponivel: true });
+  const parte = item({ id: 'p1', especie: 'Cedro', especieId: 'e2', disponivel: false, quantidadeDisponivel: 30 });
+  const naoTem = item({ id: 'n1', especie: 'Ingá', especieId: 'e3', disponivel: false, quantidadeDisponivel: 0 });
+
+  const primeiraCelula = () => Array.from(document.querySelectorAll('tbody tr')).map((tr) => tr.querySelector('td')!.className);
+
+  it('verde quando tem, amarelo quando tem parte, vermelho quando não tem', () => {
+    render(<GradeItensFicha itens={[tem, parte, naoTem]} saldos={{}} mostraConferencia />);
+    const [verde, amarelo, vermelho] = primeiraCelula();
+    expect(verde).toContain('--color-green-600');
+    expect(amarelo).toContain('--color-amber-400');
+    expect(vermelho).toContain('--color-red-600');
+  });
+
+  it('sem pedir, a grade não pinta (depois da aprovação todo item é "tem")', () => {
+    render(<GradeItensFicha itens={[tem]} saldos={{}} />);
+    expect(primeiraCelula()[0]).not.toContain('--color-');
+  });
+
+  it('o "Não tem" deixa a quantidade vazia, sem botão de decidir', () => {
+    render(
+      <GradeItensFicha
+        itens={[tem, naoTem]}
+        saldos={{}}
+        valores={{ t1: { preco: '', quantidade: '100', recipienteId: 't' } }}
+        onAlterar={vi.fn()}
+        mostraConferencia
+      />,
+    );
+    expect(screen.queryByText('Não tem')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Substituir' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Excluir o item/ })).toBeNull();
   });
 });
 
@@ -143,8 +187,15 @@ describe('item dividido em recipientes: título com subitens', () => {
   }
 
   it('o título mostra o pedido e o que temos, e as linhas reais vêm embaixo dele', () => {
-    render(<GradeItensFicha itens={[outro, complemento, principal]} saldos={{}} />);
+    render(<GradeItensFicha itens={[outro, complemento, principal]} saldos={{}} mostraConferencia />);
     const [linhaOutro, titulo, linhaPrincipal, linhaComplemento] = linhasDaTabela();
+    // A linha pai: cinza escuro e barra azul; o principal amarelo, o complemento verde
+    const classes = Array.from(document.querySelectorAll('tbody tr')).map((tr) => tr.className);
+    expect(classes[1]).toContain('bg-gray-700');
+    expect(classes[1]).toContain('--color-blue-500');
+    const barras = Array.from(document.querySelectorAll('tbody tr')).map((tr) => tr.querySelector('td')!.className);
+    expect(barras[2]).toContain('--color-amber-400');
+    expect(barras[3]).toContain('--color-green-600');
     expect(titulo[0]).toContain('Ipê-amarelo');
     expect(titulo[0]).toContain('Temos 50 de 50');
     expect(titulo.slice(1)).toEqual(['Tubete', '', '50']);
