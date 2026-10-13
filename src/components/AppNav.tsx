@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { BotaoSair } from './BotaoSair';
 import { IndicadorFila } from './IndicadorFila';
+import { MenuEngrenagem } from './MenuEngrenagem';
 import { type NavItem, isActive } from './nav-items';
 
 interface AppNavProps {
@@ -15,7 +16,10 @@ interface AppNavProps {
 
 const MORE_HREF = '/mais';
 
-/** Rodapé fixo no celular (áreas e "Mais"); coluna lateral com tudo a partir de telas médias. */
+/**
+ * Rodapé fixo no celular (áreas e "Mais"). A partir de telas médias, coluna
+ * lateral com as áreas no alto e, embaixo, Sair e a engrenagem com o resto.
+ */
 export function AppNav({ items, userName, logoutAction }: AppNavProps) {
   const pathname = usePathname();
   const primary = items.filter((item) => item.placement === 'primary');
@@ -57,7 +61,7 @@ export function AppNav({ items, userName, logoutAction }: AppNavProps) {
           Viveiro Mudar
         </Link>
         <ul className="mt-2 flex flex-col gap-1 px-2">
-          {items.map((item) => {
+          {primary.map((item) => {
             const active = isActive(pathname, item.href);
             return (
               <li key={item.href}>
@@ -76,7 +80,12 @@ export function AppNav({ items, userName, logoutAction }: AppNavProps) {
         </ul>
         <div className="mt-auto border-t border-line p-4">
           <p className="truncate text-sm text-muted">{userName}</p>
-          <BotaoSair logoutAction={logoutAction} aparencia="menu" />
+          <div className="flex items-end gap-2">
+            <div className="min-w-0 flex-1">
+              <BotaoSair logoutAction={logoutAction} aparencia="menu" />
+            </div>
+            {more.length > 0 && <MenuEngrenagem items={more} />}
+          </div>
         </div>
       </nav>
     </>
