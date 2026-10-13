@@ -1,21 +1,42 @@
 'use client';
 
-import { type ClipboardEvent, useState } from 'react';
+import { type ClipboardEvent, Fragment, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { ComboboxField } from '@/components/ui/ComboboxField';
 import { MARCA_OBRIGATORIO } from '@/components/ui/marcaObrigatorio';
 import type { SelectOption } from '@/components/ui/SelectField';
 import { TextField } from '@/components/ui/TextField';
 import { formatQuantidade, lerQuantidade } from '@/lib/lotes-rotulos';
-import { chaveSaldo, mascaraAltura, normalizaCampoAltura, parseAltura, rotuloGenerico, saldoDoItem } from '@/lib/pedidos-rotulos';
-import { type Celula, type Linha, type SaldosPorChave, textoSaldo } from './linhas-pedido';
+import {
+  chaveSaldo,
+  mascaraAltura,
+  normalizaCampoAltura,
+  parseAltura,
+  rotuloGenerico,
+  rotuloGrupo,
+  saldoDoItem,
+} from '@/lib/pedidos-rotulos';
+import { GrupoEspecies } from './GrupoEspecies';
+import { IconeLixeira } from './IconeLixeira';
+import {
+  BARRA_CONFERENCIA,
+  type Celula,
+  CLASSE_LINHA_PAI,
+  type ConferenciaDaLinha,
+  type Linha,
+  type LinhaLeitura,
+  type SaldosPorChave,
+  type ValorLinha,
+  especiesDoGrupo,
+  textoSaldo,
+} from './linhas-pedido';
 
 interface GradeItensProps {
   linhas: readonly Linha[];
   opcoesEspecie: readonly SelectOption[];
   recipientes: readonly SelectOption[];
   saldos: SaldosPorChave;
-  onAlterar: (chave: number, campo: keyof Omit<Linha, 'chave'>, valor: string | boolean) => void;
+  onAlterar: (chave: number, campo: keyof Omit<Linha, 'chave'>, valor: ValorLinha) => void;
   onRemover: (chave: number) => void;
   /** `true` abre a linha nova em tela cheia, que é o caminho do celular. */
   onAdicionar: (abrirFicha: boolean) => void;
@@ -27,15 +48,90 @@ interface GradeItensProps {
   onColarLista?: () => void;
   /** O nome digitado que não está no catálogo, para cadastrar e voltar escolhido na linha. */
   onCriarEspecie: (chave: number, nome: string) => void;
+  /**
+   * Só a ficha, no pedido que voltou da verificação: o que ela achou de cada
+   * linha (a barra e a frase), por chave. O cadastro novo não tem.
+   */
+  conferencia?: Readonly<Record<number, ConferenciaDaLinha>>;
+  /** O pedido original do item dividido, em linha de leitura antes da chave. */
+  pais?: Readonly<Record<number, LinhaLeitura>>;
+  /** As espécies que a verificação pôs no genérico, em linhas de leitura depois da chave. */
+  filhos?: Readonly<Record<number, readonly LinhaLeitura[]>>;
 }
 
 const rotuloCriarEspecie = (nome: string) => `+ Cadastrar "${nome}" como espécie nova`;
 
-function IconeLixeira() {
+const COR_RESUMO: Record<ConferenciaDaLinha['estado'], string> = {
+  tudo: 'text-green-800',
+  parte: 'text-amber-800',
+  nao_tem: 'text-red-700',
+};
+
+const detalhe = (linha: LinhaLeitura) => [linha.recipiente, linha.altura].filter(Boolean).join(' · ');
+
+const COR_TEMOS = (completo: boolean | undefined) => (completo ? 'text-green-300' : 'text-amber-300');
+
+/** O que o cliente pediu no item que a verificação dividiu: cinza escuro, barra azul, sem campo. */
+function LinhaPaiPlanilha({ pai }: { pai: LinhaLeitura }) {
   return (
-    <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-      <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    <tr className={`border-t border-line align-top ${CLASSE_LINHA_PAI}`}>
+      <td className="px-3 py-2.5">
+        <span className="font-semibold">{pai.nome}</span>
+        <span className="block text-xs text-gray-300">Pedido do cliente</span>
+        {pai.temos && <span className={`block text-sm font-semibold ${COR_TEMOS(pai.completo)}`}>{pai.temos}</span>}
+      </td>
+      <td className="border-l border-gray-600 px-3 py-2.5">{pai.recipiente}</td>
+      <td className="border-l border-gray-600 px-3 py-2.5">{pai.altura}</td>
+      <td className="border-l border-gray-600 px-3 py-2.5 text-right">
+        {pai.quantidade === null ? null : formatQuantidade(pai.quantidade)}
+      </td>
+      <td className="border-l border-gray-600" />
+    </tr>
+  );
+}
+
+function LinhaPaiLista({ pai }: { pai: LinhaLeitura }) {
+  return (
+    <li className={`flex flex-col gap-0.5 px-4 py-3 ${CLASSE_LINHA_PAI}`}>
+      <span className="grid grid-cols-[1fr_auto] items-start gap-x-3">
+        <span className="text-base font-semibold">{pai.nome}</span>
+        {pai.quantidade !== null && <span className="text-base font-semibold">{formatQuantidade(pai.quantidade)}</span>}
+      </span>
+      <span className="text-sm text-gray-300">Pedido do cliente{detalhe(pai) ? `: ${detalhe(pai)}` : ''}</span>
+      {pai.temos && <span className={`text-sm font-semibold ${COR_TEMOS(pai.completo)}`}>{pai.temos}</span>}
+    </li>
+  );
+}
+
+/** A espécie que a verificação pôs no genérico: só leitura, porque quem a escolheu foi a verificação. */
+function LinhaFilhaPlanilha({ filho }: { filho: LinhaLeitura }) {
+  return (
+    <tr className={`border-t border-line bg-gray-50 align-top ${BARRA_CONFERENCIA.tudo}`}>
+      <td className="px-3 py-2.5 pl-7">
+        <span className="text-muted">↳ </span>
+        <span className="font-semibold text-ink">{filho.nome}</span>
+      </td>
+      <td className="border-l border-line px-3 py-2.5">{filho.recipiente}</td>
+      <td className="border-l border-line px-3 py-2.5">{filho.altura}</td>
+      <td className="border-l border-line px-3 py-2.5 text-right">
+        {filho.quantidade === null ? null : formatQuantidade(filho.quantidade)}
+      </td>
+      <td className="border-l border-line" />
+    </tr>
+  );
+}
+
+function LinhaFilhaLista({ filho }: { filho: LinhaLeitura }) {
+  return (
+    <li className={`grid grid-cols-[1fr_auto] items-start gap-x-3 bg-gray-50 py-3 pr-4 pl-8 ${BARRA_CONFERENCIA.tudo}`}>
+      <span className="flex min-w-0 flex-col gap-0.5">
+        <span className="text-base font-semibold text-ink">↳ {filho.nome}</span>
+        {detalhe(filho) && <span className="text-sm text-muted">{detalhe(filho)}</span>}
+      </span>
+      {filho.quantidade !== null && (
+        <span className="text-base font-semibold text-ink">{formatQuantidade(filho.quantidade)}</span>
+      )}
+    </li>
   );
 }
 
@@ -57,6 +153,11 @@ function rotulo(opcoes: readonly SelectOption[], valor: string): string | null {
  * **No celular não se edita na lista** (RNF-03): cinco colunas em 360px seriam
  * alvos de toque menores que o dedo. A lista mostra o pedido, e tocar num item
  * abre a ficha dele em tela cheia, com um campo de cada vez.
+ *
+ * **O pedido que voltou da verificação não a esquece**: cada linha tem a barra
+ * da resposta (verde, amarelo, vermelho) e a frase do que foi achado, o item
+ * dividido ganha a linha pai com o que o cliente pediu, e o genérico mostra as
+ * espécies que o compuseram. Mudar a linha derruba a resposta, e a barra some.
  */
 export function GradeItens({
   linhas,
@@ -70,6 +171,9 @@ export function GradeItens({
   onColar,
   onColarLista,
   onCriarEspecie,
+  conferencia = {},
+  pais = {},
+  filhos = {},
 }: GradeItensProps) {
   const [foco, setFoco] = useState<Celula | null>(null);
 
@@ -100,9 +204,12 @@ export function GradeItens({
     },
   });
 
-  /** Espécie escolhida ou digitação que desfaz a escolha: nos dois casos a linha deixa de ser genérica. */
+  /** Espécie escolhida ou digitação que desfaz a escolha: nos dois casos a linha deixa de ser genérica, e perde o grupo. */
   function escolherEspecie(linha: Linha, valor: string) {
-    if (linha.generico) onAlterar(linha.chave, 'generico', false);
+    if (linha.generico) {
+      onAlterar(linha.chave, 'generico', false);
+      onAlterar(linha.chave, 'grupo', []);
+    }
     onAlterar(linha.chave, 'especieId', valor);
   }
 
@@ -125,6 +232,8 @@ export function GradeItens({
           <input type="hidden" name="item_altura" value={linha.altura} />
           <input type="hidden" name="item_quantidade" value={linha.quantidade} />
           <input type="hidden" name="item_especificacao" value={linha.generico ? linha.especificacao : ''} />
+          {/* O grupo cabe numa posição só da lista paralela: os ids, separados por vírgula */}
+          <input type="hidden" name="item_especies_permitidas" value={especiesDoGrupo(linha).join(',')} />
         </div>
       ))}
 
@@ -171,85 +280,108 @@ export function GradeItens({
           <tbody>
             {linhas.map((linha, indice) => {
               const { saldo, quantidade, falta } = saldoDa(linha);
+              const conferida = conferencia[linha.chave];
               return (
-                <tr key={linha.chave} className={`border-t border-line align-top ${linha.generico ? 'bg-blue-50' : ''}`}>
-                  {/* O foco marca em que célula a colagem começa, e o `onFocus`
+                <Fragment key={linha.chave}>
+                  {pais[linha.chave] && <LinhaPaiPlanilha pai={pais[linha.chave]} />}
+                  <tr className={`border-t border-line align-top ${linha.generico ? 'bg-blue-50' : ''}`}>
+                    {/* O foco marca em que célula a colagem começa, e o `onFocus`
                       da célula vale para o campo de dentro, qualquer que ele seja */}
-                  <td className="p-0" onFocus={() => setFoco({ linha: indice, coluna: 0 })}>
-                    <ComboboxField
-                      label={`Espécie do item ${indice + 1}`}
-                      compacto
-                      options={opcoesEspecie}
-                      value={linha.especieId}
-                      onChange={(valor) => escolherEspecie(linha, valor)}
-                      onCriarNova={(nome) => onCriarEspecie(linha.chave, nome)}
-                      rotuloCriar={rotuloCriarEspecie}
-                      opcaoFixa={opcaoGenerico(linha)}
-                      placeholder="Digite o nome…"
-                    />
-                    {/* O genérico pode levar uma observação: é o texto que a gerência lê para montar o item */}
-                    {linha.generico && (
-                      <TextField
-                        label={`Observação do item ${indice + 1}`}
-                        compacto
-                        autoComplete="off"
-                        placeholder="Observação"
-                        value={linha.especificacao}
-                        onChange={(evento) => onAlterar(linha.chave, 'especificacao', evento.target.value)}
-                      />
-                    )}
-                    {/* RF-56: o saldo não é coluna, é a linha miúda embaixo da espécie */}
-                    {linha.especieId && linha.recipienteId && (
-                      <p className={`px-3 pb-1.5 text-xs ${falta ? 'font-semibold text-amber-800' : 'text-muted'}`}>
-                        {textoSaldo(saldo, quantidade)}
-                      </p>
-                    )}
-                  </td>
-                  <td className="border-l border-line p-0" onFocus={() => setFoco({ linha: indice, coluna: 1 })}>
-                    <ComboboxField
-                      label={`Recipiente do item ${indice + 1}`}
-                      compacto
-                      options={recipientes}
-                      value={linha.recipienteId}
-                      onChange={(valor) => onAlterar(linha.chave, 'recipienteId', valor)}
-                      placeholder=""
-                    />
-                  </td>
-                  <td className="border-l border-line p-0">
-                    <TextField
-                      label={`Altura do item ${indice + 1}, em metros`}
-                      compacto
-                      inputMode="numeric"
-                      autoComplete="off"
-                      value={linha.altura}
-                      onFocus={() => setFoco({ linha: indice, coluna: 2 })}
-                      onChange={(evento) => onAlterar(linha.chave, 'altura', mascaraAltura(evento.target.value, linha.altura))}
-                    />
-                  </td>
-                  <td className="border-l border-line p-0">
-                    <TextField
-                      label={`Quantidade do item ${indice + 1}`}
-                      compacto
-                      className="[&_input]:text-right"
-                      inputMode="numeric"
-                      autoComplete="off"
-                      value={linha.quantidade}
-                      onFocus={() => setFoco({ linha: indice, coluna: 3 })}
-                      onChange={(evento) => onAlterar(linha.chave, 'quantidade', evento.target.value)}
-                    />
-                  </td>
-                  <td className="border-l border-line p-0">
-                    <button
-                      type="button"
-                      onClick={() => onRemover(linha.chave)}
-                      aria-label={`Excluir o item ${indice + 1}`}
-                      title="Excluir linha"
-                      className="flex h-11 w-full items-center justify-center text-muted hover:bg-red-50 hover:text-red-700"
+                    <td
+                      className={`p-0 ${conferida ? BARRA_CONFERENCIA[conferida.estado] : ''}`}
+                      onFocus={() => setFoco({ linha: indice, coluna: 0 })}
                     >
-                      <IconeLixeira />
-                    </button>
-                  </td>
-                </tr>
+                      <ComboboxField
+                        label={`Espécie do item ${indice + 1}`}
+                        compacto
+                        options={opcoesEspecie}
+                        value={linha.especieId}
+                        onChange={(valor) => escolherEspecie(linha, valor)}
+                        onCriarNova={(nome) => onCriarEspecie(linha.chave, nome)}
+                        rotuloCriar={rotuloCriarEspecie}
+                        opcaoFixa={opcaoGenerico(linha)}
+                        placeholder="Digite o nome…"
+                      />
+                      {/* O genérico pode restringir as espécies: só estas aparecem na conferência */}
+                      {linha.generico && (
+                        <GrupoEspecies
+                          doItem={`do item ${indice + 1}`}
+                          compacto
+                          grupo={linha.grupo}
+                          opcoesEspecie={opcoesEspecie}
+                          onAlterar={(grupo) => onAlterar(linha.chave, 'grupo', grupo)}
+                        />
+                      )}
+                      {/* O genérico pode levar uma observação: é o texto que a gerência lê para montar o item */}
+                      {linha.generico && (
+                        <TextField
+                          label={`Observação do item ${indice + 1}`}
+                          compacto
+                          autoComplete="off"
+                          placeholder="Observação"
+                          value={linha.especificacao}
+                          onChange={(evento) => onAlterar(linha.chave, 'especificacao', evento.target.value)}
+                        />
+                      )}
+                      {/* RF-56: o saldo não é coluna, é a linha miúda embaixo da espécie */}
+                      {linha.especieId && linha.recipienteId && (
+                        <p className={`px-3 pb-1.5 text-xs ${falta ? 'font-semibold text-amber-800' : 'text-muted'}`}>
+                          {textoSaldo(saldo, quantidade)}
+                        </p>
+                      )}
+                      {conferida && (
+                        <p className={`px-3 pb-1.5 text-xs font-semibold ${COR_RESUMO[conferida.estado]}`}>{conferida.resumo}</p>
+                      )}
+                    </td>
+                    <td className="border-l border-line p-0" onFocus={() => setFoco({ linha: indice, coluna: 1 })}>
+                      <ComboboxField
+                        label={`Recipiente do item ${indice + 1}`}
+                        compacto
+                        options={recipientes}
+                        value={linha.recipienteId}
+                        onChange={(valor) => onAlterar(linha.chave, 'recipienteId', valor)}
+                        placeholder=""
+                      />
+                    </td>
+                    <td className="border-l border-line p-0">
+                      <TextField
+                        label={`Altura do item ${indice + 1}, em metros`}
+                        compacto
+                        inputMode="numeric"
+                        autoComplete="off"
+                        value={linha.altura}
+                        onFocus={() => setFoco({ linha: indice, coluna: 2 })}
+                        onChange={(evento) => onAlterar(linha.chave, 'altura', mascaraAltura(evento.target.value, linha.altura))}
+                      />
+                    </td>
+                    <td className="border-l border-line p-0">
+                      <TextField
+                        label={`Quantidade do item ${indice + 1}`}
+                        compacto
+                        className="[&_input]:text-right"
+                        inputMode="numeric"
+                        autoComplete="off"
+                        value={linha.quantidade}
+                        onFocus={() => setFoco({ linha: indice, coluna: 3 })}
+                        onChange={(evento) => onAlterar(linha.chave, 'quantidade', evento.target.value)}
+                      />
+                    </td>
+                    <td className="border-l border-line p-0">
+                      <button
+                        type="button"
+                        onClick={() => onRemover(linha.chave)}
+                        aria-label={`Excluir o item ${indice + 1}`}
+                        title="Excluir linha"
+                        className="flex h-11 w-full items-center justify-center text-muted hover:bg-red-50 hover:text-red-700"
+                      >
+                        <IconeLixeira />
+                      </button>
+                    </td>
+                  </tr>
+                  {filhos[linha.chave]?.map((filho) => (
+                    <LinhaFilhaPlanilha key={filho.id} filho={filho} />
+                  ))}
+                </Fragment>
               );
             })}
           </tbody>
@@ -270,30 +402,43 @@ export function GradeItens({
           {linhas.map((linha, indice) => {
             const { falta, quantidade } = saldoDa(linha);
             const opcaoEspecie = linha.generico ? undefined : opcoesEspecie.find((opcao) => opcao.value === linha.especieId);
-            const especie = linha.generico
-              ? rotuloGenerico(linha.especificacao)
-              : (opcaoEspecie?.label ?? null);
+            const especie = linha.generico ? rotuloGenerico(linha.especificacao) : (opcaoEspecie?.label ?? null);
             const recipiente = rotulo(recipientes, linha.recipienteId);
+            const conferida = conferencia[linha.chave];
             return (
-              <li key={linha.chave} className={linha.generico ? 'bg-blue-50' : undefined}>
-                <button
-                  type="button"
-                  onClick={() => onEditar(linha.chave)}
-                  className="grid min-h-touch w-full grid-cols-[1fr_auto] items-center gap-x-3 px-4 py-3 text-left active:bg-brand-light"
-                >
-                  <span className="flex min-w-0 flex-col gap-0.5">
-                    <span className="text-base font-semibold text-ink">{especie ?? `Item ${indice + 1}, sem espécie`}</span>
-                    {opcaoEspecie?.detalhe && <span className="text-xs text-muted italic">{opcaoEspecie.detalhe}</span>}
-                    <span className="text-sm text-muted">
-                      {[recipiente, linha.altura && normalizaCampoAltura(linha.altura)].filter(Boolean).join(' · ') ||
-                        'Toque para preencher'}
+              <Fragment key={linha.chave}>
+                {pais[linha.chave] && <LinhaPaiLista pai={pais[linha.chave]} />}
+                <li className={`${linha.generico ? 'bg-blue-50' : ''} ${conferida ? BARRA_CONFERENCIA[conferida.estado] : ''}`}>
+                  <button
+                    type="button"
+                    onClick={() => onEditar(linha.chave)}
+                    className="grid min-h-touch w-full grid-cols-[1fr_auto] items-center gap-x-3 px-4 py-3 text-left active:bg-brand-light"
+                  >
+                    <span className="flex min-w-0 flex-col gap-0.5">
+                      <span className="text-base font-semibold text-ink">{especie ?? `Item ${indice + 1}, sem espécie`}</span>
+                      {opcaoEspecie?.detalhe && <span className="text-xs text-muted italic">{opcaoEspecie.detalhe}</span>}
+                      <span className="text-sm text-muted">
+                        {[
+                          recipiente,
+                          linha.altura && normalizaCampoAltura(linha.altura),
+                          rotuloGrupo(especiesDoGrupo(linha).length),
+                        ]
+                          .filter(Boolean)
+                          .join(' · ') || 'Toque para preencher'}
+                      </span>
+                      {conferida && (
+                        <span className={`text-xs font-semibold ${COR_RESUMO[conferida.estado]}`}>{conferida.resumo}</span>
+                      )}
                     </span>
-                  </span>
-                  <span className={`text-base font-semibold ${falta ? 'text-amber-800' : 'text-ink'}`}>
-                    {quantidade === null ? '—' : formatQuantidade(quantidade)}
-                  </span>
-                </button>
-              </li>
+                    <span className={`text-base font-semibold ${falta ? 'text-amber-800' : 'text-ink'}`}>
+                      {quantidade === null ? '—' : formatQuantidade(quantidade)}
+                    </span>
+                  </button>
+                </li>
+                {filhos[linha.chave]?.map((filho) => (
+                  <LinhaFilhaLista key={filho.id} filho={filho} />
+                ))}
+              </Fragment>
             );
           })}
         </ul>

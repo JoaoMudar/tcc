@@ -73,7 +73,6 @@ describe('ItensDaFicha: a negociação grava ao digitar (RF-55)', () => {
         modo="negociacao"
         itens={itens}
         saldos={{}}
-        faltaBloqueia
         proximoPasso={{ ...PASSO, situacao: 'verificado' }}
       />,
     );
@@ -177,6 +176,44 @@ describe('ItensDaFicha: o orçamento edita a grade do cadastro, gravando ao digi
     });
     expect(removerItemAction).toHaveBeenCalledTimes(1);
     expect(vi.mocked(removerItemAction).mock.calls[0][1].get('item_id')).toBe('b');
+  });
+});
+
+describe('ItensDaFicha: o que a verificação achou não se perde', () => {
+  // Pediu 50 em tubete: tem 30, completou com 20 em saco. O Cedro não tem.
+  const principal = item({ id: 'p', quantidade: 50, disponivel: false, quantidadeDisponivel: 30 });
+  const complemento = item({ id: 'c', quantidade: 20, recipienteId: 's', recipiente: 'Saco 17x22', complementaItemId: 'p' });
+  const naoTem = item({ id: 'n', especie: 'Cedro', especieId: 'e2', disponivel: false, quantidadeDisponivel: 0 });
+
+  it('no orçamento, depois de "Solicitar alteração": barras, linha pai e o complemento debaixo do principal', () => {
+    render(
+      <ItensDaFicha
+        pedidoId="p1"
+        modo="cadastro"
+        itens={[complemento, naoTem, principal]}
+        saldos={{}}
+        opcoesEspecie={[
+          { value: 'e1', label: 'Ipê-amarelo' },
+          { value: 'e2', label: 'Cedro' },
+        ]}
+        recipientes={[
+          { value: 't', label: 'Tubete' },
+          { value: 's', label: 'Saco 17x22' },
+        ]}
+        mostraConferencia
+        proximoPasso={{ ...PASSO, situacao: 'cadastrado' }}
+      />,
+    );
+    const linhas = Array.from(document.querySelectorAll('tbody tr'));
+    // Cedro, pai do Ipê, o Ipê (parte) e o complemento
+    expect(linhas).toHaveLength(4);
+    expect(linhas[0].querySelector('td')!.className).toContain('--color-red-600');
+    expect(linhas[1].className).toContain('bg-gray-700');
+    expect(linhas[1].textContent).toContain('Temos 50 de 50');
+    expect(linhas[2].querySelector('td')!.className).toContain('--color-amber-400');
+    expect(linhas[3].querySelector('td')!.className).toContain('--color-green-600');
+    expect(screen.getAllByText('Verificação: tem 30')).toHaveLength(2);
+    expect(screen.getAllByText('Verificação: não tem')).toHaveLength(2);
   });
 });
 
@@ -362,7 +399,6 @@ describe('ItensDaFicha: o suplente do item sem quantidade (P18)', () => {
         modo="negociacao"
         itens={[PITANGA, SUPLENTE]}
         saldos={{ 'e1:s17': [{ alturaM: null, quantidade: 120 }] }}
-        faltaBloqueia
         proximoPasso={{ ...PASSO, situacao: 'verificado' }}
       />,
     );
@@ -389,5 +425,32 @@ describe('ItensDaFicha: o suplente do item sem quantidade (P18)', () => {
     );
     expect(screen.getAllByText(/Se faltar: também tem em/).length).toBeGreaterThan(0);
     expect(screen.queryByText('Usar Saco 17x22')).toBeNull();
+  });
+});
+
+describe('ItensDaFicha: copiar faltantes', () => {
+  function ficha(itens: ItemDaFicha[], mostraConferencia = true) {
+    return render(
+      <ItensDaFicha
+        pedidoId="p1"
+        modo="leitura"
+        itens={itens}
+        saldos={{}}
+        mostraConferencia={mostraConferencia}
+        proximoPasso={{ ...PASSO, situacao: 'verificado' }}
+      />,
+    );
+  }
+
+  it('aparece com item vermelho ou amarelo', () => {
+    ficha([item(), item({ id: 'n', especie: 'Cedro', disponivel: false, quantidadeDisponivel: 0 })]);
+    expect(screen.getByRole('button', { name: 'Copiar faltantes' })).toBeTruthy();
+  });
+
+  it('some quando tudo foi achado, e depois da aprovação', () => {
+    ficha([item()]);
+    expect(screen.queryByRole('button', { name: 'Copiar faltantes' })).toBeNull();
+    ficha([item({ disponivel: false, quantidadeDisponivel: 0 })], false);
+    expect(screen.queryByRole('button', { name: 'Copiar faltantes' })).toBeNull();
   });
 });

@@ -23,6 +23,7 @@ import {
   type Celula,
   type Linha,
   type SaldosPorChave,
+  type ValorLinha,
   aplicarColagemTabular,
   estaVazia,
   linhaVazia,
@@ -75,7 +76,7 @@ export function NovoPedidoForm({ clientes, especies, recipientes, saldos, verFis
     detalhe: especie.nomeCientifico && especie.nomeCientifico !== especie.nome ? especie.nomeCientifico : undefined,
   }));
 
-  const alterar = (chave: number, campo: keyof Omit<Linha, 'chave'>, valor: string | boolean) =>
+  const alterar = (chave: number, campo: keyof Omit<Linha, 'chave'>, valor: ValorLinha) =>
     setLinhas((atuais) => atuais.map((linha) => (linha.chave === chave ? { ...linha, [campo]: valor } : linha)));
 
   // A última linha não se tira, se limpa: o pedido sem linha nenhuma não teria
@@ -126,7 +127,7 @@ export function NovoPedidoForm({ clientes, especies, recipientes, saldos, verFis
       aoCriarEspecie(especie);
       if (chaveCriando !== undefined) {
         setLinhas((atuais) =>
-          atuais.map((linha) => (linha.chave === chaveCriando ? { ...linha, especieId: especie.id, generico: false } : linha)),
+          atuais.map((linha) => (linha.chave === chaveCriando ? { ...linha, especieId: especie.id, generico: false, grupo: [] } : linha)),
         );
       }
       setCriandoEspecie(null);
@@ -153,6 +154,7 @@ export function NovoPedidoForm({ clientes, especies, recipientes, saldos, verFis
         recipienteId: item.recipienteId,
         altura: item.altura,
         quantidade: item.quantidade,
+        grupo: [],
       }));
       return [...base, ...novas];
     });

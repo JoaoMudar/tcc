@@ -8,12 +8,13 @@ import pool from '@/lib/db';
 import { nomeExibido, searchEspecies } from '@/lib/especies';
 import { saldoDisponivel } from '@/lib/estoque';
 import { formatDateTime } from '@/lib/format';
-import { CANAIS_VENDA, SITUACOES_PEDIDO, type SituacaoPedido, findPedido, listHistorico } from '@/lib/pedidos';
+import { CANAIS_VENDA, SITUACOES_PEDIDO, type SituacaoPedido, findPedido, listClientes, listHistorico } from '@/lib/pedidos';
 import { podeTransicionar } from '@/lib/pedidos-rotulos';
 import { can } from '@/lib/permissions';
 import { formatVolume, listRecipientes } from '@/lib/recipientes';
 import { isUuid } from '@/lib/uuid';
 import { requirePageAccess } from '@/lib/auth/guards';
+import { CabecalhoPedido } from './CabecalhoPedido';
 import { CancelarPedido } from './CancelarPedido';
 import { ItensDaFicha } from './ItensDaFicha';
 import { LinhaDoTempo } from './LinhaDoTempo';
@@ -56,13 +57,20 @@ export default async function PedidoPage({ params }: PedidoPageProps) {
     can(user.perfil, 'pedidos', 'A') &&
     user.perfil !== 'gerencia';
   const modo = editaItens ? 'cadastro' : negocia ? 'negociacao' : 'leitura';
+  // Cliente, canal e entrega mudam em qualquer fase menos no cancelado, pela chefia e pelo admin
+  const editaCabecalho = situacao !== 'cancelado' && can(user.perfil, 'pedidos', 'A');
 
-  const [historico, disponiveis, especies, recipientes] = await Promise.all([
+  const [historico, disponiveis, especies, recipientes, clientes] = await Promise.all([
     listHistorico(pool, pedido.id),
     saldoDisponivel(pool),
     editaItens ? searchEspecies(pool) : [],
     editaItens ? listRecipientes(pool) : [],
+    editaCabecalho ? listClientes(pool) : [],
   ]);
+  // O cliente atual entra nas opções mesmo que tenha deixado de ser cliente ativo
+  const opcoesCliente = clientes.some((c) => c.id === pedido.clienteId)
+    ? clientes.map((c) => ({ value: c.id, label: c.nome }))
+    : [{ value: pedido.clienteId, label: pedido.cliente }, ...clientes.map((c) => ({ value: c.id, label: c.nome }))];
 
   return (
     <main>
@@ -75,20 +83,35 @@ export default async function PedidoPage({ params }: PedidoPageProps) {
         <section className="flex flex-col gap-3 rounded-xl border border-line bg-white p-4">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h2 className="text-xl font-bold text-ink">{pedido.cliente}</h2>
+              {!editaCabecalho && <h2 className="text-xl font-bold text-ink">{pedido.cliente}</h2>}
               {pedido.clienteTelefone && <p className="text-sm text-muted">{pedido.clienteTelefone}</p>}
             </div>
             <Pill tone={TOM[situacao]}>{SITUACOES_PEDIDO[situacao]}</Pill>
           </div>
+          {editaCabecalho && (
+            <CabecalhoPedido
+              pedidoId={pedido.id}
+              clientes={opcoesCliente}
+              clienteId={pedido.clienteId}
+              canal={pedido.canal}
+              dataEntrega={pedido.dataEntrega ?? ''}
+            />
+          )}
           <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-base">
-            <div>
-              <dt className="text-sm text-muted">Canal</dt>
-              <dd className="font-semibold text-ink">{CANAIS_VENDA[pedido.canal]}</dd>
-            </div>
-            <div>
-              <dt className="text-sm text-muted">Entrega prevista</dt>
-              <dd className="font-semibold text-ink">{pedido.dataEntrega ? formatData(pedido.dataEntrega) : 'não informada'}</dd>
-            </div>
+            {!editaCabecalho && (
+              <>
+                <div>
+                  <dt className="text-sm text-muted">Canal</dt>
+                  <dd className="font-semibold text-ink">{CANAIS_VENDA[pedido.canal]}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm text-muted">Entrega prevista</dt>
+                  <dd className="font-semibold text-ink">
+                    {pedido.dataEntrega ? formatData(pedido.dataEntrega) : 'não informada'}
+                  </dd>
+                </div>
+              </>
+            )}
             <div className="col-span-2">
               <dt className="text-sm text-muted">Registro</dt>
               <dd className="font-semibold text-ink">
@@ -121,7 +144,7 @@ export default async function PedidoPage({ params }: PedidoPageProps) {
               value: r.id,
               label: r.volumeLitros === null ? r.nome : `${r.nome} · ${formatVolume(r.volumeLitros)}`,
             }))}
-          faltaBloqueia={situacao === 'verificado'}
+          mostraConferencia={['cadastrado', 'verificando', 'verificado', 'pendente_alteracao'].includes(situacao)}
           frete={{ centavos: pedido.freteCentavos, origem: pedido.freteOrigem,
             origemEndereco: pedido.freteOrigemEndereco,
             distanciaKm: pedido.freteDistanciaKm, entrega: pedido.entrega }}

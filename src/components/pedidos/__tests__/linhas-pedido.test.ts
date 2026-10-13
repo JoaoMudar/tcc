@@ -4,10 +4,14 @@ import { chaveSaldo, saldoDoItem } from '@/lib/pedidos-rotulos';
 import {
   type Linha,
   aplicarColagemTabular,
+  conferenciaDoItem,
+  especiesDoGrupo,
   estaVazia,
+  faltantesDoPedido,
   linhaVazia,
   montarSaldos,
   proximaChave,
+  resumoDaConferencia,
   textoSaldo,
 } from '../linhas-pedido';
 
@@ -107,5 +111,206 @@ describe('estoque disponível no item (RF-56, RN-06, RN-62)', () => {
   it('faltando, diz quanto falta, quanto há até 20 cm abaixo e quanto não foi medido', () => {
     const saldo = saldoDoItem(montarSaldos(faixas)[chaveSaldo('ipe', 'tub')], 1.2);
     expect(textoSaldo(saldo, 150)).toBe('Disponível: 100 · faltam 50 · 30 com até 20 cm a menos · 40 sem altura medida');
+  });
+});
+
+describe('grupo de espécies do genérico (T8.7)', () => {
+  const grupo = [
+    { chave: 1, especieId: 'ipe' },
+    { chave: 2, especieId: '' },
+    { chave: 3, especieId: 'pit' },
+    { chave: 4, especieId: 'ipe' },
+  ];
+
+  it('vai ao servidor sem linha em branco e sem repetida', () => {
+    expect(especiesDoGrupo({ generico: true, grupo })).toEqual(['ipe', 'pit']);
+  });
+
+  it('fora do genérico o grupo não vale', () => {
+    expect(especiesDoGrupo({ generico: false, grupo })).toEqual([]);
+  });
+
+  it('colar uma espécie na linha genérica desfaz o grupo junto', () => {
+    const linhas: Linha[] = [{ ...linhaVazia(1), generico: true, grupo }];
+    const [linha] = colar(linhas, [['Pitanga']]);
+    expect(linha.generico).toBe(false);
+    expect(linha.grupo).toEqual([]);
+  });
+});
+
+describe('o que a verificação achou, por item', () => {
+  const base = {
+    id: 'a',
+    generico: false,
+    quantidade: 50,
+    recipienteId: 't',
+    alturaM: null,
+    disponivel: null as boolean | null,
+    quantidadeDisponivel: null as number | null,
+    recipienteDisponivelId: null,
+    alturaDisponivelM: null,
+  };
+
+  it('sem resposta não pinta; tem, parte e não tem pintam', () => {
+    expect(conferenciaDoItem(base, [base])).toBeNull();
+    expect(conferenciaDoItem({ ...base, disponivel: true }, [])).toBe('tudo');
+    expect(conferenciaDoItem({ ...base, disponivel: false, quantidadeDisponivel: 30 }, [])).toBe('parte');
+    expect(conferenciaDoItem({ ...base, disponivel: false, quantidadeDisponivel: 0 }, [])).toBe('nao_tem');
+  });
+
+  it('o complemento e a espécie do genérico são o que tem', () => {
+    const principal = { ...base, disponivel: false, quantidadeDisponivel: 30 };
+    const complemento = { ...base, id: 'c', complementaItemId: 'a', disponivel: true };
+    expect(conferenciaDoItem(complemento, [principal, complemento])).toBe('tudo');
+    const filho = { ...base, id: 'f', itemPaiId: 'g' };
+    expect(conferenciaDoItem(filho, [filho])).toBe('tudo');
+  });
+
+  it('o genérico sai dos filhos', () => {
+    const generico = { ...base, id: 'g', generico: true, recipienteId: null, disponivel: true };
+    const filho = { ...base, id: 'f', itemPaiId: 'g' };
+    expect(conferenciaDoItem(generico, [generico, filho])).toBe('tudo');
+    expect(conferenciaDoItem({ ...generico, disponivel: false, quantidadeDisponivel: 0 }, [])).toBe('nao_tem');
+  });
+
+  it('a frase diz o que foi achado, e onde', () => {
+    expect(resumoDaConferencia('nao_tem', base)).toBe('Verificação: não tem');
+    expect(resumoDaConferencia('tudo', base)).toBe('Verificação: tem 50');
+    expect(
+      resumoDaConferencia('parte', { ...base, quantidadeDisponivel: 30, recipienteDisponivel: 'Saco 17x22', alturaDisponivelM: 1.2 }),
+    ).toBe('Verificação: tem 30 em Saco 17x22 · 1,20 m');
+    expect(resumoDaConferencia('tudo', { ...base, generico: true }, 3)).toBe('Verificação: montado com 3 espécies');
+  });
+});
+
+describe('copiar faltantes', () => {
+  // Ids de recipiente: s2026 é o 20x26 pedido, s1722 o achado na verificação
+  const ipe = {
+    id: 'i',
+    generico: false,
+    especie: 'Ipê' as string | null,
+    especificacao: null as string | null,
+    itemPaiId: null as string | null,
+    complementaItemId: null as string | null,
+    quantidade: 10 as number | null,
+    recipienteId: 's2026' as string | null,
+    alturaM: null as number | null,
+    disponivel: null as boolean | null,
+    quantidadeDisponivel: null as number | null,
+    recipienteDisponivelId: null as string | null,
+    alturaDisponivelM: null as number | null,
+  };
+  const naoTem = { disponivel: false, quantidadeDisponivel: 0 };
+  const generico = { ...ipe, id: 'g', generico: true, especie: null, especificacao: 'mudas nativas', recipienteId: null };
+  const faltantes = (...itens: (typeof ipe & { suplente?: boolean })[]) => faltantesDoPedido(itens);
+
+  it('1. não tem: quantidade, espécie e altura pedidas', () => {
+    expect(faltantes({ ...ipe, alturaM: 1.2, ...naoTem })).toEqual(['10 - Ipê - 1,20 m']);
+  });
+
+  it('2. não tem, sem altura no pedido', () => {
+    expect(faltantes({ ...ipe, ...naoTem })).toEqual(['10 - Ipê']);
+  });
+
+  it('3. não tem, sem quantidade nem altura', () => {
+    expect(faltantes({ ...ipe, quantidade: null, ...naoTem })).toEqual(['Ipê']);
+  });
+
+  it('4. não tem, sem quantidade e com altura', () => {
+    expect(faltantes({ ...ipe, quantidade: null, alturaM: 1.2, ...naoTem })).toEqual(['Ipê - 1,20 m']);
+  });
+
+  it('5. tem parte: 6 das 10', () => {
+    expect(faltantes({ ...ipe, alturaM: 1.2, disponivel: false, quantidadeDisponivel: 6 })).toEqual([
+      '4 - Ipê - 1,20 m',
+    ]);
+  });
+
+  it('6. tem parte: 6 das 10 em outro recipiente', () => {
+    expect(faltantes({ ...ipe, disponivel: false, quantidadeDisponivel: 6, recipienteDisponivelId: 's1722' })).toEqual([
+      '4 - Ipê',
+    ]);
+  });
+
+  it('7. tem parte: as 10, em altura menor, não falta', () => {
+    expect(faltantes({ ...ipe, alturaM: 1.2, disponivel: true, alturaDisponivelM: 1 })).toEqual([]);
+  });
+
+  it('8. tem parte: as 10, em outro recipiente, não falta', () => {
+    expect(faltantes({ ...ipe, disponivel: true, recipienteDisponivelId: 's1722' })).toEqual([]);
+  });
+
+  it('9. tem parte: 6 das 10, pedido sem recipiente', () => {
+    expect(
+      faltantes({ ...ipe, recipienteId: null, disponivel: false, quantidadeDisponivel: 6, recipienteDisponivelId: 's1722' }),
+    ).toEqual(['4 - Ipê']);
+  });
+
+  it('10. tem parte: 6 e o complemento de 4 fecham o pedido', () => {
+    const principal = { ...ipe, disponivel: false, quantidadeDisponivel: 6 };
+    const complemento = { ...ipe, id: 'c', complementaItemId: 'i', quantidade: 4, recipienteId: 's1722', disponivel: true };
+    expect(faltantes(principal, complemento)).toEqual([]);
+  });
+
+  it('11. tem parte: 5 e o complemento de 3, faltam 2', () => {
+    const principal = { ...ipe, disponivel: false, quantidadeDisponivel: 5 };
+    const complemento = { ...ipe, id: 'c', complementaItemId: 'i', quantidade: 3, recipienteId: 's1722', disponivel: true };
+    expect(faltantes(principal, complemento)).toEqual(['2 - Ipê']);
+  });
+
+  it('12. tem tudo dividido em dois recipientes não falta', () => {
+    const principal = {
+      ...ipe,
+      recipienteId: null,
+      disponivel: false,
+      quantidadeDisponivel: 6,
+      recipienteDisponivelId: 's2026',
+    };
+    const complemento = { ...ipe, id: 'c', complementaItemId: 'i', quantidade: 4, recipienteId: 's1722', disponivel: true };
+    expect(faltantes(principal, complemento)).toEqual([]);
+  });
+
+  it('13. tem tudo não falta', () => {
+    expect(faltantes({ ...ipe, disponivel: true })).toEqual([]);
+  });
+
+  it('14. tem parte sem quantidade pedida não falta', () => {
+    expect(faltantes({ ...ipe, quantidade: null, disponivel: true, recipienteDisponivelId: 's1722' })).toEqual([]);
+  });
+
+  it('15. item ainda não verificado não entra', () => {
+    expect(faltantes(ipe)).toEqual([]);
+  });
+
+  it('16. a quantidade sai com o milhar separado', () => {
+    expect(faltantes({ ...ipe, quantidade: 1500, ...naoTem })).toEqual(['1.500 - Ipê']);
+  });
+
+  it('17. genérico que não tem', () => {
+    expect(faltantes({ ...generico, quantidade: 500, ...naoTem })).toEqual(['500 - Genérico: mudas nativas']);
+  });
+
+  it('18. genérico composto com 300 das 500', () => {
+    const pai = { ...generico, quantidade: 500, alturaM: 1.2, disponivel: false, quantidadeDisponivel: 300 };
+    const filho = { ...ipe, id: 'f', itemPaiId: 'g', quantidade: 300, alturaM: 1.2 };
+    expect(faltantes(pai, filho)).toEqual(['200 - Genérico: mudas nativas - 1,20 m']);
+  });
+
+  it('19. genérico sem observação e sem quantidade', () => {
+    expect(faltantes({ ...generico, especificacao: null, quantidade: null, ...naoTem })).toEqual(['Genérico']);
+  });
+
+  it('20. o pedido inteiro, na ordem da grade, sem o suplente', () => {
+    const itens = [
+      { ...ipe, id: 'a', alturaM: 1.2, ...naoTem },
+      { ...ipe, id: 'b', especie: 'Pitanga', disponivel: true },
+      { ...ipe, id: 'c', especie: 'Araçá', alturaM: 1.2, disponivel: false, quantidadeDisponivel: 6 },
+      { ...ipe, id: 's', especie: 'Ingá', complementaItemId: 'c', suplente: true, ...naoTem },
+    ];
+    expect(faltantes(...itens)).toEqual(['10 - Ipê - 1,20 m', '4 - Araçá - 1,20 m']);
+  });
+
+  it('21. pedido só com "tem tudo" não tem faltante', () => {
+    expect(faltantes({ ...ipe, disponivel: true }, { ...ipe, id: 'b', disponivel: true })).toEqual([]);
   });
 });

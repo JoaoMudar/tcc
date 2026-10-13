@@ -5,9 +5,21 @@ import { EspecieRapida } from '@/components/EspecieRapida';
 import { GradeItens } from '@/components/pedidos/GradeItens';
 import { EnderecoDaEntrega } from '@/components/pedidos/EnderecoDaEntrega';
 import { FechamentoDoPedido } from '@/components/pedidos/FechamentoDoPedido';
-import { type ItemDaFicha, GradeItensFicha, type ValoresNegociacao } from '@/components/pedidos/GradeItensFicha';
+import { type ItemDaFicha, GradeItensFicha, type ValoresNegociacao, textoTemos } from '@/components/pedidos/GradeItensFicha';
 import { ItemEmFoco } from '@/components/pedidos/ItemEmFoco';
-import { type Linha, type SaldosPorChave, linhaVazia, proximaChave } from '@/components/pedidos/linhas-pedido';
+import {
+  type ConferenciaDaLinha,
+  type Linha,
+  type LinhaLeitura,
+  type SaldosPorChave,
+  type ValorLinha,
+  conferenciaDoItem,
+  especiesDoGrupo,
+  faltantesDoPedido,
+  linhaVazia,
+  proximaChave,
+  resumoDaConferencia,
+} from '@/components/pedidos/linhas-pedido';
 import { Notice } from '@/components/ui/Notice';
 import type { SelectOption } from '@/components/ui/SelectField';
 import type { EspecieRef } from '@/lib/especies-form';
@@ -21,6 +33,7 @@ import {
   precoParaCampo,
   quantidadeConfirmada,
   resumoFaltas,
+  rotuloGenerico,
   totalPedido,
 } from '@/lib/pedidos-rotulos';
 import {
@@ -34,6 +47,7 @@ import {
   sugerirFreteAction,
   usarSuplenteAction,
 } from '../actions';
+import { CopiarFaltantes } from './CopiarFaltantes';
 import { ProximoPasso, type ProximoPassoProps } from './ProximoPasso';
 
 /** Quanto a digitação espera parada antes de gravar: o bastante para não gravar a cada tecla. */
@@ -48,7 +62,8 @@ interface ItensDaFichaProps {
   /** Só no modo cadastro: as opções das comboboxes. */
   opcoesEspecie?: readonly SelectOption[];
   recipientes?: readonly SelectOption[];
-  faltaBloqueia?: boolean;
+  /** Até a aprovação a grade mostra o que a verificação achou de cada item. */
+  mostraConferencia?: boolean;
   proximoPasso: ProximoPassoProps;
   /** RN-64: o frete gravado no pedido. */
   frete?: {
@@ -126,11 +141,73 @@ function linhaDoItem(item: ItemDaFicha, chave: number): Linha {
     recipienteId: item.recipienteId ?? '',
     altura: formatAltura(item.alturaM),
     quantidade: item.quantidade === null ? '' : String(item.quantidade),
+    grupo: (item.especiesPermitidas ?? []).map((especieId, indice) => ({ chave: indice + 1, especieId })),
   };
 }
 
-/** O que a linha grava, sem a chave: é o que se compara para saber se mudou. */
-const serial = (linha: Linha) => JSON.stringify({ ...linha, chave: undefined });
+/**
+ * Os itens de topo na ordem da grade do orçamento: o complemento do item
+ * dividido vem logo depois do principal, debaixo da linha pai que os junta.
+ */
+function itensDeTopo(itens: readonly ItemDaFicha[]): ItemDaFicha[] {
+  const topo = itens.filter((item) => item.itemPaiId === null);
+  const complementa = (item: ItemDaFicha) =>
+    item.complementaItemId && topo.some((outro) => outro.id === item.complementaItemId) ? item.complementaItemId : null;
+  return topo
+    .filter((item) => !complementa(item))
+    .flatMap((item) => [item, ...topo.filter((outro) => complementa(outro) === item.id)]);
+}
+
+const nomeDoItem = (item: ItemDaFicha) => item.especie ?? rotuloGenerico(item.especificacao);
+
+function leitura(item: ItemDaFicha, quantidade: number | null): LinhaLeitura {
+  return {
+    id: item.id,
+    nome: nomeDoItem(item),
+    recipiente: item.recipienteDisponivel ?? item.recipiente,
+    altura: formatAltura(item.alturaDisponivelM ?? item.alturaM) || null,
+    quantidade,
+  };
+}
+
+/**
+ * O que a verificação achou, por chave da grade do orçamento: a barra e a
+ * frase de cada linha, a linha pai do item dividido e as espécies do genérico.
+ * Sai dos itens como o servidor os tem agora: a linha que a chefia mudou perdeu
+ * a resposta, e perde a cor quando a página volta do servidor.
+ */
+function conferenciaDoOrcamento(itens: readonly ItemDaFicha[], chaves: ReadonlyMap<number, string>) {
+  const conferencia: Record<number, ConferenciaDaLinha> = {};
+  const pais: Record<number, LinhaLeitura> = {};
+  const filhos: Record<number, LinhaLeitura[]> = {};
+  for (const [chave, itemId] of chaves) {
+    const item = itens.find((outro) => outro.id === itemId);
+    if (!item) continue;
+    const estado = conferenciaDoItem(item, itens);
+    if (!estado) continue;
+    const doGenerico = itens.filter((filho) => filho.itemPaiId === item.id);
+    conferencia[chave] = { estado, resumo: resumoDaConferencia(estado, item, doGenerico.length) };
+    if (doGenerico.length > 0) filhos[chave] = doGenerico.map((filho) => leitura(filho, filho.quantidade));
+    const complementos = itens.filter((outro) => outro.complementaItemId === item.id && !outro.suplente);
+    if (complementos.length > 0) {
+      pais[chave] = {
+        id: item.id,
+        nome: nomeDoItem(item),
+        recipiente: item.recipiente,
+        altura: formatAltura(item.alturaM) || null,
+        quantidade: item.quantidade,
+        ...textoTemos(item, complementos),
+      };
+    }
+  }
+  return { conferencia, pais, filhos };
+}
+
+/**
+ * O que a linha grava, sem a chave: é o que se compara para saber se mudou. Do
+ * grupo vale o que vai ao servidor, e a linha em branco recém-aberta não regrava.
+ */
+const serial = (linha: Linha) => JSON.stringify({ ...linha, chave: undefined, grupo: especiesDoGrupo(linha) });
 
 /** "≈ 84 km, ida e volta": de onde veio a sugestão. */
 function textoDistancia(km: number | null): string | null {
@@ -199,7 +276,7 @@ export function ItensDaFicha({
   saldos,
   opcoesEspecie = [],
   recipientes = [],
-  faltaBloqueia = false,
+  mostraConferencia = false,
   proximoPasso,
   frete,
   nomeCliente,
@@ -217,12 +294,16 @@ export function ItensDaFicha({
 
   // ---------------------------------------------------------------- orçamento
   const [linhas, setLinhas] = useState<Linha[]>(() => {
-    const deTopo = itens.filter((item) => item.itemPaiId === null);
+    const deTopo = itensDeTopo(itens);
     return deTopo.length > 0 ? deTopo.map((item, indice) => linhaDoItem(item, indice + 1)) : [linhaVazia(1)];
   });
   const linhasRef = useRef(linhas);
-  const ids = useRef(
-    new Map(itens.filter((item) => item.itemPaiId === null).map((item, indice) => [indice + 1, item.id])),
+  // A chave de cada item que a página trouxe: é por ela que a verificação acha a linha
+  const [chavesIniciais] = useState(() => new Map(itensDeTopo(itens).map((item, indice) => [indice + 1, item.id])));
+  const ids = useRef(new Map(chavesIniciais));
+  const orcamento = useMemo(
+    () => (mostraConferencia ? conferenciaDoOrcamento(itens, chavesIniciais) : undefined),
+    [chavesIniciais, itens, mostraConferencia],
   );
   const gravadas = useRef(new Map(linhas.map((linha) => [linha.chave, serial(linha)])));
   const [emFoco, setEmFoco] = useState<number | null>(null);
@@ -247,6 +328,7 @@ export function ItensDaFicha({
       dados.set('item_generico', linha.generico ? '1' : '0');
       dados.set('item_especie', linha.generico ? '' : linha.especieId);
       dados.set('item_especificacao', linha.generico ? linha.especificacao : '');
+      dados.set('item_especies_permitidas', especiesDoGrupo(linha).join(','));
       const itemId = ids.current.get(chave);
       let resultado: FormState & { itemId?: string };
       if (itemId) {
@@ -268,7 +350,7 @@ export function ItensDaFicha({
   );
 
   const alterar = useCallback(
-    (chave: number, campo: keyof Omit<Linha, 'chave'>, valor: string | boolean) => {
+    (chave: number, campo: keyof Omit<Linha, 'chave'>, valor: ValorLinha) => {
       mudarLinhas((atuais) => atuais.map((linha) => (linha.chave === chave ? { ...linha, [campo]: valor } : linha)));
       agendar(`linha-${chave}`, () => gravarLinha(chave));
     },
@@ -313,6 +395,7 @@ export function ItensDaFicha({
       );
       if (chaveCriando !== undefined) {
         alterar(chaveCriando, 'generico', false);
+        alterar(chaveCriando, 'grupo', []);
         alterar(chaveCriando, 'especieId', especie.id);
       }
       setCriandoEspecie(null);
@@ -461,12 +544,16 @@ export function ItensDaFicha({
   const mostraFechamento = modo === 'negociacao' || (modo === 'leitura' && itens.some((item) => item.precoCentavos !== null));
 
   const linhaEmFoco = linhas.find((linha) => linha.chave === emFoco);
+  // Do servidor, e não da grade: a linha que a chefia mudou perde a resposta quando a página volta
+  const faltantes = useMemo(() => (mostraConferencia ? faltantesDoPedido(todos) : []), [mostraConferencia, todos]);
 
   return (
     <>
       <ProximoPasso {...proximoPasso} faltas={resumoFaltas(itensAgora)} salvando={salvando} />
 
       {erro && <Notice tone="error">{erro}</Notice>}
+
+      {faltantes.length > 0 && <CopiarFaltantes linhas={faltantes} />}
 
       {modo === 'cadastro' ? (
         <GradeItens
@@ -479,6 +566,9 @@ export function ItensDaFicha({
           onAdicionar={adicionar}
           onEditar={setEmFoco}
           onCriarEspecie={(chave, nome) => setCriandoEspecie({ chave, nome })}
+          conferencia={orcamento?.conferencia}
+          pais={orcamento?.pais}
+          filhos={orcamento?.filhos}
         />
       ) : (
         <GradeItensFicha
@@ -487,7 +577,7 @@ export function ItensDaFicha({
           saldos={saldos}
           valores={modo === 'negociacao' ? valores : undefined}
           onAlterar={modo === 'negociacao' ? alterarNegociacao : undefined}
-          faltaBloqueia={faltaBloqueia}
+          mostraConferencia={mostraConferencia}
           suplentes={suplentes}
           onUsarSuplente={modo === 'negociacao' ? usarSuplente : undefined}
           usandoSuplente={usandoSuplente}

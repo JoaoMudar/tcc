@@ -21,6 +21,7 @@ import type { OrigemFrete } from './frete';
 import { ENDERECO_DO_PEDIDO } from './pedidos-entrega';
 import { enderecoEmTexto } from './rotas';
 import type { Db } from './sql';
+import { isUuid } from './uuid';
 
 export {
   CANAIS_VENDA,
@@ -100,6 +101,23 @@ export function parseObservacoesPedido(text: string): { error: string } | { valu
   const texto = text.trim();
   if (texto.length > 500) return { error: 'A observação pode ter até 500 caracteres.' };
   return { value: texto || null };
+}
+
+/** Mais que isto não é grupo, é o catálogo: o genérico sem restrição já cobre. */
+export const MAX_ESPECIES_NO_GRUPO = 50;
+
+/**
+ * O grupo do genérico como chega do formulário: os ids separados por vírgula,
+ * numa posição só da lista paralela. Repetida conta uma vez; vazio é "qualquer
+ * espécie serve".
+ */
+export function parseEspeciesPermitidas(texto: string): { error: string } | { value: string[] } {
+  const ids = [...new Set(texto.split(',').map((id) => id.trim()).filter(Boolean))];
+  if (ids.some((id) => !isUuid(id))) return { error: 'Uma das espécies do grupo é inválida.' };
+  if (ids.length > MAX_ESPECIES_NO_GRUPO) {
+    return { error: `O grupo aceita até ${MAX_ESPECIES_NO_GRUPO} espécies. Para mais, deixe sem grupo.` };
+  }
+  return { value: ids };
 }
 
 export interface NovoItem {
@@ -292,7 +310,10 @@ export async function listItens(db: Db, pedidoId: string): Promise<ItemPedido[]>
             i.observacoes_disponibilidade AS "observacoesDisponibilidade",
             i.generico, i.item_pai_id AS "itemPaiId", i.especificacao,
             i.complementa_item_id AS "complementaItemId", i.suplente,
-            r.peso_kg::float8 AS "pesoKg", rd.peso_kg::float8 AS "pesoDisponivelKg"
+            r.peso_kg::float8 AS "pesoKg", rd.peso_kg::float8 AS "pesoDisponivelKg",
+            -- O grupo do genérico: vazio é "qualquer espécie serve" (T8.7)
+            ARRAY(SELECT ep.especie_id::text FROM pedidos_itens_especies_permitidas ep
+                   WHERE ep.item_id = i.id ORDER BY ep.especie_id) AS "especiesPermitidas"
        FROM pedidos_itens i
        -- LEFT: o item genérico não tem espécie até a gerência compor
        LEFT JOIN especies e ON e.id = i.especie_id
@@ -403,16 +424,23 @@ async function inserirItens(client: Client, pedidoId: string, itens: readonly No
     );
 
     ids.push(rows[0].id);
-    // Sem nenhuma linha aqui, qualquer espécie serve: é o caso comum, e é por
-    // isso que o escopo é representado pela ausência (T8.7).
-    for (const especieId of generico ? (item.especiesPermitidas ?? []) : []) {
-      await client.query(
-        'INSERT INTO pedidos_itens_especies_permitidas (item_id, especie_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-        [rows[0].id, especieId],
-      );
-    }
+    if (generico) await gravarEspeciesPermitidas(client, rows[0].id, item.especiesPermitidas ?? []);
   }
   return ids;
+}
+
+/**
+ * Sem nenhuma linha aqui, qualquer espécie serve: é o caso comum, e é por isso
+ * que o escopo é representado pela ausência (T8.7). Uma consulta só, e não uma
+ * por espécie: o grupo regrava inteiro a cada alteração na ficha.
+ */
+async function gravarEspeciesPermitidas(client: Client, itemId: string, especies: readonly string[]): Promise<void> {
+  if (especies.length === 0) return;
+  await client.query(
+    `INSERT INTO pedidos_itens_especies_permitidas (item_id, especie_id)
+     SELECT $1, UNNEST($2::uuid[]) ON CONFLICT DO NOTHING`,
+    [itemId, especies],
+  );
 }
 
 export interface NovoPedido {
@@ -463,6 +491,8 @@ export interface IdentidadeItem {
   generico: boolean;
   especieId: string | null;
   especificacao: string | null;
+  /** O grupo do genérico. Quando vem, substitui o gravado; sem ele, o gravado fica. */
+  especiesPermitidas?: readonly string[];
 }
 
 /**
@@ -484,12 +514,18 @@ async function trocarIdentidade(client: Client, pedidoId: string, itemId: string
   const especificacao = nova.generico ? nova.especificacao?.trim() || null : null;
   const trocouTipo = atual.generico !== nova.generico;
   const trocouEspecie = trocouTipo || atual.especieId !== (nova.generico ? null : nova.especieId);
+
+
+  if (trocouTipo) await client.query('DELETE FROM pedidos_itens WHERE item_pai_id = $2 AND pedido_id = $1', [pedidoId, itemId]);
+  // O grupo regrava inteiro: é pequeno, e comparar linha a linha não economiza
+  // nada. Não derruba resposta: o item só muda com o pedido em orçamento, antes
+  // da conferência. Deixar de ser genérico apaga o grupo.
+  if (trocouTipo || (nova.generico && nova.especiesPermitidas)) {
+    await client.query('DELETE FROM pedidos_itens_especies_permitidas WHERE item_id = $1', [itemId]);
+    if (nova.generico) await gravarEspeciesPermitidas(client, itemId, nova.especiesPermitidas ?? []);
+  }
   if (!trocouEspecie && atual.especificacao === especificacao) return;
 
-  if (trocouTipo) {
-    await client.query('DELETE FROM pedidos_itens WHERE item_pai_id = $2 AND pedido_id = $1', [pedidoId, itemId]);
-    await client.query('DELETE FROM pedidos_itens_especies_permitidas WHERE item_id = $1', [itemId]);
-  }
   await client.query(
     `UPDATE pedidos_itens
         SET generico = $3, especie_id = $4, especificacao = $5,
@@ -574,6 +610,35 @@ export async function removerItem(client: Client, pedidoId: string, itemId: stri
 export interface AutorDaMudanca {
   perfil: Perfil;
   usuarioId: string;
+}
+
+export interface CabecalhoPedido {
+  clienteId: string;
+  canal: CanalVenda;
+  dataEntrega: string | null;
+}
+
+/**
+ * Cliente, canal e entrega prevista, editáveis pela chefia **em qualquer fase**
+ * menos o cancelado: o cliente que muda a data depois da aprovação é o caso
+ * comum, e nada disso mexe no que a verificação apurou. O cancelado não muda
+ * mais, porque é a única saída que não volta atrás.
+ */
+export async function atualizarCabecalho(
+  client: Client,
+  pedidoId: string,
+  cabecalho: CabecalhoPedido,
+  autor: AutorDaMudanca,
+): Promise<void> {
+  if (autor.perfil === 'gerencia') throw new UserError('O cabeçalho do pedido é alterado pela chefia.');
+  const pedido = await travarPedido(client, pedidoId);
+  if (pedido.situacao === 'cancelado') throw new UserError(`O pedido ${pedido.numero} está cancelado, e não muda mais.`);
+  await client.query('UPDATE pedidos SET cliente_id = $2, canal_venda = $3, data_entrega = $4 WHERE id = $1', [
+    pedidoId,
+    cabecalho.clienteId,
+    cabecalho.canal,
+    cabecalho.dataEntrega,
+  ]);
 }
 
 /**
@@ -1240,12 +1305,19 @@ interface ResumoVerificacao {
  * **Não se envia pela metade**: item sem resposta é item que ninguém foi olhar,
  * e deixar passar faria a chefia aprovar sobre uma apuração incompleta, que é
  * justamente o que a etapa existe para evitar.
+ *
+ * **Enviar também abre a conferência** quando ela ainda está fechada. O pedido
+ * que a chefia devolveu ao orçamento sem mexer em item nenhum volta com todas as
+ * respostas de antes: a tela já oferece "Enviar", ninguém respondeu nada, e o
+ * pedido ainda está em `cadastrado`. Tocar "Enviar" é o gesto de quem conferiu,
+ * e o histórico ganha as duas linhas, com autor.
  */
 export async function concluirVerificacao(
   client: Client,
   pedidoId: string,
   autor: AutorDaMudanca,
 ): Promise<{ numero: number; resumo: string }> {
+  await abrirOuExigirVerificacao(client, pedidoId, autor);
   const { rows } = await client.query<ResumoVerificacao>(
     `SELECT COUNT(*) FILTER (WHERE disponivel IS NULL)::int          AS pendentes,
             COUNT(*)::int                                            AS total,

@@ -65,6 +65,20 @@ describe('planilha de itens do pedido (T8.1, RF-54)', () => {
     expect(enviados(container, 'item_especificacao')).toEqual(['mudas nativas, o que tiver', '']);
   });
 
+  it('o grupo do genérico vai numa posição só da lista paralela, e o item com espécie manda vazio', () => {
+    const grupo = [
+      { chave: 1, especieId: 'ipe' },
+      { chave: 2, especieId: '' },
+      { chave: 3, especieId: 'pit' },
+    ];
+    const { container } = montar([preenchida({ generico: true, grupo }), preenchida({ chave: 2, grupo })]);
+    expect(enviados(container, 'item_especies_permitidas')).toEqual(['ipe,pit', '']);
+    expect(screen.getByLabelText('Espécie 1 do grupo do item 1')).toHaveValue('Ipê-amarelo');
+    expect(screen.queryByLabelText('Espécie 1 do grupo do item 2')).toBeNull();
+    // Na lista do celular, o tamanho do grupo junto do recipiente
+    expect(screen.getByText(/grupo de 2 espécies/)).toBeInTheDocument();
+  });
+
   it('a linha sem espécie pode virar genérico, e o recipiente em branco vai vazio', () => {
     const onAlterar = vi.fn();
     const { container } = montar([{ ...linhaVazia(1), quantidade: '10' }], { onAlterar });
@@ -196,5 +210,52 @@ describe('estoque disponível na linha (RF-56, RN-06)', () => {
     });
     expect(screen.getByText('Disponível: 400 · faltam 100 · 80 com até 20 cm a menos')).toBeInTheDocument();
     expect(screen.queryByText(/Pronto|em produção/)).toBeNull();
+  });
+});
+
+describe('o pedido que voltou da verificação (Solicitar alteração)', () => {
+  const pai = { id: 'p', nome: 'Ipê-amarelo', recipiente: 'Tubete', altura: null, quantidade: 50, temos: 'Temos 30 de 50', completo: false };
+  const filho = { id: 'f', nome: 'Cedro', recipiente: 'Saco 17x22', altura: '1,20 m', quantidade: 40 };
+
+  it('sem a verificação, a grade é a do cadastro: nenhuma barra, nenhuma linha a mais', () => {
+    montar([preenchida()]);
+    expect(document.querySelectorAll('tbody tr')).toHaveLength(1);
+    expect(document.querySelector('tbody td')!.className).not.toContain('--color-');
+  });
+
+  it('cada linha tem a barra e a frase do que a verificação achou', () => {
+    montar([preenchida(), preenchida({ chave: 2, especieId: 'pit' })], {
+      conferencia: {
+        1: { estado: 'nao_tem', resumo: 'Verificação: não tem' },
+        2: { estado: 'tudo', resumo: 'Verificação: tem 500' },
+      },
+    });
+    const barras = Array.from(document.querySelectorAll('tbody tr')).map((tr) => tr.querySelector('td')!.className);
+    expect(barras[0]).toContain('--color-red-600');
+    expect(barras[1]).toContain('--color-green-600');
+    // Planilha e lista: a frase aparece nos dois desenhos
+    expect(screen.getAllByText('Verificação: não tem')).toHaveLength(2);
+  });
+
+  it('o item dividido ganha a linha pai, só de leitura, com o que o cliente pediu', () => {
+    montar([preenchida()], { pais: { 1: pai }, conferencia: { 1: { estado: 'parte', resumo: 'Verificação: tem 30' } } });
+    const [linhaPai, linhaItem] = Array.from(document.querySelectorAll('tbody tr'));
+    expect(linhaPai.className).toContain('bg-gray-700');
+    expect(linhaPai.className).toContain('--color-blue-500');
+    expect(linhaPai.textContent).toContain('Pedido do cliente');
+    expect(linhaPai.textContent).toContain('Temos 30 de 50');
+    expect(linhaPai.querySelector('input')).toBeNull();
+    expect(linhaItem.querySelector('td')!.className).toContain('--color-amber-400');
+    // A linha pai não conta como item: o campo continua sendo o do item 1
+    expect(screen.getByLabelText('Quantidade do item 1')).toBeInTheDocument();
+  });
+
+  it('as espécies do genérico vêm embaixo dele, só de leitura', () => {
+    montar([preenchida({ generico: true, especieId: '' })], { filhos: { 1: [filho] } });
+    const linhas = Array.from(document.querySelectorAll('tbody tr'));
+    expect(linhas).toHaveLength(2);
+    expect(linhas[1].textContent).toContain('Cedro');
+    expect(linhas[1].querySelector('input')).toBeNull();
+    expect(screen.getAllByText('↳ Cedro')).toHaveLength(1);
   });
 });

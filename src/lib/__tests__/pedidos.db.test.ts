@@ -11,6 +11,7 @@ import { registrarMovimento } from '../movimentos';
 import {
   SITUACOES_PEDIDO,
   adicionarItem,
+  atualizarCabecalho,
   atualizarItem,
   cancelarPedido,
   concluirVerificacao,
@@ -318,6 +319,28 @@ describe('situação do pedido (T8.3, T8.6, RF-57)', () => {
       tx((c) => adicionarItem(c, id, { especieId: especie, recipienteId: tubete, quantidade: 1, precoCentavos: 100 })),
     ).rejects.toThrow(/cancelado/i);
   });
+
+  it('o cabeçalho muda em qualquer fase, menos no cancelado, e só pela chefia', async () => {
+    const { id } = await novoPedido();
+    await aprovar(id);
+    const outro = await tx((c) => insertClienteRapido(c, { nome: `${prefixo} Outro cliente`, telefone: null }));
+    await tx((c) => atualizarCabecalho(c, id, { clienteId: outro, canal: 'paisagismo', dataEntrega: '2026-11-20' }, chefia()));
+    expect(await findPedido(pool, id)).toMatchObject({
+      clienteId: outro,
+      canal: 'paisagismo',
+      dataEntrega: '2026-11-20',
+      situacao: 'aprovado',
+    });
+
+    await expect(
+      tx((c) => atualizarCabecalho(c, id, { clienteId: cliente, canal: 'atacado', dataEntrega: null }, gerencia())),
+    ).rejects.toThrow(/chefia/i);
+
+    await tx((c) => cancelarPedido(c, id, chefia()));
+    await expect(
+      tx((c) => atualizarCabecalho(c, id, { clienteId: cliente, canal: 'atacado', dataEntrega: null }, chefia())),
+    ).rejects.toThrow(/cancelado/i);
+  });
 });
 
 describe('lista da carteira (T8.4, RF-58, TA-54)', () => {
@@ -570,6 +593,20 @@ describe('verificação de disponibilidade (T8.10)', () => {
     expect(resumo).toBe('2 de 3 disponíveis.');
     expect((await findPedido(pool, id))!.situacao).toBe('verificado');
     expect((await listHistorico(pool, id)).at(-1)).toMatchObject({ situacaoNova: 'verificado', observacoes: resumo });
+  });
+
+  it('devolvido ao orçamento com as respostas intactas, "Enviar" reabre e conclui', async () => {
+    const { id, itens: doPedido } = await emVerificacao();
+    for (const item of doPedido) await tx((c) => marcarDisponibilidade(c, id, item.id, 'disponivel', gerencia()));
+    await tx((c) => concluirVerificacao(c, id, gerencia()));
+    // "Solicitar alteração" sem mexer em item: tudo continua respondido
+    await tx((c) => mudarSituacao(c, id, 'cadastrado', chefia()));
+
+    await tx((c) => concluirVerificacao(c, id, gerencia()));
+    expect((await findPedido(pool, id))!.situacao).toBe('verificado');
+    // As duas linhas saem na mesma transação, com o mesmo `criado_em`: a ordem entre elas não é garantida
+    const ultimas = (await listHistorico(pool, id)).slice(-2).map((h) => `${h.situacaoAnterior}>${h.situacaoNova}`);
+    expect(ultimas.sort()).toEqual(['cadastrado>verificando', 'verificando>verificado']);
   });
 });
 
@@ -1132,6 +1169,39 @@ describe('item genérico (T8.10)', () => {
     const itens = await listItens(pool, id);
     expect(itens[0].id).toBe(pai.id);
     expect(itens.slice(1).every((i) => i.itemPaiId === pai.id)).toBe(true);
+  });
+
+  it('o grupo vem com o item, e a grade da ficha o regrava inteiro enquanto é orçamento', async () => {
+    const { id } = await tx((client) =>
+      criarPedido(client, {
+        clienteId: cliente,
+        canal: 'atacado',
+        dataEntrega: null,
+        observacoes: null,
+        criadoPor: usuario,
+        itens: [
+          { especieId: null, recipienteId: null, quantidade: 100, precoCentavos: null, generico: true, especiesPermitidas: [especie] },
+        ],
+      }),
+    );
+    const [item] = await listItens(pool, id);
+    expect(item.especiesPermitidas).toEqual([especie]);
+
+    const identidade = { generico: true, especieId: null, especificacao: null };
+    await tx((c) =>
+      atualizarItem(c, id, item.id, { quantidade: 100, alturaM: null, identidade: { ...identidade, especiesPermitidas: [outraEspecie] } }),
+    );
+    expect(await listEspeciesPermitidas(pool, item.id)).toEqual([outraEspecie]);
+
+    // Sem o grupo na identidade, o gravado fica
+    await tx((c) => atualizarItem(c, id, item.id, { quantidade: 100, alturaM: null, identidade }));
+    expect(await listEspeciesPermitidas(pool, item.id)).toEqual([outraEspecie]);
+
+    // Grupo vazio é "qualquer espécie serve"
+    await tx((c) =>
+      atualizarItem(c, id, item.id, { quantidade: 100, alturaM: null, identidade: { ...identidade, especiesPermitidas: [] } }),
+    );
+    expect(await listEspeciesPermitidas(pool, item.id)).toEqual([]);
   });
 });
 

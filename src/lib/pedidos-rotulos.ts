@@ -381,6 +381,12 @@ export function rotuloGenerico(observacao: string | null | undefined): string {
   return texto ? `Genérico: ${texto}` : 'Genérico';
 }
 
+/** "grupo de 3 espécies": o genérico restrito, na etiqueta. Nulo sem grupo, que é "qualquer espécie". */
+export function rotuloGrupo(quantas: number): string | null {
+  if (quantas === 0) return null;
+  return quantas === 1 ? 'grupo de 1 espécie' : `grupo de ${quantas} espécies`;
+}
+
 /**
  * A fase como a linha do tempo da ficha a conta: o que aconteceu naquele dia,
  * e não o nome da situação. "Orçamento" é o que o pedido é; "Cadastrado" é o
@@ -417,8 +423,8 @@ export interface CamposFaltando {
  * O que falta no item para a aprovação passar, **com a mesma regra de
  * `confirmarPedido`**: só o item vendável é cobrado, e valem os valores depois
  * de a aprovação consumir a conferência (o parcial passa a valer pelo que
- * existe, o recipiente conferido substitui o pedido). É o que a grade marca como
- * "Definir" e o que o botão de aprovar lista antes de alguém tocar nele.
+ * existe, o recipiente conferido substitui o pedido). É o que a grade pinta de
+ * vermelho e o que o botão de aprovar lista antes de alguém tocar nele.
  */
 export function camposFaltando(item: ItemParaAprovar, itens: readonly ItemParaAprovar[]): CamposFaltando {
   const composicao = item.generico && !itens.some((outro) => outro.itemPaiId === item.id);

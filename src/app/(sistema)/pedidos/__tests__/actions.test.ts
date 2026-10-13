@@ -299,6 +299,57 @@ describe('validação antes do banco (UC-31 FE-1)', () => {
     expect(valores).toContain(null);
     expect(valores).toContain('500 nativas');
   });
+
+  it('o grupo do genérico grava as espécies que o cliente aceita, sem repetir', async () => {
+    const OUTRA = '4f5b3a6c-2d9e-4a6f-9b4c-6d0e1f2a3b4c';
+    await expect(
+      actions.criarPedidoAction(
+        {},
+        pedidoValido({ item_especie: '', item_generico: '1', item_especies_permitidas: `${ESPECIE},${OUTRA},${ESPECIE}` }),
+      ),
+    ).rejects.toThrow(/^redirect:/);
+    const [, valores] = client.query.mock.calls.find(([sql]) => String(sql).includes('pedidos_itens_especies_permitidas'))!;
+    expect((valores as unknown[])[1]).toEqual([ESPECIE, OUTRA]);
+  });
+
+  it('espécie inválida no grupo é recusada antes do banco', async () => {
+    const state = await actions.criarPedidoAction(
+      {},
+      pedidoValido({ item_especie: '', item_generico: '1', item_especies_permitidas: `${ESPECIE},ipe` }),
+    );
+    expect(state.error).toMatch(/grupo/);
+    expectNoDatabase();
+  });
+
+  it('o grupo só vale no genérico: no item com espécie ele é ignorado', async () => {
+    await expect(
+      actions.criarPedidoAction({}, pedidoValido({ item_generico: '0', item_especies_permitidas: ESPECIE })),
+    ).rejects.toThrow(/^redirect:/);
+    expect(client.query.mock.calls.some(([sql]) => String(sql).includes('pedidos_itens_especies_permitidas'))).toBe(false);
+  });
+
+  it('a grade da ficha regrava o grupo do genérico', async () => {
+    client.query.mockResolvedValue({
+      rows: [{ id: PEDIDO, numero: 1, situacao: 'cadastrado', generico: true, especieId: null, especificacao: null }],
+      rowCount: 1,
+    });
+    const dados = form({
+      pedido_id: PEDIDO,
+      item_id: ITEM,
+      quantidade: '100',
+      altura: '',
+      item_generico: '1',
+      item_especie: '',
+      item_especificacao: '',
+      item_especies_permitidas: ESPECIE,
+    });
+    const state = await actions.atualizarItemAction({}, dados);
+    expect(state.error).toBeUndefined();
+    const sqls = client.query.mock.calls.map(([sql]) => String(sql));
+    expect(sqls.some((sql) => sql.startsWith('DELETE FROM pedidos_itens_especies_permitidas'))).toBe(true);
+    const [, valores] = client.query.mock.calls.find(([sql]) => String(sql).includes('INSERT INTO pedidos_itens_especies_permitidas'))!;
+    expect(valores).toEqual([ITEM, [ESPECIE]]);
+  });
 });
 
 describe('negociação depois da conferência (RF-55, RN-50)', () => {
@@ -438,6 +489,44 @@ describe('cancelamento (T8.5)', () => {
     expect(state.error).toMatch(/não pode passar/i);
     const gravou = client.query.mock.calls.filter(([sql]) => String(sql).includes('UPDATE pedidos SET situacao'));
     expect(gravou).toEqual([]);
+  });
+});
+
+describe('cabeçalho do pedido (cliente, canal e entrega)', () => {
+  const cabecalho = (extra: Record<string, string> = {}) =>
+    form({ pedido_id: PEDIDO, cliente_id: ESPECIE, canal: 'paisagismo', data_entrega: '2026-11-20', ...extra });
+
+  it('a chefia troca os três, mesmo com o pedido aprovado', async () => {
+    emSituacao('aprovado');
+    const state = await actions.atualizarCabecalhoAction({}, cabecalho());
+    expect(state.error).toBeUndefined();
+    const update = client.query.mock.calls.find(([sql]) => String(sql).includes('SET cliente_id'));
+    expect(update?.[1]).toEqual([PEDIDO, ESPECIE, 'paisagismo', '2026-11-20']);
+  });
+
+  it('data em branco é "sem previsão"', async () => {
+    emSituacao('verificado');
+    await actions.atualizarCabecalhoAction({}, cabecalho({ data_entrega: '' }));
+    const update = client.query.mock.calls.find(([sql]) => String(sql).includes('SET cliente_id'));
+    expect(update?.[1]).toEqual([PEDIDO, ESPECIE, 'paisagismo', null]);
+  });
+
+  it('cliente, canal e data inválidos são recusados antes do banco', async () => {
+    expect((await actions.atualizarCabecalhoAction({}, cabecalho({ cliente_id: '' }))).error).toMatch(/cliente/i);
+    expect((await actions.atualizarCabecalhoAction({}, cabecalho({ canal: 'feira' }))).error).toMatch(/canal/i);
+    expect((await actions.atualizarCabecalhoAction({}, cabecalho({ data_entrega: '20/11' }))).error).toMatch(/data/i);
+    expectNoDatabase();
+  });
+
+  it('o cancelado não muda mais', async () => {
+    emSituacao('cancelado');
+    expect((await actions.atualizarCabecalhoAction({}, cabecalho())).error).toMatch(/cancelado/i);
+  });
+
+  it('a gerência só lê pedidos, e o banco nem é consultado', async () => {
+    loggedAs('gerencia');
+    await expect(actions.atualizarCabecalhoAction({}, cabecalho())).rejects.toThrow(FORBIDDEN_MESSAGE);
+    expectNoDatabase();
   });
 });
 
