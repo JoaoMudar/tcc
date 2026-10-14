@@ -1,32 +1,53 @@
 import { describe, expect, it, vi } from 'vitest';
-import { avisoDoPedido, listInscricoesPorPerfis, parseInscricao, salvarInscricao } from '../notificacoes';
+import { avisoDeData, avisoDoPedido, listInscricoesPorPerfis, parseInscricao, salvarInscricao } from '../notificacoes';
 import { chaveEmBytes } from '../push-navegador';
 
 describe('avisoDoPedido', () => {
   it('o pedido cadastrado vai para a gerência verificar', () => {
-    expect(avisoDoPedido('cadastrado', 'Prefeitura de Rio do Sul')).toEqual({
-      titulo: expect.any(String),
-      corpo: 'Pedido de Prefeitura de Rio do Sul foi liberado para verificação!',
+    expect(avisoDoPedido('cadastrado', 'Prefeitura de Rio do Sul', null)).toEqual({
+      titulo: 'Pedido novo!',
+      corpo: 'Prefeitura de Rio do Sul está aguardando verificação.',
       perfis: ['gerencia'],
     });
   });
 
   it('o verificado vai para a chefia e o admin finalizarem', () => {
-    const aviso = avisoDoPedido('verificado', ' Maria ');
-    expect(aviso?.corpo).toBe('Pedido de Maria foi liberado para finalização!');
+    const aviso = avisoDoPedido('verificado', ' Maria ', null);
+    expect(aviso?.titulo).toBe('Conferência feita!');
+    expect(aviso?.corpo).toBe('Maria está aguardando finalização.');
     expect(aviso?.perfis).toEqual(['admin', 'chefia']);
   });
 
-  it('o aprovado vai para a gerência separar', () => {
-    const aviso = avisoDoPedido('aprovado', 'João');
-    expect(aviso?.corpo).toBe('Pedido de João foi liberado para separação!');
-    expect(aviso?.perfis).toEqual(['gerencia']);
+  it('o aprovado vai para a gerência, com a data quando houver', () => {
+    expect(avisoDoPedido('aprovado', 'João', '2026-10-20')?.corpo).toBe('Pedido aprovado para dia 20/10/2026 de João!');
+    const semData = avisoDoPedido('aprovado', 'João', null);
+    expect(semData?.corpo).toBe('Pedido aprovado de João!');
+    expect(semData?.perfis).toEqual(['gerencia']);
   });
 
   it('as outras mudanças não passam o pedido de mão, e não avisam', () => {
     for (const situacao of ['verificando', 'pendente_alteracao', 'separando', 'pronto_envio', 'cancelado'] as const) {
-      expect(avisoDoPedido(situacao, 'X')).toBeNull();
+      expect(avisoDoPedido(situacao, 'X', null)).toBeNull();
     }
+  });
+});
+
+describe('avisoDeData', () => {
+  it('data trocada diz a antiga e a nova, para a gerência', () => {
+    expect(avisoDeData('João', '2026-10-18', '2026-10-20')).toEqual({
+      titulo: 'Data de entrega alterada',
+      corpo: 'Pedido de João trocou de data de 18/10/2026 para 20/10/2026.',
+      perfis: ['gerencia'],
+    });
+  });
+
+  it('pedido sem data que ganha uma', () => {
+    expect(avisoDeData('João', null, '2026-10-20')?.corpo).toBe('Pedido de João teve data marcada para 20/10/2026.');
+  });
+
+  it('data igual ou apagada não avisa', () => {
+    expect(avisoDeData('João', '2026-10-20', '2026-10-20')).toBeNull();
+    expect(avisoDeData('João', '2026-10-20', null)).toBeNull();
   });
 });
 

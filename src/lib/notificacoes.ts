@@ -1,3 +1,4 @@
+import { formatData } from './datas';
 import type { Perfil } from './perfis';
 import type { SituacaoPedido } from './pedidos-rotulos';
 import type { Db } from './sql';
@@ -9,6 +10,9 @@ import type { Db } from './sql';
  * - cadastrado (novo, ou reenviado pela chefia): a gerência confere;
  * - verificado: a chefia (e o admin) fecha preço e aprova;
  * - aprovado: a gerência separa.
+ *
+ * E um quarto, fora da situação: a data de entrega marcada ou trocada, que a
+ * gerência precisa saber porque é ela quem separa e carrega.
  */
 export interface AvisoDoPedido {
   titulo: string;
@@ -16,20 +20,40 @@ export interface AvisoDoPedido {
   perfis: readonly Perfil[];
 }
 
-const PASSAGENS: Partial<Record<SituacaoPedido, { titulo: string; acao: string; perfis: readonly Perfil[] }>> = {
-  cadastrado: { titulo: '🌱 Pedido novo na área!', acao: 'verificação', perfis: ['gerencia'] },
-  verificado: { titulo: '🔎 Conferência pronta!', acao: 'finalização', perfis: ['admin', 'chefia'] },
-  aprovado: { titulo: '📦 Hora de separar!', acao: 'separação', perfis: ['gerencia'] },
-};
-
 /** `null` quando a situação nova não passa o pedido para outro perfil. */
-export function avisoDoPedido(situacao: SituacaoPedido, cliente: string): AvisoDoPedido | null {
-  const passagem = PASSAGENS[situacao];
-  if (!passagem) return null;
+export function avisoDoPedido(situacao: SituacaoPedido, cliente: string, dataEntrega: string | null): AvisoDoPedido | null {
+  const nome = cliente.trim();
+  switch (situacao) {
+    case 'cadastrado':
+      return { titulo: 'Pedido novo!', corpo: `${nome} está aguardando verificação.`, perfis: ['gerencia'] };
+    case 'verificado':
+      return { titulo: 'Conferência feita!', corpo: `${nome} está aguardando finalização.`, perfis: ['admin', 'chefia'] };
+    case 'aprovado':
+      return {
+        titulo: 'Pedido aprovado',
+        corpo: dataEntrega ? `Pedido aprovado para dia ${formatData(dataEntrega)} de ${nome}!` : `Pedido aprovado de ${nome}!`,
+        perfis: ['gerencia'],
+      };
+    default:
+      return null;
+  }
+}
+
+/** `null` quando a data não mudou ou foi retirada: data apagada não avisa. */
+export function avisoDeData(cliente: string, anterior: string | null, nova: string | null): AvisoDoPedido | null {
+  if (!nova || anterior === nova) return null;
+  const nome = cliente.trim();
+  if (anterior) {
+    return {
+      titulo: 'Data de entrega alterada',
+      corpo: `Pedido de ${nome} trocou de data de ${formatData(anterior)} para ${formatData(nova)}.`,
+      perfis: ['gerencia'],
+    };
+  }
   return {
-    titulo: passagem.titulo,
-    corpo: `Pedido de ${cliente.trim()} foi liberado para ${passagem.acao}!`,
-    perfis: passagem.perfis,
+    titulo: 'Data de entrega marcada',
+    corpo: `Pedido de ${nome} teve data marcada para ${formatData(nova)}.`,
+    perfis: ['gerencia'],
   };
 }
 
@@ -91,14 +115,17 @@ export async function listInscricoesPorPerfis(
   return rows;
 }
 
-/** Nome do cliente do pedido, para o texto do aviso. */
-export async function clienteDoPedido(db: Db, pedidoId: string): Promise<string | null> {
-  const { rows } = await db.query<{ cliente: string }>(
-    `SELECT c.nome AS cliente
+/** Cliente e data de entrega do pedido, para o texto do aviso. */
+export async function dadosDoAviso(
+  db: Db,
+  pedidoId: string,
+): Promise<{ cliente: string; dataEntrega: string | null } | null> {
+  const { rows } = await db.query<{ cliente: string; dataEntrega: string | null }>(
+    `SELECT c.nome AS cliente, to_char(p.data_entrega, 'YYYY-MM-DD') AS "dataEntrega"
        FROM pedidos p
        JOIN cadastro.pessoas c ON c.id = p.cliente_id
       WHERE p.id = $1`,
     [pedidoId],
   );
-  return rows[0]?.cliente ?? null;
+  return rows[0] ?? null;
 }

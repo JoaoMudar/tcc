@@ -325,6 +325,16 @@ describe('situação do pedido (T8.3, T8.6, RF-57)', () => {
     const { id } = await novoPedido();
     await aprovar(id);
     const outro = await tx((c) => insertClienteRapido(c, { nome: `${prefixo} Outro cliente`, telefone: null }));
+    const antes = (await findPedido(pool, id))?.dataEntrega ?? null;
+    const { dataAnterior } = await tx((c) =>
+      atualizarCabecalho(c, id, { clienteId: outro, canal: 'paisagismo', dataEntrega: '2026-11-20' }, chefia()),
+    );
+    // A data de antes da troca, e não a gravada: é o que vai no aviso de data trocada
+    expect(dataAnterior).toBe(antes);
+    const { dataAnterior: segunda } = await tx((c) =>
+      atualizarCabecalho(c, id, { clienteId: outro, canal: 'paisagismo', dataEntrega: '2026-11-25' }, chefia()),
+    );
+    expect(segunda).toBe('2026-11-20');
     await tx((c) => atualizarCabecalho(c, id, { clienteId: outro, canal: 'paisagismo', dataEntrega: '2026-11-20' }, chefia()));
     expect(await findPedido(pool, id)).toMatchObject({
       clienteId: outro,

@@ -274,7 +274,7 @@ export async function adicionarPedido(
   data: string,
   pedidoId: string,
   autor: AutorDaMudanca,
-): Promise<{ viagemId: string }> {
+): Promise<{ viagemId: string; dataMudou: boolean; dataAnterior: string | null }> {
   // Duas pessoas pondo o primeiro pedido do dia ao mesmo tempo criariam duas viagens
   await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`viagem:${data}`]);
 
@@ -315,8 +315,12 @@ export async function adicionarPedido(
   ]);
   await esquecerRota(client, viagemId, { sugerirDeNovo: true });
 
-  const { rowCount } = await client.query(
-    'UPDATE pedidos SET data_entrega = $2 WHERE id = $1 AND data_entrega IS DISTINCT FROM $2::date',
+  // `antes` é a linha como estava: a data anterior vai para o aviso de data trocada
+  const { rowCount, rows: antes } = await client.query<{ dataAnterior: string | null }>(
+    `UPDATE pedidos SET data_entrega = $2
+       FROM pedidos antes
+      WHERE pedidos.id = $1 AND antes.id = pedidos.id AND pedidos.data_entrega IS DISTINCT FROM $2::date
+      RETURNING to_char(antes.data_entrega, 'YYYY-MM-DD') AS "dataAnterior"`,
     [pedidoId, data],
   );
   if (rowCount) {
@@ -331,7 +335,7 @@ export async function adicionarPedido(
       ],
     );
   }
-  return { viagemId };
+  return { viagemId, dataMudou: Boolean(rowCount), dataAnterior: antes[0]?.dataAnterior ?? null };
 }
 
 /** Fecha o buraco que a parada tirada deixou. A unicidade da ordem é conferida no fim do comando. */

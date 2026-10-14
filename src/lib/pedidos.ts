@@ -634,16 +634,19 @@ export async function atualizarCabecalho(
   pedidoId: string,
   cabecalho: CabecalhoPedido,
   autor: AutorDaMudanca,
-): Promise<void> {
+): Promise<{ dataAnterior: string | null }> {
   if (autor.perfil === 'gerencia') throw new UserError('O cabeçalho do pedido é alterado pela chefia.');
   const pedido = await travarPedido(client, pedidoId);
   if (pedido.situacao === 'cancelado') throw new UserError(`O pedido ${pedido.numero} está cancelado, e não muda mais.`);
-  await client.query('UPDATE pedidos SET cliente_id = $2, canal_venda = $3, data_entrega = $4 WHERE id = $1', [
-    pedidoId,
-    cabecalho.clienteId,
-    cabecalho.canal,
-    cabecalho.dataEntrega,
-  ]);
+  // `antes` é a linha como estava: a data anterior vai para o aviso de data trocada
+  const { rows } = await client.query<{ dataAnterior: string | null }>(
+    `UPDATE pedidos SET cliente_id = $2, canal_venda = $3, data_entrega = $4
+       FROM pedidos antes
+      WHERE pedidos.id = $1 AND antes.id = pedidos.id
+      RETURNING to_char(antes.data_entrega, 'YYYY-MM-DD') AS "dataAnterior"`,
+    [pedidoId, cabecalho.clienteId, cabecalho.canal, cabecalho.dataEntrega],
+  );
+  return { dataAnterior: rows[0]?.dataAnterior ?? null };
 }
 
 /**

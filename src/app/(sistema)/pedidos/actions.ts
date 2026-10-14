@@ -12,7 +12,7 @@ import { lerEnderecoDeEntrega } from '@/lib/endereco-entrega-form';
 import { AVISOS_DO_FRETE, salvarEnderecoDoPedido, sugestaoDeFrete } from '@/lib/pedidos-frete';
 import { type SugestaoDeEndereco, lerCoordenada } from '@/lib/rotas';
 import { MapaIndisponivel, sugerirEnderecos } from '@/lib/rotas-ors';
-import { avisarPedido } from '@/lib/notificacoes-envio';
+import { avisarMudancaDeData, avisarPedido } from '@/lib/notificacoes-envio';
 import { withTransaction } from '@/lib/transaction';
 import { isUuid } from '@/lib/uuid';
 import { requirePermission } from '@/lib/auth/guards';
@@ -236,19 +236,24 @@ export async function atualizarCabecalhoAction(_previous: FormState, formData: F
   const dataEntrega = pedidos.parseDataEntrega(formText(formData, 'data_entrega'));
   if ('error' in dataEntrega) return { error: dataEntrega.error };
 
+  let dataAnterior: string | null;
   try {
-    await withTransaction(pool, (client) =>
+    ({ dataAnterior } = await withTransaction(pool, (client) =>
       pedidos.atualizarCabecalho(
         client,
         pedidoId,
         { clienteId, canal, dataEntrega: dataEntrega.value },
         { perfil: user.perfil, usuarioId: user.usuarioId },
       ),
-    );
+    ));
   } catch (error) {
     return { error: toUserMessage(error) };
   }
   revalidarPedidos(pedidoId);
+  // Data apagada não avisa; marcada ou trocada, a gerência fica sabendo
+  if (dataEntrega.value && dataEntrega.value !== dataAnterior) {
+    after(() => avisarMudancaDeData(pedidoId, dataAnterior, user.usuarioId));
+  }
   return { success: 'Pedido alterado.' };
 }
 

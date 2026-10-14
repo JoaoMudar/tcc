@@ -10,14 +10,14 @@ vi.mock('next/navigation', () => ({
 }));
 vi.mock('@/lib/auth/dal', () => ({ requireUser: vi.fn() }));
 vi.mock('next/server', () => ({ after: vi.fn((tarefa: () => unknown) => tarefa()) }));
-vi.mock('@/lib/notificacoes-envio', () => ({ avisarPedido: vi.fn() }));
+vi.mock('@/lib/notificacoes-envio', () => ({ avisarPedido: vi.fn(), avisarMudancaDeData: vi.fn() }));
 
 const client = { query: vi.fn(), release: vi.fn() };
 vi.mock('@/lib/db', () => ({ default: { query: vi.fn(), connect: vi.fn(async () => client) } }));
 
 const { requireUser } = await import('@/lib/auth/dal');
 const { default: pool } = await import('@/lib/db');
-const { avisarPedido } = await import('@/lib/notificacoes-envio');
+const { avisarMudancaDeData, avisarPedido } = await import('@/lib/notificacoes-envio');
 const { FORBIDDEN_MESSAGE } = await import('@/lib/auth/guards');
 const actions = await import('../actions');
 
@@ -538,6 +538,25 @@ describe('cabeçalho do pedido (cliente, canal e entrega)', () => {
     expect((await actions.atualizarCabecalhoAction({}, cabecalho({ canal: 'feira' }))).error).toMatch(/canal/i);
     expect((await actions.atualizarCabecalhoAction({}, cabecalho({ data_entrega: '20/11' }))).error).toMatch(/data/i);
     expectNoDatabase();
+  });
+
+  it('data nova avisa a gerência com a data anterior', async () => {
+    client.query.mockResolvedValue({
+      rows: [{ id: PEDIDO, numero: 1, situacao: 'aprovado', dataAnterior: '2026-11-18' }],
+      rowCount: 1,
+    });
+    await actions.atualizarCabecalhoAction({}, cabecalho());
+    expect(avisarMudancaDeData).toHaveBeenCalledWith(PEDIDO, '2026-11-18', 'u1');
+  });
+
+  it('data igual ou apagada não avisa', async () => {
+    client.query.mockResolvedValue({
+      rows: [{ id: PEDIDO, numero: 1, situacao: 'aprovado', dataAnterior: '2026-11-20' }],
+      rowCount: 1,
+    });
+    await actions.atualizarCabecalhoAction({}, cabecalho());
+    await actions.atualizarCabecalhoAction({}, cabecalho({ data_entrega: '' }));
+    expect(avisarMudancaDeData).not.toHaveBeenCalled();
   });
 
   it('o cancelado não muda mais', async () => {
