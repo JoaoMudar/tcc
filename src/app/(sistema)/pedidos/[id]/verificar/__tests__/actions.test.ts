@@ -405,3 +405,16 @@ describe('"Tem tudo" dividido em vários recipientes (P17)', () => {
     expect(gravouEm('INSERT INTO pedidos_itens')).toEqual([]);
   });
 });
+
+describe('salvar para continuar depois', () => {
+  it('volta para a ficha do pedido sem mexer na conferência', async () => {
+    await expect(actions.salvarParaDepoisAction({}, form({ pedido_id: PEDIDO }))).rejects.toThrow(
+      `redirect:/pedidos/${PEDIDO}`,
+    );
+    expectNoDatabase();
+  });
+
+  it('pedido inválido é recusado', async () => {
+    expect((await actions.salvarParaDepoisAction({}, form({ pedido_id: 'x' }))).error).toMatch(/pedido inválido/i);
+  });
+});

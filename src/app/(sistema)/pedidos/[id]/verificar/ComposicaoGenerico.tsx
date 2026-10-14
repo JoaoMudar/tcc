@@ -24,6 +24,7 @@ import { definirComposicaoAction, marcarGenericoIndisponivelAction } from './act
 import { BotoesResposta, type Resposta } from './BotoesResposta';
 import { COR_DO_ESTADO, CabecalhoItem } from './CabecalhoItem';
 import { CampoObservacao } from './CampoObservacao';
+import { useItemEmAberto } from './ItensEmAberto';
 
 export interface GenericoParaCompor {
   id: string;
@@ -239,6 +240,15 @@ export function ComposicaoGenerico({ pedidoId, item, especies, recipientes }: Co
   const pergunta = (campo: 'quantidade' | 'recipiente' | 'altura') => lista.find((p) => p.campo === campo);
   // O cartão pinta no toque: a cor diz o que a pessoa escolheu, antes de gravar
   const selecionada = aberta ?? tocada ?? (gravada === 'pendente' ? null : gravada);
+  // Em aberto, como no item com espécie: a lista que não fecha não está gravada
+  useItemEmAberto(
+    item.id,
+    pending ||
+      gravandoNaoTem ||
+      Boolean(state.error || estadoNaoTem.error) ||
+      selecionada !== (gravada === 'pendente' ? null : gravada) ||
+      (aberta !== null && !completo),
+  );
 
   return (
     <li className={`flex flex-col gap-3 rounded-xl border-2 p-4 ${COR_DO_ESTADO[selecionada ?? 'pendente']}`}>

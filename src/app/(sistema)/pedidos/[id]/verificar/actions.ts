@@ -240,6 +240,19 @@ export async function definirComposicaoAction(_previous: FormState, formData: Fo
   return { success: 'Composição gravada.' };
 }
 
+/**
+ * "Salvar": sai da conferência sem fechá-la. As respostas já gravam campo a
+ * campo; ser action, e não link, põe a saída na fila do Next **depois** da
+ * gravação que o toque no botão disparou ao tirar o foco do campo.
+ */
+export async function salvarParaDepoisAction(_previous: FormState, formData: FormData): Promise<FormState> {
+  await requirePermission('verificacao_pedido', 'C');
+  const pedidoId = formText(formData, 'pedido_id');
+  if (!isUuid(pedidoId)) return { error: 'Pedido inválido.' };
+  revalidar(pedidoId);
+  redirect(`/pedidos/${pedidoId}`);
+}
+
 /** Fecha a conferência e devolve o pedido à chefia. Recusa se faltar item. */
 export async function concluirVerificacaoAction(_previous: FormState, formData: FormData): Promise<FormState> {
   const user = await requirePermission('verificacao_pedido', 'A');

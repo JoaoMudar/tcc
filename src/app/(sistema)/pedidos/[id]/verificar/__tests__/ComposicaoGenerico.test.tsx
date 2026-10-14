@@ -1,11 +1,15 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { definirComposicaoAction, marcarGenericoIndisponivelAction } from '../actions';
+import { AcoesVerificacao } from '../AcoesVerificacao';
 import { ComposicaoGenerico, type GenericoParaCompor } from '../ComposicaoGenerico';
+import { ItensEmAberto } from '../ItensEmAberto';
 
 vi.mock('../actions', () => ({
   definirComposicaoAction: vi.fn(async () => ({ success: 'Composição gravada.' })),
   marcarGenericoIndisponivelAction: vi.fn(async () => ({ success: 'Resposta gravada.' })),
+  concluirVerificacaoAction: vi.fn(),
+  salvarParaDepoisAction: vi.fn(),
 }));
 
 const RECIPIENTES = [
@@ -182,5 +186,19 @@ describe('ComposicaoGenerico, sem "Nada difere do pedido"', () => {
     fireEvent.blur(campo);
     expect(compor).not.toHaveBeenCalled();
     expect(screen.queryByText(/Nada difere do pedido/)).toBeNull();
+  });
+});
+
+describe('ComposicaoGenerico, o rodapé', () => {
+  it('"Tem tudo" com a lista que não fecha deixa só "Salvar"', () => {
+    render(
+      <ItensEmAberto>
+        <ComposicaoGenerico pedidoId="pedido-1" item={PENDENTE} especies={ESPECIES} recipientes={RECIPIENTES} />
+        <AcoesVerificacao pedidoId="pedido-1" pendentes={0} />
+      </ItensEmAberto>,
+    );
+    fireEvent.click(screen.getByText('Tem tudo'));
+    expect(screen.getByRole('button', { name: 'Salvar' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Enviar' })).toBeNull();
   });
 });

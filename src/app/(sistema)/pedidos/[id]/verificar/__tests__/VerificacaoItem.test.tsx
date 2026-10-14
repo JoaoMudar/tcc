@@ -1,10 +1,14 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { marcarDisponibilidadeAction } from '../actions';
+import { AcoesVerificacao } from '../AcoesVerificacao';
+import { ItensEmAberto } from '../ItensEmAberto';
 import { type ItemParaConferir, VerificacaoItem } from '../VerificacaoItem';
 
 vi.mock('../actions', () => ({
   marcarDisponibilidadeAction: vi.fn(async () => ({ success: 'Resposta gravada.' })),
+  concluirVerificacaoAction: vi.fn(),
+  salvarParaDepoisAction: vi.fn(),
 }));
 
 const RECIPIENTES = [
@@ -140,6 +144,31 @@ describe('VerificacaoItem, "Tem" do item incompleto', () => {
     await waitFor(() => expect(acao).toHaveBeenCalledTimes(1));
     expect(ultimoEnvio().get('estado')).toBe('disponivel');
     expect(ultimoEnvio().get('recipiente_id')).toBe('saco');
+  });
+
+  it('"Tem" sem o recipiente avisa o que falta, e o rodapé não deixa enviar', async () => {
+    // Já respondido "Não tem": o banco não tem pendência, e era isso que liberava o "Enviar"
+    const naoTem = { ...PENDENTE, recipiente: null, recipienteId: null, disponivel: false, quantidadeDisponivel: 0 };
+    const tela = (item: ItemParaConferir) => (
+      <ItensEmAberto>
+        <VerificacaoItem pedidoId="pedido-1" item={item} recipientes={RECIPIENTES} />
+        <AcoesVerificacao pedidoId="pedido-1" pendentes={0} />
+      </ItensEmAberto>
+    );
+    const { rerender } = render(tela(naoTem));
+    expect(screen.getByRole('button', { name: 'Enviar' })).toBeTruthy();
+
+    fireEvent.click(screen.getByText('Tem tudo'));
+    expect(acao).not.toHaveBeenCalled();
+    expect(screen.getByText('Escolha o recipiente em que a muda está.')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Salvar' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Enviar' })).toBeNull();
+
+    fireEvent.change(screen.getByLabelText(/Em que recipiente está/), { target: { value: 'saco' } });
+    await waitFor(() => expect(acao).toHaveBeenCalledTimes(1));
+    // Gravado, a página volta com a resposta nova, e o envio se libera
+    rerender(tela({ ...naoTem, disponivel: true, quantidadeDisponivel: null, recipienteDisponivelId: 'saco', recipienteDisponivel: 'Saco 10x18' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Enviar' })).toBeTruthy());
   });
 
   it('sem quantidade no pedido: "Tem" grava no toque, e o número é opcional', async () => {

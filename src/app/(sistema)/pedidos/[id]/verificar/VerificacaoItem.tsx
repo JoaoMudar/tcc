@@ -23,6 +23,7 @@ import { BotoesResposta, type Resposta } from './BotoesResposta';
 import { COR_DO_ESTADO, CabecalhoItem } from './CabecalhoItem';
 import { type Campos, CamposConferidos } from './CamposConferidos';
 import { CampoObservacao } from './CampoObservacao';
+import { useItemEmAberto } from './ItensEmAberto';
 
 export interface ItemParaConferir {
   id: string;
@@ -215,13 +216,13 @@ export function VerificacaoItem({ pedidoId, item, recipientes }: VerificacaoItem
     return 'error' in resolvida ? resolvida.error : null;
   }
 
-  function enviar(resposta: Resposta, valores: Campos, extras: readonly Campos[], opcoes: { silencioso?: boolean } = {}) {
+  function enviar(resposta: Resposta, valores: Campos, extras: readonly Campos[]) {
     // "Não tem" não se completa
     const linhas = resposta === 'nao_tem' ? [] : extras;
     const valida = validar(resposta, valores, linhas);
     if (valida) {
       // "Nada difere" não vira aviso: o painel abre igual ao pedido, e a frase aparecia antes de a pessoa mexer
-      if (!opcoes.silencioso && valida !== NADA_DIFERE) setAviso(valida);
+      if (valida !== NADA_DIFERE) setAviso(valida);
       return;
     }
     setAviso(null);
@@ -262,8 +263,9 @@ export function VerificacaoItem({ pedidoId, item, recipientes }: VerificacaoItem
     setAberta(resposta);
     setCampos(iniciais);
     setComplementos(extras);
-    // "Tem" com pergunta só opcional já é resposta: grava no toque, e o número vem se vier
-    if (resposta === 'tudo') enviar(resposta, iniciais, extras, { silencioso: true });
+    // "Tem" com pergunta só opcional já é resposta: grava no toque, e o número vem se vier.
+    // Com pergunta obrigatória (o recipiente), o aviso diz já no toque o que falta
+    if (resposta === 'tudo') enviar(resposta, iniciais, extras);
   }
 
   function alterar(campo: keyof Campos, valor: string, gravar = false) {
@@ -304,6 +306,15 @@ export function VerificacaoItem({ pedidoId, item, recipientes }: VerificacaoItem
   const lista = dividida && !basicas.some((p) => p.campo === 'quantidade') ? [PERGUNTAS_DA_DIVISAO[0], ...basicas] : basicas;
   const perguntasDaLinha = semQuantidade ? PERGUNTAS_DO_SUPLENTE : aberta === 'tudo' ? PERGUNTAS_DA_DIVISAO : perguntas.parte;
   const selecionada = aberta ?? tocada ?? respostaGravada(gravada);
+  // Em aberto: o que a tela mostra ainda não é o que o banco tem. "Tem" sem o
+  // recipiente pinta o cartão e não grava nada, e o rodapé não pode enviar assim
+  useItemEmAberto(
+    item.id,
+    pending ||
+      Boolean(state.error) ||
+      selecionada !== respostaGravada(gravada) ||
+      (aberta !== null && validar(aberta, campos, complementos) !== null),
+  );
   // Com quantidade pedida, "Tem parte" completa e "Tem tudo" divide; sem ela, toda resposta com muda guarda suplente
   const podeCompletar = semQuantidade ? aberta !== null : aberta === 'parte' || podeDividir;
   const legenda = (n: number) =>
