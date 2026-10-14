@@ -6,7 +6,7 @@ vi.mock('../rotas-ors', async (importOriginal) => ({
   distanciaDeCarro: vi.fn(),
 }));
 
-const { distanciaDeCarro, geocodificarTexto } = await import('../rotas-ors');
+const { MapaIndisponivel, distanciaDeCarro, geocodificarTexto } = await import('../rotas-ors');
 const { sugestaoDeFrete } = await import('../pedidos-frete');
 
 const PEDIDO = '0b9f3f3e-8a5b-4c1a-9d0e-2f6a7b8c9d0e';
@@ -66,5 +66,14 @@ describe('sugestaoDeFrete: o destino do pedido (P19)', () => {
     const db = banco({ proprio: null, enderecoId: null, logradouro: null, cidade: null, uf: null });
     await expect(sugestaoDeFrete(db as never, PEDIDO, 'agrolandia')).resolves.toEqual({ aviso: 'sem_endereco', endereco: null });
     expect(geocodificarTexto).not.toHaveBeenCalled();
+  });
+
+  it('mapa fora do ar: avisa na tela e deixa o motivo no log do servidor', async () => {
+    vi.mocked(distanciaDeCarro).mockRejectedValueOnce(new MapaIndisponivel('HTTP 403'));
+    const aviso = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const db = banco({ proprio: true, enderecoId: null, logradouro: 'Sítio Novo', cidade: 'Ituporanga', uf: 'SC' });
+    await expect(sugestaoDeFrete(db as never, PEDIDO, 'agrolandia')).resolves.toEqual({ aviso: 'mapa_indisponivel' });
+    expect(aviso).toHaveBeenCalledWith(expect.stringContaining('HTTP 403'));
+    aviso.mockRestore();
   });
 });

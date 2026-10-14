@@ -99,7 +99,11 @@ export async function sugestaoDeFrete(
     );
     return { centavos: sugerirFrete(distanciaKm, kmPorLitro, precoLitro), distanciaKm };
   } catch (error) {
-    if (error instanceof MapaIndisponivel) return { aviso: 'mapa_indisponivel' };
+    if (error instanceof MapaIndisponivel) {
+      // O motivo ("sem chave", "HTTP 403", "HTTP 429", "sem resposta") não vai à tela, mas fica no log do servidor
+      console.warn(`[frete] mapa indisponível no pedido ${pedido.numero}: ${error.message}`);
+      return { aviso: 'mapa_indisponivel' };
+    }
     throw error;
   }
 }
