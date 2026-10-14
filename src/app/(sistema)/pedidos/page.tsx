@@ -1,13 +1,16 @@
 import Link from 'next/link';
+import { AvisosNoCelular } from '@/components/AvisosNoCelular';
 import { PageHeader } from '@/components/PageHeader';
 import { Toast } from '@/components/ui/Toast';
 import { pedidosDoPeriodo } from '@/lib/cargas';
 import { hojeNoViveiro, somaDias } from '@/lib/datas';
 import pool from '@/lib/db';
+import { chavePublicaVapid } from '@/lib/notificacoes-envio';
 import { listPedidos } from '@/lib/pedidos';
 import { can } from '@/lib/permissions';
 import { diasComViagemPronta, viagensEmAndamento } from '@/lib/viagens';
 import { requirePageAccess } from '@/lib/auth/guards';
+import { desinscreverAparelhoAction, inscreverAparelhoAction } from '../conta/sessoes/actions';
 import { CalendarioCargas } from './CalendarioCargas';
 import { ListaPedidos } from './ListaPedidos';
 
@@ -49,6 +52,14 @@ export default async function PedidosPage({ searchParams }: PedidosPageProps) {
             Pedido {params.numero ?? ''} registrado. O preço entra depois da conferência.
           </Toast>
         )}
+
+        {/* Some sozinho depois de ligado ou dispensado; o controle fica em Aparelhos conectados */}
+        <AvisosNoCelular
+          aparencia="convite"
+          chavePublica={chavePublicaVapid()}
+          inscreverAction={inscreverAparelhoAction}
+          desinscreverAction={desinscreverAparelhoAction}
+        />
 
         {can(user.perfil, 'pedidos', 'C') && (
           <Link

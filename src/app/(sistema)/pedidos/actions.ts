@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { after } from 'next/server';
 import pool from '@/lib/db';
 import { toUserMessage } from '@/lib/errors';
 import { type FormState, formText } from '@/lib/form-state';
@@ -11,6 +12,7 @@ import { lerEnderecoDeEntrega } from '@/lib/endereco-entrega-form';
 import { AVISOS_DO_FRETE, salvarEnderecoDoPedido, sugestaoDeFrete } from '@/lib/pedidos-frete';
 import { type SugestaoDeEndereco, lerCoordenada } from '@/lib/rotas';
 import { MapaIndisponivel, sugerirEnderecos } from '@/lib/rotas-ors';
+import { avisarPedido } from '@/lib/notificacoes-envio';
 import { withTransaction } from '@/lib/transaction';
 import { isUuid } from '@/lib/uuid';
 import { requirePermission } from '@/lib/auth/guards';
@@ -100,8 +102,9 @@ export async function criarPedidoAction(_previous: FormState, formData: FormData
   if ('error' in itens) return { error: itens.error, fields };
 
   let numero: number;
+  let pedidoId: string;
   try {
-    ({ numero } = await withTransaction(pool, (client) =>
+    ({ id: pedidoId, numero } = await withTransaction(pool, (client) =>
       pedidos.criarPedido(client, {
         clienteId: fields.cliente_id,
         canal,
@@ -116,6 +119,7 @@ export async function criarPedidoAction(_previous: FormState, formData: FormData
   }
 
   revalidarPedidos();
+  after(() => avisarPedido(pedidoId, 'cadastrado', user.usuarioId));
   // Volta para a carteira, e não para a ficha: quem registra pedido no celular
   // costuma registrar o seguinte, e a lista é de onde ele parte. O aviso do que
   // acabou de acontecer vai no toque que some sozinho.
@@ -265,6 +269,7 @@ export async function transicionarPedidoAction(_previous: FormState, formData: F
       pedidos.mudarSituacao(client, pedidoId, para, { perfil: user.perfil, usuarioId: user.usuarioId }),
     );
     revalidarPedidos(pedidoId);
+    after(() => avisarPedido(pedidoId, para, user.usuarioId));
     return { success: `Pedido ${numero}: ${pedidos.SITUACOES_PEDIDO[para].toLowerCase()}.` };
   } catch (error) {
     return { error: toUserMessage(error) };
@@ -461,6 +466,7 @@ export async function confirmarPedidoAction(_previous: FormState, formData: Form
       pedidos.confirmarPedido(client, pedidoId, { perfil: user.perfil, usuarioId: user.usuarioId }),
     );
     revalidarPedidos(pedidoId);
+    after(() => avisarPedido(pedidoId, 'aprovado', user.usuarioId));
     return { success: `Pedido ${numero} aprovado. Os itens não mudam mais.` };
   } catch (error) {
     return { error: toUserMessage(error) };

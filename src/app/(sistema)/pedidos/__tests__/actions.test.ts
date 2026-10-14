@@ -9,12 +9,15 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 vi.mock('@/lib/auth/dal', () => ({ requireUser: vi.fn() }));
+vi.mock('next/server', () => ({ after: vi.fn((tarefa: () => unknown) => tarefa()) }));
+vi.mock('@/lib/notificacoes-envio', () => ({ avisarPedido: vi.fn() }));
 
 const client = { query: vi.fn(), release: vi.fn() };
 vi.mock('@/lib/db', () => ({ default: { query: vi.fn(), connect: vi.fn(async () => client) } }));
 
 const { requireUser } = await import('@/lib/auth/dal');
 const { default: pool } = await import('@/lib/db');
+const { avisarPedido } = await import('@/lib/notificacoes-envio');
 const { FORBIDDEN_MESSAGE } = await import('@/lib/auth/guards');
 const actions = await import('../actions');
 
@@ -119,6 +122,25 @@ describe('permissão (RF-06, D4 §3.2)', () => {
   it('a chefia registra, e o pedido criado devolve a pessoa à carteira', async () => {
     await expect(actions.criarPedidoAction({}, pedidoValido())).rejects.toThrow('redirect:/pedidos?feito=criado&numero=1');
     expect(pool.connect).toHaveBeenCalled();
+  });
+
+  it('o pedido criado avisa a gerência no celular', async () => {
+    vi.mocked(avisarPedido).mockClear();
+    await expect(actions.criarPedidoAction({}, pedidoValido())).rejects.toThrow(/^redirect:/);
+    expect(avisarPedido).toHaveBeenCalledWith(expect.any(String), 'cadastrado', 'u1');
+  });
+
+  it('a mudança de fase avisa com a situação nova, e a recusada não avisa', async () => {
+    vi.mocked(avisarPedido).mockClear();
+    emSituacao('aprovado');
+    await actions.transicionarPedidoAction({}, form({ pedido_id: PEDIDO, para: 'separando' }));
+    expect(avisarPedido).toHaveBeenCalledWith(PEDIDO, 'separando', 'u1');
+
+    vi.mocked(avisarPedido).mockClear();
+    loggedAs('gerencia');
+    emSituacao('verificado');
+    await actions.transicionarPedidoAction({}, form({ pedido_id: PEDIDO, para: 'aprovado' }));
+    expect(avisarPedido).not.toHaveBeenCalled();
   });
 });
 

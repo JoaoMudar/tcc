@@ -2,9 +2,11 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { after } from 'next/server';
 import pool from '@/lib/db';
 import { toUserMessage } from '@/lib/errors';
 import { type FormState, formText } from '@/lib/form-state';
+import { avisarPedido } from '@/lib/notificacoes-envio';
 import * as pedidos from '@/lib/pedidos';
 import { withTransaction } from '@/lib/transaction';
 import { isUuid } from '@/lib/uuid';
@@ -299,5 +301,6 @@ export async function concluirVerificacaoAction(_previous: FormState, formData: 
     return { error: toUserMessage(error) };
   }
   revalidar(pedidoId);
+  after(() => avisarPedido(pedidoId, 'verificado', user.usuarioId));
   redirect(`/pedidos/${pedidoId}`);
 }

@@ -9,12 +9,15 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 vi.mock('@/lib/auth/dal', () => ({ requireUser: vi.fn() }));
+vi.mock('next/server', () => ({ after: vi.fn((tarefa: () => unknown) => tarefa()) }));
+vi.mock('@/lib/notificacoes-envio', () => ({ avisarPedido: vi.fn() }));
 
 const client = { query: vi.fn(), release: vi.fn() };
 vi.mock('@/lib/db', () => ({ default: { query: vi.fn(), connect: vi.fn(async () => client) } }));
 
 const { requireUser } = await import('@/lib/auth/dal');
 const { default: pool } = await import('@/lib/db');
+const { avisarPedido } = await import('@/lib/notificacoes-envio');
 const actions = await import('../actions');
 
 const PEDIDO = '0b9f3f3e-8a5b-4c1a-9d0e-2f6a7b8c9d0e';
@@ -281,9 +284,11 @@ describe('conclusão', () => {
       rows: [{ id: PEDIDO, numero: 1, situacao: 'verificando', pendentes: 0, total: 3, disponiveis: 3, genericos: 0 }],
       rowCount: 1,
     });
+    vi.mocked(avisarPedido).mockClear();
     await expect(actions.concluirVerificacaoAction({}, form({ pedido_id: PEDIDO }))).rejects.toThrow(
       `redirect:/pedidos/${PEDIDO}`,
     );
+    expect(avisarPedido).toHaveBeenCalledWith(PEDIDO, 'verificado', expect.any(String));
   });
 
   it('com item sem resposta, recusa e não muda a situação', async () => {

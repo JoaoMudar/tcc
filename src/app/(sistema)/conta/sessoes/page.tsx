@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { AvisosNoCelular } from '@/components/AvisosNoCelular';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { Pill } from '@/components/ui/Pill';
@@ -8,7 +9,8 @@ import { listLoginEvents } from '@/lib/auth/access-log';
 import { requirePageAccess } from '@/lib/auth/guards';
 import { listActiveSessions } from '@/lib/auth/session-store';
 import { describeUserAgent } from '@/lib/auth/user-agent';
-import { endOtherSessions, endSession } from './actions';
+import { chavePublicaVapid } from '@/lib/notificacoes-envio';
+import { desinscreverAparelhoAction, endOtherSessions, endSession, inscreverAparelhoAction } from './actions';
 
 /** F1 UC-04: aparelhos conectados e tentativas recusadas (RF-03, RF-04, RF-07). */
 export default async function SessoesPage() {
@@ -22,6 +24,12 @@ export default async function SessoesPage() {
     <main>
       <PageHeader area="Minha conta" title="Aparelhos conectados" />
       <div className="mx-auto flex max-w-3xl flex-col gap-3 p-4 md:p-8">
+        <AvisosNoCelular
+          chavePublica={chavePublicaVapid()}
+          inscreverAction={inscreverAparelhoAction}
+          desinscreverAction={desinscreverAparelhoAction}
+        />
+
         {sessions.map((session) => {
           const current = session.id === user.sessaoId;
           return (

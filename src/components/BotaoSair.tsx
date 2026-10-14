@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { limpar, listar } from '@/lib/fila-local';
+import { desinscrever } from '@/lib/push-navegador';
 
 interface BotaoSairProps {
   logoutAction: () => Promise<void>;
@@ -10,9 +11,14 @@ interface BotaoSairProps {
   aparencia?: 'menu' | 'botao';
 }
 
-/** Apaga do aparelho a fila e as fichas guardadas (E4 A-08). */
+/**
+ * Apaga do aparelho a fila e as fichas guardadas (E4 A-08), e desliga o aviso
+ * no celular: quem pega o aparelho depois não recebe o pedido de outra pessoa.
+ * A linha do servidor cai no próximo envio, quando o serviço de push recusar.
+ */
 async function limparAparelho() {
   await limpar().catch(() => undefined);
+  await desinscrever().catch(() => undefined);
   navigator.serviceWorker?.controller?.postMessage('limpar');
 }
 
