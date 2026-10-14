@@ -28,6 +28,7 @@ import {
   type SaldosPorChave,
   type ValorLinha,
   especiesDoGrupo,
+  faltaNoItem,
   textoSaldo,
 } from './linhas-pedido';
 
@@ -217,8 +218,9 @@ export function GradeItens({
     const altura = parseAltura(linha.altura);
     const saldo = saldoDoItem(saldos[chaveSaldo(linha.especieId, linha.recipienteId)], 'error' in altura ? null : altura.value);
     const quantidade = lerQuantidade(linha.quantidade);
-    const falta = Boolean(linha.especieId && linha.recipienteId && quantidade !== null && quantidade > saldo.disponivel);
-    return { saldo, quantidade, falta };
+    const confirmada = conferencia[linha.chave]?.confirmada ?? null;
+    const falta = Boolean(linha.especieId && linha.recipienteId && faltaNoItem(saldo, quantidade, confirmada) > 0);
+    return { saldo, quantidade, confirmada, falta };
   }
 
   return (
@@ -279,7 +281,7 @@ export function GradeItens({
           </thead>
           <tbody>
             {linhas.map((linha, indice) => {
-              const { saldo, quantidade, falta } = saldoDa(linha);
+              const { saldo, quantidade, confirmada, falta } = saldoDa(linha);
               const conferida = conferencia[linha.chave];
               return (
                 <Fragment key={linha.chave}>
@@ -326,7 +328,7 @@ export function GradeItens({
                       {/* RF-56: o saldo não é coluna, é a linha miúda embaixo da espécie */}
                       {linha.especieId && linha.recipienteId && (
                         <p className={`px-3 pb-1.5 text-xs ${falta ? 'font-semibold text-amber-800' : 'text-muted'}`}>
-                          {textoSaldo(saldo, quantidade)}
+                          {textoSaldo(saldo, quantidade, confirmada)}
                         </p>
                       )}
                       {conferida && (
