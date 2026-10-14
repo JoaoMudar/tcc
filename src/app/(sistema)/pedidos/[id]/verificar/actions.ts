@@ -119,6 +119,38 @@ export async function marcarDisponibilidadeAction(_previous: FormState, formData
 }
 
 /**
+ * "Tem" ou "Tem parte" tocado sem o campo obrigatório: o botão fica guardado, e
+ * quem sai pelo "Salvar" volta com o item nele, e não com a resposta anterior.
+ */
+export async function marcarRespostaEmAbertoAction(_previous: FormState, formData: FormData): Promise<FormState> {
+  const user = await requirePermission('verificacao_pedido', 'C');
+  const pedidoId = formText(formData, 'pedido_id');
+  const itemId = formText(formData, 'item_id');
+  const estado = formText(formData, 'estado');
+  if (!isUuid(pedidoId) || !isUuid(itemId)) return { error: 'Item inválido.' };
+  if (estado !== 'disponivel' && estado !== 'parcial') return { error: 'Resposta inválida.' };
+  const observacoes = pedidos.parseObservacoesPedido(formText(formData, 'observacoes'));
+  if ('error' in observacoes) return { error: 'A observação pode ter até 500 caracteres.' };
+
+  try {
+    await withTransaction(pool, (client) =>
+      pedidos.marcarRespostaEmAberto(
+        client,
+        pedidoId,
+        itemId,
+        estado,
+        { perfil: user.perfil, usuarioId: user.usuarioId },
+        observacoes.value,
+      ),
+    );
+  } catch (error) {
+    return { error: toUserMessage(error) };
+  }
+  revalidar(pedidoId);
+  return { success: 'Resposta guardada.' };
+}
+
+/**
  * "Salvar e continuar depois": a observação sem a resposta. Anotar "ver com o
  * Gilberto" num item não pode marcá-lo como conferido.
  */

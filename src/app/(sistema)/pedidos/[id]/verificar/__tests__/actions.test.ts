@@ -418,3 +418,35 @@ describe('salvar para continuar depois', () => {
     expect((await actions.salvarParaDepoisAction({}, form({ pedido_id: 'x' }))).error).toMatch(/pedido inválido/i);
   });
 });
+
+describe('"Tem" incompleto guardado', () => {
+  it('guarda o botão e derruba a resposta anterior, com os complementos', async () => {
+    const dados = form({ pedido_id: PEDIDO, item_id: ITEM, estado: 'disponivel', observacoes: 'ver no canteiro 3' });
+    expect((await actions.marcarRespostaEmAbertoAction({}, dados)).error).toBeUndefined();
+    expect(gravouEm('DELETE FROM pedidos_itens WHERE complementa_item_id')).toHaveLength(1);
+    // O item com espécie não tem composição a apagar
+    expect(gravouEm('DELETE FROM pedidos_itens WHERE item_pai_id')).toHaveLength(0);
+    const atualizacao = gravouEm('resposta_em_aberto = $3').at(-1)!;
+    expect(String(atualizacao[0])).toMatch(/disponivel = NULL/);
+    expect(atualizacao[1]).toEqual([PEDIDO, ITEM, 'disponivel', 'ver no canteiro 3']);
+  });
+
+  it('no genérico, a composição sai junto', async () => {
+    respondeCom({ id: PEDIDO, numero: 1, situacao: 'verificando', quantidade: 500, recipienteId: RECIPIENTE, alturaM: null, generico: true, preco: '2.00' });
+    const dados = form({ pedido_id: PEDIDO, item_id: ITEM, estado: 'parcial' });
+    expect((await actions.marcarRespostaEmAbertoAction({}, dados)).error).toBeUndefined();
+    expect(gravouEm('DELETE FROM pedidos_itens WHERE item_pai_id')).toHaveLength(1);
+  });
+
+  it('"Não tem" não fica em aberto: é recusado antes do banco', async () => {
+    const dados = form({ pedido_id: PEDIDO, item_id: ITEM, estado: 'indisponivel' });
+    expect((await actions.marcarRespostaEmAbertoAction({}, dados)).error).toMatch(/resposta inválida/i);
+    expectNoDatabase();
+  });
+
+  it('responder de verdade apaga a marca', async () => {
+    const dados = form({ pedido_id: PEDIDO, item_id: ITEM, estado: 'indisponivel' });
+    expect((await actions.marcarDisponibilidadeAction({}, dados)).error).toBeUndefined();
+    expect(String(gravouEm('UPDATE pedidos_itens').at(-1)![0])).toMatch(/resposta_em_aberto = NULL/);
+  });
+});

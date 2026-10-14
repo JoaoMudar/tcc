@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { definirComposicaoAction, marcarGenericoIndisponivelAction } from '../actions';
+import { definirComposicaoAction, marcarGenericoIndisponivelAction, marcarRespostaEmAbertoAction } from '../actions';
 import { AcoesVerificacao } from '../AcoesVerificacao';
 import { ComposicaoGenerico, type GenericoParaCompor } from '../ComposicaoGenerico';
 import { ItensEmAberto } from '../ItensEmAberto';
@@ -8,6 +8,7 @@ import { ItensEmAberto } from '../ItensEmAberto';
 vi.mock('../actions', () => ({
   definirComposicaoAction: vi.fn(async () => ({ success: 'Composição gravada.' })),
   marcarGenericoIndisponivelAction: vi.fn(async () => ({ success: 'Resposta gravada.' })),
+  marcarRespostaEmAbertoAction: vi.fn(async () => ({ success: 'Resposta guardada.' })),
   concluirVerificacaoAction: vi.fn(),
   salvarParaDepoisAction: vi.fn(),
 }));
@@ -54,10 +55,12 @@ function renderiza(item: Partial<GenericoParaCompor> = {}) {
 
 const naoTem = vi.mocked(marcarGenericoIndisponivelAction);
 const compor = vi.mocked(definirComposicaoAction);
+const guardar = vi.mocked(marcarRespostaEmAbertoAction);
 
 beforeEach(() => {
   naoTem.mockClear();
   compor.mockClear();
+  guardar.mockClear();
 });
 
 describe('ComposicaoGenerico (P12)', () => {
@@ -200,5 +203,23 @@ describe('ComposicaoGenerico, o rodapé', () => {
     fireEvent.click(screen.getByText('Tem tudo'));
     expect(screen.getByRole('button', { name: 'Salvar' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Enviar' })).toBeNull();
+  });
+});
+
+describe('ComposicaoGenerico, "Tem" com a lista por montar fica guardado', () => {
+  it('"Tem tudo" guarda o botão enquanto a lista não fecha', async () => {
+    renderiza();
+    fireEvent.click(screen.getByText('Tem tudo'));
+    await waitFor(() => expect(guardar).toHaveBeenCalledTimes(1));
+    expect(guardar.mock.calls[0][1].get('item_id')).toBe('pai-1');
+    expect(guardar.mock.calls[0][1].get('estado')).toBe('disponivel');
+    expect(compor).not.toHaveBeenCalled();
+  });
+
+  it('volta em "Tem parte", com uma linha em branco', () => {
+    const { container } = renderiza({ respostaEmAberto: 'parcial' });
+    expect(container.querySelector('li')!.className).toContain('bg-amber-50');
+    expect(screen.getByText('Espécie 1')).toBeTruthy();
+    expect(guardar).not.toHaveBeenCalled();
   });
 });

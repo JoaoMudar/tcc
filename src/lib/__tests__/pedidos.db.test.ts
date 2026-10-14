@@ -27,6 +27,7 @@ import {
   listPedidos,
   marcarDisponibilidade,
   marcarGenericoIndisponivel,
+  marcarRespostaEmAberto,
   mudarSituacao,
   negociarItens,
   removerItem,
@@ -573,6 +574,33 @@ describe('verificação de disponibilidade (T8.10)', () => {
     const alheio = await novoPedido();
     const [itemAlheio] = await listItens(pool, alheio.id);
     await expect(tx((c) => marcarDisponibilidade(c, id, itemAlheio.id, 'disponivel', gerencia()))).rejects.toThrow(/não encontrado/i);
+  });
+
+  it('"Tem" incompleto derruba a resposta anterior, guarda o botão e segura o envio', async () => {
+    const { id, itens: doPedido } = await emVerificacao();
+    for (const item of doPedido) await tx((c) => marcarDisponibilidade(c, id, item.id, 'indisponivel', gerencia()));
+    await tx((c) => marcarRespostaEmAberto(c, id, doPedido[0].id, 'disponivel', gerencia(), 'ver no canteiro 3'));
+
+    const emAberto = (await listItens(pool, id)).find((i) => i.id === doPedido[0].id)!;
+    expect(emAberto).toMatchObject({
+      disponivel: null,
+      quantidadeDisponivel: null,
+      respostaEmAberto: 'disponivel',
+      observacoesDisponibilidade: 'ver no canteiro 3',
+    });
+    await expect(tx((c) => concluirVerificacao(c, id, gerencia()))).rejects.toThrow(/sem resposta/i);
+
+    // Completar apaga a marca, e o envio se libera
+    await tx((c) => marcarDisponibilidade(c, id, doPedido[0].id, 'disponivel', gerencia()));
+    expect((await listItens(pool, id)).find((i) => i.id === doPedido[0].id)!.respostaEmAberto).toBeNull();
+    await tx((c) => concluirVerificacao(c, id, gerencia()));
+  });
+
+  it('o banco recusa resposta gravada com botão em aberto', async () => {
+    const { itens: doPedido } = await emVerificacao();
+    await expect(
+      pool.query("UPDATE pedidos_itens SET disponivel = true, resposta_em_aberto = 'disponivel' WHERE id = $1", [doPedido[0].id]),
+    ).rejects.toThrow(/resposta_em_aberto_pendente/);
   });
 
   it('não se envia à chefia pela metade', async () => {

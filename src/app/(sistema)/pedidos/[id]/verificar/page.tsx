@@ -110,6 +110,7 @@ export default async function VerificarPage({ params }: VerificarPageProps) {
                     disponivel: item.disponivel,
                     quantidadeDisponivel: item.quantidadeDisponivel,
                     observacoesDisponibilidade: item.observacoesDisponibilidade,
+                    respostaEmAberto: item.respostaEmAberto,
                     especiesPermitidas: item.especiesPermitidas ?? [],
                     filhos: pedido.itens
                       .filter((filho) => filho.itemPaiId === item.id)
@@ -143,6 +144,7 @@ export default async function VerificarPage({ params }: VerificarPageProps) {
                     recipienteDisponivel: item.recipienteDisponivel,
                     alturaDisponivelM: item.alturaDisponivelM,
                     observacoesDisponibilidade: item.observacoesDisponibilidade,
+                    respostaEmAberto: item.respostaEmAberto,
                     complementos: complementosDe.get(item.id) ?? [],
                   }}
                   recipientes={opcoesRecipiente}

@@ -20,7 +20,7 @@ import {
   rotuloGenerico,
   validarComposicaoGenerico,
 } from '@/lib/pedidos-rotulos';
-import { definirComposicaoAction, marcarGenericoIndisponivelAction } from './actions';
+import { definirComposicaoAction, marcarGenericoIndisponivelAction, marcarRespostaEmAbertoAction } from './actions';
 import { BotoesResposta, type Resposta } from './BotoesResposta';
 import { COR_DO_ESTADO, CabecalhoItem } from './CabecalhoItem';
 import { CampoObservacao } from './CampoObservacao';
@@ -37,6 +37,8 @@ export interface GenericoParaCompor {
   disponivel: boolean | null;
   quantidadeDisponivel: number | null;
   observacoesDisponibilidade: string | null;
+  /** O botão tocado com a lista ainda por montar: o cartão reabre nele. */
+  respostaEmAberto?: 'disponivel' | 'parcial' | null;
   /** Vazio é "qualquer espécie serve". */
   especiesPermitidas: readonly string[];
   filhos: readonly {
@@ -139,8 +141,12 @@ export function ComposicaoGenerico({ pedidoId, item, especies, recipientes }: Co
   const [estadoNaoTem, naoTemAction, gravandoNaoTem] = useActionState(marcarGenericoIndisponivelAction, EMPTY_FORM_STATE);
   const gravada = estadoDoGenerico(item, item.filhos);
   const perguntas = perguntasDoItem(item, true);
+  const [estadoAberto, guardarAction, guardando] = useActionState(marcarRespostaEmAbertoAction, EMPTY_FORM_STATE);
+  // "Tem" tocado e a lista ainda por montar, guardado: volta aberto, com uma linha em branco
+  const emAberto: Modo | null =
+    gravada === 'pendente' && item.respostaEmAberto ? (item.respostaEmAberto === 'parcial' ? 'parte' : 'tudo') : null;
 
-  const [aberta, setAberta] = useState<Modo | null>(gravada === 'parte' || gravada === 'tudo' ? gravada : null);
+  const [aberta, setAberta] = useState<Modo | null>(emAberto ?? (gravada === 'parte' || gravada === 'tudo' ? gravada : null));
   const [linhas, setLinhas] = useState<Linha[]>(() => (aberta ? linhasIniciais(item, aberta, gravada) : []));
   const [observacao, setObservacao] = useState(item.observacoesDisponibilidade ?? '');
   // O último botão tocado: "Não tem" não abre painel, e o cartão tem de pintar mesmo assim
@@ -149,8 +155,25 @@ export function ComposicaoGenerico({ pedidoId, item, especies, recipientes }: Co
   const gravado = useRef<string | null>(
     aberta && gravada === aberta ? JSON.stringify([aberta, linhas, observacao]) : null,
   );
+  // O botão em aberto que o banco já tem: tocar de novo não regrava
+  const abertoGravado = useRef<Modo | null>(emAberto);
+
+  /** Guarda o botão tocado enquanto a lista não fecha, como no item com espécie. */
+  function guardarEmAberto(modo: Modo, opcoes: { mesmo?: boolean } = {}) {
+    if (modo === abertoGravado.current && !opcoes.mesmo && !estadoAberto.error) return;
+    abertoGravado.current = modo;
+    // A composição anterior cai no servidor: regravá-la depois não é repetição
+    gravado.current = null;
+    const dados = new FormData();
+    dados.set('pedido_id', pedidoId);
+    dados.set('item_id', item.id);
+    dados.set('estado', modo === 'parte' ? 'parcial' : 'disponivel');
+    dados.set('observacoes', observacao);
+    startTransition(() => guardarAction(dados));
+  }
 
   function gravarNaoTem() {
+    abertoGravado.current = null;
     const dados = new FormData();
     dados.set('pedido_id', pedidoId);
     dados.set('item_pai_id', item.id);
@@ -167,6 +190,8 @@ export function ComposicaoGenerico({ pedidoId, item, especies, recipientes }: Co
     }
     setAberta(resposta);
     setLinhas(linhasIniciais(item, resposta, gravada));
+    // A lista nova começa em branco e não fecha: o botão fica guardado
+    if (resposta !== gravada) guardarEmAberto(resposta);
   }
 
   /** Grava a composição quando a regra fecha; antes disso, o contador explica. */
@@ -180,6 +205,8 @@ export function ComposicaoGenerico({ pedidoId, item, especies, recipientes }: Co
     // Repetir só vale se o banco já tem exatamente isto: depois de erro, vai de novo
     if (chave === gravado.current && !state.error) return;
     gravado.current = chave;
+    // Compor apaga, no servidor, o botão em aberto
+    abertoGravado.current = null;
 
     const perguntadas = new Set((modo === 'parte' ? perguntas.parte : perguntas.tudo).map((p) => p.campo));
     const dados = new FormData();
@@ -245,7 +272,8 @@ export function ComposicaoGenerico({ pedidoId, item, especies, recipientes }: Co
     item.id,
     pending ||
       gravandoNaoTem ||
-      Boolean(state.error || estadoNaoTem.error) ||
+      guardando ||
+      Boolean(state.error || estadoNaoTem.error || estadoAberto.error) ||
       selecionada !== (gravada === 'pendente' ? null : gravada) ||
       (aberta !== null && !completo),
   );
@@ -375,10 +403,12 @@ export function ComposicaoGenerico({ pedidoId, item, especies, recipientes }: Co
           // A observação vai junto da resposta: com resposta gravada, regrava a mesma
           if (gravada === 'nao_tem') gravarNaoTem();
           else if (aberta && gravada === aberta) enviar(aberta, linhas);
+          else if (aberta && aberta === abertoGravado.current) guardarEmAberto(aberta, { mesmo: true });
         }}
       />
 
       {estadoNaoTem.error && <Notice tone="error">{estadoNaoTem.error}</Notice>}
+      {estadoAberto.error && <Notice tone="error">{estadoAberto.error}</Notice>}
     </li>
   );
 }

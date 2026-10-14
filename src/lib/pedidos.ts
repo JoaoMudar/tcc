@@ -156,6 +156,8 @@ export interface ItemPedido extends NovoItem {
   /** Altura em que a muda existe, quando difere da pedida (P12). */
   alturaDisponivelM: number | null;
   observacoesDisponibilidade: string | null;
+  /** O botão tocado que ainda não grava por falta de campo. Só com `disponivel` nulo. */
+  respostaEmAberto: Exclude<EstadoDisponibilidade, 'indisponivel'> | null;
 
   generico: boolean;
   itemPaiId: string | null;
@@ -308,6 +310,7 @@ export async function listItens(db: Db, pedidoId: string): Promise<ItemPedido[]>
             i.recipiente_disponivel_id AS "recipienteDisponivelId", rd.nome AS "recipienteDisponivel",
             i.altura_disponivel_m::float8 AS "alturaDisponivelM",
             i.observacoes_disponibilidade AS "observacoesDisponibilidade",
+            i.resposta_em_aberto AS "respostaEmAberto",
             i.generico, i.item_pai_id AS "itemPaiId", i.especificacao,
             i.complementa_item_id AS "complementaItemId", i.suplente,
             r.peso_kg::float8 AS "pesoKg", rd.peso_kg::float8 AS "pesoDisponivelKg",
@@ -533,6 +536,7 @@ async function trocarIdentidade(client: Client, pedidoId: string, itemId: string
             quantidade_disponivel = CASE WHEN $6::boolean THEN NULL ELSE quantidade_disponivel END,
             recipiente_disponivel_id = CASE WHEN $6::boolean THEN NULL ELSE recipiente_disponivel_id END,
             altura_disponivel_m = CASE WHEN $6::boolean THEN NULL ELSE altura_disponivel_m END,
+            resposta_em_aberto = CASE WHEN $6::boolean THEN NULL ELSE resposta_em_aberto END,
             complementa_item_id = CASE WHEN $6::boolean THEN NULL ELSE complementa_item_id END,
             suplente = suplente AND NOT $6::boolean
       WHERE id = $2 AND pedido_id = $1`,
@@ -578,6 +582,7 @@ export async function atualizarItem(
             quantidade_disponivel = CASE WHEN x.mudou THEN NULL ELSE i.quantidade_disponivel END,
             recipiente_disponivel_id = CASE WHEN x.mudou THEN NULL ELSE i.recipiente_disponivel_id END,
             altura_disponivel_m = CASE WHEN x.mudou THEN NULL ELSE i.altura_disponivel_m END,
+            resposta_em_aberto = CASE WHEN x.mudou THEN NULL ELSE i.resposta_em_aberto END,
             complementa_item_id = CASE WHEN x.mudou THEN NULL ELSE i.complementa_item_id END,
             suplente = i.suplente AND NOT x.mudou
        FROM (SELECT id, NOT generico
@@ -872,6 +877,7 @@ export async function negociarItens(
               quantidade = COALESCE($4, quantidade),
               disponivel = CASE WHEN $5::boolean THEN true ELSE disponivel END,
               quantidade_disponivel = CASE WHEN $5::boolean THEN NULL ELSE quantidade_disponivel END,
+              resposta_em_aberto = CASE WHEN $5::boolean THEN NULL ELSE resposta_em_aberto END,
               recipiente_id = COALESCE($6::uuid, recipiente_id),
               recipiente_disponivel_id = CASE WHEN $6::uuid IS NULL THEN recipiente_disponivel_id END
         WHERE id = $2 AND pedido_id = $1`,
@@ -1163,9 +1169,42 @@ export async function marcarDisponibilidade(
   await client.query(
     `UPDATE pedidos_itens
         SET disponivel = $3, quantidade_disponivel = $4, recipiente_disponivel_id = $5,
-            altura_disponivel_m = $6, observacoes_disponibilidade = $7
+            altura_disponivel_m = $6, observacoes_disponibilidade = $7, resposta_em_aberto = NULL
       WHERE id = $2 AND pedido_id = $1`,
     [pedidoId, itemId, disponivel, quantidadeDisponivel, recipienteDisponivelId, alturaDisponivelM, extras.observacoes ?? null],
+  );
+}
+
+/**
+ * "Tem" ou "Tem parte" tocado, com campo obrigatório ainda em branco. **A
+ * resposta anterior cai**: deixou de ser verdade quando a pessoa tocou outro
+ * botão, e o item volta a pendente, lembrando o botão para reabrir nele. Vale
+ * para o item com espécie e para o genérico, cuja composição sai junto.
+ */
+export async function marcarRespostaEmAberto(
+  client: Client,
+  pedidoId: string,
+  itemId: string,
+  estado: Exclude<EstadoDisponibilidade, 'indisponivel'>,
+  autor: AutorDaMudanca,
+  observacoes: string | null = null,
+): Promise<void> {
+  await abrirOuExigirVerificacao(client, pedidoId, autor);
+  const item = await itemParaVerificar(client, pedidoId, itemId, true);
+  if (item.complementaItemId) {
+    throw new UserError('Este item completa outro: responda no item que ele completa.');
+  }
+
+  await client.query('DELETE FROM pedidos_itens WHERE complementa_item_id = $2 AND pedido_id = $1', [pedidoId, itemId]);
+  if (item.generico) {
+    await client.query('DELETE FROM pedidos_itens WHERE item_pai_id = $2 AND pedido_id = $1', [pedidoId, itemId]);
+  }
+  await client.query(
+    `UPDATE pedidos_itens
+        SET disponivel = NULL, quantidade_disponivel = NULL, recipiente_disponivel_id = NULL,
+            altura_disponivel_m = NULL, observacoes_disponibilidade = $4, resposta_em_aberto = $3
+      WHERE id = $2 AND pedido_id = $1`,
+    [pedidoId, itemId, estado, observacoes],
   );
 }
 
@@ -1210,7 +1249,7 @@ export async function marcarGenericoIndisponivel(
   await client.query(
     `UPDATE pedidos_itens
         SET disponivel = false, quantidade_disponivel = 0, recipiente_disponivel_id = NULL,
-            altura_disponivel_m = NULL, observacoes_disponibilidade = $3
+            altura_disponivel_m = NULL, observacoes_disponibilidade = $3, resposta_em_aberto = NULL
       WHERE id = $2 AND pedido_id = $1`,
     [pedidoId, itemPaiId, observacoes],
   );
@@ -1286,7 +1325,7 @@ export async function definirComposicaoGenerico(
   await client.query(
     `UPDATE pedidos_itens
         SET disponivel = $3, quantidade_disponivel = $4, recipiente_disponivel_id = NULL,
-            altura_disponivel_m = NULL, observacoes_disponibilidade = $5
+            altura_disponivel_m = NULL, observacoes_disponibilidade = $5, resposta_em_aberto = NULL
       WHERE id = $2 AND pedido_id = $1`,
     [pedidoId, itemPaiId, disponivel, quantidadeDisponivel, observacoes],
   );
