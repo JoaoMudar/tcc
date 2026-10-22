@@ -1,7 +1,7 @@
 -- Migration: 20260901000001_acesso_e_configuracoes.sql
 -- Descricao: Acesso (usuarios, sessoes, eventos_login) e parametros do sistema (parametros).
 --
--- Requisitos: RF-01 a RF-07, RF-09 · Regras: RN-26, RN-51, RN-52
+-- Requisitos: RF-01 a RF-07, RF-09 · Regras: RN-26
 -- Entidades: C8 `usuarios`, `sessoes`, `eventos_login`, `parametros`
 --
 -- TRES PERFIS, E NAO QUATRO. O enum nao tem `colaborador`: os seis trabalhadores
@@ -112,7 +112,7 @@ INSERT INTO parametros (chave, valor, tipo_valor, descricao) VALUES
    'Percentual de mortalidade do lote a partir do qual ele e destacado (RN-11)');
 
 COMMENT ON TABLE usuarios IS
-  'Credencial de acesso. Tres perfis: admin, chefia, gerencia. RN-51.';
+  'Credencial de acesso. Tres perfis: admin, chefia, gerencia.';
 COMMENT ON COLUMN usuarios.pessoa_id IS
   'Pessoa do cadastro unico. Opcional: ha login sem vinculo e vinculo sem login.';
 COMMENT ON TABLE parametros IS

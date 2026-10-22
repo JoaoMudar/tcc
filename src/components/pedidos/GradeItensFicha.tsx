@@ -22,6 +22,7 @@ import {
   type SaldosPorChave,
   TEXTO_OBRIGATORIO,
   conferenciaDoItem,
+  confirmadaNaVerificacao,
   textoSaldo,
 } from './linhas-pedido';
 
@@ -91,6 +92,8 @@ interface Titulo {
   item: ItemDaFicha;
   nome: string;
   saldo: ReturnType<typeof saldoDoItem> | undefined;
+  /** O que a verificação contou somando as linhas, quando todas deram número. */
+  confirmada: number | null;
   /** "Temos 30 de 50", ou "Temos em 17x22 e 20x26" quando falta número. */
   temos: string;
   completo: boolean;
@@ -227,12 +230,14 @@ export function GradeItensFicha({
       continue;
     }
     const pedido = doBanco(item);
+    const contadas = [pedido, ...complementos.map(doBanco)].map(confirmadaNaVerificacao);
     linhas.push({
       tipo: 'titulo',
       titulo: {
         item: pedido,
         nome: nomeDoItem(item),
         saldo: saldoDe(pedido),
+        confirmada: contadas.every((n) => n !== null) ? contadas.reduce<number>((soma, n) => soma + n!, 0) : null,
         ...textoTemos(pedido, complementos.map(doBanco)),
       },
     });
@@ -395,7 +400,7 @@ export function GradeItensFicha({
                     )}
                     {linha.titulo.saldo !== undefined && (
                       <span className="block text-xs text-gray-300">
-                        {textoSaldo(linha.titulo.saldo, linha.titulo.item.quantidade)}
+                        {textoSaldo(linha.titulo.saldo, linha.titulo.item.quantidade, linha.titulo.confirmada)}
                       </span>
                     )}
                     {textoTemosDo(linha.titulo)}
@@ -427,7 +432,7 @@ export function GradeItensFicha({
                     )}
                     {linha.saldo !== undefined && (
                       <span className={`block text-xs text-muted ${linha.filho ? 'pl-4' : ''}`}>
-                        {textoSaldo(linha.saldo, linha.item.quantidade)}
+                        {textoSaldo(linha.saldo, linha.item.quantidade, confirmadaNaVerificacao(linha.item))}
                       </span>
                     )}
                     {!complementosDe.has(linha.item.id) && avisoSuplentes(linha.item)}

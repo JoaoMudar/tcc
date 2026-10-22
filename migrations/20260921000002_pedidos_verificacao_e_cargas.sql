@@ -1,7 +1,7 @@
 -- Migration: 20260921000002_pedidos_verificacao_e_cargas.sql
 -- Descricao: A verificacao de disponibilidade por item e a contagem para carregar.
 --
--- Requisitos: RF-56, RF-57 · Regras: RN-52
+-- Requisitos: RF-56, RF-57
 -- Entidades: C8 `pedidos_itens`, `pedidos_itens_especies_permitidas`,
 --            `pedidos_cargas`, `pedidos_cargas_itens`
 --

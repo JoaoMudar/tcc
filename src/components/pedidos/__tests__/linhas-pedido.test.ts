@@ -5,8 +5,10 @@ import {
   type Linha,
   aplicarColagemTabular,
   conferenciaDoItem,
+  confirmadaNaVerificacao,
   especiesDoGrupo,
   estaVazia,
+  faltaNoItem,
   faltantesDoPedido,
   linhaVazia,
   montarSaldos,
@@ -111,6 +113,23 @@ describe('estoque disponível no item (RF-56, RN-06, RN-62)', () => {
   it('faltando, diz quanto falta, quanto há até 20 cm abaixo e quanto não foi medido', () => {
     const saldo = saldoDoItem(montarSaldos(faixas)[chaveSaldo('ipe', 'tub')], 1.2);
     expect(textoSaldo(saldo, 150)).toBe('Disponível: 100 · faltam 50 · 30 com até 20 cm a menos · 40 sem altura medida');
+  });
+
+  it('depois da verificação, falta o pedido menos o que ela contou, e não menos o saldo', () => {
+    const vazio = { disponivel: 0, abaixo: 0, semAltura: 0 };
+    expect(textoSaldo(vazio, 10, 3)).toBe('Disponível: 0 · faltam 7');
+    expect(textoSaldo(vazio, 10, 10)).toBe('Disponível: 0');
+    expect(textoSaldo({ ...vazio, disponivel: 50 }, 10, 3)).toBe('Disponível: 50 · faltam 7');
+    expect(faltaNoItem(vazio, 10, null)).toBe(10);
+  });
+
+  it('a verificação dá número só ao item que ela olhou e contou', () => {
+    const item = { generico: false, quantidade: 10 };
+    expect(confirmadaNaVerificacao({ ...item, disponivel: null })).toBeNull();
+    expect(confirmadaNaVerificacao({ ...item, disponivel: false, quantidadeDisponivel: 3 })).toBe(3);
+    expect(confirmadaNaVerificacao({ ...item, disponivel: false, quantidadeDisponivel: 0 })).toBe(0);
+    expect(confirmadaNaVerificacao({ ...item, disponivel: true })).toBe(10);
+    expect(confirmadaNaVerificacao({ ...item, generico: true, disponivel: true })).toBeNull();
   });
 });
 

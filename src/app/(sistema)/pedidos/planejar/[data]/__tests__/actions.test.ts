@@ -8,6 +8,8 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 vi.mock('@/lib/auth/dal', () => ({ requireUser: vi.fn() }));
+vi.mock('next/server', () => ({ after: vi.fn((tarefa: () => unknown) => tarefa()) }));
+vi.mock('@/lib/notificacoes-envio', () => ({ avisarMudancaDeData: vi.fn() }));
 vi.mock('@/lib/rotas-ors', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/rotas-ors')>()),
   geocodificarTexto: vi.fn(),
@@ -21,6 +23,7 @@ vi.mock('@/lib/db', () => ({ default: { query: vi.fn(), connect: vi.fn(async () 
 
 const { requireUser } = await import('@/lib/auth/dal');
 const { default: pool } = await import('@/lib/db');
+const { avisarMudancaDeData } = await import('@/lib/notificacoes-envio');
 const { MapaIndisponivel, enderecoDoPonto, geocodificarTexto, sugerirEnderecos } = await import('@/lib/rotas-ors');
 const actions = await import('../actions');
 
@@ -77,6 +80,9 @@ function responder(sql: unknown) {
   }
   if (texto.includes('AS viagens')) return { rows: [{ viagens: 0 }], rowCount: 1 };
   if (texto.includes('AS n')) return { rows: [{ n: 1 }], rowCount: 1 };
+  if (texto.includes('UPDATE pedidos SET data_entrega = $2')) {
+    return dataEntregaMudou ? { rows: [{ dataAnterior: '2026-10-01' }], rowCount: 1 } : { rows: [], rowCount: 0 };
+  }
   if (texto.includes('UPDATE pedidos SET data_entrega')) return { rows: [], rowCount: dataEntregaMudou ? 1 : 0 };
   if (texto.includes('FROM viagens_paradas vp')) {
     return {
@@ -119,10 +125,16 @@ describe('pôr pedido na carga (Tela 1)', () => {
     expect(historico[0][1]).toEqual([PEDIDO, 'aprovado', 'u1', 'Entrega marcada para 02/10 no planejamento da viagem.']);
   });
 
+  it('a data marcada pela viagem avisa a gerência, com a anterior', async () => {
+    await actions.adicionarPedidoAction({}, form({ data: DIA, pedido_id: PEDIDO }));
+    expect(avisarMudancaDeData).toHaveBeenCalledWith(PEDIDO, '2026-10-01', 'u1');
+  });
+
   it('pedido que já era para o dia não ganha linha no histórico', async () => {
     dataEntregaMudou = false;
     await actions.adicionarPedidoAction({}, form({ data: DIA, pedido_id: PEDIDO }));
     expect(gravouEm('INSERT INTO pedidos_historico')).toHaveLength(0);
+    expect(avisarMudancaDeData).not.toHaveBeenCalled();
   });
 
   it('usa a viagem que já existe no dia', async () => {

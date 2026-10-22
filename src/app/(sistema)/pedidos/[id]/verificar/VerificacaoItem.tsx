@@ -18,11 +18,12 @@ import {
   perguntasDoItem,
   resolveResposta,
 } from '@/lib/pedidos-rotulos';
-import { marcarDisponibilidadeAction } from './actions';
+import { marcarDisponibilidadeAction, marcarRespostaEmAbertoAction } from './actions';
 import { BotoesResposta, type Resposta } from './BotoesResposta';
 import { COR_DO_ESTADO, CabecalhoItem } from './CabecalhoItem';
 import { type Campos, CamposConferidos } from './CamposConferidos';
 import { CampoObservacao } from './CampoObservacao';
+import { useItemEmAberto } from './ItensEmAberto';
 
 export interface ItemParaConferir {
   id: string;
@@ -40,6 +41,8 @@ export interface ItemParaConferir {
   recipienteDisponivel: string | null;
   alturaDisponivelM: number | null;
   observacoesDisponibilidade: string | null;
+  /** O botão tocado que ainda não gravou por falta de campo: o cartão reabre nele. */
+  respostaEmAberto?: 'disponivel' | 'parcial' | null;
   /**
    * P13, P17: os itens que completam este em outros recipientes, gravados com
    * "Tem parte" ou com "Tem tudo" dividido.
@@ -184,8 +187,13 @@ export function VerificacaoItem({ pedidoId, item, recipientes }: VerificacaoItem
   const [state, formAction, pending] = useActionState(marcarDisponibilidadeAction, EMPTY_FORM_STATE);
   const gravada = estadoComComplementos(item, item.complementos);
   const perguntas = perguntasDoItem(item);
+  const [estadoAberto, guardarAction, guardando] = useActionState(marcarRespostaEmAbertoAction, EMPTY_FORM_STATE);
+  // "Tem" sem o recipiente, guardado: volta aberto, com os campos a preencher
+  const emAberto: Resposta | null =
+    gravada === 'pendente' && item.respostaEmAberto ? (item.respostaEmAberto === 'parcial' ? 'parte' : 'tudo') : null;
 
   const [aberta, setAberta] = useState<Resposta | null>(() => {
+    if (emAberto) return emAberto;
     if (gravada === 'parte') return 'parte';
     return gravada === 'tudo' && perguntas.tudo.length > 0 ? 'tudo' : null;
   });
@@ -199,6 +207,8 @@ export function VerificacaoItem({ pedidoId, item, recipientes }: VerificacaoItem
   const gravado = useRef<string | null>(
     aberta && gravada === aberta ? JSON.stringify([aberta, campos, complementos, observacao]) : null,
   );
+  // O botão em aberto que o banco já tem: tocar de novo não regrava
+  const abertoGravado = useRef<Resposta | null>(emAberto);
 
   function validar(resposta: Resposta, valores: Campos, extras: readonly Campos[]): string | null {
     if (resposta === 'nao_tem') return null;
@@ -215,13 +225,13 @@ export function VerificacaoItem({ pedidoId, item, recipientes }: VerificacaoItem
     return 'error' in resolvida ? resolvida.error : null;
   }
 
-  function enviar(resposta: Resposta, valores: Campos, extras: readonly Campos[], opcoes: { silencioso?: boolean } = {}) {
+  function enviar(resposta: Resposta, valores: Campos, extras: readonly Campos[]) {
     // "Não tem" não se completa
     const linhas = resposta === 'nao_tem' ? [] : extras;
     const valida = validar(resposta, valores, linhas);
     if (valida) {
       // "Nada difere" não vira aviso: o painel abre igual ao pedido, e a frase aparecia antes de a pessoa mexer
-      if (!opcoes.silencioso && valida !== NADA_DIFERE) setAviso(valida);
+      if (valida !== NADA_DIFERE) setAviso(valida);
       return;
     }
     setAviso(null);
@@ -230,6 +240,8 @@ export function VerificacaoItem({ pedidoId, item, recipientes }: VerificacaoItem
     // Repetir só vale se o banco já tem exatamente isto: depois de erro, vai de novo
     if (chave === gravado.current && !state.error) return;
     gravado.current = chave;
+    // Responder apaga, no servidor, o botão em aberto
+    abertoGravado.current = null;
 
     const dados = new FormData();
     dados.set('pedido_id', pedidoId);
@@ -247,6 +259,24 @@ export function VerificacaoItem({ pedidoId, item, recipientes }: VerificacaoItem
     startTransition(() => formAction(dados));
   }
 
+  /**
+   * Guarda o botão tocado que ainda não grava. Sem isto, quem sai pelo "Salvar"
+   * e volta encontra a resposta anterior, e não o "Tem" que tocou.
+   */
+  function guardarEmAberto(resposta: Resposta, opcoes: { mesmo?: boolean } = {}) {
+    if (resposta === 'nao_tem') return;
+    if (resposta === abertoGravado.current && !opcoes.mesmo && !estadoAberto.error) return;
+    abertoGravado.current = resposta;
+    // A resposta anterior cai no servidor: regravá-la depois não é repetição
+    gravado.current = null;
+    const dados = new FormData();
+    dados.set('pedido_id', pedidoId);
+    dados.set('item_id', item.id);
+    dados.set('estado', ESTADO_DA_RESPOSTA[resposta]);
+    dados.set('observacoes', observacao);
+    startTransition(() => guardarAction(dados));
+  }
+
   function escolher(resposta: Resposta) {
     setAviso(null);
     setTocada(resposta);
@@ -262,8 +292,11 @@ export function VerificacaoItem({ pedidoId, item, recipientes }: VerificacaoItem
     setAberta(resposta);
     setCampos(iniciais);
     setComplementos(extras);
-    // "Tem" com pergunta só opcional já é resposta: grava no toque, e o número vem se vier
-    if (resposta === 'tudo') enviar(resposta, iniciais, extras, { silencioso: true });
+    // "Tem" com pergunta só opcional já é resposta: grava no toque, e o número vem se vier.
+    // Com pergunta obrigatória (o recipiente), o aviso diz já no toque o que falta
+    if (resposta === 'tudo') enviar(resposta, iniciais, extras);
+    // Falta campo: o botão fica guardado, salvo se o banco já tem esta resposta
+    if (validar(resposta, iniciais, extras) !== null && resposta !== respostaGravada(gravada)) guardarEmAberto(resposta);
   }
 
   function alterar(campo: keyof Campos, valor: string, gravar = false) {
@@ -304,6 +337,16 @@ export function VerificacaoItem({ pedidoId, item, recipientes }: VerificacaoItem
   const lista = dividida && !basicas.some((p) => p.campo === 'quantidade') ? [PERGUNTAS_DA_DIVISAO[0], ...basicas] : basicas;
   const perguntasDaLinha = semQuantidade ? PERGUNTAS_DO_SUPLENTE : aberta === 'tudo' ? PERGUNTAS_DA_DIVISAO : perguntas.parte;
   const selecionada = aberta ?? tocada ?? respostaGravada(gravada);
+  // Em aberto: o que a tela mostra ainda não é o que o banco tem. "Tem" sem o
+  // recipiente pinta o cartão e não grava nada, e o rodapé não pode enviar assim
+  useItemEmAberto(
+    item.id,
+    pending ||
+      guardando ||
+      Boolean(state.error || estadoAberto.error) ||
+      selecionada !== respostaGravada(gravada) ||
+      (aberta !== null && validar(aberta, campos, complementos) !== null),
+  );
   // Com quantidade pedida, "Tem parte" completa e "Tem tudo" divide; sem ela, toda resposta com muda guarda suplente
   const podeCompletar = semQuantidade ? aberta !== null : aberta === 'parte' || podeDividir;
   const legenda = (n: number) =>
@@ -376,13 +419,18 @@ export function VerificacaoItem({ pedidoId, item, recipientes }: VerificacaoItem
         onBlur={() => {
           // A observação vai junto da resposta: com resposta gravada, regrava a mesma
           const resposta = respostaGravada(gravada);
-          if (!resposta) return;
+          // Sem resposta gravada, mas com o botão em aberto: a observação vai com ele
+          if (!resposta) {
+            if (aberta && aberta === abertoGravado.current) guardarEmAberto(aberta, { mesmo: true });
+            return;
+          }
           if (aberta === resposta) enviar(resposta, campos, complementos);
           else enviar(resposta, camposIniciais(item, resposta, gravada), complementosIniciais(item, resposta, gravada));
         }}
       />
 
       {state.error && <Notice tone="error">{state.error}</Notice>}
+      {estadoAberto.error && <Notice tone="error">{estadoAberto.error}</Notice>}
     </li>
   );
 }

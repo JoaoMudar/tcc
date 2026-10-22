@@ -10,6 +10,7 @@ import { isUuid } from '@/lib/uuid';
 import { requirePageAccess } from '@/lib/auth/guards';
 import { AcoesVerificacao } from './AcoesVerificacao';
 import { ComposicaoGenerico } from './ComposicaoGenerico';
+import { ItensEmAberto } from './ItensEmAberto';
 import { type ItemParaConferir, VerificacaoItem } from './VerificacaoItem';
 
 interface VerificarPageProps {
@@ -90,65 +91,70 @@ export default async function VerificarPage({ params }: VerificarPageProps) {
 
         {topo.length === 0 && <Notice tone="warning">Este pedido não tem item nenhum para conferir.</Notice>}
 
-        {/* Na ordem do pedido: quem confere segue a lista que a chefia mandou */}
-        <ul className="flex flex-col gap-3">
-          {topo.map((item) =>
-            item.generico ? (
-              <ComposicaoGenerico
-                key={item.id}
-                pedidoId={pedido.id}
-                item={{
-                  id: item.id,
-                  quantidade: item.quantidade,
-                  recipiente: item.recipiente,
-                  recipienteId: item.recipienteId,
-                  alturaM: item.alturaM,
-                  especificacao: item.especificacao,
-                  disponivel: item.disponivel,
-                  quantidadeDisponivel: item.quantidadeDisponivel,
-                  observacoesDisponibilidade: item.observacoesDisponibilidade,
-                  especiesPermitidas: item.especiesPermitidas ?? [],
-                  filhos: pedido.itens
-                    .filter((filho) => filho.itemPaiId === item.id)
-                    .map((filho) => ({
-                      id: filho.id,
-                      especieId: filho.especieId ?? '',
-                      especie: filho.especie ?? '',
-                      recipienteId: filho.recipienteId,
-                      recipiente: filho.recipiente,
-                      quantidade: filho.quantidade,
-                      alturaM: filho.alturaM,
-                    })),
-                }}
-                especies={opcoesEspecie}
-                recipientes={opcoesRecipiente}
-              />
-            ) : (
-              <VerificacaoItem
-                key={item.id}
-                pedidoId={pedido.id}
-                item={{
-                  id: item.id,
-                  especie: item.especie ?? '',
-                  recipiente: item.recipiente,
-                  recipienteId: item.recipienteId,
-                  alturaM: item.alturaM,
-                  quantidade: item.quantidade,
-                  disponivel: item.disponivel,
-                  quantidadeDisponivel: item.quantidadeDisponivel,
-                  recipienteDisponivelId: item.recipienteDisponivelId,
-                  recipienteDisponivel: item.recipienteDisponivel,
-                  alturaDisponivelM: item.alturaDisponivelM,
-                  observacoesDisponibilidade: item.observacoesDisponibilidade,
-                  complementos: complementosDe.get(item.id) ?? [],
-                }}
-                recipientes={opcoesRecipiente}
-              />
-            ),
-          )}
-        </ul>
+        {/* O rodapé conta também o que está em aberto nos cartões, e não só o que o banco tem */}
+        <ItensEmAberto>
+          {/* Na ordem do pedido: quem confere segue a lista que a chefia mandou */}
+          <ul className="flex flex-col gap-3">
+            {topo.map((item) =>
+              item.generico ? (
+                <ComposicaoGenerico
+                  key={item.id}
+                  pedidoId={pedido.id}
+                  item={{
+                    id: item.id,
+                    quantidade: item.quantidade,
+                    recipiente: item.recipiente,
+                    recipienteId: item.recipienteId,
+                    alturaM: item.alturaM,
+                    especificacao: item.especificacao,
+                    disponivel: item.disponivel,
+                    quantidadeDisponivel: item.quantidadeDisponivel,
+                    observacoesDisponibilidade: item.observacoesDisponibilidade,
+                    respostaEmAberto: item.respostaEmAberto,
+                    especiesPermitidas: item.especiesPermitidas ?? [],
+                    filhos: pedido.itens
+                      .filter((filho) => filho.itemPaiId === item.id)
+                      .map((filho) => ({
+                        id: filho.id,
+                        especieId: filho.especieId ?? '',
+                        especie: filho.especie ?? '',
+                        recipienteId: filho.recipienteId,
+                        recipiente: filho.recipiente,
+                        quantidade: filho.quantidade,
+                        alturaM: filho.alturaM,
+                      })),
+                  }}
+                  especies={opcoesEspecie}
+                  recipientes={opcoesRecipiente}
+                />
+              ) : (
+                <VerificacaoItem
+                  key={item.id}
+                  pedidoId={pedido.id}
+                  item={{
+                    id: item.id,
+                    especie: item.especie ?? '',
+                    recipiente: item.recipiente,
+                    recipienteId: item.recipienteId,
+                    alturaM: item.alturaM,
+                    quantidade: item.quantidade,
+                    disponivel: item.disponivel,
+                    quantidadeDisponivel: item.quantidadeDisponivel,
+                    recipienteDisponivelId: item.recipienteDisponivelId,
+                    recipienteDisponivel: item.recipienteDisponivel,
+                    alturaDisponivelM: item.alturaDisponivelM,
+                    observacoesDisponibilidade: item.observacoesDisponibilidade,
+                    respostaEmAberto: item.respostaEmAberto,
+                    complementos: complementosDe.get(item.id) ?? [],
+                  }}
+                  recipientes={opcoesRecipiente}
+                />
+              ),
+            )}
+          </ul>
 
-        <AcoesVerificacao pedidoId={pedido.id} pendentes={pendentes} />
+          <AcoesVerificacao pedidoId={pedido.id} pendentes={pendentes} />
+        </ItensEmAberto>
       </div>
     </main>
   );

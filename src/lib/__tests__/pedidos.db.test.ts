@@ -27,6 +27,7 @@ import {
   listPedidos,
   marcarDisponibilidade,
   marcarGenericoIndisponivel,
+  marcarRespostaEmAberto,
   mudarSituacao,
   negociarItens,
   removerItem,
@@ -53,7 +54,7 @@ const tx = <T>(fn: (client: PoolClient) => Promise<T>) => withTransaction(pool, 
 /** Uma linha de negociação que só põe preço. */
 const soPreco = (itemId: string, precoCentavos: number) => ({ itemId, precoCentavos, quantidade: null, recipienteId: null });
 
-/** Quem assina a mudança de situação nos testes (RN-52). */
+/** Quem assina a mudança de situação nos testes. */
 const chefia = () => ({ perfil: 'chefia' as const, usuarioId: usuario });
 const gerencia = () => ({ perfil: 'gerencia' as const, usuarioId: usuario });
 
@@ -324,6 +325,16 @@ describe('situação do pedido (T8.3, T8.6, RF-57)', () => {
     const { id } = await novoPedido();
     await aprovar(id);
     const outro = await tx((c) => insertClienteRapido(c, { nome: `${prefixo} Outro cliente`, telefone: null }));
+    const antes = (await findPedido(pool, id))?.dataEntrega ?? null;
+    const { dataAnterior } = await tx((c) =>
+      atualizarCabecalho(c, id, { clienteId: outro, canal: 'paisagismo', dataEntrega: '2026-11-20' }, chefia()),
+    );
+    // A data de antes da troca, e não a gravada: é o que vai no aviso de data trocada
+    expect(dataAnterior).toBe(antes);
+    const { dataAnterior: segunda } = await tx((c) =>
+      atualizarCabecalho(c, id, { clienteId: outro, canal: 'paisagismo', dataEntrega: '2026-11-25' }, chefia()),
+    );
+    expect(segunda).toBe('2026-11-20');
     await tx((c) => atualizarCabecalho(c, id, { clienteId: outro, canal: 'paisagismo', dataEntrega: '2026-11-20' }, chefia()));
     expect(await findPedido(pool, id)).toMatchObject({
       clienteId: outro,
@@ -390,7 +401,7 @@ describe('estoque disponível no item (T8.2, RF-56, UC-32)', () => {
   });
 });
 
-describe('fluxo e histórico (T8.6, RF-57, RN-52)', () => {
+describe('fluxo e histórico (T8.6, RF-57)', () => {
   it('a lista fechada do banco é a mesma do TypeScript', async () => {
     // As oito situações vivem no CHECK e em SITUACOES_PEDIDO. Este teste existe
     // para as duas não divergirem em silêncio quando uma delas mudar.
@@ -573,6 +584,33 @@ describe('verificação de disponibilidade (T8.10)', () => {
     const alheio = await novoPedido();
     const [itemAlheio] = await listItens(pool, alheio.id);
     await expect(tx((c) => marcarDisponibilidade(c, id, itemAlheio.id, 'disponivel', gerencia()))).rejects.toThrow(/não encontrado/i);
+  });
+
+  it('"Tem" incompleto derruba a resposta anterior, guarda o botão e segura o envio', async () => {
+    const { id, itens: doPedido } = await emVerificacao();
+    for (const item of doPedido) await tx((c) => marcarDisponibilidade(c, id, item.id, 'indisponivel', gerencia()));
+    await tx((c) => marcarRespostaEmAberto(c, id, doPedido[0].id, 'disponivel', gerencia(), 'ver no canteiro 3'));
+
+    const emAberto = (await listItens(pool, id)).find((i) => i.id === doPedido[0].id)!;
+    expect(emAberto).toMatchObject({
+      disponivel: null,
+      quantidadeDisponivel: null,
+      respostaEmAberto: 'disponivel',
+      observacoesDisponibilidade: 'ver no canteiro 3',
+    });
+    await expect(tx((c) => concluirVerificacao(c, id, gerencia()))).rejects.toThrow(/sem resposta/i);
+
+    // Completar apaga a marca, e o envio se libera
+    await tx((c) => marcarDisponibilidade(c, id, doPedido[0].id, 'disponivel', gerencia()));
+    expect((await listItens(pool, id)).find((i) => i.id === doPedido[0].id)!.respostaEmAberto).toBeNull();
+    await tx((c) => concluirVerificacao(c, id, gerencia()));
+  });
+
+  it('o banco recusa resposta gravada com botão em aberto', async () => {
+    const { itens: doPedido } = await emVerificacao();
+    await expect(
+      pool.query("UPDATE pedidos_itens SET disponivel = true, resposta_em_aberto = 'disponivel' WHERE id = $1", [doPedido[0].id]),
+    ).rejects.toThrow(/resposta_em_aberto_pendente/);
   });
 
   it('não se envia à chefia pela metade', async () => {

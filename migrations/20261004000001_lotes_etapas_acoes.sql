@@ -38,7 +38,7 @@ CREATE TABLE lotes_etapas_acoes (
 
   data_acao          DATE NOT NULL DEFAULT hoje_no_viveiro(),
 
-  -- RN-52: todo registro tem autor identificado.
+  -- Todo registro tem autor identificado.
   registrado_por     UUID NOT NULL REFERENCES usuarios(id),
 
   observacoes        TEXT,

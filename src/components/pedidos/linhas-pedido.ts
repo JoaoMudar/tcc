@@ -136,6 +136,8 @@ export function faltantesDoPedido(itens: readonly ItemFaltante[]): string[] {
 export interface ConferenciaDaLinha {
   estado: Conferencia;
   resumo: string;
+  /** Quantas a verificação contou, quando deu número: é com ela que a grade diz quanto falta. */
+  confirmada?: number | null;
 }
 
 /** Linha só de leitura na grade do orçamento: o pedido original do item dividido, ou a espécie do genérico. */
@@ -204,14 +206,45 @@ export function montarSaldos(faixas: readonly SaldoDaFaixa[]): SaldosPorChave {
 }
 
 /**
+ * Quantas mudas a verificação contou para o item, ou nulo quando ela não olhou
+ * o item ou não deu número (o genérico, o "Tem" sem quantidade). É o que vale
+ * no lugar do saldo para dizer quanto falta: a contagem no canteiro é mais nova
+ * que o estoque do sistema.
+ */
+export function confirmadaNaVerificacao(item: {
+  generico: boolean;
+  quantidade: number | null;
+  disponivel?: boolean | null;
+  quantidadeDisponivel?: number | null;
+}): number | null {
+  if (item.generico || item.disponivel == null) return null;
+  return quantidadeConfirmada({
+    quantidade: item.quantidade,
+    disponivel: item.disponivel,
+    quantidadeDisponivel: item.quantidadeDisponivel ?? null,
+  });
+}
+
+/** Quanto falta do pedido: menos o que a verificação contou, ou, sem ela, menos o saldo. */
+export function faltaNoItem(saldo: SaldoDoItem, quantidade: number | null, confirmada: number | null = null): number {
+  if (quantidade === null) return 0;
+  return Math.max(0, quantidade - (confirmada ?? saldo.disponivel));
+}
+
+/**
  * A linha miúda embaixo do item: "Disponível: 120". Faltando, diz quanto falta
  * e, se o item pede altura, quanto há até 20 cm abaixo para completar e quanto
  * está sem altura medida (RN-62). Não recusa nada: só avisa (UC-31 FA-2).
+ *
+ * Depois da verificação, o que falta é o pedido menos o que ela contou
+ * (`confirmada`), e não menos o saldo: "Tem parte, 3 de 10" faltam 7, mesmo
+ * com o sistema dizendo zero.
  */
-export function textoSaldo(saldo: SaldoDoItem, quantidade: number | null): string {
+export function textoSaldo(saldo: SaldoDoItem, quantidade: number | null, confirmada: number | null = null): string {
   const partes = [`Disponível: ${formatQuantidade(saldo.disponivel)}`];
-  if (quantidade !== null && quantidade > saldo.disponivel) {
-    partes.push(`faltam ${formatQuantidade(quantidade - saldo.disponivel)}`);
+  const falta = faltaNoItem(saldo, quantidade, confirmada);
+  if (falta > 0) {
+    partes.push(`faltam ${formatQuantidade(falta)}`);
     if (saldo.abaixo > 0) partes.push(`${formatQuantidade(saldo.abaixo)} com até 20 cm a menos`);
     if (saldo.semAltura > 0) partes.push(`${formatQuantidade(saldo.semAltura)} sem altura medida`);
   }

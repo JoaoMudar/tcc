@@ -2,9 +2,11 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { after } from 'next/server';
 import pool from '@/lib/db';
 import { toUserMessage } from '@/lib/errors';
 import { type FormState, formText } from '@/lib/form-state';
+import { avisarPedido } from '@/lib/notificacoes-envio';
 import * as pedidos from '@/lib/pedidos';
 import { withTransaction } from '@/lib/transaction';
 import { isUuid } from '@/lib/uuid';
@@ -116,6 +118,38 @@ export async function marcarDisponibilidadeAction(_previous: FormState, formData
   }
   revalidar(pedidoId);
   return { success: 'Resposta gravada.' };
+}
+
+/**
+ * "Tem" ou "Tem parte" tocado sem o campo obrigatório: o botão fica guardado, e
+ * quem sai pelo "Salvar" volta com o item nele, e não com a resposta anterior.
+ */
+export async function marcarRespostaEmAbertoAction(_previous: FormState, formData: FormData): Promise<FormState> {
+  const user = await requirePermission('verificacao_pedido', 'C');
+  const pedidoId = formText(formData, 'pedido_id');
+  const itemId = formText(formData, 'item_id');
+  const estado = formText(formData, 'estado');
+  if (!isUuid(pedidoId) || !isUuid(itemId)) return { error: 'Item inválido.' };
+  if (estado !== 'disponivel' && estado !== 'parcial') return { error: 'Resposta inválida.' };
+  const observacoes = pedidos.parseObservacoesPedido(formText(formData, 'observacoes'));
+  if ('error' in observacoes) return { error: 'A observação pode ter até 500 caracteres.' };
+
+  try {
+    await withTransaction(pool, (client) =>
+      pedidos.marcarRespostaEmAberto(
+        client,
+        pedidoId,
+        itemId,
+        estado,
+        { perfil: user.perfil, usuarioId: user.usuarioId },
+        observacoes.value,
+      ),
+    );
+  } catch (error) {
+    return { error: toUserMessage(error) };
+  }
+  revalidar(pedidoId);
+  return { success: 'Resposta guardada.' };
 }
 
 /**
@@ -240,6 +274,19 @@ export async function definirComposicaoAction(_previous: FormState, formData: Fo
   return { success: 'Composição gravada.' };
 }
 
+/**
+ * "Salvar": sai da conferência sem fechá-la. As respostas já gravam campo a
+ * campo; ser action, e não link, põe a saída na fila do Next **depois** da
+ * gravação que o toque no botão disparou ao tirar o foco do campo.
+ */
+export async function salvarParaDepoisAction(_previous: FormState, formData: FormData): Promise<FormState> {
+  await requirePermission('verificacao_pedido', 'C');
+  const pedidoId = formText(formData, 'pedido_id');
+  if (!isUuid(pedidoId)) return { error: 'Pedido inválido.' };
+  revalidar(pedidoId);
+  redirect(`/pedidos/${pedidoId}`);
+}
+
 /** Fecha a conferência e devolve o pedido à chefia. Recusa se faltar item. */
 export async function concluirVerificacaoAction(_previous: FormState, formData: FormData): Promise<FormState> {
   const user = await requirePermission('verificacao_pedido', 'A');
@@ -254,5 +301,6 @@ export async function concluirVerificacaoAction(_previous: FormState, formData: 
     return { error: toUserMessage(error) };
   }
   revalidar(pedidoId);
+  after(() => avisarPedido(pedidoId, 'verificado', user.usuarioId));
   redirect(`/pedidos/${pedidoId}`);
 }

@@ -9,12 +9,15 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 vi.mock('@/lib/auth/dal', () => ({ requireUser: vi.fn() }));
+vi.mock('next/server', () => ({ after: vi.fn((tarefa: () => unknown) => tarefa()) }));
+vi.mock('@/lib/notificacoes-envio', () => ({ avisarPedido: vi.fn() }));
 
 const client = { query: vi.fn(), release: vi.fn() };
 vi.mock('@/lib/db', () => ({ default: { query: vi.fn(), connect: vi.fn(async () => client) } }));
 
 const { requireUser } = await import('@/lib/auth/dal');
 const { default: pool } = await import('@/lib/db');
+const { avisarPedido } = await import('@/lib/notificacoes-envio');
 const actions = await import('../actions');
 
 const PEDIDO = '0b9f3f3e-8a5b-4c1a-9d0e-2f6a7b8c9d0e';
@@ -281,9 +284,11 @@ describe('conclusão', () => {
       rows: [{ id: PEDIDO, numero: 1, situacao: 'verificando', pendentes: 0, total: 3, disponiveis: 3, genericos: 0 }],
       rowCount: 1,
     });
+    vi.mocked(avisarPedido).mockClear();
     await expect(actions.concluirVerificacaoAction({}, form({ pedido_id: PEDIDO }))).rejects.toThrow(
       `redirect:/pedidos/${PEDIDO}`,
     );
+    expect(avisarPedido).toHaveBeenCalledWith(PEDIDO, 'verificado', expect.any(String));
   });
 
   it('com item sem resposta, recusa e não muda a situação', async () => {
@@ -403,5 +408,50 @@ describe('"Tem tudo" dividido em vários recipientes (P17)', () => {
     });
     expect((await actions.marcarDisponibilidadeAction({}, dados)).error).toMatch(/somam 400/);
     expect(gravouEm('INSERT INTO pedidos_itens')).toEqual([]);
+  });
+});
+
+describe('salvar para continuar depois', () => {
+  it('volta para a ficha do pedido sem mexer na conferência', async () => {
+    await expect(actions.salvarParaDepoisAction({}, form({ pedido_id: PEDIDO }))).rejects.toThrow(
+      `redirect:/pedidos/${PEDIDO}`,
+    );
+    expectNoDatabase();
+  });
+
+  it('pedido inválido é recusado', async () => {
+    expect((await actions.salvarParaDepoisAction({}, form({ pedido_id: 'x' }))).error).toMatch(/pedido inválido/i);
+  });
+});
+
+describe('"Tem" incompleto guardado', () => {
+  it('guarda o botão e derruba a resposta anterior, com os complementos', async () => {
+    const dados = form({ pedido_id: PEDIDO, item_id: ITEM, estado: 'disponivel', observacoes: 'ver no canteiro 3' });
+    expect((await actions.marcarRespostaEmAbertoAction({}, dados)).error).toBeUndefined();
+    expect(gravouEm('DELETE FROM pedidos_itens WHERE complementa_item_id')).toHaveLength(1);
+    // O item com espécie não tem composição a apagar
+    expect(gravouEm('DELETE FROM pedidos_itens WHERE item_pai_id')).toHaveLength(0);
+    const atualizacao = gravouEm('resposta_em_aberto = $3').at(-1)!;
+    expect(String(atualizacao[0])).toMatch(/disponivel = NULL/);
+    expect(atualizacao[1]).toEqual([PEDIDO, ITEM, 'disponivel', 'ver no canteiro 3']);
+  });
+
+  it('no genérico, a composição sai junto', async () => {
+    respondeCom({ id: PEDIDO, numero: 1, situacao: 'verificando', quantidade: 500, recipienteId: RECIPIENTE, alturaM: null, generico: true, preco: '2.00' });
+    const dados = form({ pedido_id: PEDIDO, item_id: ITEM, estado: 'parcial' });
+    expect((await actions.marcarRespostaEmAbertoAction({}, dados)).error).toBeUndefined();
+    expect(gravouEm('DELETE FROM pedidos_itens WHERE item_pai_id')).toHaveLength(1);
+  });
+
+  it('"Não tem" não fica em aberto: é recusado antes do banco', async () => {
+    const dados = form({ pedido_id: PEDIDO, item_id: ITEM, estado: 'indisponivel' });
+    expect((await actions.marcarRespostaEmAbertoAction({}, dados)).error).toMatch(/resposta inválida/i);
+    expectNoDatabase();
+  });
+
+  it('responder de verdade apaga a marca', async () => {
+    const dados = form({ pedido_id: PEDIDO, item_id: ITEM, estado: 'indisponivel' });
+    expect((await actions.marcarDisponibilidadeAction({}, dados)).error).toBeUndefined();
+    expect(String(gravouEm('UPDATE pedidos_itens').at(-1)![0])).toMatch(/resposta_em_aberto = NULL/);
   });
 });

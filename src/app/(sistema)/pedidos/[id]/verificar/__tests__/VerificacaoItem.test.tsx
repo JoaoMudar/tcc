@@ -1,10 +1,15 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { marcarDisponibilidadeAction } from '../actions';
+import { marcarDisponibilidadeAction, marcarRespostaEmAbertoAction } from '../actions';
+import { AcoesVerificacao } from '../AcoesVerificacao';
+import { ItensEmAberto } from '../ItensEmAberto';
 import { type ItemParaConferir, VerificacaoItem } from '../VerificacaoItem';
 
 vi.mock('../actions', () => ({
   marcarDisponibilidadeAction: vi.fn(async () => ({ success: 'Resposta gravada.' })),
+  marcarRespostaEmAbertoAction: vi.fn(async () => ({ success: 'Resposta guardada.' })),
+  concluirVerificacaoAction: vi.fn(),
+  salvarParaDepoisAction: vi.fn(),
 }));
 
 const RECIPIENTES = [
@@ -30,6 +35,7 @@ const PENDENTE: ItemParaConferir = {
 };
 
 const acao = vi.mocked(marcarDisponibilidadeAction);
+const guardar = vi.mocked(marcarRespostaEmAbertoAction);
 
 function ultimoEnvio(): FormData {
   return acao.mock.calls.at(-1)![1];
@@ -39,7 +45,10 @@ function renderiza(item: Partial<ItemParaConferir> = {}) {
   return render(<VerificacaoItem pedidoId="pedido-1" item={{ ...PENDENTE, ...item }} recipientes={RECIPIENTES} />);
 }
 
-beforeEach(() => acao.mockClear());
+beforeEach(() => {
+  acao.mockClear();
+  guardar.mockClear();
+});
 
 describe('VerificacaoItem, os botões vêm da regra (P12)', () => {
   it('o cliente especificou algo: três botões', () => {
@@ -140,6 +149,31 @@ describe('VerificacaoItem, "Tem" do item incompleto', () => {
     await waitFor(() => expect(acao).toHaveBeenCalledTimes(1));
     expect(ultimoEnvio().get('estado')).toBe('disponivel');
     expect(ultimoEnvio().get('recipiente_id')).toBe('saco');
+  });
+
+  it('"Tem" sem o recipiente avisa o que falta, e o rodapé não deixa enviar', async () => {
+    // Já respondido "Não tem": o banco não tem pendência, e era isso que liberava o "Enviar"
+    const naoTem = { ...PENDENTE, recipiente: null, recipienteId: null, disponivel: false, quantidadeDisponivel: 0 };
+    const tela = (item: ItemParaConferir) => (
+      <ItensEmAberto>
+        <VerificacaoItem pedidoId="pedido-1" item={item} recipientes={RECIPIENTES} />
+        <AcoesVerificacao pedidoId="pedido-1" pendentes={0} />
+      </ItensEmAberto>
+    );
+    const { rerender } = render(tela(naoTem));
+    expect(screen.getByRole('button', { name: 'Enviar' })).toBeTruthy();
+
+    fireEvent.click(screen.getByText('Tem tudo'));
+    expect(acao).not.toHaveBeenCalled();
+    expect(screen.getByText('Escolha o recipiente em que a muda está.')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Salvar' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Enviar' })).toBeNull();
+
+    fireEvent.change(screen.getByLabelText(/Em que recipiente está/), { target: { value: 'saco' } });
+    await waitFor(() => expect(acao).toHaveBeenCalledTimes(1));
+    // Gravado, a página volta com a resposta nova, e o envio se libera
+    rerender(tela({ ...naoTem, disponivel: true, quantidadeDisponivel: null, recipienteDisponivelId: 'saco', recipienteDisponivel: 'Saco 10x18' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Enviar' })).toBeTruthy());
   });
 
   it('sem quantidade no pedido: "Tem" grava no toque, e o número é opcional', async () => {
@@ -396,5 +430,41 @@ describe('VerificacaoItem, o suplente do item sem quantidade (P18)', () => {
       complementos: [{ quantidade: null, recipienteId: 'saco', recipiente: 'Saco 10x18', alturaM: null }],
     });
     expect(screen.getByText('Tem: em Tubete · também em Saco 10x18')).toBeTruthy();
+  });
+});
+
+describe('VerificacaoItem, "Tem" incompleto fica guardado', () => {
+  const SEM_RECIPIENTE = { recipiente: null, recipienteId: null };
+
+  it('"Tem" sem o recipiente guarda o botão, sem gravar resposta', async () => {
+    renderiza({ ...SEM_RECIPIENTE, disponivel: false, quantidadeDisponivel: 0 });
+    fireEvent.click(screen.getByText('Tem tudo'));
+    await waitFor(() => expect(guardar).toHaveBeenCalledTimes(1));
+    const dados = guardar.mock.calls[0][1];
+    expect(dados.get('item_id')).toBe('item-1');
+    expect(dados.get('estado')).toBe('disponivel');
+    expect(acao).not.toHaveBeenCalled();
+  });
+
+  it('"Tem parte" que ainda não difere do pedido também fica guardado', async () => {
+    renderiza();
+    fireEvent.click(screen.getByText('Tem parte'));
+    await waitFor(() => expect(guardar).toHaveBeenCalledTimes(1));
+    expect(guardar.mock.calls[0][1].get('estado')).toBe('parcial');
+  });
+
+  it('volta em "Tem", com o recipiente em branco, e tocar de novo não regrava', () => {
+    const { container } = renderiza({ ...SEM_RECIPIENTE, respostaEmAberto: 'disponivel' });
+    expect(container.querySelector('li')!.className).toContain('bg-green-50');
+    expect((screen.getByLabelText(/Em que recipiente está/) as HTMLSelectElement).value).toBe('');
+    fireEvent.click(screen.getByText('Tem tudo'));
+    expect(guardar).not.toHaveBeenCalled();
+    expect(acao).not.toHaveBeenCalled();
+  });
+
+  it('a resposta já gravada não vira "em aberto" ao reabrir', () => {
+    renderiza({ disponivel: false, quantidadeDisponivel: 300 });
+    fireEvent.click(screen.getByText('Tem parte'));
+    expect(guardar).not.toHaveBeenCalled();
   });
 });

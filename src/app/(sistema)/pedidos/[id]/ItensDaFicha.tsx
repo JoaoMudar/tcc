@@ -14,6 +14,7 @@ import {
   type SaldosPorChave,
   type ValorLinha,
   conferenciaDoItem,
+  confirmadaNaVerificacao,
   especiesDoGrupo,
   faltantesDoPedido,
   linhaVazia,
@@ -186,7 +187,11 @@ function conferenciaDoOrcamento(itens: readonly ItemDaFicha[], chaves: ReadonlyM
     const estado = conferenciaDoItem(item, itens);
     if (!estado) continue;
     const doGenerico = itens.filter((filho) => filho.itemPaiId === item.id);
-    conferencia[chave] = { estado, resumo: resumoDaConferencia(estado, item, doGenerico.length) };
+    conferencia[chave] = {
+      estado,
+      resumo: resumoDaConferencia(estado, item, doGenerico.length),
+      confirmada: confirmadaNaVerificacao(item),
+    };
     if (doGenerico.length > 0) filhos[chave] = doGenerico.map((filho) => leitura(filho, filho.quantidade));
     const complementos = itens.filter((outro) => outro.complementaItemId === item.id && !outro.suplente);
     if (complementos.length > 0) {

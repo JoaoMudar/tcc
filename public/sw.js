@@ -18,6 +18,10 @@
  * porque essa navegação não passa pelo evento de página.
  *
  * Sair do sistema manda a mensagem 'limpar', que apaga as páginas guardadas.
+ *
+ * AVISO NO CELULAR (push): o servidor manda { titulo, corpo, url, tag } quando
+ * o pedido muda de mão, e o toque no aviso abre a ficha do pedido, reaproveitando
+ * a janela do app se ela já estiver aberta.
  */
 
 const VERSAO = 'v1';
@@ -114,4 +118,35 @@ self.addEventListener('fetch', (event) => {
   if (url.pathname.startsWith('/_next/static/') || url.pathname.startsWith('/icones/') || url.pathname === '/manifest.webmanifest') {
     event.respondWith(primeiroCache(request));
   }
+});
+
+self.addEventListener('push', (event) => {
+  let dados = {};
+  try {
+    dados = event.data ? event.data.json() : {};
+  } catch {
+    dados = { corpo: event.data ? event.data.text() : '' };
+  }
+  event.waitUntil(
+    self.registration.showNotification(dados.titulo || 'Viveiro Mudar', {
+      body: dados.corpo || '',
+      icon: '/icones/192',
+      badge: '/icones/192',
+      tag: dados.tag,
+      renotify: Boolean(dados.tag),
+      data: { url: dados.url || '/pedidos' },
+    }),
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const destino = new URL(event.notification.data?.url || '/', self.location.origin).href;
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((janelas) => {
+      const aberta = janelas.find((janela) => new URL(janela.url).origin === self.location.origin);
+      if (aberta) return aberta.navigate(destino).then((janela) => (janela ?? aberta).focus());
+      return self.clients.openWindow(destino);
+    }),
+  );
 });

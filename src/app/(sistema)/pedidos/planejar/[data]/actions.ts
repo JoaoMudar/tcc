@@ -2,11 +2,13 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { after } from 'next/server';
 import { isDataIso } from '@/lib/datas';
 import pool from '@/lib/db';
 import { toUserMessage } from '@/lib/errors';
 import { type FormState, formText } from '@/lib/form-state';
 import { lerEnderecoDeEntrega } from '@/lib/endereco-entrega-form';
+import { avisarMudancaDeData } from '@/lib/notificacoes-envio';
 import { type AvisoDaRota, type SugestaoDeEndereco, lerCoordenada } from '@/lib/rotas';
 import { MapaIndisponivel, sugerirEnderecos } from '@/lib/rotas-ors';
 import { withTransaction } from '@/lib/transaction';
@@ -49,12 +51,17 @@ export async function adicionarPedidoAction(_previous: FormState, formData: Form
   const pedidoId = formText(formData, 'pedido_id');
   if (!isDataIso(data) || !isUuid(pedidoId)) return { error: 'Pedido inválido.' };
 
+  let resultado: Awaited<ReturnType<typeof viagens.adicionarPedido>>;
   try {
-    await withTransaction(pool, (client) =>
+    resultado = await withTransaction(pool, (client) =>
       viagens.adicionarPedido(client, data, pedidoId, { perfil: user.perfil, usuarioId: user.usuarioId }),
     );
   } catch (error) {
     return { error: toUserMessage(error) };
+  }
+  if (resultado.dataMudou) {
+    const { dataAnterior } = resultado;
+    after(() => avisarMudancaDeData(pedidoId, dataAnterior, user.usuarioId));
   }
   revalidatePath(`/pedidos/${pedidoId}`);
   revalidar(data);
