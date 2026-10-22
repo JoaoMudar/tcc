@@ -129,7 +129,7 @@ CREATE TABLE movimentos_lote (
   -- inventar uma perda que nao houve. A FK e acrescentada na migration da agenda.
   atribuicao_id       UUID,
 
-  -- RN-52: todo registro tem autor identificado.
+  -- Todo registro tem autor identificado.
   registrado_por      UUID NOT NULL REFERENCES usuarios(id),
 
   observacoes         TEXT,

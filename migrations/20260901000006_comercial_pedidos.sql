@@ -29,7 +29,7 @@ CREATE TABLE pedidos (
   data_entrega  DATE,
   observacoes   TEXT,
 
-  -- RN-52: todo registro tem autor identificado.
+  -- Todo registro tem autor identificado.
   criado_por    UUID NOT NULL REFERENCES usuarios(id),
 
   criado_em     TIMESTAMPTZ NOT NULL DEFAULT NOW(),

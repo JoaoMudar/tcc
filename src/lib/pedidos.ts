@@ -611,7 +611,7 @@ export async function removerItem(client: Client, pedidoId: string, itemId: stri
   if (!rowCount) throw new UserError('Item não encontrado neste pedido.');
 }
 
-/** Quem está mudando o pedido: o perfil decide se pode, o usuário assina (RN-52). */
+/** Quem está mudando o pedido: o perfil decide se pode, o usuário assina. */
 export interface AutorDaMudanca {
   perfil: Perfil;
   usuarioId: string;

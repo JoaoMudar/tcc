@@ -1,7 +1,7 @@
 -- Migration: 20260921000001_pedidos_fluxo_situacao.sql
 -- Descricao: O pedido passa a percorrer oito situacoes, e toda mudanca fica registrada.
 --
--- Requisitos: RF-57 · Regras: RN-48, RN-52
+-- Requisitos: RF-57 · Regras: RN-48
 -- Entidades: C8 `pedidos`, `pedidos_historico`
 --
 -- POR QUE ESTA MIGRATION EXISTE. A 20260901000006 declarou tres situacoes
@@ -47,7 +47,7 @@ COMMENT ON COLUMN pedidos.precisa_nota IS
   'Se o pedido sai com nota fiscal. NULO enquanto a chefia nao respondeu, na aprovacao.';
 
 -- ------------------------------------------------------------
--- O historico de situacao (RN-52: todo registro tem autor)
+-- O historico de situacao (todo registro tem autor)
 -- ------------------------------------------------------------
 -- A 20260901000006 dispensou o historico com o argumento de que quem mudou o
 -- que e quando e pergunta que um viveiro de nove pessoas resolve perguntando.
@@ -87,4 +87,4 @@ SELECT p.id, NULL, p.situacao, p.criado_por, 'Situacao migrada do fluxo de tres 
   FROM pedidos p;
 
 COMMENT ON TABLE pedidos_historico IS
-  'Mudanca de situacao do pedido, com autor e data. RF-57, RN-52.';
+  'Mudanca de situacao do pedido, com autor e data. RF-57.';

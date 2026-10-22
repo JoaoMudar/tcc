@@ -54,7 +54,7 @@ const tx = <T>(fn: (client: PoolClient) => Promise<T>) => withTransaction(pool, 
 /** Uma linha de negociação que só põe preço. */
 const soPreco = (itemId: string, precoCentavos: number) => ({ itemId, precoCentavos, quantidade: null, recipienteId: null });
 
-/** Quem assina a mudança de situação nos testes (RN-52). */
+/** Quem assina a mudança de situação nos testes. */
 const chefia = () => ({ perfil: 'chefia' as const, usuarioId: usuario });
 const gerencia = () => ({ perfil: 'gerencia' as const, usuarioId: usuario });
 
@@ -401,7 +401,7 @@ describe('estoque disponível no item (T8.2, RF-56, UC-32)', () => {
   });
 });
 
-describe('fluxo e histórico (T8.6, RF-57, RN-52)', () => {
+describe('fluxo e histórico (T8.6, RF-57)', () => {
   it('a lista fechada do banco é a mesma do TypeScript', async () => {
     // As oito situações vivem no CHECK e em SITUACOES_PEDIDO. Este teste existe
     // para as duas não divergirem em silêncio quando uma delas mudar.
