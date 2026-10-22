@@ -3,7 +3,7 @@ import { acimaDoLimite, formatPercentual, mortalidade, parseFiltroPerdas, totais
 
 const ID = '0b9f3f3e-8a5b-4c1a-9d0e-2f6a7b8c9d0e';
 
-describe('mortalidade (RF-42)', () => {
+describe('mortalidade (RF-36)', () => {
   it('é a soma das perdas dividida pela quantidade inicial', () => {
     expect(mortalidade(120, 500)).toBe(0.24);
     expect(mortalidade(0, 500)).toBe(0);

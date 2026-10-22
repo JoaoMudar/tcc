@@ -12,7 +12,7 @@ import { endCurrentSession, requestOrigin } from '@/lib/auth/session';
 import { deleteOtherSessions } from '@/lib/auth/session-store';
 import { findUserForLogin, recordLoginEvent, saveFailure, updatePassword } from '@/lib/auth/user-store';
 
-/** RF-02: troca da senha, obrigatória no primeiro acesso. Encerra as outras sessões. */
+/** RF-04: troca da senha, obrigatória no primeiro acesso. Encerra as outras sessões. */
 export async function changePassword(_previous: FormState, formData: FormData): Promise<FormState> {
   const user = await requireUser({ allowPasswordChange: true });
   const atual = formText(formData, 'senha_atual');

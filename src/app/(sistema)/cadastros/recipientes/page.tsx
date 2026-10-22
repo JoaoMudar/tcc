@@ -8,7 +8,7 @@ import { requirePageAccess } from '@/lib/auth/guards';
 import { NovoRecipienteForm } from './NovoRecipienteForm';
 import { RecipienteForm } from './RecipienteForm';
 
-/** F1 UC-08: o recipiente define o tamanho da muda (RF-11). */
+/** F1 UC-08: o recipiente define o tamanho da muda (RF-14). */
 export default async function RecipientesPage() {
   const user = await requirePageAccess('recipientes');
   const recipientes = await listRecipientes(pool);

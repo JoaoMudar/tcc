@@ -32,7 +32,7 @@ const MAX_ITENS_POR_ENVIO = 200;
  * O item genérico chega com `item_generico` marcado e sem espécie: é o "500
  * mudas nativas" que a gerência resolve escolhendo as espécies (T8.7).
  *
- * **Recipiente e quantidade são opcionais** (RF-54): o cliente que pergunta
+ * **Recipiente e quantidade são opcionais** (RF-59): o cliente que pergunta
  * "tem ipê?" não disse nenhum dos dois, e a conferência responde. O que se
  * exige é saber o que foi pedido: a espécie, ou a descrição no genérico.
  */
@@ -82,7 +82,7 @@ function lerItens(formData: FormData): { error: string } | { value: pedidos.Novo
   return { value: itens };
 }
 
-/** T8.1, RF-54, RF-55, UC-31: cliente, canal e itens com preço digitado. Nasce em rascunho. */
+/** T8.1, RF-59, RF-65, UC-31: cliente, canal e itens com preço digitado. Nasce em rascunho. */
 export async function criarPedidoAction(_previous: FormState, formData: FormData): Promise<FormState> {
   const user = await requirePermission('pedidos', 'C');
   const fields = {
@@ -131,7 +131,7 @@ export interface ItemSalvoState extends FormState {
   itemId?: string;
 }
 
-/** Um item só, acrescentado ao pedido que ainda é rascunho (RF-57). */
+/** Um item só, acrescentado ao pedido que ainda é rascunho (RF-61). */
 export async function adicionarItemAction(_previous: ItemSalvoState, formData: FormData): Promise<ItemSalvoState> {
   await requirePermission('pedidos', 'A');
   const pedidoId = formText(formData, 'pedido_id');
@@ -150,7 +150,7 @@ export async function adicionarItemAction(_previous: ItemSalvoState, formData: F
 }
 
 /**
- * RF-57: recipiente, quantidade e altura mudam enquanto o pedido é orçamento. O
+ * RF-61: recipiente, quantidade e altura mudam enquanto o pedido é orçamento. O
  * preço vem depois da conferência. O recipiente só muda quando o campo vem no
  * formulário, e vazio é "o cliente não disse o tamanho". A espécie, do mesmo
  * jeito: só quando `item_generico` vem, e é a grade da ficha que o manda.
@@ -258,7 +258,7 @@ export async function atualizarCabecalhoAction(_previous: FormState, formData: F
 }
 
 /**
- * T8.6, RN-53: a mudança de fase que a tela ofereceu, conferida de novo aqui. O
+ * T8.6, RN-55: a mudança de fase que a tela ofereceu, conferida de novo aqui. O
  * guard do D4 diz que este perfil mexe na situação do pedido; `mudarSituacao`
  * diz se esta fase, saindo desta situação, é dele (D4 §3.2).
  */
@@ -282,7 +282,7 @@ export async function transicionarPedidoAction(_previous: FormState, formData: F
 }
 
 /**
- * RF-55: a negociação do pedido conferido (preço, quantidade e recipiente de
+ * RF-65: a negociação do pedido conferido (preço, quantidade e recipiente de
  * cada item), em listas paralelas como o resto do projeto. O guard é
  * `confirmacao_pedido`, o mesmo da aprovação; quem não é chefia é recusado
  * dentro de `negociarItens`.
@@ -361,7 +361,7 @@ export async function usarSuplenteAction(_previous: FormState, formData: FormDat
 }
 
 /**
- * RN-64: o frete combinado, gravado enquanto se digita, como o preço dos itens.
+ * RN-54: o frete combinado, gravado enquanto se digita, como o preço dos itens.
  * Em branco é "sem frete". O guard é o da negociação.
  */
 export async function salvarFreteAction(_previous: FormState, formData: FormData): Promise<FormState> {
@@ -399,7 +399,7 @@ export async function salvarFreteAction(_previous: FormState, formData: FormData
 }
 
 /**
- * RN-64: a sugestão de frete pela distância. Não grava o frete: devolve o
+ * RN-54: a sugestão de frete pela distância. Não grava o frete: devolve o
  * valor para a chefia ver, e é ela quem o aceita ou digita outro.
  */
 export async function sugerirFreteAction(
@@ -460,7 +460,7 @@ export async function salvarEnderecoDoPedidoAction(_previous: FormState, formDat
   return { success: 'Endereço salvo.' };
 }
 
-/** T8.3, RF-57: confirmar trava os itens. O guard é o do D4, `confirmacao_pedido`. */
+/** T8.3, RF-61: confirmar trava os itens. O guard é o do D4, `confirmacao_pedido`. */
 export async function confirmarPedidoAction(_previous: FormState, formData: FormData): Promise<FormState> {
   const user = await requirePermission('confirmacao_pedido', 'A');
   const pedidoId = formText(formData, 'pedido_id');

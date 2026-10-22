@@ -23,7 +23,7 @@ function textFields(formData: FormData): Record<string, string> {
 }
 
 /**
- * RF-14, RF-16, RF-19, RF-20. O bloco fiscal só é lido quando o formulário o
+ * RF-17, RF-19, RF-22. O bloco fiscal só é lido quando o formulário o
  * declara (`inclui_fiscal`), e aí passa por um guard próprio: a gerência que
  * forjar o campo é recusada antes de o banco ser consultado (D4 §3.1).
  */
@@ -77,7 +77,7 @@ export async function savePessoaAction(_previous: PessoaFormState, formData: For
 
   let pessoaId: string;
   try {
-    // RF-14: procurar quem já existe antes de criar outra
+    // RF-17: procurar quem já existe antes de criar outra
     if (fiscal?.value.documento) {
       const dona = await pessoas.findPessoaPorDocumento(pool, fiscal.value.documento, id || null);
       if (dona) return { error: `${dona.nome} já está cadastrada com esse documento.`, existente: dona, fields };
@@ -104,7 +104,7 @@ export async function savePessoaAction(_previous: PessoaFormState, formData: For
 }
 
 /**
- * RF-15: nome e telefone, sem sair da tela de onde foi chamado. Telefone já
+ * RF-20: nome e telefone, sem sair da tela de onde foi chamado. Telefone já
  * cadastrado não cria outra pessoa sem que quem cadastra escolha.
  */
 export async function createClienteRapido(_previous: ClienteRapidoState, formData: FormData): Promise<ClienteRapidoState> {
@@ -135,7 +135,7 @@ export async function createClienteRapido(_previous: ClienteRapidoState, formDat
   }
 }
 
-/** "Sim, é a mesma pessoa": o cadastro que já existe ganha o papel de cliente (RF-14). */
+/** "Sim, é a mesma pessoa": o cadastro que já existe ganha o papel de cliente (RF-17). */
 async function usarComoCliente(pessoaId: string, fields: Record<string, string>): Promise<ClienteRapidoState> {
   if (!isUuid(pessoaId)) return { error: 'Pessoa inválida.', fields };
   try {

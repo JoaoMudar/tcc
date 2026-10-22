@@ -55,7 +55,7 @@ interface LinhaRevisao {
   segueOPadrao: boolean;
   altura: string;
   quantidade: string;
-  /** O preço que veio na lista, só para mostrar que foi visto e ficou de fora (RN-50). */
+  /** O preço que veio na lista, só para mostrar que foi visto e ficou de fora (RN-51). */
   precoCentavos: number | null;
 }
 
@@ -280,7 +280,7 @@ export function ColarLista({
           lista de opções passa por cima da borda de baixo.
           Abaixo de `lg` cada linha vira um bloco: a espécie ocupa a largura toda
           e recipiente, altura e quantidade ficam lado a lado embaixo, porque seis
-          colunas em 360px seriam alvos menores que o dedo (RNF-03) */}
+          colunas em 360px seriam alvos menores que o dedo (RNF-08) */}
       <div className="rounded-xl border border-line bg-white">
         <table className="w-full border-collapse text-base max-lg:block lg:table-fixed">
           <colgroup>
@@ -359,7 +359,7 @@ export function ColarLista({
                       lido: &quot;{linha.bruta}&quot;
                       {!linha.generico && linha.casouPor && ` · reconhecido por "${linha.casouPor}"`}
                     </p>
-                    {/* RN-50: o preço é visto e deixado de lado, e a pessoa fica sabendo */}
+                    {/* RN-51: o preço é visto e deixado de lado, e a pessoa fica sabendo */}
                     {linha.precoCentavos !== null && (
                       <p className="px-3 pb-1.5 text-xs text-muted">
                         {formatMoeda(linha.precoCentavos)} não entra no pedido: o preço é lançado depois da conferência

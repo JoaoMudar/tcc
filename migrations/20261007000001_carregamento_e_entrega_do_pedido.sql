@@ -2,7 +2,7 @@
 -- Descricao: A contagem de carregar, separada da de separar, e o endereco de
 -- entrega proprio do pedido.
 --
--- Requisitos: RF-63, RF-64, RF-67 · Regras: RN-64
+-- Requisitos: RF-69, RF-71, RF-66 · Regras: RN-54
 -- Entidades: C8 `pedidos_cargas_itens`, `pedidos`
 --
 -- POR QUE ESTA MIGRATION EXISTE (1). Separar e carregar sao duas contagens.

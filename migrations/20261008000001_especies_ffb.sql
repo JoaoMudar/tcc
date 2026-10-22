@@ -1,7 +1,7 @@
 -- Migration: 20261008000001_especies_ffb.sql
 -- Descricao: Copia local da Flora e Funga do Brasil e validacao do nome da especie.
 --
--- Requisitos: RF-10, RF-68, RF-69 · Regras: RN-02, RN-66, RN-67, RN-68
+-- Requisitos: RF-10, RF-11, RF-12 · Regras: RN-03, RN-04, RN-05
 -- Entidades: C8 `ref_ffb_importacao`, `ref_ffb_taxon`, `ref_ffb_distribuicao`,
 --            `ref_ffb_nome_popular`, `especies`, `especies_sinonimos`,
 --            `especies_nomes_populares`
@@ -19,10 +19,10 @@
 --
 -- O NOME E ATRIBUTO, E NAO CHAVE. Lote, pedido e protocolo apontam para
 -- `especies.id`. Trocar o nome nao mexe em vinculo nenhum, e a troca e sempre
--- decisao humana: o sistema sugere, nunca renomeia sozinho (RN-67).
+-- decisao humana: o sistema sugere, nunca renomeia sozinho (RN-05).
 --
 -- A VALIDACAO NAO BLOQUEIA. Nome que nao bate com a FFB entra como `pendente`
--- e espera a revisao da chefia (RN-68). Quem cadastra no celular nao ve
+-- e espera a revisao da chefia (RN-05). Quem cadastra no celular nao ve
 -- palavra tecnica.
 --
 -- O UNICO DO NOME CIENTIFICO PASSA A IGNORAR ACENTO, CAIXA E ESPACO. "Inga

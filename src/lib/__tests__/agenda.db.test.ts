@@ -183,7 +183,7 @@ describe('agenda da semana contra Postgres', () => {
     expect(await findAtribuicao(pool, ids.encher)).toMatchObject({ turnoId: manha, horaInicio: null, horaFim: null });
   });
 
-  it('RF-26: a precedência nasce nula (segue a regra), e tornar principal a grava; a escolha mais recente vence', async () => {
+  it('RF-38: a precedência nasce nula (segue a regra), e tornar principal a grava; a escolha mais recente vence', async () => {
     const [primeira] = await criar({ semana: S4, dias: [S4], participantes: [valdir] });
     const [segunda] = await criar({ semana: S4, dias: [S4], participantes: [valdir] });
     const em = async (id: string) => (await findAtribuicao(pool, id))!.prioridadeEm;
@@ -220,7 +220,7 @@ describe('agenda da semana contra Postgres', () => {
     await expect(reagendar()).rejects.toThrow('não se altera');
   });
 
-  it('RN-61: arrastar para a linha de outra pessoa troca quem faz, e recusa quem já está', async () => {
+  it('RF-38: arrastar para a linha de outra pessoa troca quem faz, e recusa quem já está', async () => {
     const [id] = await criar({ semana: S4, dias: [S4], participantes: [valdir, jaison] });
     const mover = (troca: ReagendamentoInput['troca']) =>
       tx((client) => reagendarAtribuicao(client, id, { data: S4, turnoId: manha, horaInicio: null, horaFim: null, troca }));
@@ -355,7 +355,7 @@ describe('agenda da semana contra Postgres', () => {
     expect(recorrentes.flatMap((a) => a.participantes.map((p) => p.id))).not.toContain(valdir);
   });
 
-  it('RF-66: a tarefa atrasada adiada cai na semana seguinte, com o mesmo turno e a mesma gente', async () => {
+  it('RF-55: a tarefa atrasada adiada cai na semana seguinte, com o mesmo turno e a mesma gente', async () => {
     const [id] = await criar({ semana: S5, dias: ['2031-03-06'], participantes: [jaison] });
     // Hoje antes da data dela: conta da data dela
     await expect(tx((client) => adiarAtribuicao(client, id, 7, '2031-03-01'))).resolves.toEqual({ data: '2031-03-13' });
@@ -364,13 +364,13 @@ describe('agenda da semana contra Postgres', () => {
     expect(await findSemana(pool, '2031-03-10')).toMatchObject({ situacao: 'aberta' });
   });
 
-  it('RF-66: a tarefa já vencida adia contando de hoje, e não da data que passou', async () => {
+  it('RF-55: a tarefa já vencida adia contando de hoje, e não da data que passou', async () => {
     const [id] = await criar({ semana: S5, dias: ['2031-03-04'], participantes: [jaison] });
     // Venceu em 04/03; hoje é 11/03: um dia a mais cai em 12/03, e não em 05/03
     await expect(tx((client) => adiarAtribuicao(client, id, 1, '2031-03-11'))).resolves.toEqual({ data: '2031-03-12' });
   });
 
-  it('RF-66: marcar na agenda traz a tarefa atrasada para a semana de hoje, nunca antes de hoje', async () => {
+  it('RF-55: marcar na agenda traz a tarefa atrasada para a semana de hoje, nunca antes de hoje', async () => {
     const [id] = await criar({ semana: S5, dias: ['2031-03-05'], participantes: [jaison], loteId: lote });
     const S6 = '2031-03-10';
     // Antes de hoje, continuaria atrasada
@@ -402,7 +402,7 @@ describe('agenda da semana contra Postgres', () => {
       [semana.id, '2030-01-11', tarde, irrigar],
     );
 
-    // A semana aberta fecha direto: não há publicação antes (RF-28)
+    // A semana aberta fecha direto: não há publicação antes (RF-41)
     const antes = await resumoFechamento(pool, semana.id);
     expect(antes.semConfirmacao).toBeGreaterThan(0);
     expect(antes.semNinguem).toBe(1);

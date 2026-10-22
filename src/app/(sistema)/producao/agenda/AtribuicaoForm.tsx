@@ -38,7 +38,7 @@ interface AtribuicaoFormProps {
   atribuicaoId?: string;
   /** O clique no Gantt já disse o dia e o turno: o formulário não pergunta de novo. */
   fixos?: { dia: string; turnoId: string };
-  /** O "Marcar na agenda" (RF-66): salvo, volta para a agenda em vez da ficha. */
+  /** O "Marcar na agenda" (RF-55): salvo, volta para a agenda em vez da ficha. */
   voltarParaAgenda?: boolean;
 }
 
@@ -47,9 +47,9 @@ function comNenhum(opcoes: readonly SelectOption[], rotulo: string): SelectOptio
 }
 
 /**
- * T5.2, RF-21, RF-26: pessoas, tipo, dia e turno. O resto aparece conforme o
- * tipo de tarefa declarar. Hora (RN-12), recorrência e observação ficam em
- * "Mais detalhes", e a área só se registra na confirmação (RF-30, UC-20).
+ * T5.2, RF-37, RF-38: pessoas, tipo, dia e turno. O resto aparece conforme o
+ * tipo de tarefa declarar. Hora (RN-24), recorrência e observação ficam em
+ * "Mais detalhes", e a área só se registra na confirmação (RF-37, UC-20).
  */
 export function AtribuicaoForm({ semana, opcoes, inicial, atribuicaoId, fixos, voltarParaAgenda }: AtribuicaoFormProps) {
   const editando = atribuicaoId !== undefined;
@@ -64,7 +64,7 @@ export function AtribuicaoForm({ semana, opcoes, inicial, atribuicaoId, fixos, v
       <input type="hidden" name="semana" value={semana} />
       {editando && <input type="hidden" name="id" value={atribuicaoId} />}
       {voltarParaAgenda && <input type="hidden" name="voltar" value="agenda" />}
-      {/* RF-47: a etapa que originou a sugestão viaja junto; o vencimento dela o servidor lê */}
+      {/* RF-53: a etapa que originou a sugestão viaja junto; o vencimento dela o servidor lê */}
       {valores.lote_etapa_id && <input type="hidden" name="lote_etapa_id" value={valores.lote_etapa_id} />}
 
       <EscolhaMultipla legenda="Quem vai fazer" obrigatorio name="participantes" opcoes={opcoes.funcionarios} marcados={lista('participantes')} />
@@ -140,7 +140,7 @@ export function AtribuicaoForm({ semana, opcoes, inicial, atribuicaoId, fixos, v
           Mais detalhes
         </summary>
         <div className="flex flex-col gap-4 px-4 pb-4">
-          {/* Início preenchido é hora marcada (RN-12): não há chave à parte para dizer isso */}
+          {/* Início preenchido é hora marcada (RN-24): não há chave à parte para dizer isso */}
           <div className="grid grid-cols-2 gap-3">
             <TextField label="Início" name="hora_inicio" type="time" defaultValue={valores.hora_inicio} />
             <TextField label="Fim" name="hora_fim" type="time" defaultValue={valores.hora_fim} />

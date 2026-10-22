@@ -35,7 +35,7 @@ export function paraEscolha(r: ResultadoFlora): EscolhaFlora {
 }
 
 /**
- * RF-68: um campo só. A pessoa digita o nome que conhece, popular ou
+ * RF-11: um campo só. A pessoa digita o nome que conhece, popular ou
  * científico, e vê primeiro o que o viveiro já tem (tocar abre a espécie, em
  * vez de cadastrar outra igual) e depois as plantas da Flora do Brasil.
  */

@@ -7,7 +7,7 @@ function getter(values: Record<string, string>) {
 
 const BASE = { tipo: 'pj', nome: '  Sítio   Boa Vista ', telefone: '(47) 99612-4408', papel_cliente: 'on', ativa: 'on' };
 
-describe('parsePessoaFields (RF-14, RF-16, RF-19, RF-20)', () => {
+describe('parsePessoaFields (RF-17, RF-19, RF-22)', () => {
   it('normaliza nome e telefone, e lê os papéis marcados', () => {
     const parsed = parsePessoaFields(getter({ ...BASE, papel_fornecedor: 'on' }));
     expect(parsed).toEqual({
@@ -39,7 +39,7 @@ describe('parsePessoaFields (RF-14, RF-16, RF-19, RF-20)', () => {
     ]);
   });
 
-  it('funcionário sem telefone é aceito (RF-20: Cleusa, sem telefone, sem acesso)', () => {
+  it('funcionário sem telefone é aceito (RF-22: Cleusa, sem telefone, sem acesso)', () => {
     const parsed = parsePessoaFields(getter({ tipo: 'pf', nome: 'Cleusa Batista', papel_funcionario: 'on', tipo_vinculo: 'fixo' }));
     expect(parsed).toHaveProperty('value.telefone', null);
   });
@@ -65,7 +65,7 @@ describe('parsePessoaFields (RF-14, RF-16, RF-19, RF-20)', () => {
   });
 });
 
-describe('parseFiscalFields (RF-16, RF-17)', () => {
+describe('parseFiscalFields (RF-19, RF-21)', () => {
   it('valida o documento pelo tipo e lê o endereço de cobrança', () => {
     const parsed = parseFiscalFields(
       'pj',

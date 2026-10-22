@@ -1,7 +1,7 @@
 -- Migration: 20260924000002_generico_observacao_opcional.sql
 -- Descricao: O item generico do pedido pode nascer sem texto.
 --
--- Requisitos: RF-54
+-- Requisitos: RF-59
 -- Entidades: C8 `pedidos_itens`
 --
 -- POR QUE ESTA MIGRATION EXISTE. A 20260924000001 passou a exigir, no item
@@ -18,4 +18,4 @@
 ALTER TABLE pedidos_itens DROP CONSTRAINT pedidos_itens_generico_com_especificacao;
 
 COMMENT ON COLUMN pedidos_itens.especificacao IS
-  'Observacao do item generico: o que o cliente pediu, em texto. Opcional, e so no generico. RF-54.';
+  'Observacao do item generico: o que o cliente pediu, em texto. Opcional, e so no generico. RF-59.';

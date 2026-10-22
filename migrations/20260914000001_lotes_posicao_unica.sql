@@ -1,7 +1,7 @@
 -- Migration: 20260914000001_lotes_posicao_unica.sql
 -- Descricao: Dois lotes abertos nao ocupam a mesma posicao do canteiro.
 --
--- Requisitos: RF-44 · Entidades: C8 `lotes`
+-- Requisitos: RF-33 · Entidades: C8 `lotes`
 --
 -- O C8 descreve este indice desde 26/08/2026, e nenhuma migration o criava. E
 -- parcial nos dois eixos: posicao nula e a ordem que ninguem cuidou, e lote

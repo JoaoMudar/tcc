@@ -96,7 +96,7 @@ export async function findUsuario(db: Db, id: string): Promise<UsuarioResumo | n
   return rows[0] ?? null;
 }
 
-/** Nasce com `deve_trocar_senha` (padrão da tabela): a provisória só vale até o primeiro acesso (RF-02). */
+/** Nasce com `deve_trocar_senha` (padrão da tabela): a provisória só vale até o primeiro acesso (RF-04). */
 export async function insertUsuario(
   db: Db,
   input: { login: string; nomeExibicao: string; perfil: Perfil; senhaHash: string; pessoaId: string | null },

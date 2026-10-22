@@ -32,7 +32,7 @@ interface LotePageProps {
   searchParams: Promise<{ feito?: string; repicar?: string }>;
 }
 
-/** T4.4, RF-35: a ficha do lote, o histórico que explica o saldo e as ações da gerência. */
+/** T4.4, RF-28: a ficha do lote, o histórico que explica o saldo e as ações da gerência. */
 export default async function LotePage({ params, searchParams }: LotePageProps) {
   const user = await requirePageAccess('lotes');
   const [{ id }, { feito, repicar }] = await Promise.all([params, searchParams]);
@@ -53,7 +53,7 @@ export default async function LotePage({ params, searchParams }: LotePageProps) 
     limiteMortalidade(pool),
     podeMovimento ? listCanteirosParaLote(pool) : [],
     podeRepicar ? listRecipientes(pool) : [],
-    // RF-51: o percurso do lote pelo protocolo, com o vencimento derivado
+    // RF-48: o percurso do lote pelo protocolo, com o vencimento derivado
     listEtapasDoLote(pool, id, hojeNoViveiro()),
     listAcoesDoLote(pool, id),
   ]);
@@ -209,7 +209,7 @@ export default async function LotePage({ params, searchParams }: LotePageProps) 
             <TransferenciaForm loteId={lote.id} saldo={lote.quantidadeAtual} canteiroAtualId={lote.canteiroId} canteiros={canteiros} />
           </AcaoRecolhivel>
         )}
-        {/* RF-65: é a altura que o item de pedido compara com a pedida (RN-06) */}
+        {/* RF-31: é a altura que o item de pedido compara com a pedida (RN-10) */}
         {podeFase && (
           <AcaoRecolhivel titulo="Medir altura">
             <AlturaForm loteId={lote.id} alturaM={lote.alturaM} />

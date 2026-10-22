@@ -21,7 +21,7 @@ import { hashPassword, validateNewPassword } from '@/lib/auth/password';
 import { deleteOtherSessions } from '@/lib/auth/session-store';
 import { updatePassword } from '@/lib/auth/user-store';
 
-/** RF-05: o admin cria o usuário, com perfil e senha provisória. */
+/** RF-02: o admin cria o usuário, com perfil e senha provisória. */
 export async function createUser(_previous: FormState, formData: FormData): Promise<FormState> {
   await requirePermission('usuarios', 'C');
   const fields = {
@@ -54,7 +54,7 @@ export async function createUser(_previous: FormState, formData: FormData): Prom
   redirect(`/admin/usuarios/${id}?criado=1`);
 }
 
-/** RF-05: nome, perfil, vínculo com pessoa e ativação. */
+/** RF-02: nome, perfil, vínculo com pessoa e ativação. */
 export async function updateUser(_previous: FormState, formData: FormData): Promise<FormState> {
   const admin = await requirePermission('usuarios', 'A');
   const id = formText(formData, 'usuario_id');

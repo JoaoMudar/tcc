@@ -11,7 +11,7 @@ import { withTransaction } from './transaction';
 import { isUuid } from './uuid';
 
 /**
- * O registro de campo que pode ser feito sem conexão (T9.3, RNF-05): perda,
+ * O registro de campo que pode ser feito sem conexão (T9.3, RNF-04): perda,
  * contagem e confirmação de tarefa. Chega pela fila do aparelho, em
  * `/api/registros`, com a chave gerada lá; a chave e o registro gravam na mesma
  * transação (`executarUmaVez`), e o reenvio recebe a resposta da primeira vez.
@@ -64,7 +64,7 @@ async function gravar(
   }
 }
 
-/** T4.5, RF-37, RF-38: lote, quantidade, causa e observação. Espécie, recipiente e canteiro vêm do lote. */
+/** T4.5, RF-24, RF-25: lote, quantidade, causa e observação. Espécie, recipiente e canteiro vêm do lote. */
 async function registrarPerda(campos: Campos, envio: Envio): Promise<ResultadoRegistro> {
   const loteId = campo(campos, 'lote_id');
   if (!isUuid(loteId)) return { status: 'recusado', error: 'Lote inválido.' };
@@ -96,7 +96,7 @@ async function registrarPerda(campos: Campos, envio: Envio): Promise<ResultadoRe
 }
 
 /**
- * T4.6, RF-39: o contado passa a valer, e a diferença vira o ajuste. A diferença
+ * T4.6, RF-26: o contado passa a valer, e a diferença vira o ajuste. A diferença
  * é calculada contra o saldo **na hora em que chega**, e não na hora em que foi
  * digitada: a contagem diz quantas mudas há, e é isso que tem de valer.
  */
@@ -124,7 +124,7 @@ async function registrarContagem(campos: Campos, envio: Envio): Promise<Resultad
   });
 }
 
-/** T5.5, RF-29, UC-20: o lote uma vez, a quantidade de cada um, e as mudas que morreram viram perda do lote. */
+/** T5.5, RF-40, UC-20: o lote uma vez, a quantidade de cada um, e as mudas que morreram viram perda do lote. */
 async function confirmarTarefa(campos: Campos, envio: Envio, user: SessionUser): Promise<ResultadoRegistro> {
   const id = campo(campos, 'id');
   if (!isUuid(id)) return { status: 'recusado', error: 'Tarefa inválida.' };

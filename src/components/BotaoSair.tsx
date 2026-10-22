@@ -23,7 +23,7 @@ async function limparAparelho() {
 }
 
 /**
- * Sair (RF-03) limpa o aparelho: quem pega o celular depois não encontra o que
+ * Sair (RF-05) limpa o aparelho: quem pega o celular depois não encontra o que
  * o anterior digitou nem as fichas que ele abriu (T9.2, E4 A-08). Se ainda há
  * registro esperando rede, sair o perderia, e por isso pede um segundo toque
  * depois de dizer quantos são.

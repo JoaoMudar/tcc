@@ -88,7 +88,7 @@ function parseDias(texto: string, campo: string, min: number): { error: string }
 }
 
 /**
- * RF-22 a RF-24. As recusas aqui são as do C2 UC-17: recorrente sem intervalo
+ * RF-43 a RF-45. As recusas aqui são as do C2 UC-17: recorrente sem intervalo
  * (FE-2), âncora sem a etapa que a resolve, e fase resultante em etapa que
  * repete. O ciclo entre âncoras não cabe aqui, porque depende das outras etapas:
  * é `detectaCicloDeAncoras`.
@@ -113,7 +113,7 @@ export function parseEtapaFields(input: {
   if (!isTipoAgendamento(input.tipoAgendamento)) return { error: 'Escolha se a etapa acontece uma vez ou repete.' };
   if (!isTipoAncora(input.tipoAncora)) return { error: 'Escolha a partir de quando a etapa conta.' };
 
-  // RN-31: a âncora é campo, e a etapa que a resolve existe se e somente se o
+  // RN-34: a âncora é campo, e a etapa que a resolve existe se e somente se o
   // tipo for a conclusão de outra etapa.
   const ancoraEmEtapa = input.tipoAncora === 'conclusao_de_etapa';
   if (ancoraEmEtapa && !input.etapaAncoraId) return { error: 'Escolha a etapa cuja conclusão inicia a contagem.' };
@@ -121,7 +121,7 @@ export function parseEtapaFields(input: {
   const dias = parseDias(input.dias, 'O prazo', 0);
   if ('error' in dias) return dias;
 
-  // RN-34 e C2 UC-17 FE-2: recorrente sem intervalo não produz a ocorrência
+  // RN-33 e C2 UC-17 FE-2: recorrente sem intervalo não produz a ocorrência
   // seguinte, e se apresentaria como se repetisse.
   const recorrente = input.tipoAgendamento === 'recorrente';
   let intervaloDias: number | null = null;
@@ -131,7 +131,7 @@ export function parseEtapaFields(input: {
     intervaloDias = parsed.value;
   }
 
-  // RN-35: a janela é percentual do intervalo, e vazia usa a de Configurações.
+  // RN-39: a janela é percentual do intervalo, e vazia usa a de Configurações.
   let janelaAvisoPct: number | null = null;
   const janela = input.janelaAvisoPct.trim();
   if (janela !== '') {
@@ -140,7 +140,7 @@ export function parseEtapaFields(input: {
     if (janelaAvisoPct > 100) return { error: 'A janela de aviso vai de 0 a 100 por cento.' };
   }
 
-  // RN-34: só a sequencial avança a fase do lote.
+  // RN-33: só a sequencial avança a fase do lote.
   const fase = input.faseResultante.trim();
   if (fase !== '' && recorrente) {
     return { error: 'Etapa que repete não avança a fase do lote. Deixe a fase em branco.' };
@@ -201,7 +201,7 @@ export function detectaCicloDeAncoras(
   return null;
 }
 
-/** Uma linha por etapa ativa dos protocolos vigentes, com o que a espécie sobrescreve (RF-25). */
+/** Uma linha por etapa ativa dos protocolos vigentes, com o que a espécie sobrescreve (RF-46). */
 export interface TempoDaEspecie {
   protocoloEtapaId: string;
   protocolo: string;
@@ -211,7 +211,7 @@ export interface TempoDaEspecie {
   /** O valor do protocolo, que vale quando a espécie não declara o dela. */
   diasPadrao: number;
   intervaloPadrao: number | null;
-  /** O da espécie. Nulo usa o do protocolo (RN-36). */
+  /** O da espécie. Nulo usa o do protocolo (RN-38). */
   dias: number | null;
   intervaloDias: number | null;
   observacoes: string | null;
@@ -224,7 +224,7 @@ export interface TempoFields {
 }
 
 /**
- * RF-25, UC-18. Vazio nos dois campos **não** é zero: é a remoção da
+ * RF-46, UC-18. Vazio nos dois campos **não** é zero: é a remoção da
  * customização (FA-1). Zero seria etapa que vence no mesmo dia da âncora, que é
  * o oposto do que apagar significa, e linha sem nenhum override é ruído (FE-1).
  */
@@ -298,7 +298,7 @@ export async function findProtocolo(db: Db, id: string): Promise<Protocolo | nul
   return rows[0] ?? null;
 }
 
-/** As etapas na ordem de leitura, com o rótulo da âncora já resolvido (RF-23). */
+/** As etapas na ordem de leitura, com o rótulo da âncora já resolvido (RF-44). */
 export async function listEtapas(db: Db, protocoloId: string): Promise<Etapa[]> {
   const { rows } = await db.query<Etapa>(
     `SELECT e.id, e.protocolo_id AS "protocoloId", e.tipo_tarefa_id AS "tipoTarefaId", t.nome AS "tipoTarefa",
@@ -327,7 +327,7 @@ export async function insertProtocolo(db: Db, input: ProtocoloFields, criadoPor:
 }
 
 /**
- * Sem exclusão física: alterar o protocolo não retroage (RN-37), e o lote que já
+ * Sem exclusão física: alterar o protocolo não retroage (RN-42), e o lote que já
  * o segue continua apontando para as etapas que cumpriu.
  */
 export async function updateProtocolo(
@@ -396,8 +396,8 @@ export async function listTemposDaEspecie(db: Db, especieId: string): Promise<Te
 }
 
 /**
- * RF-25. Grava só o que foi preenchido, e **apaga a linha** quando os dois
- * valores saem (FA-1): o que ficou em branco volta a vir do protocolo (RN-36).
+ * RF-46. Grava só o que foi preenchido, e **apaga a linha** quando os dois
+ * valores saem (FA-1): o que ficou em branco volta a vir do protocolo (RN-38).
  */
 export async function saveTempoDaEspecie(
   db: Db,
@@ -425,13 +425,13 @@ export async function saveTempoDaEspecie(
 }
 
 /**
- * RF-46, UC-22 passo 8: o lote recebe, ao nascer, o protocolo vigente do
+ * RF-47, UC-22 passo 8: o lote recebe, ao nascer, o protocolo vigente do
  * recipiente dele, e uma linha de acompanhamento por etapa ativa.
  *
  * **A âncora que já ocorreu é resolvida aqui**, e a que não ocorreu fica nula:
  * as etapas que contam da criação do lote vencem a partir de `dataCriacao`, e as
  * que contam da conclusão de outra etapa não vencem nada até ela ser concluída
- * (RN-31). Nulo é informação, e não dado faltando.
+ * (RN-34). Nulo é informação, e não dado faltando.
  *
  * Recipiente sem protocolo vigente não é erro: o lote é criado e não cobra etapa
  * nenhuma (UC-22 FA-2). Devolve o id do protocolo aplicado, ou nulo.
@@ -466,7 +466,7 @@ export async function materializarProtocolo(
   return protocoloId;
 }
 
-/** Uma etapa do protocolo no percurso deste lote (RF-51). */
+/** Uma etapa do protocolo no percurso deste lote (RF-48). */
 export interface EtapaDoLote {
   protocoloEtapaId: string;
   rotulo: string;
@@ -478,13 +478,13 @@ export interface EtapaDoLote {
   concluida: boolean;
   /** Nulo quando a âncora ainda não ocorreu, ou a sequencial já se encerrou. */
   proximoVencimento: string | null;
-  /** Nula junto com o vencimento; `sem_alerta` na etapa que não avisa (RN-35). */
+  /** Nula junto com o vencimento; `sem_alerta` na etapa que não avisa (RN-39). */
   situacao: SituacaoEtapa | null;
   diasAtraso: number;
 }
 
 /**
- * RF-51, RF-52, TA-43: as etapas do lote com a data da última execução, o
+ * RF-48, RF-51, TA-43: as etapas do lote com a data da última execução, o
  * próximo vencimento e a situação de cada uma.
  *
  * Lê de `lotes_etapas`, e não da visão: a visão devolve só o que ainda vence
@@ -513,7 +513,7 @@ export async function listEtapasDoLote(db: Db, loteId: string, hoje: string): Pr
   return rows.map((etapa) => ({ ...etapa, diasAtraso: etapa.diasAtraso ?? 0 }));
 }
 
-/** Uma etapa que o protocolo aponta, e que ninguém lançou ainda (RF-47). */
+/** Uma etapa que o protocolo aponta, e que ninguém lançou ainda (RF-53). */
 export interface Sugestao {
   loteEtapaId: string;
   loteId: string;
@@ -530,9 +530,9 @@ export interface Sugestao {
 }
 
 /**
- * RF-47: o que o protocolo **sugere**, e nada mais. Esta função não escreve: a
+ * RF-53: o que o protocolo **sugere**, e nada mais. Esta função não escreve: a
  * tarefa só existe quando a gerência aceita a sugestão e a preenche por inteiro,
- * participantes inclusive (RN-41).
+ * participantes inclusive (RN-40).
  *
  * O horizonte é parâmetro, e não constante: sugerir um ano de limpezas
  * trimestrais encheria a lista de avisos que ninguém olha por nove meses. O que
@@ -592,14 +592,14 @@ export function sugestoesDaSemana<T extends { vencimento: string }>(
 }
 
 /**
- * RF-48, RF-49: a etapa concluída. Grava a **data real** da execução, e é dela
- * que a ocorrência seguinte conta (RN-32); nunca da data planejada, que
+ * RF-54, RF-49: a etapa concluída. Grava a **data real** da execução, e é dela
+ * que a ocorrência seguinte conta (RN-36); nunca da data planejada, que
  * devolveria o comportamento de calendário fixo que o módulo existe para não
  * ter.
  *
  * A sequencial se encerra de vez e **avança a fase do lote** quando declara fase
- * resultante; a recorrente nunca avança fase nenhuma (RN-34). Concluída a etapa,
- * as que ancoravam nela ganham a âncora e passam a vencer (RN-31).
+ * resultante; a recorrente nunca avança fase nenhuma (RN-33). Concluída a etapa,
+ * as que ancoravam nela ganham a âncora e passam a vencer (RN-34).
  *
  * Roda na transação de quem confirma a tarefa.
  */
@@ -635,7 +635,7 @@ export async function concluirEtapa(
   );
   if (!rowCount) return { faseAvancada: null };
 
-  // RN-34: só a sequencial promove o lote, e só quando declara para onde
+  // RN-33: só a sequencial promove o lote, e só quando declara para onde
   let faseAvancada: string | null = null;
   if (sequencial && etapa.faseResultante) {
     const { rowCount: mudou } = await client.query(
@@ -658,7 +658,7 @@ export async function concluirEtapa(
     ]);
   }
 
-  // RN-31: as etapas que esperavam esta conclusão ganham a âncora e passam a vencer
+  // RN-34: as etapas que esperavam esta conclusão ganham a âncora e passam a vencer
   await client.query(
     `UPDATE lotes_etapas
         SET data_ancora = $3
@@ -686,7 +686,7 @@ async function travarOcorrencia(client: Db, loteId: string, protocoloEtapaId: st
 }
 
 /**
- * RF-66, RN-63: adia a etapa X dias a partir de hoje, ou do vencimento se ele
+ * RF-55, RN-41: adia a etapa X dias a partir de hoje, ou do vencimento se ele
  * ainda não chegou. Não mexe em data nenhuma: grava a ação, e a visão soma os
  * dias ao vencimento da ocorrência que está por vir. Vencida, a linha leva junto
  * o atraso até hoje, e é por isso que `dias` é o deslocamento real do vencimento.
@@ -711,9 +711,9 @@ export async function adiarEtapa(
 }
 
 /**
- * RF-66: a etapa feita fora da agenda (no meio de outro serviço). Grava a ação e
+ * RF-55: a etapa feita fora da agenda (no meio de outro serviço). Grava a ação e
  * conclui pelo mesmo caminho da tarefa confirmada: a fase, as âncoras e o plantio
- * andam do mesmo jeito (RN-31, RN-34).
+ * andam do mesmo jeito (RN-34, RN-33).
  */
 export async function concluirEtapaSemAgenda(
   client: Db,
@@ -733,7 +733,7 @@ export async function concluirEtapaSemAgenda(
 
 export type TipoAcaoEtapa = 'adiamento' | 'conclusao_sem_agenda';
 
-/** Uma linha do histórico do protocolo do lote (RF-66). */
+/** Uma linha do histórico do protocolo do lote (RF-55). */
 export interface AcaoDaEtapa {
   id: string;
   rotulo: string;
@@ -743,7 +743,7 @@ export interface AcaoDaEtapa {
   registradoPor: string;
 }
 
-/** RF-66: o histórico das ações da gerência sobre o protocolo do lote, do mais novo para o mais antigo. */
+/** RF-55: o histórico das ações da gerência sobre o protocolo do lote, do mais novo para o mais antigo. */
 export async function listAcoesDoLote(db: Db, loteId: string): Promise<AcaoDaEtapa[]> {
   const { rows } = await db.query<AcaoDaEtapa>(
     `SELECT ac.id, pe.rotulo, ac.tipo_acao AS "tipoAcao", ac.dias,
@@ -759,7 +759,7 @@ export async function listAcoesDoLote(db: Db, loteId: string): Promise<AcaoDaEta
 }
 
 /**
- * RF-40, RN-39, TA-46: o acompanhamento do original copiado para o resultante da
+ * RF-30, RN-43, TA-46: o acompanhamento do original copiado para o resultante da
  * divisão. Cada resultante **continua de onde o original estava**, e a partir
  * daí os dois seguem independentes.
  *
@@ -792,20 +792,20 @@ export async function herdarProtocolo(client: Db, origemId: string, destinoId: s
 }
 
 /**
- * RF-53, RN-38: o protocolo do lote encerrado. Lote encerrado deixa de vencer
+ * RF-58, RN-44: o protocolo do lote encerrado. Lote encerrado deixa de vencer
  * etapa (a visão `lotes_etapas_vencimento` já o exclui pelo `encerrado_em`, e é
  * por isso que não há nada a apagar em `lotes_etapas`), mas as tarefas que a
  * gerência já lançou continuam na grade da semana, cobrando trabalho num lote
  * que não existe mais. São elas que esta função cancela.
  *
- * **Cancela, e não apaga** (RF-53): a tarefa cancelada continua consultável, e o
+ * **Cancela, e não apaga** (RF-58): a tarefa cancelada continua consultável, e o
  * índice `atribuicoes_uma_ordem_por_vencimento` a ignora, de modo que o lote
  * dividido pode relançar a mesma etapa nos resultantes.
  *
  * **Só a `planejada`.** A `confirmada` é trabalho que aconteceu, e a
  * `nao_confirmada` é o que o fechamento da semana já assumiu como realizado
- * (RN-14): cancelar qualquer uma das duas reescreveria o passado de uma semana
- * fechada. "Ainda não confirmada" do RF-53 é a que segue pendente.
+ * (RN-31): cancelar qualquer uma das duas reescreveria o passado de uma semana
+ * fechada. "Ainda não confirmada" do RF-58 é a que segue pendente.
  *
  * Roda na transação de quem encerra o lote, que é sempre a porta única de
  * `movimentos.ts`. Devolve quantas ordens foram canceladas.

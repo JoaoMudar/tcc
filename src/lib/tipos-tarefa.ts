@@ -3,7 +3,7 @@ import { type Db, violatedConstraint } from './sql';
 
 export type CategoriaTarefa = 'semente' | 'terra' | 'plantio' | 'manutencao' | 'pos_morte' | 'expedicao';
 
-/** As seis categorias do CHECK `tipos_tarefa_categoria_valida`, na ordem do ciclo da muda (RF-21). */
+/** As seis categorias do CHECK `tipos_tarefa_categoria_valida`, na ordem do ciclo da muda (RF-37). */
 export const CATEGORIA_TAREFA_LABELS: Record<CategoriaTarefa, string> = {
   semente: 'Semente',
   terra: 'Terra',
@@ -41,7 +41,7 @@ export const DECLARACAO_LABELS: Record<keyof Declaracoes, string> = {
 };
 
 /**
- * RF-21. O lote já determina a espécie e o canteiro: com lote exigido, pedir um
+ * RF-37. O lote já determina a espécie e o canteiro: com lote exigido, pedir um
  * deles seria perguntar o que o sistema já sabe, e abrir espaço para discordarem.
  */
 export function parseTipoTarefaFields(input: {

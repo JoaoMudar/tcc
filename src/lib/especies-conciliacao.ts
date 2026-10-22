@@ -3,9 +3,9 @@ import { type CategoriaTaxonomica, separarAutoria } from './ffb/nomes';
 import type { Db } from './sql';
 
 /**
- * RF-69: cruza um nome científico digitado (da planilha antiga ou da tela) com
+ * RF-12: cruza um nome científico digitado (da planilha antiga ou da tela) com
  * a cópia local da FFB. **Só sugere**: grafia e sinônimo viram linha de
- * relatório, e quem decide é a chefia (RN-67).
+ * relatório, e quem decide é a chefia (RN-05).
  */
 
 export type SituacaoConciliacao = 'OK' | 'SINONIMO' | 'GRAFIA' | 'REVISAO_MANUAL' | 'NAO_ENCONTRADO';

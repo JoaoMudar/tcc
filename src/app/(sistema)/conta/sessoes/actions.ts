@@ -9,7 +9,7 @@ import { requireUser } from '@/lib/auth/dal';
 import { requirePermission } from '@/lib/auth/guards';
 import { deleteOtherSessions, deleteUserSession } from '@/lib/auth/session-store';
 
-/** RF-07: encerra à distância a sessão de outro aparelho do próprio usuário. */
+/** RF-06: encerra à distância a sessão de outro aparelho do próprio usuário. */
 export async function endSession(formData: FormData): Promise<void> {
   const user = await requirePermission('sessoes_proprias', 'E');
   const sessaoId = formText(formData, 'sessao_id');

@@ -16,7 +16,7 @@ function readFields(formData: FormData) {
   };
 }
 
-/** RF-12: insumo com unidade de medida e categoria. */
+/** RF-15: insumo com unidade de medida e categoria. */
 export async function createInsumo(_previous: FormState, formData: FormData): Promise<FormState> {
   await requirePermission('insumos', 'C');
   const fields = readFields(formData);

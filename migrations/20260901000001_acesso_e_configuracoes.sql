@@ -1,7 +1,7 @@
 -- Migration: 20260901000001_acesso_e_configuracoes.sql
 -- Descricao: Acesso (usuarios, sessoes, eventos_login) e parametros do sistema (parametros).
 --
--- Requisitos: RF-01 a RF-07, RF-09 · Regras: RN-26
+-- Requisitos: RF-01 a RF-07, RF-08 · Regras: RN-25
 -- Entidades: C8 `usuarios`, `sessoes`, `eventos_login`, `parametros`
 --
 -- TRES PERFIS, E NAO QUATRO. O enum nao tem `colaborador`: os seis trabalhadores
@@ -27,7 +27,7 @@ CREATE TABLE usuarios (
   senha_hash              TEXT NOT NULL,
   perfil                  perfil_usuario NOT NULL DEFAULT 'gerencia',
 
-  -- RF-02: o usuario recem-criado e conduzido a troca antes de qualquer tela.
+  -- RF-04: o usuario recem-criado e conduzido a troca antes de qualquer tela.
   deve_trocar_senha       BOOLEAN NOT NULL DEFAULT true,
 
   ativo                   BOOLEAN NOT NULL DEFAULT true,
@@ -53,7 +53,7 @@ CREATE TABLE sessoes (
   id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   usuario_id     UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
 
-  -- RNF-09: nunca o token em si, apenas o resumo criptografico dele.
+  -- RNF-13: nunca o token em si, apenas o resumo criptografico dele.
   token_hash     TEXT NOT NULL UNIQUE,
 
   expira_em      TIMESTAMPTZ NOT NULL,
@@ -66,7 +66,7 @@ CREATE TABLE sessoes (
 CREATE INDEX sessoes_token_hash_idx ON sessoes (token_hash);
 CREATE INDEX sessoes_usuario_idx       ON sessoes (usuario_id);
 
--- RF-04: toda tentativa, bem e malsucedida. `usuario_id` e nulo quando o
+-- RF-07: toda tentativa, bem e malsucedida. `usuario_id` e nulo quando o
 -- identificador digitado nao corresponde a usuario nenhum, e e justamente esse o
 -- caso que interessa detectar.
 CREATE TABLE eventos_login (
@@ -84,7 +84,7 @@ CREATE INDEX eventos_login_criado_idx ON eventos_login (criado_em DESC);
 -- ------------------------------------------------------------
 -- Parametros do sistema
 -- ------------------------------------------------------------
--- NINGUEM CRIA E NINGUEM EXCLUI (RF-09, D4 §3.7). A chave nasce aqui, porque ha
+-- NINGUEM CRIA E NINGUEM EXCLUI (RF-08, D4 §3.7). A chave nasce aqui, porque ha
 -- consulta que a le pelo nome: apagar uma delas nao deixaria a tela vazia,
 -- deixaria a leitura sem resposta, e o mapa passaria a considerar todo lote
 -- saudavel. O que a operacao faz e alterar `valor`.
@@ -100,20 +100,20 @@ CREATE TABLE parametros (
   CONSTRAINT parametros_tipo_valor_valido CHECK (tipo_valor IN ('texto', 'numero', 'booleano', 'data'))
 );
 
--- Os limites sao PARAMETRO, nao literal (RN-26): mudam com a estacao e com a
+-- Os limites sao PARAMETRO, nao literal (RN-25): mudam com a estacao e com a
 -- tarefa. Zero em "atencao" significa que a tarefa que vence hoje ja pinta de
 -- amarelo.
 INSERT INTO parametros (chave, valor, tipo_valor, descricao) VALUES
   ('producao.atraso_atencao_dias', '0', 'numero',
-   'Dias de atraso a partir dos quais o lote fica em atencao (RF-45, RN-26)'),
+   'Dias de atraso a partir dos quais o lote fica em atencao (RF-52, RN-25)'),
   ('producao.atraso_critico_dias', '3', 'numero',
-   'Dias de atraso a partir dos quais o lote fica critico (RF-45, RN-26)'),
+   'Dias de atraso a partir dos quais o lote fica critico (RF-52, RN-25)'),
   ('producao.mortalidade_limite_pct', '20', 'numero',
-   'Percentual de mortalidade do lote a partir do qual ele e destacado (RN-11)');
+   'Percentual de mortalidade do lote a partir do qual ele e destacado (RN-21)');
 
 COMMENT ON TABLE usuarios IS
   'Credencial de acesso. Tres perfis: admin, chefia, gerencia.';
 COMMENT ON COLUMN usuarios.pessoa_id IS
   'Pessoa do cadastro unico. Opcional: ha login sem vinculo e vinculo sem login.';
 COMMENT ON TABLE parametros IS
-  'Parametro escalar do sistema. Ninguem cria e ninguem exclui: so se altera o valor. RF-09.';
+  'Parametro escalar do sistema. Ninguem cria e ninguem exclui: so se altera o valor. RF-08.';

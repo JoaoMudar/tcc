@@ -63,7 +63,7 @@ interface GanttSemanaProps {
   className?: string;
 }
 
-/** Altura da linha da pessoa, em pixels. É fixa: a sobreposição divide a altura, e não a aumenta (RF-26). */
+/** Altura da linha da pessoa, em pixels. É fixa: a sobreposição divide a altura, e não a aumenta (RF-38). */
 const ALTURA_LINHA = 60;
 /** Abaixo disto a faixa secundária não comporta uma linha de texto, e a tarefa vai para o "+N". */
 const ALTURA_MINIMA_FAIXA = 16;
@@ -84,12 +84,12 @@ function colunasDaGrade(quantos: number, foco: number | null): string {
 
 /**
  * T5.1, F1 UC-19: a semana como Gantt, uma linha por pessoa e o dia como eixo de
- * hora (RNF-14), sem o almoço, que vira um divisor. O dia sob o mouse cresce, e
+ * hora (RNF-03), sem o almoço, que vira um divisor. O dia sob o mouse cresce, e
  * nele cabem todas as horas e os títulos inteiros. Arrastar a barra remarca o dia
- * e a hora, e para a linha de outra pessoa troca quem faz (RN-61); puxar a borda
+ * e a hora, e para a linha de outra pessoa troca quem faz (RF-38); puxar a borda
  * muda a duração; perto das bordas da jornada a barra se imanta. Duas tarefas ao
  * mesmo tempo dividem a altura da linha: a principal em cima, a outra embaixo, e
- * qualquer uma pode virar a principal (RF-26). Clicar em qualquer vazio lança
+ * qualquer uma pode virar a principal (RF-38). Clicar em qualquer vazio lança
  * tarefa já com pessoa, dia, turno e, se o turno já tem tarefa, a hora livre. No
  * celular a página mostra a lista do dia.
  */
@@ -112,7 +112,7 @@ export function GanttSemana({
   const [lista, aplicarOtimista] = useOptimistic(atribuicoes, aplicarMudanca);
   const [ponto, setPonto] = useState<PontoDaAgenda | null>(null);
   const [aviso, setAviso] = useState<AvisoDesfazer | null>(null);
-  /** O último horário produzido, para quem não vê a etiqueta (RNF-03). */
+  /** O último horário produzido, para quem não vê a etiqueta (RNF-08). */
   const [anuncio, setAnuncio] = useState('');
   const fecharAviso = useCallback(() => setAviso(null), []);
 
@@ -206,7 +206,7 @@ export function GanttSemana({
         return;
       }
       const saiu = a.participantes.find((p) => p.id === r.pessoaOriginal);
-      // Só a barra que andou no eixo ganha hora: a que mudou só de dia ou de pessoa fica como estava (RN-12)
+      // Só a barra que andou no eixo ganha hora: a que mudou só de dia ou de pessoa fica como estava (RN-24)
       const horaInicio = r.mudouHora ? formatMinuto(r.faixa.inicio) : a.horaInicio;
       const horaFim = r.mudouHora ? formatMinuto(r.faixa.fim) : a.horaFim;
 
@@ -240,7 +240,7 @@ export function GanttSemana({
     [lista, turnos, funcionarios, enviar],
   );
 
-  /** RF-26: a secundária vira a principal já, e o erro a devolve. */
+  /** RF-38: a secundária vira a principal já, e o erro a devolve. */
   const promover = useCallback(
     (id: string) => {
       const a = lista.find((t) => t.id === id);
@@ -315,7 +315,7 @@ export function GanttSemana({
     );
   };
 
-  /** O clique no vazio: o turno sai do ponto, e a hora, do pedaço livre dele (RN-12). */
+  /** O clique no vazio: o turno sai do ponto, e a hora, do pedaço livre dele (RN-24). */
   const lancarEm = (evento: MouseEvent<HTMLElement>, pessoa: string | null, dia: string, doDia: readonly AtribuicaoResumo[]) => {
     const rect = evento.currentTarget.getBoundingClientRect();
     // Enter ou espaço no botão não têm ponto: vale o começo do dia

@@ -9,7 +9,7 @@ import { listTiposTarefa } from '@/lib/tipos-tarefa';
 import { listTurnos, turnoLabel } from '@/lib/turnos';
 import type { OpcoesAtribuicao } from './AtribuicaoForm';
 
-/** As listas fechadas do formulário da atribuição (RNF-02): só o que está em uso. */
+/** As listas fechadas do formulário da atribuição (RNF-06): só o que está em uso. */
 export async function carregarOpcoes(semana: string): Promise<OpcoesAtribuicao & { faltam: string[] }> {
   const [funcionarios, tipos, turnos, lotes, especies, recipientes] = await Promise.all([
     listFuncionarios(pool),

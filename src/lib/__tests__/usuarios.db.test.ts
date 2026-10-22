@@ -42,7 +42,7 @@ afterAll(async () => {
 });
 
 describe('usuarios contra Postgres real', () => {
-  it('nasce com troca de senha obrigatória (RF-02) e aparece na busca', async () => {
+  it('nasce com troca de senha obrigatória (RF-04) e aparece na busca', async () => {
     const id = await criar('gerencia');
     expect(await findUsuario(pool, id)).toMatchObject({ perfil: 'gerencia', ativo: true, deveTrocarSenha: true });
     expect((await listUsuarios(pool, prefixo)).map((u) => u.id)).toContain(id);

@@ -23,7 +23,7 @@ import { type Db, escapeLike, violatedConstraint } from './sql';
 export * from './pessoas-form';
 
 /**
- * Ponto único de escrita da pessoa (RF-14, RN-45): identidade, papéis e
+ * Ponto único de escrita da pessoa (RF-17, RN-45): identidade, papéis e
  * endereços passam por aqui. Cliente, fornecedor e funcionário são papéis da
  * mesma linha, e quem já existe ganha o papel em vez de um segundo cadastro.
  *
@@ -67,7 +67,7 @@ export function parseEndereco(tipo: TipoEndereco, get: Get): { error: string } |
   return { value: { tipo, logradouro: logradouro || null, cidade: cidade || null, uf: uf || null, cep: cep || null } };
 }
 
-/** Identidade, papéis e endereços comuns, lidos do formulário (RF-16, RF-19, RF-20). */
+/** Identidade, papéis e endereços comuns, lidos do formulário (RF-17, RF-19, RF-22). */
 export function parsePessoaFields(get: Get): { error: string } | { value: PessoaFields } {
   const tipo = get('tipo');
   if (tipo !== 'pf' && tipo !== 'pj') return { error: 'Escolha pessoa física ou jurídica.' };
@@ -119,7 +119,7 @@ export function parsePessoaFields(get: Get): { error: string } | { value: Pessoa
   };
 }
 
-/** Documento e endereço de cobrança (RF-16, RF-17). Só chamada depois do guard de `dados_fiscais`. */
+/** Documento e endereço de cobrança (RF-19, RF-21). Só chamada depois do guard de `dados_fiscais`. */
 export function parseFiscalFields(tipo: TipoPessoa, get: Get): { error: string } | { value: FiscalFields } {
   const documento = validateDocumento(tipo, get('documento'));
   if ('error' in documento) return documento;
@@ -318,7 +318,7 @@ export async function savePessoa(
   return { resultado: 'ok', id: pessoaId };
 }
 
-/** "Usar este cadastro": a pessoa que já existe ganha o papel, sem mexer no resto (RF-14). Devolve o nome, ou `null` se não existe. */
+/** "Usar este cadastro": a pessoa que já existe ganha o papel, sem mexer no resto (RF-17). Devolve o nome, ou `null` se não existe. */
 export async function addPapel(db: Db, pessoaId: string, papel: Exclude<Papel, 'funcionario'>): Promise<string | null> {
   const { rows } = await db.query<{ nome: string }>(
     `WITH alvo AS (SELECT id, nome FROM cadastro.pessoas WHERE id = $1),
@@ -342,7 +342,7 @@ export interface EnderecoDeEntrega {
   ponto: Coordenada | null;
 }
 
-/** RF-15: nome e telefone bastam para o pedido; a ficha se completa depois. */
+/** RF-20: nome e telefone bastam para o pedido; a ficha se completa depois. */
 export async function insertClienteRapido(client: PoolClient, input: { nome: string; telefone: string | null }): Promise<string> {
   const { rows } = await client.query<{ id: string }>(
     "INSERT INTO cadastro.pessoas (tipo, nome, telefone) VALUES ('pf', $1, $2) RETURNING id",

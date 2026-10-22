@@ -7,7 +7,7 @@ import { type OpcoesAtribuicao, AtribuicaoForm } from './AtribuicaoForm';
 
 /**
  * O ponto clicado: pessoa, dia e turno. Se o turno já tinha tarefa, o clique
- * traz também a hora do pedaço livre, que o formulário mostra e deixa mudar (RN-12).
+ * traz também a hora do pedaço livre, que o formulário mostra e deixa mudar (RN-24).
  */
 export interface PontoDaAgenda {
   dia: string;
@@ -27,7 +27,7 @@ interface NovaTarefaModalProps {
 }
 
 /**
- * O formulário por cima do Gantt, já apontando para o ponto clicado (RF-26): o
+ * O formulário por cima do Gantt, já apontando para o ponto clicado (RF-38): o
  * dia e o turno vêm do clique e não se perguntam; a pessoa vem marcada e pode
  * ganhar companhia. É o mesmo formulário de `/producao/agenda/nova`, que continua de pé
  * para o celular e para quem estiver sem JavaScript.

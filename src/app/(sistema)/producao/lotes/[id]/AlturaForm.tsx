@@ -10,8 +10,8 @@ import { formatAltura, mascaraAltura } from '@/lib/pedidos-rotulos';
 import { alterarAlturaAction } from '../actions';
 
 /**
- * RF-65: a altura da muda do lote, medida na trena. É ela que o item de pedido
- * compara com a altura pedida (RN-06, RN-62). Guarda só a última medida, e o
+ * RF-31: a altura da muda do lote, medida na trena. É ela que o item de pedido
+ * compara com a altura pedida (RN-10, RN-11). Guarda só a última medida, e o
  * campo vazio apaga.
  */
 export function AlturaForm({ loteId, alturaM }: { loteId: string; alturaM: number | null }) {

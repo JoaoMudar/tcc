@@ -24,7 +24,7 @@ interface PerdasPageProps {
 
 const CAUSA_OPCOES = Object.entries(CAUSAS_PERDA).map(([value, label]) => ({ value, label }));
 
-/** F1 UC-30, T4.11: perdas por período, espécie e causa (RF-41), e a mortalidade de cada lote (RF-42). */
+/** F1 UC-30, T4.11: perdas por período, espécie e causa (RF-35), e a mortalidade de cada lote (RF-36). */
 export default async function PerdasPage({ searchParams }: PerdasPageProps) {
   await requirePageAccess('analise_perdas');
   const filtro = parseFiltroPerdas(await searchParams, hojeNoViveiro());

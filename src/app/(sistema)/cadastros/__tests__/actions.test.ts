@@ -89,7 +89,7 @@ describe('permissões do cadastro (D4 §3.4)', () => {
   });
 });
 
-describe('áreas e canteiros (RF-13)', () => {
+describe('áreas e canteiros (RF-16)', () => {
   it('gerência cria canteiro', async () => {
     loggedAs('gerencia');
     vi.mocked(pool.query).mockResolvedValue({ rows: [{ id: ID }] } as never);
@@ -119,7 +119,7 @@ describe('áreas e canteiros (RF-13)', () => {
   });
 });
 
-describe('protocolo de atividades (RF-22 a RF-24, UC-17)', () => {
+describe('protocolo de atividades (RF-43 a RF-45, UC-17)', () => {
   const ETAPA = '2d7c1b0a-4e5f-4a6b-8c9d-1e2f3a4b5c6d';
   const OUTRA = '3e8d2c1b-5f6a-4b7c-9d0e-2f3a4b5c6d7e';
 
@@ -196,7 +196,7 @@ describe('protocolo de atividades (RF-22 a RF-24, UC-17)', () => {
     expectNoDatabase();
   });
 
-  it('RN-34: etapa que repete não avança fase, e a recusa é anterior ao banco', async () => {
+  it('RN-33: etapa que repete não avança fase, e a recusa é anterior ao banco', async () => {
     loggedAs('gerencia');
     const state = await protocolos.saveEtapa(
       {},
@@ -232,7 +232,7 @@ describe('protocolo de atividades (RF-22 a RF-24, UC-17)', () => {
   });
 });
 
-describe('tempo de etapa por espécie (RF-25, UC-18)', () => {
+describe('tempo de etapa por espécie (RF-46, UC-18)', () => {
   const ETAPA = '2d7c1b0a-4e5f-4a6b-8c9d-1e2f3a4b5c6d';
 
   it('o guard é do protocolo, e não da espécie: a gerência grava o tempo', async () => {
@@ -268,7 +268,7 @@ describe('tempo de etapa por espécie (RF-25, UC-18)', () => {
   });
 });
 
-describe('tipos de tarefa (RF-21)', () => {
+describe('tipos de tarefa (RF-37)', () => {
   it('gerência cria e vai para a ficha; com lote exigido, espécie e área não são gravadas', async () => {
     loggedAs('gerencia');
     vi.mocked(pool.query).mockResolvedValue({ rows: [{ id: ID }] } as never);
@@ -397,7 +397,7 @@ describe('espécie rápida e aprendizado de nomes (T8.16)', () => {
     ]);
   });
 
-  it('nome que é de outra espécie é recusado, dizendo de quem ele é (RN-01)', async () => {
+  it('nome que é de outra espécie é recusado, dizendo de quem ele é (RN-02)', async () => {
     loggedAs('chefia');
     jaCadastradas([{ especieId: OUTRA, nome: 'Cedro-vermelho', especie: 'Cedro-rosa' }]);
     const state = await rapidas.adicionarNomePopularAction({}, form({ especie_id: ID, nome: 'cedro vermelho' }));
@@ -421,7 +421,7 @@ describe('espécie rápida e aprendizado de nomes (T8.16)', () => {
   });
 });
 
-describe('pessoas (RF-14 a RF-17)', () => {
+describe('pessoas (RF-17, RF-19 a RF-21)', () => {
   it('TA-50: CPF inválido volta com a mensagem e os campos preenchidos, sem tocar o banco', async () => {
     loggedAs('chefia');
     const valores = { ...PESSOA, inclui_fiscal: '1', documento: '529.982.247-24' };
@@ -450,7 +450,7 @@ describe('pessoas (RF-14 a RF-17)', () => {
     expect(valores.slice(1, 8)).toEqual(['entrega', 'Localização enviada pelo WhatsApp', null, null, null, -27.05, -49.52]);
   });
 
-  it('RF-14: telefone já cadastrado devolve quem tem o número, sem criar', async () => {
+  it('RF-17: telefone já cadastrado devolve quem tem o número, sem criar', async () => {
     loggedAs('chefia');
     vi.mocked(pool.query).mockResolvedValue({ rows: [{ id: ID, nome: 'Marlene Cardoso' }] } as never);
     const state = await pessoas.savePessoaAction({}, form(PESSOA));
@@ -481,7 +481,7 @@ describe('pessoas (RF-14 a RF-17)', () => {
     expect(sqls.at(-1)).toBe('COMMIT');
   });
 
-  it('RF-15: cliente rápido exige telefone, e reaproveita quem já existe', async () => {
+  it('RF-20: cliente rápido exige telefone, e reaproveita quem já existe', async () => {
     loggedAs('chefia');
     expect(await pessoas.createClienteRapido({}, form({ nome: 'Sítio Boa Vista', telefone: '' }))).toMatchObject({
       error: 'Informe o telefone do cliente.',

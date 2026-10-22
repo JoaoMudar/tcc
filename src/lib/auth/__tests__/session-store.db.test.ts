@@ -56,7 +56,7 @@ afterAll(async () => {
 });
 
 describe('sessões contra Postgres real', () => {
-  it('acha a sessão pelo hash do token, com o perfil; o token não está no banco (RNF-09)', async () => {
+  it('acha a sessão pelo hash do token, com o perfil; o token não está no banco (RNF-13)', async () => {
     const { token } = await newSession();
     const session = await findSessionByTokenHash(pool, hashToken(token), now());
     expect(session).toMatchObject({ usuarioId, login, perfil: 'gerencia', deveTrocarSenha: false });

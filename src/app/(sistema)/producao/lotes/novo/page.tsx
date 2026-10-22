@@ -9,7 +9,7 @@ import { formatVolume, listRecipientes } from '@/lib/recipientes';
 import { requirePageAccess } from '@/lib/auth/guards';
 import { NovoLoteForm } from './NovoLoteForm';
 
-/** F1 UC-22 · Criar lote (RF-32). Só espécie e recipiente em uso aparecem. */
+/** F1 UC-22 · Criar lote (RF-23). Só espécie e recipiente em uso aparecem. */
 export default async function NovoLotePage() {
   await requirePageAccess('lotes', 'C');
   const [especies, recipientes, canteiros] = await Promise.all([

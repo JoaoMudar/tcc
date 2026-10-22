@@ -1,6 +1,6 @@
 import { EditarTarefa } from '@/app/(sistema)/producao/agenda/EditarTarefa';
 
-/** Alterar a tarefa em modal, por cima da agenda. `semana` a traz para outra semana (RF-66). */
+/** Alterar a tarefa em modal, por cima da agenda. `semana` a traz para outra semana (RF-55). */
 export default async function EditarEmModal({
   params,
   searchParams,

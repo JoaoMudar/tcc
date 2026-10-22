@@ -9,7 +9,7 @@ import * as tipos from '@/lib/tipos-tarefa';
 import { isUuid } from '@/lib/uuid';
 import { requirePermission } from '@/lib/auth/guards';
 
-/** RF-21: cria (sem `tipo_id`) ou altera o tipo de tarefa e as declarações que comandam o formulário. */
+/** RF-37: cria (sem `tipo_id`) ou altera o tipo de tarefa e as declarações que comandam o formulário. */
 export async function saveTipoTarefa(_previous: FormState, formData: FormData): Promise<FormState> {
   const id = formText(formData, 'tipo_id');
   await requirePermission('tipos_tarefa', id ? 'A' : 'C');

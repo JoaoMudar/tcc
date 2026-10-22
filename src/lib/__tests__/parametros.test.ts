@@ -45,7 +45,7 @@ describe('validateValor', () => {
   });
 });
 
-describe('validateParametros (RF-09)', () => {
+describe('validateParametros (RF-08)', () => {
   it('aceita os três valores do F1', () => {
     expect(validateParametros(EXISTENTES, VALIDOS)).toEqual({ value: VALIDOS });
   });
@@ -81,7 +81,7 @@ describe('validateParametros (RF-09)', () => {
     });
   });
 
-  it('consumo e preço do litro aceitam decimal, maior que zero (RN-64)', () => {
+  it('consumo e preço do litro aceitam decimal, maior que zero (RN-54)', () => {
     const existentes = [
       ...EXISTENTES,
       { chave: FRETE_KM_POR_LITRO, tipoValor: 'numero' as const, descricao: 'km/L' },

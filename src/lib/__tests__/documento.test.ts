@@ -11,7 +11,7 @@ import {
   validateTelefone,
 } from '../documento';
 
-describe('isCpf (RF-17)', () => {
+describe('isCpf (RF-21)', () => {
   it.each(['529.982.247-25', '52998224725', '111.444.777-35'])('aceita %s', (cpf) => {
     expect(isCpf(cpf)).toBe(true);
   });
@@ -21,7 +21,7 @@ describe('isCpf (RF-17)', () => {
   });
 });
 
-describe('isCnpj (RF-17)', () => {
+describe('isCnpj (RF-21)', () => {
   it.each(['11.222.333/0001-81', '11222333000181', '11.444.777/0001-61'])('aceita %s', (cnpj) => {
     expect(isCnpj(cnpj)).toBe(true);
   });
@@ -32,7 +32,7 @@ describe('isCnpj (RF-17)', () => {
 });
 
 describe('validateDocumento', () => {
-  it('vazio é documento ausente, e não inválido (cadastro rápido, RF-15)', () => {
+  it('vazio é documento ausente, e não inválido (cadastro rápido, RF-20)', () => {
     expect(validateDocumento('pf', '  ')).toEqual({ value: null });
   });
 

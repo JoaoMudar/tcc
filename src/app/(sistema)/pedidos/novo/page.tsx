@@ -13,7 +13,7 @@ import { NovoPedidoForm } from './NovoPedidoForm';
 
 /**
  * T8.1, UC-31: o pedido já negociado por WhatsApp, registrado depois. O saldo de
- * cada item (RF-56) é lido aqui, na abertura da tela, e não fica gravado em
+ * cada item (RF-62) é lido aqui, na abertura da tela, e não fica gravado em
  * lugar nenhum.
  */
 export default async function NovoPedidoPage() {

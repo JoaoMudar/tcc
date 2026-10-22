@@ -13,7 +13,7 @@ export function isOrigemFrete(valor: string): valor is OrigemFrete {
 }
 
 /**
- * RN-64: o frete sugerido é o combustível da ida e da volta. A distância é a de
+ * RN-54: o frete sugerido é o combustível da ida e da volta. A distância é a de
  * ida, em km; o resultado, em centavos. A sugestão nunca é gravada sozinha: é
  * a chefia quem decide o frete, e ela digita outro valor quando negociou outro.
  */
@@ -31,7 +31,7 @@ export interface ItemPesavel {
 }
 
 /**
- * RN-65: o peso estimado da carga é a soma de quantidade × peso do recipiente
+ * RN-53: o peso estimado da carga é a soma de quantidade × peso do recipiente
  * cheio. Item sem quantidade ou sem peso não entra, e é contado à parte para a
  * tela dizer que o número está incompleto, em vez de anunciar uma carga mais
  * leve que a verdadeira sem avisar.

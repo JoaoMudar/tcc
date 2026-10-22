@@ -16,7 +16,7 @@ interface ClienteRapidoProps {
 }
 
 /**
- * F1 UC-10 (RF-15): nome e telefone numa folha por cima da tela, sem sair
+ * F1 UC-10 (RF-20): nome e telefone numa folha por cima da tela, sem sair
  * dela. O cliente novo quase sempre aparece no meio de uma conversa.
  */
 export function ClienteRapido({ onCriado, onFechar }: ClienteRapidoProps) {

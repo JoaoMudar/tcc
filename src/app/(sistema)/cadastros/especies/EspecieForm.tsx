@@ -23,7 +23,7 @@ interface EspecieFormProps {
   };
   caracteristicas: readonly SelectOption[];
   podeEditar: boolean;
-  /** RF-68: o que a pessoa escolheu na busca da Flora do Brasil, só na espécie nova */
+  /** RF-11: o que a pessoa escolheu na busca da Flora do Brasil, só na espécie nova */
   sugestao?: {
     nomeCientifico: string;
     nomesPopulares: string[];

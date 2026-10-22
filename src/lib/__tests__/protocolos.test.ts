@@ -59,7 +59,7 @@ describe('parseEtapaFields', () => {
     expect(etapa({ tipoAgendamento: 'recorrente', intervaloDias: '90' })).toHaveProperty('value');
   });
 
-  it('RN-31: âncora em etapa exige dizer qual, e a de criação descarta a que veio', () => {
+  it('RN-34: âncora em etapa exige dizer qual, e a de criação descarta a que veio', () => {
     expect(etapa({ tipoAncora: 'conclusao_de_etapa', etapaAncoraId: '' })).toEqual({
       error: 'Escolha a etapa cuja conclusão inicia a contagem.',
     });
@@ -68,7 +68,7 @@ describe('parseEtapaFields', () => {
     if ('value' in comLixo) expect(comLixo.value.etapaAncoraId).toBeNull();
   });
 
-  it('RN-34: etapa que repete não avança fase', () => {
+  it('RN-33: etapa que repete não avança fase', () => {
     expect(etapa({ tipoAgendamento: 'recorrente', intervaloDias: '90', faseResultante: 'germinado' })).toEqual({
       error: 'Etapa que repete não avança a fase do lote. Deixe a fase em branco.',
     });
@@ -82,7 +82,7 @@ describe('parseEtapaFields', () => {
     if ('value' in parsed) expect(parsed.value.dias).toBe(0);
   });
 
-  it('RN-35: a janela é percentual de 0 a 100, e vazia usa a de Configurações', () => {
+  it('RN-39: a janela é percentual de 0 a 100, e vazia usa a de Configurações', () => {
     expect(etapa({ janelaAvisoPct: '120' })).toEqual({ error: 'A janela de aviso vai de 0 a 100 por cento.' });
     expect(etapa({ janelaAvisoPct: 'muito' })).toHaveProperty('error');
     const propria = etapa({ janelaAvisoPct: '12,5' });
@@ -128,7 +128,7 @@ describe('detectaCicloDeAncoras', () => {
   });
 });
 
-/** RF-25, UC-18: o override da espécie, e o que significa apagá-lo. */
+/** RF-46, UC-18: o override da espécie, e o que significa apagá-lo. */
 describe('parseTempoFields', () => {
   const vazio = { dias: '', intervaloDias: '', observacoes: '' };
 

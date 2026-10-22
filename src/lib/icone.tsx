@@ -17,7 +17,7 @@ export function isNomeIcone(valor: string): valor is NomeIcone {
 }
 
 /**
- * Folha branca sobre o verde da marca, desenhada no servidor (RNF-23). Gerar
+ * Folha branca sobre o verde da marca, desenhada no servidor (RNF-01). Gerar
  * por código evita binário no repositório, e a cor sai da mesma constante do tema.
  */
 export function desenharIcone(tamanho: number, maskable = false): ImageResponse {

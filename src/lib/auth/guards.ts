@@ -8,7 +8,7 @@ import type { SessionUser } from './session-store';
 export const FORBIDDEN_MESSAGE = 'Seu perfil não permite esta operação.';
 
 /**
- * Guard de toda Server Action (RF-06, RNF-11): sessão e permissão verificadas
+ * Guard de toda Server Action (RF-03, RNF-11): sessão e permissão verificadas
  * no servidor, a cada operação, sem confiar no que a interface escondeu.
  */
 export async function requirePermission(recurso: Recurso, operacao: Operacao): Promise<SessionUser> {

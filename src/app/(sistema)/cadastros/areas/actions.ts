@@ -10,7 +10,7 @@ import { requirePermission } from '@/lib/auth/guards';
 
 const PATH = '/cadastros/areas';
 
-/** RF-13: área identificada por letra. */
+/** RF-16: área identificada por letra. */
 export async function createArea(_previous: FormState, formData: FormData): Promise<FormState> {
   await requirePermission('areas_canteiros', 'C');
   const fields = { letra: formText(formData, 'letra'), nome: formText(formData, 'nome') };
@@ -47,7 +47,7 @@ export async function deleteArea(_previous: FormState, formData: FormData): Prom
   return { success: 'Área excluída.' };
 }
 
-/** RF-13: número repetido na mesma área é recusado; a numeração recomeça em cada área. */
+/** RF-16: número repetido na mesma área é recusado; a numeração recomeça em cada área. */
 export async function createCanteiro(_previous: FormState, formData: FormData): Promise<FormState> {
   await requirePermission('areas_canteiros', 'C');
   const areaId = formText(formData, 'area_id');

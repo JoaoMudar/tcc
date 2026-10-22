@@ -19,7 +19,7 @@ export interface LinhaLida {
   /** Altura em metros; da faixa "80–100 cm" fica o menor valor. */
   alturaM: number | null;
   /**
-   * O preço que veio na lista, em centavos. **Não entra no pedido** (RN-50): é
+   * O preço que veio na lista, em centavos. **Não entra no pedido** (RN-51): é
    * lido para não virar nome nem quantidade, e para a revisão mostrar que foi
    * visto e deixado de lado.
    */

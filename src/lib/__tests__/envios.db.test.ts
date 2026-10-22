@@ -10,7 +10,7 @@ import { insertRecipiente } from '../recipientes';
 import { withTransaction } from '../transaction';
 
 /**
- * UC-20 FA-3 e RNF-05 contra Postgres real: o reenvio da fila do aparelho não
+ * UC-20 FA-3 e RNF-04 contra Postgres real: o reenvio da fila do aparelho não
  * duplica a perda nem a confirmação, e a soma dos movimentos continua fechando
  * com o saldo (TA-64).
  */
@@ -57,7 +57,7 @@ function perda(chave: string, quantidade: number, quem = usuario) {
   );
 }
 
-/** RF-35 em todo teste: a soma dos movimentos reproduz o saldo gravado. */
+/** RF-28 em todo teste: a soma dos movimentos reproduz o saldo gravado. */
 async function saldoConferido() {
   const ficha = await findLote(pool, lote);
   expect(saldoDosMovimentos(await listMovimentos(pool, lote))).toBe(ficha!.quantidadeAtual);

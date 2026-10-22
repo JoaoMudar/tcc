@@ -1,7 +1,7 @@
 -- Migration: 20260922000001_pedido_preco_apos_conferencia.sql
 -- Descricao: O preco do item passa a ser digitado depois da conferencia.
 --
--- Requisitos: RF-55, RF-57 · Regras: RN-50
+-- Requisitos: RF-65, RF-61 · Regras: RN-51
 -- Entidades: C8 `pedidos_itens`
 --
 -- POR QUE ESTA MIGRATION EXISTE. Quem registra o pedido esta no meio de uma
@@ -12,7 +12,7 @@
 -- chutar um numero e corrigi-lo adiante, e numero chutado que ninguem volta
 -- para corrigir e venda registrada errada.
 --
--- O QUE NAO MUDA. O preco continua DIGITADO (RN-50): nao ha tabela de preco,
+-- O QUE NAO MUDA. O preco continua DIGITADO (RN-51): nao ha tabela de preco,
 -- piso nem margem. So mudou o momento em que ele e digitado.
 --
 -- NULO E "AINDA NAO PRECIFICADO", e nao "de graca". O CHECK abaixo continua
@@ -30,4 +30,4 @@ ALTER TABLE pedidos_itens
   CHECK (preco_unitario IS NULL OR preco_unitario > 0);
 
 COMMENT ON COLUMN pedidos_itens.preco_unitario IS
-  'Preco unitario informado por quem registra, depois da conferencia. Nulo e "ainda nao precificado"; a aprovacao do pedido o exige. RN-50.';
+  'Preco unitario informado por quem registra, depois da conferencia. Nulo e "ainda nao precificado"; a aprovacao do pedido o exige. RN-51.';

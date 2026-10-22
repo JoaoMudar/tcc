@@ -1,7 +1,7 @@
 -- Migration: 20260930000003_semana_aberta_fechada.sql
 -- Descricao: A semana passa a ter dois estados, aberta e fechada.
 --
--- Requisitos: RF-28, RF-31 · Regras: RN-13, RN-14
+-- Requisitos: RF-41, RF-42 · Regras: RN-30, RN-31
 -- Entidades: C8 `semanas`
 --
 -- POR QUE ESTA MIGRATION EXISTE. A 20260901000005 declarou tres estados
@@ -9,7 +9,7 @@
 -- colaboradores de campo nao acessam o sistema, e quem monta a semana e quem a
 -- le sao as mesmas tres pessoas. Abrir tambem era cerimonia: o primeiro
 -- lancamento ja cria a semana. Sobra o que separa o feito do suposto, que e
--- fechar (RN-14).
+-- fechar (RN-31).
 --
 -- O QUE MUDA NO ESTADO. `rascunho` e `publicada` viram `aberta`; `fechada`
 -- fica. `publicada_por` sai junto, porque nao ha mais o ato que ela registrava.
@@ -30,4 +30,4 @@ ALTER TABLE semanas ADD CONSTRAINT semanas_situacao_valida CHECK (situacao IN ('
 ALTER TABLE semanas DROP COLUMN publicada_por;
 
 COMMENT ON TABLE semanas IS
-  'Semana de trabalho: aberta ou fechada. Nasce aberta no primeiro lancamento. Semana fechada nao se altera. RN-13.';
+  'Semana de trabalho: aberta ou fechada. Nasce aberta no primeiro lancamento. Semana fechada nao se altera. RN-30.';

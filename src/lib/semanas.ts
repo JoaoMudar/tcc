@@ -1,7 +1,7 @@
 import { formatData, isDataIso, somaDias } from './datas';
 
 /**
- * A semana da agenda (RF-26): começa na segunda e vai até o domingo, que
+ * A semana da agenda (RF-38): começa na segunda e vai até o domingo, que
  * também aceita tarefa. Datas sempre `AAAA-MM-DD`, contadas em UTC para o fuso do
  * servidor não mudar o dia.
  */
@@ -35,7 +35,7 @@ export function diasDaSemana(inicio: string): string[] {
 }
 
 /**
- * Segunda a sexta: é o que a grade de tela larga desenha no zoom Semana (RNF-14).
+ * Segunda a sexta: é o que a grade de tela larga desenha no zoom Semana (RNF-03).
  * Sábado e domingo aparecem nos zooms 3 dias e Dia, no celular e no formulário.
  */
 export function diasUteisDaSemana(inicio: string): string[] {
@@ -62,7 +62,7 @@ export function rotuloSemana(inicio: string): string {
 
 /**
  * A semana terminou: o domingo dela ficou para trás. Só a semana passada se
- * fecha (RF-28), porque fechar assume como feito o que não se confirmou, e a
+ * fecha (RF-41), porque fechar assume como feito o que não se confirmou, e a
  * semana corrente ainda tem dia por trabalhar.
  */
 export function semanaJaPassou(inicio: string, hoje: string): boolean {

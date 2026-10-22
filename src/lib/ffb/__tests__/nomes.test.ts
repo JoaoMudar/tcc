@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { normalizaNomeCientifico, separarAutoria } from '../nomes';
 
-describe('separarAutoria (RF-69)', () => {
+describe('separarAutoria (RF-12)', () => {
   it.each([
     ['Luehea divaricata Mart.', 'Luehea divaricata', 'Mart.', 'ESPECIE'],
     ['Talauma ovata St. Hil.', 'Talauma ovata', 'St. Hil.', 'ESPECIE'],

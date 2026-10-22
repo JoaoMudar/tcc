@@ -6,16 +6,16 @@ import { mortalidade } from './perdas';
 import type { Db } from './sql';
 
 /**
- * T7.1 a T7.3, RF-44, RF-45, RF-42: o mapa do viveiro.
+ * T7.1 a T7.3, RF-33, RF-52, RF-36: o mapa do viveiro.
  *
  * **A situação não é lida daqui, e sim da visão `situacao_lote`.** Ela deriva a
- * cor do que já foi registrado, a cada leitura (RF-45): nenhuma coluna guarda
+ * cor do que já foi registrado, a cada leitura (RF-52): nenhuma coluna guarda
  * situação, porque situação gravada envelhece sozinha e o lote verde de ontem
  * continuaria verde hoje, que é o contrário do que esta tela existe para
  * mostrar.
  *
  * **A cor mede uma coisa só: tarefa que não foi feita.** A mortalidade acima do
- * limite tem destaque próprio (RF-42), e de propósito não entra na cor: somar as
+ * limite tem destaque próprio (RF-36), e de propósito não entra na cor: somar as
  * duas produziria um vermelho que não diz o que fazer.
  */
 
@@ -52,7 +52,7 @@ export interface LoteNoMapa {
   tarefaPendente: string | null;
   pendenteDesde: string | null;
   diasAtraso: number;
-  /** De onde vem a pendência (RF-66): a tarefa lançada e não confirmada, ou a etapa que ninguém lançou. */
+  /** De onde vem a pendência (RF-55): a tarefa lançada e não confirmada, ou a etapa que ninguém lançou. */
   atribuicaoPendenteId: string | null;
   protocoloEtapaPendenteId: string | null;
   /** O tipo e o turno da etapa pendente, que vão preenchidos no lançamento. */
@@ -60,12 +60,12 @@ export interface LoteNoMapa {
   turnoPendenteId: string | null;
   quantidadeInicial: number;
   perdas: number;
-  /** RF-42: perdas sobre a quantidade inicial. Nula sem base para dividir. */
+  /** RF-36: perdas sobre a quantidade inicial. Nula sem base para dividir. */
   taxa: number | null;
 }
 
 /**
- * RF-44: os lotes abertos com a situação de cada um. A visão já exclui o lote
+ * RF-33: os lotes abertos com a situação de cada um. A visão já exclui o lote
  * encerrado, e é ela que faz o canteiro do lote zerado voltar a aparecer livre.
  */
 export async function listLotesDoMapa(db: Db): Promise<LoteNoMapa[]> {
@@ -145,9 +145,9 @@ export function montarMapa(areas: readonly Area[], lotes: readonly LoteNoMapa[])
 }
 
 /**
- * RF-45: o que pede providência hoje, do mais grave para o menos, e dentro da
+ * RF-52: o que pede providência hoje, do mais grave para o menos, e dentro da
  * mesma gravidade do que espera há mais tempo. É esta lista que dá a
- * providência no celular, onde o desenho não cabe (RNF-14).
+ * providência no celular, onde o desenho não cabe (RNF-03).
  */
 export function pedemProvidencia(lotes: readonly LoteNoMapa[]): LoteNoMapa[] {
   return lotes
@@ -162,7 +162,7 @@ export function pedemProvidencia(lotes: readonly LoteNoMapa[]): LoteNoMapa[] {
 
 /**
  * "Irrigação, atrasada 3 dias": a cor sozinha diz que algo está errado, e o que
- * se quer é a providência (RF-45, T7.2).
+ * se quer é a providência (RF-52, T7.2).
  *
  * A etapa em atenção ainda não venceu, e por isso tem zero dia de atraso: dizer
  * "atrasada 0 dias" seria falso, e é por isso que os três casos são diferentes.

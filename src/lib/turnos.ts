@@ -48,7 +48,7 @@ export function duracaoMinutos(turno: Pick<Turno, 'inicio' | 'fim'>): number {
   return Math.max(0, fim - inicio);
 }
 
-/** Jornada padrão da agenda: a soma dos turnos em uso (RF-08). */
+/** Jornada padrão da agenda: a soma dos turnos em uso (RF-09). */
 export function jornadaDiaria(turnos: readonly Pick<Turno, 'inicio' | 'fim' | 'ativo'>[]): number {
   return turnos.filter((turno) => turno.ativo).reduce((total, turno) => total + duracaoMinutos(turno), 0);
 }

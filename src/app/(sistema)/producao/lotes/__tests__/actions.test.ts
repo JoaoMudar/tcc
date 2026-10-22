@@ -65,7 +65,7 @@ describe('permissões da produção (D4 §3.5)', () => {
 });
 
 describe('repicagem e fase', () => {
-  it('perdidas sem causa é recusada antes do banco (RN-27)', async () => {
+  it('perdidas sem causa é recusada antes do banco (RN-20)', async () => {
     loggedAs('gerencia');
     const state = await actions.repicarLoteAction(
       {},
@@ -96,7 +96,7 @@ describe('repicagem e fase', () => {
     expectNoDatabase();
   });
 
-  it('RF-65: altura que não se entende é recusada antes do banco', async () => {
+  it('RF-31: altura que não se entende é recusada antes do banco', async () => {
     loggedAs('gerencia');
     const state = await actions.alterarAlturaAction({}, form({ lote_id: LOTE, altura: 'alta' }));
     expect(state.error).toMatch(/A altura precisa ser/);
@@ -104,7 +104,7 @@ describe('repicagem e fase', () => {
     expectNoDatabase();
   });
 
-  it('RF-65: a altura medida vai ao banco em metros, e o vazio apaga', async () => {
+  it('RF-31: a altura medida vai ao banco em metros, e o vazio apaga', async () => {
     loggedAs('gerencia');
     vi.mocked(pool.query).mockResolvedValue({ rowCount: 1, rows: [] } as never);
     expect((await actions.alterarAlturaAction({}, form({ lote_id: LOTE, altura: '120' }))).success).toBe('Altura registrada: 1,20 m.');

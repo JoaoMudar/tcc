@@ -18,7 +18,7 @@ interface PedidosPageProps {
   searchParams: Promise<{ feito?: string; numero?: string }>;
 }
 
-/** T8.4, RF-58: a carteira de pedidos, com o filtro de cliente que se digita. */
+/** T8.4, RF-60: a carteira de pedidos, com o filtro de cliente que se digita. */
 export default async function PedidosPage({ searchParams }: PedidosPageProps) {
   // TA-03: a gerência que digita este endereço cai em /sem-permissao
   const user = await requirePageAccess('pedidos');

@@ -35,7 +35,7 @@ describe('sinalValido', () => {
     expect(sinalValido('perda', 10)).toBe(false);
     expect(sinalValido('venda', -1)).toBe(true);
     expect(sinalValido('repicagem_saida', 5)).toBe(false);
-    // RN-39: a divisão tira do original e põe em cada resultante
+    // RN-43: a divisão tira do original e põe em cada resultante
     expect(sinalValido('divisao_saida', -500)).toBe(true);
     expect(sinalValido('divisao_saida', 500)).toBe(false);
     expect(sinalValido('divisao_entrada', 500)).toBe(true);
@@ -80,7 +80,7 @@ describe('registrarMovimento, a porta única', () => {
     expect(escritas(c)).toEqual([]);
   });
 
-  it('saldo zero encerra o lote e libera o canteiro (RN-22)', async () => {
+  it('saldo zero encerra o lote e libera o canteiro (RN-23)', async () => {
     const c = cliente();
     const resultado = await registrarMovimento(c, { loteId: 'l1', tipo: 'perda', quantidade: -200, causa: 'geada', registradoPor: 'u1' });
     expect(resultado).toEqual({ saldo: 0, encerrado: true });
@@ -90,7 +90,7 @@ describe('registrarMovimento, a porta única', () => {
     expect(update).toMatch(/motivo_encerramento = 'saldo_zero'/);
   });
 
-  it('RF-53: encerrado o lote, as ordens do protocolo ainda planejadas são canceladas, e não apagadas', async () => {
+  it('RF-58: encerrado o lote, as ordens do protocolo ainda planejadas são canceladas, e não apagadas', async () => {
     const c = cliente();
     await registrarMovimento(c, { loteId: 'l1', tipo: 'venda', quantidade: -200, registradoPor: 'u1' });
 

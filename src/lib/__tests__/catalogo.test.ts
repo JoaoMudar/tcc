@@ -18,7 +18,7 @@ import {
 } from '../recipientes';
 import { parseTipoTarefaFields, resumoDeclaracoes } from '../tipos-tarefa';
 
-describe('áreas e canteiros (RF-13)', () => {
+describe('áreas e canteiros (RF-16)', () => {
   it('a área é uma letra, e minúscula vira maiúscula', () => {
     expect(parseLetra(' a ')).toEqual({ value: 'A' });
     expect(parseLetra('AB')).toHaveProperty('error');
@@ -50,7 +50,7 @@ describe('áreas e canteiros (RF-13)', () => {
   });
 });
 
-describe('recipientes (RF-11)', () => {
+describe('recipientes (RF-14)', () => {
   it('volume em litros com vírgula, ou em branco', () => {
     expect(parseRecipienteFields({ nome: ' Saco 10x18 ', volume: '0,9' })).toEqual({
       value: { nome: 'Saco 10x18', volumeLitros: 0.9, pesoKg: null },
@@ -61,7 +61,7 @@ describe('recipientes (RF-11)', () => {
     expect(parseRecipienteFields({ nome: 'B', volume: '' })).toHaveProperty('error');
   });
 
-  it('peso do recipiente cheio em kg com vírgula, ou em branco (RN-65)', () => {
+  it('peso do recipiente cheio em kg com vírgula, ou em branco (RN-53)', () => {
     expect(parseRecipienteFields({ nome: 'Saco 20x26', volume: '', peso: '4,5' })).toEqual({
       value: { nome: 'Saco 20x26', volumeLitros: null, pesoKg: 4.5 },
     });
@@ -112,7 +112,7 @@ describe('recipientes (RF-11)', () => {
   });
 });
 
-describe('insumos (RF-12)', () => {
+describe('insumos (RF-15)', () => {
   it('categoria e unidade só da lista', () => {
     expect(parseInsumoFields({ nome: 'Vermiculita', categoria: 'substrato', unidadeMedida: 'litro' })).toEqual({
       value: { nome: 'Vermiculita', categoria: 'substrato', unidadeMedida: 'litro' },
@@ -126,7 +126,7 @@ describe('insumos (RF-12)', () => {
   });
 });
 
-describe('tipos de tarefa (RF-21)', () => {
+describe('tipos de tarefa (RF-37)', () => {
   const declaracoes = { eQuantitativa: true, exigeLote: true, exigeEspecie: true, exigeRecipiente: true, exigeArea: true };
   const nenhuma = { eQuantitativa: false, exigeLote: false, exigeEspecie: false, exigeRecipiente: false, exigeArea: false };
 

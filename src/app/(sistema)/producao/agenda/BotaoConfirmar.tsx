@@ -15,10 +15,10 @@ interface BotaoConfirmarProps {
 const CAIXA = 'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border-2';
 
 /**
- * RF-29 no celular: marcar feito leva um toque. Só quando a confirmação não tem
+ * RF-40 no celular: marcar feito leva um toque. Só quando a confirmação não tem
  * o que perguntar (`confirmavelNumToque`); a quantitativa, ou a que exige lote
  * que ela não tem, leva à ficha, onde está o formulário inteiro. Passa pela fila
- * do aparelho, como a confirmação da ficha: sem rede, fica guardada (RNF-05).
+ * do aparelho, como a confirmação da ficha: sem rede, fica guardada (RNF-04).
  */
 export function BotaoConfirmar({ atribuicao: a, podeConfirmar }: BotaoConfirmarProps) {
   const [state, formAction, pending] = useRegistroCampo('confirmacao_tarefa', {

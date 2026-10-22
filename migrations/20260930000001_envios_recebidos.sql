@@ -1,7 +1,7 @@
 -- Migration: 20260930000001_envios_recebidos.sql
 -- Descricao: A chave de idempotencia do registro feito sem conexao.
 --
--- Requisitos: RNF-05 · Casos de uso: UC-20 FA-3, UC-25, UC-26
+-- Requisitos: RNF-04 · Casos de uso: UC-20 FA-3, UC-25, UC-26
 -- Entidades: C8 `envios_recebidos`
 --
 -- POR QUE ESTA MIGRATION EXISTE. O registro de campo (perda, contagem e

@@ -4,7 +4,7 @@ import { versaoFfbAtual } from './ffb/importar';
 import type { Db } from './sql';
 
 /**
- * RF-68: a busca do cadastro de espécie olha primeiro o que o viveiro já tem
+ * RF-11: a busca do cadastro de espécie olha primeiro o que o viveiro já tem
  * (para não duplicar) e depois a cópia local da Flora e Funga do Brasil (para
  * preencher o nome certo). Nenhuma chamada sai para a rede.
  */
@@ -145,7 +145,7 @@ export interface ValidacaoFfb {
 
 /**
  * Confere o nome da espécie com a FFB depois de gravar, na mesma transação. É
- * invisível para quem cadastra (RN-68): bateu com um nome aceito, a espécie
+ * invisível para quem cadastra (RN-05): bateu com um nome aceito, a espécie
  * fica validada; não bateu, fica pendente para a chefia revisar, sem bloquear.
  *
  * `taxonEscolhido` é o que a pessoa tocou na busca; `sinonimoEscolhido`, o

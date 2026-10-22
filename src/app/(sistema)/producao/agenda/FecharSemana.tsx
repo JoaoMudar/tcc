@@ -9,7 +9,7 @@ import { TelaDeTarefa } from './TelaDeTarefa';
 
 /**
  * T5.6, F1 UC-21: o que entra no realizado, e com que marca, antes de travar a
- * semana. Só a semana que já terminou se fecha (RF-28).
+ * semana. Só a semana que já terminou se fecha (RF-41).
  */
 export async function FecharSemana({ semana: semanaPedida, emModal }: { semana?: string; emModal: boolean }) {
   await requirePageAccess('fechamento_semana', 'A');

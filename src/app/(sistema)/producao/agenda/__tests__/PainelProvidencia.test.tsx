@@ -25,7 +25,7 @@ function abrir(providencia: Providencia) {
   return render(<PainelProvidencia providencia={providencia} onFechar={vi.fn()} onFeito={vi.fn()} />);
 }
 
-describe('PainelProvidencia (RF-66)', () => {
+describe('PainelProvidencia (RF-55)', () => {
   // Hoje no viveiro: 15/09, antes do prazo de 20/09
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'] });

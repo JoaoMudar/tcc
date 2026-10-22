@@ -1,7 +1,7 @@
 -- Migration: 20261006000002_viagem_volta_e_frete_outro.sql
 -- Descricao: A volta da viagem e o endereco digitado como saida do frete.
 --
--- Requisitos: RF-63, RF-67 · Regras: RN-64
+-- Requisitos: RF-69, RF-66 · Regras: RN-54
 -- Entidades: C8 `viagens`, `pedidos`
 --
 -- POR QUE ESTA MIGRATION EXISTE. A rota da viagem era aberta: saia do viveiro e

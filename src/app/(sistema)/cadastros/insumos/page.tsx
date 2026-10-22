@@ -8,7 +8,7 @@ import { requirePageAccess } from '@/lib/auth/guards';
 import { InsumoForm } from './InsumoForm';
 import { NovoInsumoForm } from './NovoInsumoForm';
 
-/** F1 UC-09: o insumo é só catálogo, com categoria e unidade (RF-12). */
+/** F1 UC-09: o insumo é só catálogo, com categoria e unidade (RF-15). */
 export default async function InsumosPage() {
   const user = await requirePageAccess('insumos');
   const insumos = await listInsumos(pool);

@@ -3,7 +3,7 @@
  * sem `pg` (RNF-11, TA-60). O servidor usa os mesmos, por `protocolos.ts`.
  */
 
-/** RN-34: a sequencial acontece uma vez e pode avançar a fase; a recorrente repete e nunca avança. */
+/** RN-33: a sequencial acontece uma vez e pode avançar a fase; a recorrente repete e nunca avança. */
 export const TIPOS_AGENDAMENTO = {
   sequencial: 'Uma vez',
   recorrente: 'Repete',
@@ -15,7 +15,7 @@ export function isTipoAgendamento(value: string): value is TipoAgendamento {
   return Object.hasOwn(TIPOS_AGENDAMENTO, value);
 }
 
-/** RN-31: o evento de referência é declarado, e nunca inferido da ordem das etapas. */
+/** RN-34: o evento de referência é declarado, e nunca inferido da ordem das etapas. */
 export const TIPOS_ANCORA = {
   criacao_do_lote: 'A criação do lote',
   conclusao_de_etapa: 'A conclusão de outra etapa',
@@ -27,7 +27,7 @@ export function isTipoAncora(value: string): value is TipoAncora {
   return Object.hasOwn(TIPOS_ANCORA, value);
 }
 
-/** Situação que a visão `lotes_etapas_vencimento` devolve por etapa (RF-52). */
+/** Situação que a visão `lotes_etapas_vencimento` devolve por etapa (RF-51). */
 export const SITUACOES_ETAPA = {
   sem_alerta: 'Rotina',
   em_dia: 'Em dia',
@@ -37,7 +37,7 @@ export const SITUACOES_ETAPA = {
 
 export type SituacaoEtapa = keyof typeof SITUACOES_ETAPA;
 
-/** Tom da cor, no vocabulário das outras telas. `sem_alerta` não recebe cor nenhuma (RN-35). */
+/** Tom da cor, no vocabulário das outras telas. `sem_alerta` não recebe cor nenhuma (RN-39). */
 export const TOM_SITUACAO_ETAPA: Record<SituacaoEtapa, 'neutral' | 'success' | 'warning' | 'danger'> = {
   sem_alerta: 'neutral',
   em_dia: 'success',
@@ -56,7 +56,7 @@ export function resumoAgendamento(etapa: {
   return `${primeira}, e repete a cada ${etapa.intervaloDias} dias`;
 }
 
-/** RF-66: o maior adiamento de uma vez. Mais que isso é rever o protocolo, e não adiar. */
+/** RF-55: o maior adiamento de uma vez. Mais que isso é rever o protocolo, e não adiar. */
 export const MAX_DIAS_ADIAMENTO = 90;
 
 /** Os dias digitados para adiar, ou o motivo de recusa. */

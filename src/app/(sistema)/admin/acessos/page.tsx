@@ -16,7 +16,7 @@ const RESULTADOS = [
   { value: 'sucesso', label: 'Só as que entraram' },
 ];
 
-/** Auditoria de acesso (RF-04, D4: só o administrador lê). */
+/** Auditoria de acesso (RF-07, D4: só o administrador lê). */
 export default async function AcessosPage({ searchParams }: PageProps<'/admin/acessos'>) {
   await requirePageAccess('auditoria_acesso');
   const params = await searchParams;

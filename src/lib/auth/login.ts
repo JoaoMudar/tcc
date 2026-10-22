@@ -31,7 +31,7 @@ export function normalizeLogin(value: string): string {
 }
 
 /**
- * Regra do login (RF-01, RF-04, E4 A-01), sem cookie nem tela: recebe o banco
+ * Regra do login (RF-01, RF-07, E4 A-01), sem cookie nem tela: recebe o banco
  * para ser testada contra Postgres real. Toda tentativa vira linha em eventos_login.
  */
 export async function attemptLogin(

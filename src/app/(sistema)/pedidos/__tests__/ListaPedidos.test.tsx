@@ -26,7 +26,7 @@ const PEDIDOS = [
 const numeros = () =>
   screen.getAllByRole('link').map((link) => link.textContent?.match(/^(\d+) ·/)?.[1]);
 
-describe('ListaPedidos e o filtro de cliente (RF-58, TA-54)', () => {
+describe('ListaPedidos e o filtro de cliente (RF-60, TA-54)', () => {
   it('digitar parte do nome deixa só os pedidos desse cliente, e apagar traz todos de volta', () => {
     render(<ListaPedidos pedidos={PEDIDOS} hoje="2026-09-21" />);
     const campo = screen.getByLabelText('Cliente');

@@ -20,7 +20,7 @@ function assinarRede(avisar: () => void) {
 }
 
 /**
- * O que está guardado no aparelho e ainda não chegou (T9.4, RNF-05). Some
+ * O que está guardado no aparelho e ainda não chegou (T9.4, RNF-04). Some
  * quando a fila está vazia e há rede. Tenta enviar ao abrir, ao voltar a rede,
  * ao voltar para a aba e a cada 30 segundos enquanto houver pendente.
  *

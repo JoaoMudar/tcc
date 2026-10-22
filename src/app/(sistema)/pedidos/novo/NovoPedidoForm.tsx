@@ -44,11 +44,11 @@ const CANAL_OPCOES = Object.entries(CANAIS_VENDA).map(([value, label]) => ({ val
 /**
  * T8.1, UC-31: cliente, canal e as linhas do pedido, que são uma planilha na
  * tela larga e uma lista no celular (`GradeItens`). Cada linha mostra o estoque
- * disponível da espécie, do recipiente e da altura pedidos (RF-56, RN-06), e o
+ * disponível da espécie, do recipiente e da altura pedidos (RF-62, RN-10), e o
  * saldo menor que o pedido **avisa e não recusa** (UC-31 FA-2): a muda cresce até
  * a entrega, e barrar isso transformaria uma venda normal em erro de sistema.
  *
- * **Não há preço aqui** (RN-50): quem registra está no meio de uma conversa e
+ * **Não há preço aqui** (RN-51): quem registra está no meio de uma conversa e
  * anota o que o cliente quer. O valor se fecha depois da conferência, quando a
  * gerência já disse o que existe de verdade no pátio.
  */

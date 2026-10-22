@@ -75,14 +75,14 @@ beforeEach(() => {
   loggedAs('chefia');
 });
 
-describe('permissão (RF-06, D4 §3.2)', () => {
+describe('permissão (RF-03, D4 §3.2)', () => {
   it('a gerência não registra pedido, e o banco nem é consultado', async () => {
     loggedAs('gerencia');
     await expect(actions.criarPedidoAction({}, pedidoValido())).rejects.toThrow(FORBIDDEN_MESSAGE);
     expectNoDatabase();
   });
 
-  it('a gerência inicia a verificação, que é fase dela (RN-53)', async () => {
+  it('a gerência inicia a verificação, que é fase dela (RN-55)', async () => {
     loggedAs('gerencia');
     emSituacao('cadastrado');
     const state = await actions.transicionarPedidoAction({}, form({ pedido_id: PEDIDO, para: 'verificando' }));
@@ -163,7 +163,7 @@ describe('validação antes do banco (UC-31 FE-1)', () => {
   });
 
   it('o cadastro não pede preço, e o item nasce sem valor nenhum', async () => {
-    // RN-50: o preço se digita depois da conferência, e nulo é "ainda não precificado"
+    // RN-51: o preço se digita depois da conferência, e nulo é "ainda não precificado"
     await expect(actions.criarPedidoAction({}, pedidoValido())).rejects.toThrow(/^redirect:/);
     const [, valores] = client.query.mock.calls.find(([sql]) => String(sql).includes('INSERT INTO pedidos_itens'))!;
     expect(valores).toContain(null);
@@ -259,7 +259,7 @@ describe('validação antes do banco (UC-31 FE-1)', () => {
     expect(state).toMatchObject({ itemId: ITEM });
   });
 
-  it('recipiente em branco é "o cliente não disse o tamanho", e não erro (RF-54)', async () => {
+  it('recipiente em branco é "o cliente não disse o tamanho", e não erro (RF-59)', async () => {
     await expect(actions.criarPedidoAction({}, pedidoValido({ item_recipiente: '', item_quantidade: '' }))).rejects.toThrow(
       /^redirect:/,
     );
@@ -296,7 +296,7 @@ describe('validação antes do banco (UC-31 FE-1)', () => {
     expectNoDatabase();
   });
 
-  it('canal fora da lista fechada é recusado (RN-42)', async () => {
+  it('canal fora da lista fechada é recusado (RN-49)', async () => {
     const state = await actions.criarPedidoAction({}, pedidoValido({ canal: 'escambo' }));
     expect(state.error).toMatch(/canal de venda/i);
     expectNoDatabase();
@@ -374,7 +374,7 @@ describe('validação antes do banco (UC-31 FE-1)', () => {
   });
 });
 
-describe('negociação depois da conferência (RF-55, RN-50)', () => {
+describe('negociação depois da conferência (RF-65, RN-51)', () => {
   /** O pedido conferido e um item que a conferência confirmou com 300 mudas. */
   function conferido(item: Record<string, unknown> = {}) {
     client.query.mockImplementation(async (sql: string) => {
@@ -571,7 +571,7 @@ describe('cabeçalho do pedido (cliente, canal e entrega)', () => {
   });
 });
 
-describe('frete do pedido (RN-64)', () => {
+describe('frete do pedido (RN-54)', () => {
   function gravouFrete() {
     return client.query.mock.calls.filter(([sql]) => String(sql).includes('UPDATE pedidos SET frete'));
   }

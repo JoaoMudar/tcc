@@ -7,9 +7,9 @@ import { formatAltura } from '@/lib/pedidos-rotulos';
 import { requirePageAccess } from '@/lib/auth/guards';
 
 /**
- * T4.10, RF-43, UC-29: o estoque disponível por espécie, recipiente e altura,
+ * T4.10, RF-32, UC-29: o estoque disponível por espécie, recipiente e altura,
  * somado de todos os lotes abertos. Não há fase de "muda pronta": toda muda do
- * viveiro está à venda (RN-06).
+ * viveiro está à venda (RN-10).
  */
 export default async function EstoqueDisponivelPage() {
   await requirePageAccess('estoque_disponivel');

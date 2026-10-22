@@ -11,7 +11,7 @@ export const CATEGORIA_INSUMO_LABELS: Record<CategoriaInsumo, string> = {
   outros: 'Outros',
 };
 
-/** Unidade é lista fechada (RNF-02): texto livre daria "kg", "Kg" e "quilo" para a mesma coisa. */
+/** Unidade é lista fechada (RNF-06): texto livre daria "kg", "Kg" e "quilo" para a mesma coisa. */
 export const UNIDADES_MEDIDA = ['litro', 'mililitro', 'quilo', 'grama', 'unidade', 'saco', 'metro cúbico'] as const;
 
 export interface Insumo {

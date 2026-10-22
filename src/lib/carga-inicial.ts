@@ -161,7 +161,7 @@ export async function importarCarga(client: PoolClient, carga: Partial<Record<Ar
       erro(linha, 'O vínculo é "fixo" ou "diarista".');
       continue;
     }
-    // Pessoa com o mesmo nome já cadastrada: pula, e a tela de pessoas resolve o papel se precisar (RF-14)
+    // Pessoa com o mesmo nome já cadastrada: pula, e a tela de pessoas resolve o papel se precisar (RF-17)
     const existe = await client.query('SELECT 1 FROM cadastro.pessoas WHERE lower(nome) = lower($1)', [nome]);
     if (existe.rowCount) r.pulados.funcionarios++;
     else {

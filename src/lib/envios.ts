@@ -2,7 +2,7 @@ import type { PoolClient } from 'pg';
 import { UserError } from './errors';
 
 /**
- * A chave de idempotência do registro feito sem conexão (RNF-05, UC-20 FA-3).
+ * A chave de idempotência do registro feito sem conexão (RNF-04, UC-20 FA-3).
  * O aparelho gera a chave antes de tentar enviar e a manda em toda tentativa;
  * a primeira grava, as outras recebem a mesma resposta sem executar de novo.
  */

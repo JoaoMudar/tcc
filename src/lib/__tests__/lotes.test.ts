@@ -65,7 +65,7 @@ describe('nextCodigo (C8: AAAA-NNNN)', () => {
   });
 });
 
-describe('avisoCapacidade (RN-28: avisa, não recusa)', () => {
+describe('avisoCapacidade (RN-15: avisa, não recusa)', () => {
   const canteiro: CanteiroResumo = { id: 'c', areaId: 'a', letra: 'B', numero: 3, capacidade: 8000, lotes: 2, mudas: 4100 };
 
   it('cabe: sem aviso', () => {
@@ -83,7 +83,7 @@ describe('avisoCapacidade (RN-28: avisa, não recusa)', () => {
   });
 });
 
-describe('montarOcupacao (RF-33)', () => {
+describe('montarOcupacao (RF-34)', () => {
   const areas: Area[] = [
     {
       id: 'a',
@@ -120,7 +120,7 @@ describe('montarOcupacao (RF-33)', () => {
   });
 });
 
-describe('saldoDosMovimentos (RF-35)', () => {
+describe('saldoDosMovimentos (RF-28)', () => {
   it('entrada, perda, repicagem e ajuste somados reproduzem o saldo', () => {
     expect(saldoDosMovimentos([{ quantidade: 500 }, { quantidade: -20 }, { quantidade: -300 }, { quantidade: 5 }, { quantidade: 0 }])).toBe(185);
   });

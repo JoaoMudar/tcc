@@ -9,7 +9,7 @@ import { formatVolume, listRecipientes } from '@/lib/recipientes';
 import { requirePageAccess } from '@/lib/auth/guards';
 import { NovoProtocoloForm } from './NovoProtocoloForm';
 
-/** UC-17: a receita de manejo pertence ao recipiente (RN-30), e montar é raro, ler é frequente. */
+/** UC-17: a receita de manejo pertence ao recipiente (RN-32), e montar é raro, ler é frequente. */
 export default async function ProtocolosPage() {
   const user = await requirePageAccess('protocolos');
   const [protocolos, recipientes] = await Promise.all([listProtocolos(pool), listRecipientes(pool)]);

@@ -16,7 +16,7 @@ export interface PedidoDeRegistro {
 }
 
 /**
- * RF-66: "Confirmar tarefa" da etapa que pede providência e ninguém lançou. Ela
+ * RF-55: "Confirmar tarefa" da etapa que pede providência e ninguém lançou. Ela
  * foi feita fora da agenda: registra-se como tarefa confirmada no dia em que foi
  * feita. Em modal sobre a agenda, ou página pelo endereço.
  */

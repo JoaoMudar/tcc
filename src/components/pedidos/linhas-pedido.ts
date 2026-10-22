@@ -192,9 +192,9 @@ interface SaldoDaFaixa extends FaixaDeAltura {
 }
 
 /**
- * RF-56: o estoque disponível agrupado por par espécie e recipiente. Vai à tela
+ * RF-62: o estoque disponível agrupado por par espécie e recipiente. Vai à tela
  * por altura, e não somado, porque a altura do item muda enquanto a pessoa
- * digita, e é ela que decide quais lotes atendem (RN-06).
+ * digita, e é ela que decide quais lotes atendem (RN-10).
  */
 export function montarSaldos(faixas: readonly SaldoDaFaixa[]): SaldosPorChave {
   const saldos: SaldosPorChave = {};
@@ -234,7 +234,7 @@ export function faltaNoItem(saldo: SaldoDoItem, quantidade: number | null, confi
 /**
  * A linha miúda embaixo do item: "Disponível: 120". Faltando, diz quanto falta
  * e, se o item pede altura, quanto há até 20 cm abaixo para completar e quanto
- * está sem altura medida (RN-62). Não recusa nada: só avisa (UC-31 FA-2).
+ * está sem altura medida (RN-11). Não recusa nada: só avisa (UC-31 FA-2).
  *
  * Depois da verificação, o que falta é o pedido menos o que ela contou
  * (`confirmada`), e não menos o saldo: "Tem parte, 3 de 10" faltam 7, mesmo

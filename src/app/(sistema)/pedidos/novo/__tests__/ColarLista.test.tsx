@@ -80,7 +80,7 @@ describe('conferência da lista colada (T8.16)', () => {
     ]);
   });
 
-  it('sem recipiente padrão a lista é reconhecida, e o recipiente fica a definir (RF-54)', () => {
+  it('sem recipiente padrão a lista é reconhecida, e o recipiente fica a definir (RF-59)', () => {
     const onImportar = vi.fn();
     render(
       <ColarLista

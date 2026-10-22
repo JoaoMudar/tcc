@@ -45,7 +45,7 @@ describe('parseNomeTurno', () => {
   });
 });
 
-describe('jornada (RF-08)', () => {
+describe('jornada (RF-09)', () => {
   const manha = { inicio: '07:30', fim: '11:30', ativo: true };
   const tarde = { inicio: '13:00', fim: '17:00', ativo: true };
 

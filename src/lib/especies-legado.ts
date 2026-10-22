@@ -17,7 +17,7 @@ import { normalizaNomeCientifico, separarAutoria } from './ffb/nomes';
  *    relatório com a coluna `decisao` em branco;
  * 2. a chefia preenche a coluna, e `npm run db:carga -- --decisoes` grava.
  *
- * Nada muda de nome sem uma decisão escrita (RN-67).
+ * Nada muda de nome sem uma decisão escrita (RN-05).
  */
 
 export interface EntradaLegada {

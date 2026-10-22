@@ -6,7 +6,7 @@ import { can } from '@/lib/permissions';
 import { CATEGORIA_TAREFA_LABELS, type CategoriaTarefa, listTiposTarefa, resumoDeclaracoes } from '@/lib/tipos-tarefa';
 import { requirePageAccess } from '@/lib/auth/guards';
 
-/** F1 UC-15: o catálogo que decide o formulário da agenda (RF-21). */
+/** F1 UC-15: o catálogo que decide o formulário da agenda (RF-37). */
 export default async function TiposTarefaPage() {
   const user = await requirePageAccess('tipos_tarefa');
   const tipos = await listTiposTarefa(pool);

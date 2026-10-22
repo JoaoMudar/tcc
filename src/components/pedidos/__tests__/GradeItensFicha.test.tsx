@@ -25,7 +25,7 @@ function item(sobre: Partial<ItemDaFicha> = {}): ItemDaFicha {
   };
 }
 
-describe('GradeItensFicha (T8.1, RF-55)', () => {
+describe('GradeItensFicha (T8.1, RF-65)', () => {
   it('na leitura, o que falta fica vazio e vermelho, sem texto, e não há campo nem total', () => {
     render(<GradeItensFicha itens={[item({ recipienteId: null, recipiente: null })]} saldos={{}} />);
     expect(screen.queryByText('Definir')).toBeNull();
@@ -147,7 +147,7 @@ describe('o que a verificação achou (barra no começo da linha)', () => {
   });
 });
 
-describe('estoque disponível na ficha (RF-56, RN-06)', () => {
+describe('estoque disponível na ficha (RF-62, RN-10)', () => {
   it('o item sem altura soma todos os lotes do par', () => {
     render(
       <GradeItensFicha

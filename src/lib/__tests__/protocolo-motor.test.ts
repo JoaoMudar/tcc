@@ -25,7 +25,7 @@ const etapa = {
   irrigacao: { dias: 1, intervaloDias: 1, alertaLigado: false, janelaAvisoPct: null },
 } as const;
 
-describe('vencimentoDaEtapa: a contagem é da execução real (RN-32, RN-40)', () => {
+describe('vencimentoDaEtapa: a contagem é da execução real (RN-36, RN-35)', () => {
   it('10/01, lote criado: as etapas que ancoram na criação já vencem', () => {
     const criacao = { dataAncora: '2026-01-10', ultimaExecucaoEm: null, ocorrencias: 0 };
     expect(vencimentoDaEtapa(etapa.plantar, criacao, null)).toBe('2026-01-10');
@@ -40,7 +40,7 @@ describe('vencimentoDaEtapa: a contagem é da execução real (RN-32, RN-40)', (
   });
 
   it('25/01, plantio concluído: a classificação vence em 06/03, e não em 19/02', () => {
-    // 19/02 é o que sairia se a etapa ancorasse na criação do lote: o erro que RN-31 existe para impedir
+    // 19/02 é o que sairia se a etapa ancorasse na criação do lote: o erro que RN-34 existe para impedir
     const ancorada = { dataAncora: '2026-01-25', ultimaExecucaoEm: null, ocorrencias: 0 };
     expect(vencimentoDaEtapa(etapa.classificar, ancorada, null)).toBe('2026-03-06');
     expect(vencimentoDaEtapa(etapa.classificar, ancorada, null)).not.toBe('2026-02-19');
@@ -70,7 +70,7 @@ describe('vencimentoDaEtapa: a contagem é da execução real (RN-32, RN-40)', (
     expect(vencimentoDaEtapa(trimestralQuePrimeiroEspera30, segunda, null)).toBe('2026-08-05');
   });
 
-  /** TA-44: o tempo da espécie manda no tempo do protocolo (RN-36). */
+  /** TA-44: o tempo da espécie manda no tempo do protocolo (RN-38). */
   it('TA-44: espécie com 70 dias próprios vence em 70, a sem customização em 40', () => {
     const ancorada = { dataAncora: '2026-01-25', ultimaExecucaoEm: null, ocorrencias: 0 };
     expect(vencimentoDaEtapa(etapa.classificar, ancorada, { dias: 70, intervaloDias: null })).toBe('2026-04-05');
@@ -85,7 +85,7 @@ describe('vencimentoDaEtapa: a contagem é da execução real (RN-32, RN-40)', (
   });
 });
 
-describe('situacaoDaEtapa: amarelo é proporcional, e nem toda etapa avisa (RN-35)', () => {
+describe('situacaoDaEtapa: amarelo é proporcional, e nem toda etapa avisa (RN-39)', () => {
   const emAndamento = { dataAncora: '2026-01-25', ultimaExecucaoEm: null, ocorrencias: 0 };
 
   it('27/02: a janela de 20% de 40 dias é 8 dias, e a etapa fica amarela a partir daí', () => {
@@ -126,7 +126,7 @@ describe('situacaoDaEtapa: amarelo é proporcional, e nem toda etapa avisa (RN-3
   });
 });
 
-describe('diasDeAtraso: uma pendência, cada vez mais velha (RN-33, RF-50)', () => {
+describe('diasDeAtraso: uma pendência, cada vez mais velha (RN-37, RF-50)', () => {
   /** TA-42, o outro caso que o `E2` diz decidir se o motor está certo. */
   it('TA-42: a limpeza vencida em 10/04, olhada em 10/07, tem 91 dias e é uma só', () => {
     const naoExecutada = { dataAncora: '2026-01-10', ultimaExecucaoEm: null, ocorrencias: 0 };
@@ -150,7 +150,7 @@ describe('diasDeAtraso: uma pendência, cada vez mais velha (RN-33, RF-50)', () 
   });
 });
 
-describe('a divisão herda, e os dois seguem independentes (RN-39)', () => {
+describe('a divisão herda, e os dois seguem independentes (RN-43)', () => {
   /** TA-46, a parte que é aritmética do motor: o estado herdado produz a mesma data. */
   it('20/12: os dois filhos herdam o vencimento de 14/12, já vencido', () => {
     const herdado = { dataAncora: '2026-01-10', ultimaExecucaoEm: '2026-09-15', ocorrencias: 1 };

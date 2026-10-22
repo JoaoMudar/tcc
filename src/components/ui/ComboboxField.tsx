@@ -55,7 +55,7 @@ interface ComboboxFieldProps {
 }
 
 /**
- * Lista fechada que se digita (RNF-02, RNF-03): o campo filtra, e a lista logo
+ * Lista fechada que se digita (RNF-06, RNF-08): o campo filtra, e a lista logo
  * abaixo dele é o que se toca. Com duzentas espécies, achar no `select` do
  * celular é girar uma roda; aqui se digita "ipe" e sobram três linhas.
  *

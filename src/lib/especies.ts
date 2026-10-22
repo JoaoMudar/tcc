@@ -6,7 +6,7 @@ import type { EspecieRef } from './especies-form';
 import { type TipoImagem, deleteFoto, fotoIdFromUrl, fotoUrl, insertFoto } from './fotos';
 import { type Db, escapeLike, violatedConstraint } from './sql';
 
-/** Lista fechada do C8. Várias por espécie (RN-03): a mesma nativa é madeireira e ornamental. */
+/** Lista fechada do C8. Várias por espécie (RN-06): a mesma nativa é madeireira e ornamental. */
 export const CARACTERISTICA_LABELS = {
   nativa: 'nativa',
   exotica: 'exótica',
@@ -32,7 +32,7 @@ export interface Especie extends EspecieFields {
   id: string;
   fotoUrl: string | null;
   ativa: boolean;
-  /** RF-69: o nome conferido com a Flora e Funga do Brasil */
+  /** RF-12: o nome conferido com a Flora e Funga do Brasil */
   statusValidacao: StatusValidacao;
   familia: string | null;
   autoria: string | null;
@@ -217,7 +217,7 @@ const nomeDaEspecieSql = `COALESCE(
 
 /**
  * Todos os nomes por onde uma espécie é chamada (populares, científico e os
- * científicos antigos, RF-69), com a dona de cada um. É o que
+ * científicos antigos, RF-12), com a dona de cada um. É o que
  * `achaConflitoDeNome` compara antes de gravar.
  */
 export async function listNomesConhecidos(db: Db): Promise<NomeConhecido[]> {
@@ -289,7 +289,7 @@ export async function criarEspecieRapida(
  * T8.16: o sistema aprende o nome que a pessoa corrigiu à mão. Da próxima vez
  * que o mesmo texto for colado, ele é reconhecido sozinho.
  *
- * RN-01: **um nome popular pertence a uma espécie só**, e o nome de outra é
+ * RN-02: **um nome popular pertence a uma espécie só**, e o nome de outra é
  * recusado com o nome dela, para quem está cadastrando saber o que houve.
  */
 export async function adicionarNomePopular(client: PoolClient, especieId: string, nome: string): Promise<string> {

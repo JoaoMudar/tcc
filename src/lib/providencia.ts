@@ -3,7 +3,7 @@ import type { LoteNoMapa } from './mapa';
 import type { Sugestao } from './protocolos';
 
 /**
- * RF-66: o que se pode fazer com o que pede providência, venha da lista do lote
+ * RF-55: o que se pode fazer com o que pede providência, venha da lista do lote
  * ou da sugestão do protocolo. Sem SQL: o painel que oferece as ações roda no
  * navegador, e só os tipos atravessam.
  *
@@ -38,7 +38,7 @@ export interface Providencia {
   origem: OrigemProvidencia;
 }
 
-/** O lançamento já com a etapa, o lote e o tipo (RF-47); o dia e quem faz continuam com quem lança. */
+/** O lançamento já com a etapa, o lote e o tipo (RF-53); o dia e quem faz continuam com quem lança. */
 export function lancarDaEtapa(semana: string, etapa: EtapaPendente): string {
   return `/producao/agenda/nova?semana=${semana}&${parametrosDaEtapa(etapa)}`;
 }

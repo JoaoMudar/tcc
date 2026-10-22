@@ -33,7 +33,7 @@ export async function saveEspecieAction(_previous: FormState, formData: FormData
   });
   if ('error' in parsed) return { error: parsed.error, fields };
 
-  // RF-68: o que a pessoa tocou na busca. Só dígitos: é o taxonID da FFB
+  // RF-11: o que a pessoa tocou na busca. Só dígitos: é o taxonID da FFB
   const taxonId = formText(formData, 'taxon_id_ffb');
   const sinonimoTaxonId = formText(formData, 'sinonimo_taxon_id_ffb');
   if (!/^\d*$/.test(taxonId) || !/^\d*$/.test(sinonimoTaxonId)) return { error: 'Escolha inválida na busca.', fields };
@@ -50,7 +50,7 @@ export async function saveEspecieAction(_previous: FormState, formData: FormData
         { ...parsed.value, ativa: id ? formData.get('ativa') === 'on' : true },
         { nova: foto.value, remover: formData.get('remover_foto') === 'on' },
       );
-      // RN-68: conferir o nome não bloqueia; o que não bate fica pendente para a chefia
+      // RN-05: conferir o nome não bloqueia; o que não bate fica pendente para a chefia
       if (salva.resultado === 'ok') {
         await conferirNomeNaFfb(client, salva.id, { taxonId: taxonId || null, sinonimoTaxonId: sinonimoTaxonId || null });
       }
@@ -68,7 +68,7 @@ export async function saveEspecieAction(_previous: FormState, formData: FormData
   return { success: 'Espécie salva.' };
 }
 
-/** RF-68: a busca do cadastro, no que o viveiro já tem e na cópia local da FFB. */
+/** RF-11: a busca do cadastro, no que o viveiro já tem e na cópia local da FFB. */
 export async function buscarNomesEspecieAction(termo: string): Promise<ResultadoBusca> {
   await requirePermission('especies', 'C');
   if (typeof termo !== 'string' || termo.length > 80) return { doViveiro: [], daFlora: [] };

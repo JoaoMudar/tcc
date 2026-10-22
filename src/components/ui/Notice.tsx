@@ -15,7 +15,7 @@ const TONES: Record<Tone, { className: string; mark: string }> = {
 };
 
 /**
- * Aviso na tela. É a confirmação visual imediata de toda gravação (RNF-04):
+ * Aviso na tela. É a confirmação visual imediata de toda gravação (RNF-09):
  * erro é anunciado como alerta, o resto como status.
  */
 export function Notice({ tone, children }: NoticeProps) {

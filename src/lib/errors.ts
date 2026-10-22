@@ -48,7 +48,7 @@ const PG_TRANSITORIOS = new Set(['40001', '40P01']);
 
 /**
  * O erro que repetir não resolve: regra de negócio ou dado recusado pelo banco.
- * A fila do aparelho (RNF-05) usa isto para separar o registro recusado, que
+ * A fila do aparelho (RNF-04) usa isto para separar o registro recusado, que
  * espera a pessoa, do que falhou por acaso e vai sozinho na próxima tentativa.
  */
 export function isErroDefinitivo(error: unknown): boolean {

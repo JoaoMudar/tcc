@@ -7,7 +7,7 @@ interface CausaPickerProps {
   required?: boolean;
 }
 
-/** RN-10: a causa é tocada numa lista fechada, nunca digitada (RNF-02). */
+/** RN-19: a causa é tocada numa lista fechada, nunca digitada (RNF-06). */
 export function CausaPicker({ legenda = 'Causa', defaultValue, required = true }: CausaPickerProps) {
   return (
     <fieldset className="flex flex-col gap-1">

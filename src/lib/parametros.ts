@@ -169,7 +169,7 @@ export function validateParametros(
 }
 
 /**
- * Até quantos dias à frente o protocolo sugere (RF-47). É parâmetro, e não
+ * Até quantos dias à frente o protocolo sugere (RF-53). É parâmetro, e não
  * constante: sugerir um ano de limpezas trimestrais encheria a lista de avisos
  * que ninguém olha por nove meses. A migration garante a linha.
  */
@@ -179,7 +179,7 @@ export async function horizonteProtocolo(db: Db): Promise<number> {
   return Number(rows[0].valor);
 }
 
-/** RN-64: o consumo e o preço do litro, de Configurações. A migration garante as linhas. */
+/** RN-54: o consumo e o preço do litro, de Configurações. A migration garante as linhas. */
 export async function parametrosDoFrete(db: Db): Promise<{ kmPorLitro: number; precoLitro: number }> {
   const { rows } = await db.query<{ chave: string; valor: string }>(
     'SELECT chave, valor FROM parametros WHERE chave = ANY($1::text[])',

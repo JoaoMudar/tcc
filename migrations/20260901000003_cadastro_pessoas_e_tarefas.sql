@@ -2,7 +2,7 @@
 -- Descricao: Identidade unica de pessoas (schema `cadastro`) e catalogo de tipos
 --            de tarefa.
 --
--- Requisitos: RF-14 a RF-21 · Regras: RN-15, RN-19, RN-20, RN-43 a RN-45, RN-49
+-- Requisitos: RF-17 a RF-22, RF-37 · Regras: RN-27, RN-14, RN-22, RN-45, RN-46, RN-48, RN-47
 -- Entidades: C8 `cadastro.pessoas`, `cadastro.pessoas_papeis`, `cadastro.pessoas_enderecos`, `tipos_tarefa`
 --
 -- UMA PESSOA, VARIOS PAPEIS (RN-45). Quem vende muda ao viveiro e as vezes compra
@@ -22,7 +22,7 @@ CREATE TABLE cadastro.pessoas (
   tipo          cadastro.tipo_pessoa NOT NULL,
   nome          TEXT NOT NULL,
 
-  -- CPF ou CNPJ, apenas digitos. Nulo no cadastro rapido (RF-15, RN-44): nome e
+  -- CPF ou CNPJ, apenas digitos. Nulo no cadastro rapido (RF-20, RN-48): nome e
   -- telefone bastam para registrar o pedido, e a ficha se completa depois.
   documento     TEXT UNIQUE,
 
@@ -62,7 +62,7 @@ CREATE TABLE cadastro.pessoas_papeis (
 CREATE INDEX pessoas_papeis_por_papel ON cadastro.pessoas_papeis (papel) WHERE ativo;
 
 -- UMA PESSOA TEM MAIS DE UM ENDERECO, e o de entrega pode nao ser o de cobranca
--- (RN-49).
+-- (RN-47).
 CREATE TABLE cadastro.pessoas_enderecos (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   pessoa_id     UUID NOT NULL REFERENCES cadastro.pessoas(id) ON DELETE CASCADE,
@@ -88,7 +88,7 @@ CREATE UNIQUE INDEX usuarios_uma_credencial_por_pessoa
   ON usuarios (pessoa_id) WHERE pessoa_id IS NOT NULL;
 
 -- ------------------------------------------------------------
--- O catalogo de tarefas comanda o formulario (RF-21, RN-15)
+-- O catalogo de tarefas comanda o formulario (RF-37, RN-27)
 -- ------------------------------------------------------------
 -- E o tipo de tarefa que diz se a tela vai pedir especie, recipiente, lote ou uma
 -- contagem por participante. Sem isso, ou o formulario pede tudo sempre (e ninguem
@@ -98,10 +98,10 @@ CREATE TABLE tipos_tarefa (
   nome             TEXT NOT NULL UNIQUE,
   categoria        TEXT NOT NULL,
 
-  -- Faz a confirmacao pedir um numero POR PARTICIPANTE (RF-29, RN-23).
+  -- Faz a confirmacao pedir um numero POR PARTICIPANTE (RF-40, RN-28).
   e_quantitativa   BOOLEAN NOT NULL DEFAULT false,
 
-  -- Faz aparecer o campo de lote, e dispensa o canteiro, que vem dele (RN-24).
+  -- Faz aparecer o campo de lote, e dispensa o canteiro, que vem dele (RF-37).
   exige_lote       BOOLEAN NOT NULL DEFAULT false,
 
   -- Para as tarefas que pedem especie ou recipiente sem haver lote, como colher
@@ -113,7 +113,7 @@ CREATE TABLE tipos_tarefa (
   criado_em        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   atualizado_em    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
-  -- RF-21: seis categorias, e a categoria nao comanda formulario algum. Ela agrupa
+  -- RF-37: seis categorias, e a categoria nao comanda formulario algum. Ela agrupa
   -- a lista e os relatorios.
   CONSTRAINT tipos_tarefa_categoria_valida CHECK (categoria IN
     ('semente', 'terra', 'plantio', 'manutencao', 'pos_morte', 'expedicao'))
@@ -145,4 +145,4 @@ COMMENT ON SCHEMA cadastro IS
 COMMENT ON TABLE cadastro.pessoas_papeis IS
   'Papeis de uma mesma pessoa: cliente, fornecedor, funcionario. Chave composta. RN-45.';
 COMMENT ON TABLE tipos_tarefa IS
-  'Catalogo de tarefas. As tres declaracoes comandam o que a tela pede. RF-21, RN-15.';
+  'Catalogo de tarefas. As tres declaracoes comandam o que a tela pede. RF-37, RN-27.';

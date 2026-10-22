@@ -27,7 +27,7 @@ export default async function MaisPage() {
           </Link>
         ))}
         <BotaoSair logoutAction={logout} />
-        {/* Licença CC-BY 4.0 da lista de nomes usada no cadastro de espécie (RF-68) */}
+        {/* Licença CC-BY 4.0 da lista de nomes usada no cadastro de espécie (RF-11) */}
         {atribuicao && <p className="pt-4 text-xs text-muted">{atribuicao}</p>}
       </div>
     </main>

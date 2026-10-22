@@ -26,7 +26,7 @@ function montar(situacao: SituacaoPedido, sobre: Partial<Parameters<typeof Proxi
 const botoes = () => screen.queryAllByRole('button').map((b) => b.textContent);
 const links = () => screen.queryAllByRole('link').map((l) => l.textContent);
 
-describe('ProximoPasso: só o passo seguinte do fluxo (RN-53)', () => {
+describe('ProximoPasso: só o passo seguinte do fluxo (RN-55)', () => {
   it('no orçamento, só começar a verificação', () => {
     montar('cadastrado');
     expect(links()).toEqual(['Começar verificação']);

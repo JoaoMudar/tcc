@@ -1,10 +1,10 @@
 -- Migration: 20261001000001_atribuicoes_prioridade.sql
 -- Descricao: A tarefa ganha a precedencia de desenho na grade da semana.
 --
--- Requisitos: RF-26, RNF-14
+-- Requisitos: RF-38, RNF-03
 -- Entidades: C8 `atribuicoes`
 --
--- POR QUE ESTA MIGRATION EXISTE. RF-26 admite duas tarefas ao mesmo tempo para a
+-- POR QUE ESTA MIGRATION EXISTE. RF-38 admite duas tarefas ao mesmo tempo para a
 -- mesma pessoa. A grade da semana nao empilha mais uma sob a outra: onde se
 -- cruzam, a de maior precedencia aparece inteira e a coberta fica minimizada
 -- embaixo. A precedencia comeca na ordem de lancamento (a ultima lancada

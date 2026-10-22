@@ -1,5 +1,5 @@
 /**
- * CPF, CNPJ e telefone (RF-17). Funções puras, sem SQL: o formulário usa as
+ * CPF, CNPJ e telefone (RF-21). Funções puras, sem SQL: o formulário usa as
  * mesmas no navegador, na saída do campo, e a action no servidor.
  */
 

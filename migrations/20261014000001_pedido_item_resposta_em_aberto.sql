@@ -1,7 +1,7 @@
 -- Migration: 20261014000001_pedido_item_resposta_em_aberto.sql
 -- Descricao: A conferencia guarda o botao tocado ("Tem", "Tem parte") enquanto falta campo obrigatorio.
 --
--- Requisitos: RF-59
+-- Requisitos: RF-63
 -- Entidades: C8 `pedidos_itens`
 --
 -- POR QUE ESTA MIGRATION EXISTE. A gerencia toca "Tem" num item cujo cliente
@@ -29,4 +29,4 @@ ALTER TABLE pedidos_itens ADD CONSTRAINT pedidos_itens_resposta_em_aberto_penden
 );
 
 COMMENT ON COLUMN pedidos_itens.resposta_em_aberto IS
-  'Botao tocado na conferencia ("disponivel" e "Tem", "parcial" e "Tem parte") que ainda nao grava por falta de campo obrigatorio. So com o item pendente; responder apaga. RF-59.';
+  'Botao tocado na conferencia ("disponivel" e "Tem", "parcial" e "Tem parte") que ainda nao grava por falta de campo obrigatorio. So com o item pendente; responder apaga. RF-63.';

@@ -8,7 +8,7 @@ import { SelectField } from '@/components/ui/SelectField';
 import { EMPTY_FORM_STATE } from '@/lib/form-state';
 import { deleteCanteiro } from './actions';
 
-/** Escolher na lista e confirmar no botão: um × em cada número seria alvo de toque pequeno demais (RNF-03). */
+/** Escolher na lista e confirmar no botão: um × em cada número seria alvo de toque pequeno demais (RNF-08). */
 export function ExcluirCanteiroForm({ canteiros }: { canteiros: readonly { id: string; numero: number }[] }) {
   const [state, formAction, pending] = useActionState(deleteCanteiro, EMPTY_FORM_STATE);
 

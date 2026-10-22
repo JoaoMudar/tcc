@@ -32,7 +32,7 @@ function lote(extra: Partial<LoteNoMapa> = {}): LoteNoMapa {
   };
 }
 
-describe('RF-66: o que se pode fazer com o que pede providência', () => {
+describe('RF-55: o que se pode fazer com o que pede providência', () => {
   it('a etapa do protocolo se marca já preenchida ou se registra como feita', () => {
     const p = providenciaDoLote(lote({ protocoloEtapaPendenteId: 'e1', tipoTarefaPendenteId: 't1', turnoPendenteId: 'm1' }), 'Limpeza, atrasada 10 dias', SEMANA);
     expect(p).toMatchObject({
@@ -110,7 +110,7 @@ describe('RF-66: o que se pode fazer com o que pede providência', () => {
     for (const ruim of ['', '0', '-3', '2.5', '91', 'sete']) expect(parseDiasAdiamento(ruim)).toHaveProperty('error');
   });
 
-  it('RN-63: o motor soma o adiamento ao vencimento, como a visão', () => {
+  it('RN-41: o motor soma o adiamento ao vencimento, como a visão', () => {
     const limpeza = { dias: 90, intervaloDias: 90, alertaLigado: true, janelaAvisoPct: null };
     const estado = { dataAncora: '2026-01-10', ultimaExecucaoEm: '2026-09-15', ocorrencias: 1 };
     expect(vencimentoDaEtapa(limpeza, estado, null)).toBe('2026-12-14');
@@ -118,7 +118,7 @@ describe('RF-66: o que se pode fazer com o que pede providência', () => {
   });
 });
 
-describe('RF-66: para onde vai a tarefa alterada', () => {
+describe('RF-55: para onde vai a tarefa alterada', () => {
   it('vinda do "Marcar na agenda", volta para a agenda do dia novo, sem abrir a ficha', () => {
     expect(destinoAposAlterar('a1', '2026-10-07', 'agenda')).toBe('/producao?dia=2026-10-07&feito=alterada');
   });

@@ -1,23 +1,23 @@
 -- Migration: 20260918000001_protocolo_de_atividades.sql
 -- Descricao: O protocolo de manejo do recipiente, e o percurso do lote por ele.
 --
--- Requisitos: RF-22 a RF-25, RF-40, RF-45 a RF-53 · Regras: RN-30 a RN-41
+-- Requisitos: RF-43 a RF-46, RF-30, RF-47 a RF-54, RF-58 · Regras: RN-32 a RN-40, RN-42 a RN-44
 -- Entidades: C8 `protocolos`, `protocolos_etapas`, `especies_protocolos_tempos`,
 --            `lotes_etapas`, `lotes_etapas_vencimento` (visao); `lotes` e
 --            `atribuicoes` emendadas
 --
--- O PROTOCOLO PERTENCE AO RECIPIENTE, E NAO A ESPECIE (RN-30). E o vasilhame que
+-- O PROTOCOLO PERTENCE AO RECIPIENTE, E NAO A ESPECIE (RN-32). E o vasilhame que
 -- determina o manejo: o mesmo ipe em tubete e em saco 20x26 segue receitas
 -- diferentes. Por isso `protocolos.recipiente_id` existe e `especie_id` nao; o que
--- a especie pode fazer e sobrescrever o TEMPO de uma etapa (RN-36), que e o que
+-- a especie pode fazer e sobrescrever o TEMPO de uma etapa (RN-38), que e o que
 -- `especies_protocolos_tempos` guarda.
 --
--- `lotes_etapas` GUARDA FATOS, E NUNCA O VENCIMENTO (RN-40). O vencimento e funcao
+-- `lotes_etapas` GUARDA FATOS, E NUNCA O VENCIMENTO (RN-35). O vencimento e funcao
 -- da ancora, da ultima execucao e do tempo efetivo: gravado, seria um numero que
 -- depende do dia de hoje e envelhece sozinho, pela mesma razao de `situacao_lote`
 -- nao ser tabela. Quem o calcula e a visao `lotes_etapas_vencimento`.
 --
--- O PROTOCOLO SUGERE, E NAO LANCA (RF-47, RN-41). Nada aqui escreve em
+-- O PROTOCOLO SUGERE, E NAO LANCA (RF-53, RN-40). Nada aqui escreve em
 -- `atribuicoes`: a tarefa so existe quando a gerencia aceita a sugestao e a
 -- preenche por inteiro. `atribuicoes.lote_etapa_id` e `vencimento_protocolo` ja
 -- esperavam por esta migration desde 20260901000005, sem chave estrangeira.
@@ -76,7 +76,7 @@ CREATE TRIGGER protocolos_define_atualizado_em
 -- ------------------------------------------------------------
 -- A linha da receita
 -- ------------------------------------------------------------
--- A ANCORA E ATRIBUTO, E NAO CONSEQUENCIA DE `posicao` (RN-31). Derivar "a etapa
+-- A ANCORA E ATRIBUTO, E NAO CONSEQUENCIA DE `posicao` (RN-34). Derivar "a etapa
 -- anterior" da ordem da lista faria "Classificar pos-germinacao" contar da criacao
 -- do lote, e a semente pode ficar dias esperando plantio antes de germinar:
 -- mandaria classificar muda que ainda nao nasceu. A etapa ancora nao precisa ser a
@@ -98,11 +98,11 @@ CREATE TABLE protocolos_etapas (
 
   posicao          INTEGER NOT NULL,
 
-  -- RN-34: a sequencial acontece uma vez e avanca a fase do lote; a recorrente se
+  -- RN-33: a sequencial acontece uma vez e avanca a fase do lote; a recorrente se
   -- repete e nunca avanca fase.
   tipo_agendamento TEXT NOT NULL,
 
-  -- RN-31: de que evento a contagem parte.
+  -- RN-34: de que evento a contagem parte.
   tipo_ancora      TEXT NOT NULL,
   etapa_ancora_id  UUID REFERENCES protocolos_etapas(id),
 
@@ -111,24 +111,24 @@ CREATE TABLE protocolos_etapas (
   dias             INTEGER NOT NULL,
 
   -- So recorrente: dias entre uma ocorrencia e a seguinte, contados da EXECUCAO
-  -- REAL (RN-32).
+  -- REAL (RN-36).
   intervalo_dias   INTEGER,
 
   -- Obrigatorio porque `atribuicoes.turno_id` e NOT NULL, e a sugestao chega ao
   -- formulario com ele ja respondido.
   turno_id         UUID NOT NULL REFERENCES turnos_trabalho(id),
 
-  -- RN-35: liga a regra de atraso. Falso nas rotinas diarias, que nao recebem cor
+  -- RN-39: liga a regra de atraso. Falso nas rotinas diarias, que nao recebem cor
   -- nenhuma: etapa diaria colorida deixaria o viveiro inteiro em atraso toda manha.
   alerta_ligado    BOOLEAN NOT NULL DEFAULT true,
 
   -- Janela de aviso propria, em percentual do intervalo. Nula usa o parametro
-  -- `producao.protocolo_janela_aviso_pct` (RN-35). E percentual e so percentual:
+  -- `producao.protocolo_janela_aviso_pct` (RN-39). E percentual e so percentual:
   -- um override absoluto em dias existiria para discordar do percentual.
   janela_aviso_pct NUMERIC(5,2),
 
   -- So sequencial: a fase que a conclusao grava em `lotes.fase`, na mesma lista
-  -- fechada de la. Nula nao altera a fase (RN-34).
+  -- fechada de la. Nula nao altera a fase (RN-33).
   fase_resultante  TEXT,
 
   ativo            BOOLEAN NOT NULL DEFAULT true,
@@ -163,7 +163,7 @@ CREATE TABLE protocolos_etapas (
     janela_aviso_pct IS NULL OR (janela_aviso_pct >= 0 AND janela_aviso_pct <= 100)
   ),
 
-  -- RN-34: so a sequencial avanca fase, e a fase tem de existir na lista de `lotes`.
+  -- RN-33: so a sequencial avanca fase, e a fase tem de existir na lista de `lotes`.
   CONSTRAINT protocolos_etapas_fase_coerente CHECK (
     fase_resultante IS NULL
     OR (tipo_agendamento = 'sequencial' AND fase_resultante IN
@@ -185,7 +185,7 @@ CREATE TRIGGER protocolos_etapas_define_atualizado_em
 -- ------------------------------------------------------------
 -- O tempo que a especie sobrescreve
 -- ------------------------------------------------------------
--- NAO SAO COLUNAS EM `especies` (RN-36). Sao 142 especies contra as etapas de cada
+-- NAO SAO COLUNAS EM `especies` (RN-38). Sao 142 especies contra as etapas de cada
 -- protocolo, e a maioria nao sobrescreve nada: colunas produziriam uma matriz quase
 -- toda nula, e cada etapa nova exigiria migration em `especies`.
 CREATE TABLE especies_protocolos_tempos (
@@ -241,7 +241,7 @@ CREATE TABLE lotes_etapas (
   -- germinou", que e diferente de "germinou hoje" e de "ninguem preencheu".
   data_ancora        DATE,
 
-  -- Data REAL da ultima execucao, e nao a da ordem (RN-32). Usar a data planejada
+  -- Data REAL da ultima execucao, e nao a da ordem (RN-36). Usar a data planejada
   -- devolveria o comportamento de calendario fixo que o modulo existe para nao ter.
   ultima_execucao_em DATE,
 
@@ -251,7 +251,7 @@ CREATE TABLE lotes_etapas (
   -- visao de vencimentos.
   concluido_em       TIMESTAMPTZ,
 
-  -- Lote de origem, quando o estado veio de uma divisao (RN-39).
+  -- Lote de origem, quando o estado veio de uma divisao (RN-43).
   herdado_do_lote_id UUID REFERENCES lotes(id),
 
   criado_em          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -286,11 +286,11 @@ ALTER TABLE atribuicoes
   ADD CONSTRAINT atribuicoes_lote_etapa_fk
   FOREIGN KEY (lote_etapa_id, lote_id) REFERENCES lotes_etapas(protocolo_etapa_id, lote_id);
 
--- UMA ORDEM EM ABERTO POR ETAPA E POR VENCIMENTO (RN-33, RF-50). A garantia e
+-- UMA ORDEM EM ABERTO POR ETAPA E POR VENCIMENTO (RN-37, RF-50). A garantia e
 -- indice unico, e nao validacao de aplicacao: duas telas abertas ao mesmo tempo
 -- dobrariam a tarefa do dia, e as horas planejadas dobrariam com elas (E2, nota de
 -- TA-39). A ordem cancelada sai do indice, porque cancelar e o que permite lancar
--- de novo (RN-38).
+-- de novo (RN-44).
 CREATE UNIQUE INDEX atribuicoes_uma_ordem_por_vencimento
   ON atribuicoes (lote_etapa_id, lote_id, vencimento_protocolo)
   WHERE lote_etapa_id IS NOT NULL AND situacao <> 'cancelada';
@@ -298,16 +298,16 @@ CREATE UNIQUE INDEX atribuicoes_uma_ordem_por_vencimento
 -- ------------------------------------------------------------
 -- Os parametros do protocolo
 -- ------------------------------------------------------------
--- A JANELA E PERCENTUAL, E NAO LIMITE FIXO EM DIAS (RN-35). Limite fixo e cedo
+-- A JANELA E PERCENTUAL, E NAO LIMITE FIXO EM DIAS (RN-39). Limite fixo e cedo
 -- demais para o trimestral e tarde demais para o semanal: 20% de 90 dias sao 18
 -- dias de aviso, e 20% de 7 dias sao pouco mais de um. Os parametros
 -- `producao.atraso_*` continuam existindo e passam a reger apenas as atribuicoes
 -- lancadas a mao.
 INSERT INTO parametros (chave, valor, tipo_valor, descricao) VALUES
   ('producao.protocolo_janela_aviso_pct', '20', 'numero',
-   'Percentual do intervalo da etapa em que ela entra em atencao antes de vencer (RF-24, RN-35)'),
+   'Percentual do intervalo da etapa em que ela entra em atencao antes de vencer (RF-45, RN-39)'),
   ('producao.protocolo_horizonte_dias', '14', 'numero',
-   'Ate quantos dias a frente as etapas aparecem como sugestao ao lado da semana (RF-47)');
+   'Ate quantos dias a frente as etapas aparecem como sugestao ao lado da semana (RF-53)');
 
 -- ------------------------------------------------------------
 -- O vencimento, que e derivado
@@ -339,7 +339,7 @@ SELECT
 
   efetivo.dias_efetivos,
 
-  -- RN-40: conta da execucao real quando ja houve uma, e da ancora quando nunca
+  -- RN-35: conta da execucao real quando ja houve uma, e da ancora quando nunca
   -- houve. E o que separa o protocolo de uma agenda de calendario.
   (COALESCE(le.ultima_execucao_em, le.data_ancora) + efetivo.dias_efetivos) AS proximo_vencimento,
 
@@ -360,7 +360,7 @@ JOIN lotes b             ON b.id = le.lote_id
 JOIN protocolos_etapas pe ON pe.id = le.protocolo_etapa_id
 CROSS JOIN padrao p
 
--- O TEMPO EFETIVO E O DA ESPECIE QUANDO ELA O DECLARA (RN-36), e `dias` vale na
+-- O TEMPO EFETIVO E O DA ESPECIE QUANDO ELA O DECLARA (RN-38), e `dias` vale na
 -- primeira ocorrencia enquanto `intervalo_dias` vale nas seguintes.
 CROSS JOIN LATERAL (
   SELECT CASE
@@ -384,24 +384,24 @@ WHERE b.encerrado_em IS NULL
 -- Comentarios
 -- ------------------------------------------------------------
 COMMENT ON TABLE protocolos IS
-  'Receita de manejo de um recipiente. Um vigente por recipiente, e a edicao nao retroage. RN-30, RN-37.';
+  'Receita de manejo de um recipiente. Um vigente por recipiente, e a edicao nao retroage. RN-32, RN-42.';
 COMMENT ON TABLE protocolos_etapas IS
-  'Linha da receita: a tarefa, quando ela ocorre e de que evento conta. RN-31, RN-34.';
+  'Linha da receita: a tarefa, quando ela ocorre e de que evento conta. RN-34, RN-33.';
 COMMENT ON COLUMN protocolos_etapas.etapa_ancora_id IS
-  'Etapa cuja conclusao inicia a contagem. O ciclo e barrado na aplicacao, nao aqui. RN-31.';
+  'Etapa cuja conclusao inicia a contagem. O ciclo e barrado na aplicacao, nao aqui. RN-34.';
 COMMENT ON COLUMN protocolos_etapas.janela_aviso_pct IS
-  'Janela de aviso propria, em percentual. Nula usa producao.protocolo_janela_aviso_pct. RN-35.';
+  'Janela de aviso propria, em percentual. Nula usa producao.protocolo_janela_aviso_pct. RN-39.';
 COMMENT ON TABLE especies_protocolos_tempos IS
-  'Tempo de etapa sobrescrito por especie. Ao menos um dos dois valores vem preenchido. RN-36.';
+  'Tempo de etapa sobrescrito por especie. Ao menos um dos dois valores vem preenchido. RN-38.';
 COMMENT ON TABLE lotes_etapas IS
-  'Acompanhamento do lote na etapa. Guarda fatos, e nunca o vencimento. RN-40.';
+  'Acompanhamento do lote na etapa. Guarda fatos, e nunca o vencimento. RN-35.';
 COMMENT ON COLUMN lotes_etapas.data_ancora IS
-  'Data do evento de referencia. Nula significa que a ancora ainda nao ocorreu. RN-31.';
+  'Data do evento de referencia. Nula significa que a ancora ainda nao ocorreu. RN-34.';
 COMMENT ON COLUMN lotes_etapas.ultima_execucao_em IS
-  'Data real da ultima execucao, e nao a da ordem. RN-32.';
+  'Data real da ultima execucao, e nao a da ordem. RN-36.';
 COMMENT ON VIEW lotes_etapas_vencimento IS
-  'Proximo vencimento e situacao de cada etapa do lote. Derivada, nunca digitada. RF-51, RF-52, RN-40.';
+  'Proximo vencimento e situacao de cada etapa do lote. Derivada, nunca digitada. RF-48, RF-51, RN-35.';
 COMMENT ON COLUMN lotes.data_criacao IS
-  'Data em que a leva passou a ocupar canteiro. Ancora das etapas que contam da criacao. RN-31.';
+  'Data em que a leva passou a ocupar canteiro. Ancora das etapas que contam da criacao. RN-34.';
 COMMENT ON COLUMN lotes.data_plantio IS
   'Data real da conclusao do plantio, gravada pelo protocolo. Vazia significa que ainda nao germinou.';

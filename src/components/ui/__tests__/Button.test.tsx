@@ -8,7 +8,7 @@ describe('Button', () => {
     expect(screen.getByRole('button', { name: 'Registrar perda' })).toHaveAttribute('type', 'button');
   });
 
-  it('tem alvo de toque mínimo (RNF-03)', () => {
+  it('tem alvo de toque mínimo (RNF-08)', () => {
     render(<Button>Salvar</Button>);
     expect(screen.getByRole('button').className).toContain('min-h-touch');
   });

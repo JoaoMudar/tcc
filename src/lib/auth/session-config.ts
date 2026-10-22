@@ -9,7 +9,7 @@ export const SESSION_MAX_AGE_SECONDS = SESSION_DAYS * 24 * 60 * 60;
 /** O banco só é regravado se o último uso tem mais de uma hora. */
 export const SESSION_RENEW_AFTER_MS = 60 * 60 * 1000;
 
-/** RNF-10: só HTTPS, invisível para o JavaScript da página, sem envio entre sites. */
+/** RNF-14: só HTTPS, invisível para o JavaScript da página, sem envio entre sites. */
 export function sessionCookieOptions() {
   return {
     httpOnly: true,

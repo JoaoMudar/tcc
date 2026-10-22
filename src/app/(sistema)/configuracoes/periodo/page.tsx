@@ -8,7 +8,7 @@ import { requirePageAccess } from '@/lib/auth/guards';
 import { NovoTurnoForm } from './NovoTurnoForm';
 import { TurnoForm } from './TurnoForm';
 
-/** F1 UC-05: período de trabalho (RF-08). Gerência lê, chefia e admin alteram. */
+/** F1 UC-05: período de trabalho (RF-09). Gerência lê, chefia e admin alteram. */
 export default async function PeriodoTrabalhoPage() {
   const user = await requirePageAccess('periodo_trabalho');
   const turnos = await listTurnos(pool);

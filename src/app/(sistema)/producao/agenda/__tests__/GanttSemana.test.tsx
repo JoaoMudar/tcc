@@ -84,7 +84,7 @@ beforeEach(() => {
 
 afterEach(() => vi.useRealTimers());
 
-describe('GanttSemana: desenho (T5.1, RNF-14)', () => {
+describe('GanttSemana: desenho (T5.1, RNF-03)', () => {
   it('a barra traz o título, a faixa e o fundo da categoria, e leva à ficha', () => {
     montar();
     const barra = screen.getByRole('link', { name: TITULO });
@@ -101,7 +101,7 @@ describe('GanttSemana: desenho (T5.1, RNF-14)', () => {
     expect(within(barra).getByText(TITULO).className).toContain('text-white');
   });
 
-  it('o almoço não ocupa largura: a manhã é a primeira metade e a tarde a segunda, sem tracejado (RN-12)', () => {
+  it('o almoço não ocupa largura: a manhã é a primeira metade e a tarde a segunda, sem tracejado (RN-24)', () => {
     montar([tarefa(), tarefa({ id: 'a2', turnoId: TARDE.id, turno: 'tarde' })]);
     const [manha, tarde] = screen.getAllByRole('link', { name: TITULO });
     expect(estilo(manha).left).toBe('0%');
@@ -155,7 +155,7 @@ describe('GanttSemana: desenho (T5.1, RNF-14)', () => {
   });
 });
 
-describe('GanttSemana: sobreposição em duas faixas (RF-26)', () => {
+describe('GanttSemana: sobreposição em duas faixas (RF-38)', () => {
   it('a linha não cresce: a mais longa fica em cima com 60%, e a outra embaixo com 40%', () => {
     montar([tarefa(), tarefa(IRRIGACAO)]);
     expect((linhaDe(GILBERTO.id) as HTMLElement).style.height).toBe('60px');
@@ -203,7 +203,7 @@ describe('GanttSemana: sobreposição em duas faixas (RF-26)', () => {
     expect(Object.fromEntries((vi.mocked(promoverAtribuicaoAction).mock.calls[0][1] as FormData).entries())).toEqual({ id: 'a2' });
   });
 
-  it('Shift com seta para cima na secundária também a torna principal (RNF-03)', async () => {
+  it('Shift com seta para cima na secundária também a torna principal (RNF-08)', async () => {
     montar([tarefa(), tarefa(IRRIGACAO)]);
     await act(async () => fireEvent.keyDown(screen.getByRole('link', { name: /^Irrigação.*faixa de baixo/ }), { key: 'ArrowUp', shiftKey: true }));
     expect(promoverAtribuicaoAction).toHaveBeenCalledTimes(1);
@@ -292,7 +292,7 @@ describe('GanttSemana: o dia sob o mouse cresce', () => {
   });
 });
 
-describe('GanttSemana: lançar no vazio (RF-26)', () => {
+describe('GanttSemana: lançar no vazio (RF-38)', () => {
   /** A célula com 100px: oito horas úteis, cada pixel vale 4,8 minutos. */
   function clicarEm(botao: Element, clientX: number) {
     botao.getBoundingClientRect = () => ({ left: 0, width: 100, top: 0, height: 60, right: 100, bottom: 60, x: 0, y: 0, toJSON: () => ({}) });
@@ -334,7 +334,7 @@ describe('GanttSemana: lançar no vazio (RF-26)', () => {
   });
 });
 
-describe('GanttSemana: arrastar (RNF-14, RN-61)', () => {
+describe('GanttSemana: arrastar (RNF-03, RF-38)', () => {
   it('sem permissão, ou tarefa já feita, a barra não tem borda para puxar', () => {
     const { unmount } = montar([tarefa()], { podeArrastar: false });
     expect(screen.queryByLabelText(/Mudar o início/)).toBeNull();
@@ -409,7 +409,7 @@ describe('GanttSemana: arrastar (RNF-14, RN-61)', () => {
     expect(reagendarAtribuicaoAction).not.toHaveBeenCalled();
   });
 
-  it('shift com a seta remarca pelo teclado, sem trocar de semana (RNF-03)', async () => {
+  it('shift com a seta remarca pelo teclado, sem trocar de semana (RNF-08)', async () => {
     montar([tarefa({ horaInicio: '07:30', horaFim: '08:30' })]);
     await act(async () => fireEvent.keyDown(screen.getByRole('link', { name: TITULO }), { key: 'ArrowRight', shiftKey: true }));
     expect(enviado()).toEqual({ id: 'a1', data: SEMANA, turno_id: MANHA.id, hora_inicio: '07:45', hora_fim: '08:45' });

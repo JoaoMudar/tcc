@@ -55,7 +55,7 @@ describe('janelaDoDia', () => {
   });
 });
 
-describe('faixaDaBarra (RN-12)', () => {
+describe('faixaDaBarra (RN-24)', () => {
   it('sem hora, ocupa a janela do turno e sai marcada de derivada', () => {
     expect(faixaDaBarra({ turnoId: TARDE.id, horaInicio: null, horaFim: null }, TURNOS)).toEqual(faixa(13 * 60, 17 * 60, true));
   });
@@ -138,7 +138,7 @@ describe('turnoDoMinuto', () => {
   });
 });
 
-describe('turnoParaMinuto (RN-12)', () => {
+describe('turnoParaMinuto (RN-24)', () => {
   it('dentro do turno, é o próprio turno', () => {
     expect(turnoParaMinuto(8 * 60, TURNOS)).toBe(MANHA);
   });
@@ -240,7 +240,7 @@ describe('ímã nas bordas da jornada', () => {
   });
 });
 
-describe('comparaPrecedencia (RF-26)', () => {
+describe('comparaPrecedencia (RF-38)', () => {
   const p = (id: string, inicio: number, fim: number, prioridadeEm: string | null = null) => ({ id, prioridadeEm, faixa: { inicio, fim } });
 
   it('sem escolha, a mais longa vem antes', () => {
@@ -257,7 +257,7 @@ describe('comparaPrecedencia (RF-26)', () => {
   });
 });
 
-describe('sobrepor (RF-26)', () => {
+describe('sobrepor (RF-38)', () => {
   interface T {
     id: string;
     faixa: Faixa;

@@ -12,7 +12,7 @@ const PERCENTUAL = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 });
 
 /**
  * F1 UC-26, T4.6: o contado substitui o calculado, e a diferença aparece antes de
- * confirmar (RN-09). Sem rede fica no aparelho, e a diferença é refeita contra o
+ * confirmar (RN-17). Sem rede fica no aparelho, e a diferença é refeita contra o
  * saldo da hora em que chegar: a contagem diz quantas há, e é isso que vale.
  */
 export function ContagemForm({ loteId, codigo, saldo }: { loteId: string; codigo: string; saldo: number }) {

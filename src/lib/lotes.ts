@@ -154,15 +154,15 @@ async function inserirLote(client: Client, input: InsercaoLote): Promise<{ id: s
     registradoPor: input.registradoPor,
   });
 
-  // RF-46: o lote nasce seguindo o protocolo vigente do recipiente dele. Na
+  // RF-47: o lote nasce seguindo o protocolo vigente do recipiente dele. Na
   // repicagem o recipiente e outro, e por isso o lote novo segue outro
-  // protocolo: e o vasilhame que determina o manejo (RN-30), e a muda que passou
+  // protocolo: e o vasilhame que determina o manejo (RN-32), e a muda que passou
   // do tubete para o saco comeca o manejo do saco, contado da criacao dela.
   await materializarProtocolo(client, id, input.recipienteId, input.dataCriacao);
   return { id, codigo };
 }
 
-/** T4.2, RF-32: código gerado, posição no fim do canteiro e movimento de entrada. */
+/** T4.2, RF-23: código gerado, posição no fim do canteiro e movimento de entrada. */
 export async function criarLote(client: Client, input: NovoLote): Promise<{ id: string; codigo: string }> {
   return inserirLote(client, { ...input, loteOrigemId: null, fase: 'semeado', tipoEntrada: 'entrada' });
 }
@@ -170,7 +170,7 @@ export async function criarLote(client: Client, input: NovoLote): Promise<{ id: 
 export interface Repicagem {
   origemId: string;
   quantidade: number;
-  /** Mudas que morreram no processo: viram perda do lote de origem (RN-27). */
+  /** Mudas que morreram no processo: viram perda do lote de origem (RN-20). */
   perdidas: number;
   causa: CausaPerda | null;
   recipienteId: string;
@@ -181,7 +181,7 @@ export interface Repicagem {
   atribuicaoId?: string | null;
 }
 
-/** T4.8, RF-34: a repicagem não move o lote; baixa o de origem e cria um novo apontando para ele. */
+/** T4.8, RF-29: a repicagem não move o lote; baixa o de origem e cria um novo apontando para ele. */
 export async function repicarLote(
   client: Client,
   input: Repicagem,
@@ -261,9 +261,9 @@ export interface ResultadoDivisao {
 }
 
 /**
- * T6.10, RF-40, UC-24: a leva é a mesma, e passa a ocupar dois lugares. Os dois
+ * T6.10, RF-30, UC-24: a leva é a mesma, e passa a ocupar dois lugares. Os dois
  * resultantes herdam a fase, a data de plantio e o acompanhamento do protocolo
- * do original (RN-39), e o original encerra com motivo `dividido` (RN-38).
+ * do original (RN-43), e o original encerra com motivo `dividido` (RN-44).
  *
  * **Os dois nascem, e o original morre.** Não se aproveita o original como um
  * dos lados: metade da leva ficaria com o código antigo e a outra com um novo, e
@@ -272,7 +272,7 @@ export interface ResultadoDivisao {
  * dois lados.
  *
  * **Sobre a UC-24 FE-2, e a decisão é de 19/09/2026.** A FE-2 manda recusar a
- * divisão do lote com "apontamento em curso", e a RN-38 manda cancelar as ordens
+ * divisão do lote com "apontamento em curso", e a RN-44 manda cancelar as ordens
  * em aberto de quem encerra: as duas não cabem juntas se "apontamento em curso"
  * for a tarefa planejada. Aqui, o que recusa é a tarefa **confirmada** que ainda
  * não virou movimento fechado no dia da divisão, que é o caso cuja hora
@@ -337,7 +337,7 @@ export async function dividirLote(client: Client, input: Divisao): Promise<Resul
       tipoEntrada: 'divisao_entrada',
       dataMovimento: hoje,
     });
-    // RN-39: a fase e as datas das etapas continuam de onde o original estava
+    // RN-43: a fase e as datas das etapas continuam de onde o original estava
     if (dataPlantio) await client.query('UPDATE lotes SET data_plantio = $2 WHERE id = $1', [novo.id, dataPlantio]);
     await herdarProtocolo(client, origem.id, novo.id);
     return { ...novo, quantidade };
@@ -347,7 +347,7 @@ export async function dividirLote(client: Client, input: Divisao): Promise<Resul
   const b = await criar(input.quantidade, input.canteiroB);
 
   // A saída zera o original, e a porta única o encerra e cancela as ordens dele
-  // (RF-53). O motivo do encerramento é `dividido`, e não `saldo_zero`: o lote
+  // (RF-58). O motivo do encerramento é `dividido`, e não `saldo_zero`: o lote
   // não acabou, virou dois.
   await registrarMovimento(client, {
     loteId: origem.id,
@@ -371,7 +371,7 @@ export async function dividirLote(client: Client, input: Divisao): Promise<Resul
 }
 
 /**
- * T4.6, RF-39: a contagem vale mais que o calculado (RN-09). A diferença vira o
+ * T4.6, RF-26: a contagem vale mais que o calculado (RN-17). A diferença vira o
  * movimento de ajuste; sem diferença não há o que gravar, porque movimento de
  * quantidade zero só existe na transferência.
  */
@@ -402,10 +402,10 @@ export async function contarLote(
  *
  * **Continua existindo depois do protocolo (T6.7), e deixou de ser provisório.**
  * O protocolo avança a fase sozinho ao concluir etapa sequencial que declare
- * fase resultante (RF-48), mas o lote de recipiente sem protocolo não tem etapa
+ * fase resultante (RF-54), mas o lote de recipiente sem protocolo não tem etapa
  * nenhuma, e sem este caminho ele ficaria parado na primeira. A fase é do
  * manejo: não decide o que se vende, porque toda muda de lote aberto está à
- * venda (RN-06). Serve também para corrigir engano.
+ * venda (RN-10). Serve também para corrigir engano.
  */
 export async function alterarFase(db: Db, loteId: string, fase: Exclude<Fase, 'encerrado'>): Promise<'ok' | 'nao_encontrado'> {
   const { rowCount } = await db.query('UPDATE lotes SET fase = $2 WHERE id = $1 AND encerrado_em IS NULL', [loteId, fase]);
@@ -413,8 +413,8 @@ export async function alterarFase(db: Db, loteId: string, fase: Exclude<Fase, 'e
 }
 
 /**
- * RF-65: a altura atual da muda do lote, medida na ficha. Nula apaga a medida.
- * É o que o item de pedido compara com a altura pedida (RN-06, RN-62), e por
+ * RF-31: a altura atual da muda do lote, medida na ficha. Nula apaga a medida.
+ * É o que o item de pedido compara com a altura pedida (RN-10, RN-11), e por
  * isso guarda só a última: a muda cresce, e a medida antiga não vende nada.
  */
 export async function alterarAltura(db: Db, loteId: string, alturaM: number | null): Promise<'ok' | 'nao_encontrado'> {
@@ -486,7 +486,7 @@ export interface AreaOcupada {
   livres: number;
 }
 
-/** T4.3, RF-33: cada canteiro com os seus lotes abertos, e o que não tem nenhum marcado livre. */
+/** T4.3, RF-34: cada canteiro com os seus lotes abertos, e o que não tem nenhum marcado livre. */
 export function montarOcupacao(areas: readonly Area[], lotes: readonly LoteAberto[]): AreaOcupada[] {
   const porCanteiro = new Map<string, LoteAberto[]>();
   for (const lote of lotes) porCanteiro.set(lote.canteiroId, [...(porCanteiro.get(lote.canteiroId) ?? []), lote]);
@@ -516,7 +516,7 @@ export interface FichaLote {
   canteiroId: string | null;
   canteiro: string | null;
   fase: Fase;
-  /** Altura medida, em metros (RF-65). Nula é "ainda não medida". */
+  /** Altura medida, em metros (RF-31). Nula é "ainda não medida". */
   alturaM: number | null;
   quantidadeInicial: number;
   quantidadeAtual: number;
@@ -532,7 +532,7 @@ export interface FichaLote {
   filhos: { id: string; codigo: string }[];
 }
 
-/** T4.4, RF-35: a ficha, com o lote de origem e os que nasceram deste. */
+/** T4.4, RF-28: a ficha, com o lote de origem e os que nasceram deste. */
 export async function findLote(db: Db, id: string): Promise<FichaLote | null> {
   const { rows } = await db.query<FichaLote>(
     `SELECT l.id, l.codigo, l.especie_id AS "especieId", ${nomeEspecieSql('e')} AS especie,
@@ -589,7 +589,7 @@ export async function listMovimentos(db: Db, loteId: string): Promise<Movimento[
   return rows;
 }
 
-/** RF-35: a soma dos movimentos tem de reproduzir o saldo. Divergência é defeito. */
+/** RF-28: a soma dos movimentos tem de reproduzir o saldo. Divergência é defeito. */
 export function saldoDosMovimentos(movimentos: readonly Pick<Movimento, 'quantidade'>[]): number {
   return movimentos.reduce((soma, movimento) => soma + movimento.quantidade, 0);
 }

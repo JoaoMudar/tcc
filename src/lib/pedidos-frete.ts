@@ -38,7 +38,7 @@ interface DestinoDoPedido {
 }
 
 /**
- * RN-64: a sugestão de frete do pedido, saindo de Agrolândia, de Itapema ou de
+ * RN-54: a sugestão de frete do pedido, saindo de Agrolândia, de Itapema ou de
  * um endereço digitado (`outro`), até o destino do pedido (P19: o próprio, ou o
  * de entrega do cliente), de carro, ida e volta. No `outro`, a coordenada vem do endereço escolhido na
  * lista e, sem ela, o texto é procurado.

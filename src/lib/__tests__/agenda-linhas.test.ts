@@ -18,7 +18,7 @@ describe('aplicarMudanca (estado otimista da grade)', () => {
     expect(intacta).toBe(outra);
   });
 
-  it('RN-61: quem entra substitui quem sai, e o grupo segue em ordem de nome', () => {
+  it('RF-38: quem entra substitui quem sai, e o grupo segue em ordem de nome', () => {
     const grupo = tarefa({ participantes: [{ ...GILBERTO, quantidade: null }, { id: 'p9', nome: 'Zé', quantidade: null }] });
     const [movida] = aplicarMudanca([grupo], {
       id: 'a1',
@@ -31,7 +31,7 @@ describe('aplicarMudanca (estado otimista da grade)', () => {
     expect(movida.participantes.map((p) => p.nome)).toEqual(['João', 'Zé']);
   });
 
-  it('RF-26: trazer para cima só muda a precedência, no formato do banco', () => {
+  it('RF-38: trazer para cima só muda a precedência, no formato do banco', () => {
     const agora = prioridadeAgora();
     expect(agora).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/);
     const [promovida] = aplicarMudanca([tarefa()], { id: 'a1', prioridadeEm: agora });
@@ -62,7 +62,7 @@ describe('dadosDaMudanca', () => {
   });
 });
 
-describe('confirmavelNumToque (RF-29 no celular)', () => {
+describe('confirmavelNumToque (RF-40 no celular)', () => {
   it('a tarefa sem nada a perguntar confirma num toque', () => {
     expect(confirmavelNumToque(tarefa())).toBe(true);
     expect(confirmavelNumToque(tarefa({ exigeLote: true, loteId: 'l1' }))).toBe(true);

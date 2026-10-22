@@ -13,7 +13,7 @@ export interface Area {
   canteiros: Canteiro[];
 }
 
-/** A área é uma letra, como a equipe já fala no viveiro (RF-13). */
+/** A área é uma letra, como a equipe já fala no viveiro (RF-16). */
 export function parseLetra(text: string): { error: string } | { value: string } {
   const letra = text.trim().toUpperCase();
   if (!/^[A-Z]$/.test(letra)) return { error: 'A área é identificada por uma letra, de A a Z.' };
