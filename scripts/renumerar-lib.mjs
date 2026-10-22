@@ -2,9 +2,6 @@
 
 export const IDENTIFICADOR = /\b(RNF|RF|RN|UC|TA)-(\d+)\b/g;
 
-// Marca o identificador já trocado. Não pode aparecer em texto de verdade.
-const SENTINELA = '\u0000';
-
 // Lê o de-para oficial (tipo,antigo,novo,situacao,observacao). A linha excluída
 // não tem destino: ela entra em `excluidos`, e não no mapa.
 export function lerMapaCsv(texto) {
@@ -31,15 +28,50 @@ export function lerMapaCsv(texto) {
   return { mapa, excluidos };
 }
 
-// Troca em duas passadas: a primeira marca cada identificador já trocado com o
-// sentinela, e só a segunda o tira. Sem isso, RN-10 -> RN-19 seguido de
-// RN-19 -> RN-14 levaria a antiga RN-10 até RN-14.
-export function trocar(texto, mapa) {
-  const marcado = texto.replace(IDENTIFICADOR, (todo) => {
-    const novo = mapa.get(todo);
-    return novo ? SENTINELA + novo + SENTINELA : todo;
+// "RF-22 a RF-25": a faixa precisa ser trocada inteira, porque os membros dela
+// não continuam vizinhos depois da renumeração.
+const FAIXA = /\b(RNF|RF|RN)-(\d+) (a|até) \1-(\d+)\b/;
+const TROCAVEL = new RegExp(`${FAIXA.source}|${IDENTIFICADOR.source}`, 'g');
+
+const numero = (codigo) => Number(codigo.split('-')[1]);
+
+// Lista os códigos em ordem, juntando três ou mais seguidos em faixa:
+// RF-01, RF-02, RF-03, RF-05, RF-06 -> "RF-01 a RF-03, RF-05, RF-06". Só vírgula,
+// porque a faixa costuma estar no meio de uma lista maior.
+export function comporFaixa(codigos, conectivo = 'a') {
+  const ordenados = [...codigos].sort((x, y) => numero(x) - numero(y));
+  const partes = [];
+  for (let i = 0; i < ordenados.length; ) {
+    let j = i;
+    while (j + 1 < ordenados.length && numero(ordenados[j + 1]) === numero(ordenados[j]) + 1) j++;
+    if (j - i >= 2) partes.push(`${ordenados[i]} ${conectivo} ${ordenados[j]}`);
+    else for (let k = i; k <= j; k++) partes.push(ordenados[k]);
+    i = j + 1;
+  }
+  return partes.join(', ');
+}
+
+function trocarFaixa(todo, familia, inicio, conectivo, fim, mapa) {
+  const membros = [...mapa.keys()].filter((c) => {
+    if (c.split('-')[0] !== familia) return false;
+    const n = numero(c);
+    return n >= Number(inicio) && n <= Number(fim);
   });
-  return marcado.split(SENTINELA).join('');
+  if (!mapa.has(`${familia}-${inicio}`) || !mapa.has(`${familia}-${fim}`) || !membros.length) {
+    return todo.replace(new RegExp(IDENTIFICADOR.source, 'g'), (c) => mapa.get(c) ?? c);
+  }
+  return comporFaixa(membros.map((c) => mapa.get(c)), conectivo);
+}
+
+// Troca numa passada só: o replace não relê o que acabou de escrever, e por isso
+// RN-10 -> RN-19 seguido de RN-19 -> RN-14 não leva a antiga RN-10 até RN-14. A
+// versão anterior marcava o trocado com um sentinela NUL e depois apagava todo NUL
+// do arquivo, inclusive o que já existia nele (scripts/scan-secrets.mjs tem um).
+export function trocar(texto, mapa) {
+  return texto.replace(TROCAVEL, (todo, familia, inicio, conectivo, fim) => {
+    if (familia) return trocarFaixa(todo, familia, inicio, conectivo, fim, mapa);
+    return mapa.get(todo) ?? todo;
+  });
 }
 
 // Identificadores excluídos ainda citados no texto.
