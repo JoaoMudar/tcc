@@ -122,8 +122,6 @@ export default async function PedidoPage({ params }: PedidoPageProps) {
           {pedido.observacoes && <p className="text-base text-muted">{pedido.observacoes}</p>}
         </section>
 
-        <LinhaDoTempo fases={historico} />
-
         <ItensDaFicha
           // Item tirado na negociação some da lista, e o suplente usado vira linha: a negociação recomeça do banco
           key={modo === 'negociacao' ? pedido.itens.map((item) => `${item.id}${item.suplente ? 's' : ''}`).join() : modo}
@@ -157,6 +155,8 @@ export default async function PedidoPage({ params }: PedidoPageProps) {
             podeSeparar: can(user.perfil, 'cargas_pedido', 'A'),
           }}
         />
+
+        <LinhaDoTempo fases={historico} />
 
         {podeTransicionar(situacao, 'cancelado', user.perfil) && (
           <div className="mt-4">

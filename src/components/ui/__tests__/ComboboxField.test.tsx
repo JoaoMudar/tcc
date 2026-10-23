@@ -39,6 +39,20 @@ const escondido = () =>
   document.querySelector('input[name="item_especie"]') as HTMLInputElement;
 
 describe("ComboboxField", () => {
+  it("o toque na opção não tira o foco do campo, e a escolha entra mesmo sem foco no botão (iPhone)", () => {
+    const aoMudar = vi.fn();
+    render(<Campo aoMudar={aoMudar} />);
+    const campo = screen.getByLabelText("Espécie");
+    fireEvent.focus(campo);
+    const opcao = screen.getByText("Ipê-roxo");
+
+    // mousedown com preventDefault: o navegador não move o foco, e o blur não fecha a lista
+    expect(fireEvent.mouseDown(opcao)).toBe(false);
+    fireEvent.click(opcao);
+    expect(aoMudar).toHaveBeenCalledWith("b");
+    expect((campo as HTMLInputElement).value).toBe("Ipê-roxo");
+  });
+
   it("filtra enquanto se digita e escolhe pelo toque na lista", () => {
     const aoMudar = vi.fn();
     render(<Campo aoMudar={aoMudar} />);

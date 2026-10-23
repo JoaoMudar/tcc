@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { type MouseEvent, useEffect, useId, useRef, useState } from "react";
 import { filtraOpcoes, normalizeTexto } from "@/lib/busca-opcoes";
 import { classeRotulo } from "./marcaObrigatorio";
 import type { SelectOption } from "./SelectField";
@@ -140,7 +140,14 @@ export function ComboboxField({
     setAberta(false);
     onChange(opcao.value);
     onDigitar?.(opcao.label);
+    // Escolhido, o teclado do celular sai da frente
+    campoRef.current?.blur();
   }
+
+  // O toque na opção não pode tirar o foco do campo: no iPhone o botão tocado não
+  // recebe foco, o `onBlur` do contêiner vê `relatedTarget` nulo e fecha a lista
+  // antes do clique chegar, e a escolha se perde
+  const manterFoco = (event: MouseEvent) => event.preventDefault();
 
   function digitar(texto: string) {
     setBusca(texto);
@@ -250,9 +257,11 @@ export function ComboboxField({
               <li>
                 <button
                   type="button"
+                  onMouseDown={manterFoco}
                   onClick={() => {
                     setAberta(false);
                     opcaoFixa.onEscolher();
+                    campoRef.current?.blur();
                   }}
                   aria-current={fixaAtiva ? true : undefined}
                   className="min-h-touch w-full px-3 py-2 text-left text-base font-bold text-blue-800 active:bg-brand-light"
@@ -270,6 +279,7 @@ export function ComboboxField({
                 <li key={opcao.value}>
                   <button
                     type="button"
+                    onMouseDown={manterFoco}
                     onClick={() => escolher(opcao)}
                     aria-current={opcao.value === value ? true : undefined}
                     className="min-h-touch w-full px-3 py-2 text-left text-base text-ink active:bg-brand-light aria-[current]:font-bold"
@@ -293,6 +303,7 @@ export function ComboboxField({
               <li>
                 <button
                   type="button"
+                  onMouseDown={manterFoco}
                   onClick={() => {
                     setAberta(false);
                     onCriarNova?.(busca.trim());
