@@ -560,6 +560,34 @@ export function ItensDaFicha({
 
       {faltantes.length > 0 && <CopiarFaltantes linhas={faltantes} />}
 
+      {/* O fechamento vem antes da grade: total, frete e entrega são o que se lê primeiro */}
+      {mostraFechamento && (
+        <FechamentoDoPedido
+          subtotalCentavos={subtotal}
+          freteCentavos={freteCentavos}
+          peso={pesoDaFicha(itensAgora, modo === 'negociacao' ? valores : null)}
+          entrega={frete?.entrega}
+          edicao={
+            modo === 'negociacao'
+              ? {
+                  freteTexto,
+                  origem,
+                  distancia,
+                  sugerindo,
+                  aviso: avisoFrete,
+                  onAlterarFrete: alterarFrete,
+                  onAlterarOrigem: alterarOrigem,
+                  endereco: enderecoInicial,
+                  onAlterarEndereco: alterarEndereco,
+                  buscar: buscarEnderecosDoPedidoAction,
+                  onSugerir: sugerir,
+                  onTrocarEntrega: () => setEditandoEndereco(true),
+                }
+              : undefined
+          }
+        />
+      )}
+
       {modo === 'cadastro' ? (
         <GradeItens
           linhas={linhas}
@@ -586,33 +614,6 @@ export function ItensDaFicha({
           suplentes={suplentes}
           onUsarSuplente={modo === 'negociacao' ? usarSuplente : undefined}
           usandoSuplente={usandoSuplente}
-        />
-      )}
-
-      {mostraFechamento && (
-        <FechamentoDoPedido
-          subtotalCentavos={subtotal}
-          freteCentavos={freteCentavos}
-          peso={pesoDaFicha(itensAgora, modo === 'negociacao' ? valores : null)}
-          entrega={frete?.entrega}
-          edicao={
-            modo === 'negociacao'
-              ? {
-                  freteTexto,
-                  origem,
-                  distancia,
-                  sugerindo,
-                  aviso: avisoFrete,
-                  onAlterarFrete: alterarFrete,
-                  onAlterarOrigem: alterarOrigem,
-                  endereco: enderecoInicial,
-                  onAlterarEndereco: alterarEndereco,
-                  buscar: buscarEnderecosDoPedidoAction,
-                  onSugerir: sugerir,
-                  onTrocarEntrega: () => setEditandoEndereco(true),
-                }
-              : undefined
-          }
         />
       )}
 
