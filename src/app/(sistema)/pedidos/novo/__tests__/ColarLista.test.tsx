@@ -60,6 +60,19 @@ describe('conferência da lista colada (T8.16)', () => {
     expect(screen.getByText(/Cadastrar "Planta desconhecida"/)).toBeInTheDocument();
   });
 
+  it('escolher a espécie pela lista resolve a linha que não casou', () => {
+    const { container } = conferir('Planta desconhecida 20');
+    const campo = screen.getByLabelText('Espécie da linha 1');
+    fireEvent.focus(campo);
+    const opcao = screen.getByText('Pitanga');
+    expect(fireEvent.mouseDown(opcao)).toBe(false);
+    fireEvent.click(opcao);
+
+    expect(campo).toHaveValue('Pitanga');
+    expect(situacoes(container)).toEqual(['encontrada']);
+    expect(screen.getByText('Adicionar 1 item ao pedido')).toBeInTheDocument();
+  });
+
   it('marcar genérico resolve a linha sem espécie', () => {
     const { container } = conferir('Planta desconhecida 20');
     expect(screen.queryByText(/Adicionar 1 item/)).toBeNull();
