@@ -1,7 +1,7 @@
 -- Migration: 20260925000001_conferencia_altura_e_quantidade_opcional.sql
 -- Descricao: A conferencia registra a altura em que a muda existe, e o "Tem" do item sem quantidade dispensa o numero.
 --
--- Requisitos: RF-56
+-- Requisitos: RF-62
 -- Entidades: C8 `pedidos_itens`
 --
 -- POR QUE ESTA MIGRATION EXISTE. A conferencia passa a ter uma regra so para
@@ -29,7 +29,7 @@ ALTER TABLE pedidos_itens ADD CONSTRAINT pedidos_itens_altura_disponivel_com_mud
 );
 
 COMMENT ON COLUMN pedidos_itens.altura_disponivel_m IS
-  'Altura em que a muda existe, em metros, quando difere da pedida. Nula e "igual ao pedido" ou "o cliente nao pediu altura". A aprovacao a copia para altura_m. RF-56.';
+  'Altura em que a muda existe, em metros, quando difere da pedida. Nula e "igual ao pedido" ou "o cliente nao pediu altura". A aprovacao a copia para altura_m. RF-62.';
 
 ALTER TABLE pedidos_itens DROP CONSTRAINT pedidos_itens_disponibilidade_coerente;
 

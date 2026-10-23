@@ -52,13 +52,13 @@ export interface LoteDivergente {
 export interface Integridade {
   contagens: Record<(typeof ENTIDADES_CRITICAS)[number], number>;
   lotesAbertos: number;
-  /** RN-21: lote cujo saldo não é a soma dos movimentos. Vazio é o esperado. */
+  /** RF-27: lote cujo saldo não é a soma dos movimentos. Vazio é o esperado. */
   divergentes: LoteDivergente[];
 }
 
 /**
  * A conferência que valida uma restauração, e que serve também a qualquer dia
- * comum: a soma dos movimentos de cada lote tem de reproduzir o saldo (RN-21).
+ * comum: a soma dos movimentos de cada lote tem de reproduzir o saldo (RF-27).
  * A contagem física de três canteiros (E6 §4 passo 4) continua sendo de gente.
  */
 export async function conferirIntegridade(db: Db): Promise<Integridade> {

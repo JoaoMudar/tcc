@@ -43,11 +43,11 @@ export interface Mudanca {
   turnoNome?: string;
   horaInicio: string | null;
   horaFim: string | null;
-  /** RN-61: a pessoa de destino substitui a de origem. `sai` nulo é a linha "Sem ninguém". */
+  /** RF-38: a pessoa de destino substitui a de origem. `sai` nulo é a linha "Sem ninguém". */
   troca?: { sai: string | null; entra: { id: string; nome: string } } | null;
 }
 
-/** RF-26: a tarefa escolhida como principal onde se cruza com outra na grade. */
+/** RF-38: a tarefa escolhida como principal onde se cruza com outra na grade. */
 export interface Promocao {
   id: string;
   prioridadeEm: string;

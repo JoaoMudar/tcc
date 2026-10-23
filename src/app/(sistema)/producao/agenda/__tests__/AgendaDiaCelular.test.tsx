@@ -33,7 +33,7 @@ function renderDia(props: Partial<Parameters<typeof AgendaDiaCelular>[0]> = {}) 
 
 beforeEach(() => vi.clearAllMocks());
 
-describe('AgendaDiaCelular (RNF-14, RF-29)', () => {
+describe('AgendaDiaCelular (RNF-03, RF-40)', () => {
   it('um dia por vez, agrupado por pessoa, e quem está sem tarefa aparece', () => {
     renderDia();
     expect(screen.getByRole('link', { name: 'Segunda, 28' })).toHaveAttribute('aria-current', 'date');

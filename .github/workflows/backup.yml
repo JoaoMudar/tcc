@@ -1,4 +1,4 @@
-# T10.1 (RNF-13, E6): cópia diária do banco de produção, guardada FORA do Neon.
+# T10.1 (RNF-16, E6): cópia diária do banco de produção, guardada FORA do Neon.
 #
 # Roda às 03:00 de Brasília e também à mão (aba Actions > Backup > Run workflow).
 # A cópia sai cifrada antes de virar artefato: o repositório é público, e o
@@ -86,7 +86,7 @@ jobs:
           DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
         run: npx tsx scripts/manutencao.ts retencao
 
-      # RN-21 / E4 A-09: lote cujo saldo não é a soma dos movimentos falha o workflow, e a falha chega por e-mail
+      # RF-27 / E4 A-09: lote cujo saldo não é a soma dos movimentos falha o workflow, e a falha chega por e-mail
       - name: Conferir o saldo dos lotes
         env:
           DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}

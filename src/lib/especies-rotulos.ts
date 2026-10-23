@@ -1,6 +1,6 @@
 import type { StatusValidacao } from './especies';
 
-/** RF-69: a situação do nome na ficha, sem palavra técnica (RN-68). */
+/** RF-12: a situação do nome na ficha, sem palavra técnica (RN-05). */
 export const ROTULO_VALIDACAO: Record<StatusValidacao, string> = {
   validado: 'Nome conferido na Flora do Brasil',
   pendente: 'Nome ainda não conferido',

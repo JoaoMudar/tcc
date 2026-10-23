@@ -8,9 +8,9 @@ import { PerdaForm } from '../lotes/[id]/PerdaForm';
  * T10.4: a varredura dos requisitos de campo sobre os três formulários que a
  * gerência preenche no viveiro. Conta o que a pessoa vê, e não o que o código
  * declara: campo oculto não conta, e um grupo de opções é um campo só.
- *   RNF-01  até cinco campos por tela
- *   RNF-02  categoria em lista fechada, nunca digitada
- *   RNF-03  todo alvo de toque com a altura mínima do projeto (min-h-touch, 48 px)
+ *   RNF-07  até cinco campos por tela
+ *   RNF-06  categoria em lista fechada, nunca digitada
+ *   RNF-08  todo alvo de toque com a altura mínima do projeto (min-h-touch, 48 px)
  */
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }));

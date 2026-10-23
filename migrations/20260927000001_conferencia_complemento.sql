@@ -1,7 +1,7 @@
 -- Migration: 20260927000001_conferencia_complemento.sql
 -- Descricao: "Tem parte" pode completar o item com outro recipiente, e o complemento e um item proprio.
 --
--- Requisitos: RF-56
+-- Requisitos: RF-62
 -- Entidades: C8 `pedidos_itens`
 --
 -- POR QUE ESTA MIGRATION EXISTE. O saco pedido nem sempre tem a quantidade
@@ -31,4 +31,4 @@ CREATE INDEX pedidos_itens_complementa_item_id_idx ON pedidos_itens (complementa
   WHERE complementa_item_id IS NOT NULL;
 
 COMMENT ON COLUMN pedidos_itens.complementa_item_id IS
-  'Item que este completa em outro recipiente, na resposta "Tem parte" da conferencia. Nulo e "item pedido pelo cliente". RF-56.';
+  'Item que este completa em outro recipiente, na resposta "Tem parte" da conferencia. Nulo e "item pedido pelo cliente". RF-62.';

@@ -17,7 +17,7 @@ const VARIANTS: Record<Variant, string> = {
   danger: 'border-2 border-red-600 bg-white text-red-700 font-bold active:bg-red-50',
 };
 
-/** Botão largo, com alvo de toque de 48px no mínimo (RNF-03). */
+/** Botão largo, com alvo de toque de 48px no mínimo (RNF-08). */
 export function Button({
   variant = 'primary',
   pending = false,

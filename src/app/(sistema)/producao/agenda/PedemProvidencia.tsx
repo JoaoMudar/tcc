@@ -25,7 +25,7 @@ interface PedemProvidenciaProps {
 }
 
 /**
- * RF-45, RF-66: abaixo da semana, os lotes com tarefa vencida ou a vencer, de
+ * RF-52, RF-55: abaixo da semana, os lotes com tarefa vencida ou a vencer, de
  * qualquer semana. A sugestão do protocolo mostra só a semana aberta; esta lista
  * mostra tudo o que espera alguém. Tocar no item abre as ações.
  */

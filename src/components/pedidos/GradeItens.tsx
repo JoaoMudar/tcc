@@ -141,7 +141,7 @@ function rotulo(opcoes: readonly SelectOption[], valor: string): string | null {
 }
 
 /**
- * T8.1, RF-54: os itens do pedido como planilha na tela larga e como lista no
+ * T8.1, RF-59: os itens do pedido como planilha na tela larga e como lista no
  * celular.
  *
  * **Os campos do formulário não são os que aparecem.** São os escondidos, um
@@ -151,7 +151,7 @@ function rotulo(opcoes: readonly SelectOption[], valor: string): string | null {
  * **A planilha só aparece de `lg` para cima**: com o menu lateral, a tela `md`
  * deixa menos de 500px para cinco colunas, e a espécie sumia espremida.
  *
- * **No celular não se edita na lista** (RNF-03): cinco colunas em 360px seriam
+ * **No celular não se edita na lista** (RNF-08): cinco colunas em 360px seriam
  * alvos de toque menores que o dedo. A lista mostra o pedido, e tocar num item
  * abre a ficha dele em tela cheia, com um campo de cada vez.
  *
@@ -325,7 +325,7 @@ export function GradeItens({
                           onChange={(evento) => onAlterar(linha.chave, 'especificacao', evento.target.value)}
                         />
                       )}
-                      {/* RF-56: o saldo não é coluna, é a linha miúda embaixo da espécie */}
+                      {/* RF-62: o saldo não é coluna, é a linha miúda embaixo da espécie */}
                       {linha.especieId && linha.recipienteId && (
                         <p className={`px-3 pb-1.5 text-xs ${falta ? 'font-semibold text-amber-800' : 'text-muted'}`}>
                           {textoSaldo(saldo, quantidade, confirmada)}

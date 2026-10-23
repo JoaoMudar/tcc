@@ -30,7 +30,7 @@ const CLASSE_LINK =
   'min-h-touch flex items-center justify-center rounded-xl bg-brand px-5 text-base font-bold text-white';
 
 /**
- * RN-53: **só o passo seguinte do fluxo**, e para quem o executa. A verificação e
+ * RN-55: **só o passo seguinte do fluxo**, e para quem o executa. A verificação e
  * a separação têm tela própria, e é ela que muda a situação quando o trabalho
  * termina; daqui só se abre a tela. Aprovar e solicitar alteração são as duas
  * decisões da chefia sobre o pedido verificado.

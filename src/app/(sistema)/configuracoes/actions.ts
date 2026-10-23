@@ -12,7 +12,7 @@ import { requirePermission } from '@/lib/auth/guards';
 
 const VALOR_PREFIX = 'valor:';
 
-/** RF-08: turno novo, com nome e horários. */
+/** RF-09: turno novo, com nome e horários. */
 export async function createTurno(_previous: FormState, formData: FormData): Promise<FormState> {
   await requirePermission('periodo_trabalho', 'C');
   const fields = { nome: formText(formData, 'nome'), inicio: formText(formData, 'inicio'), fim: formText(formData, 'fim') };
@@ -32,7 +32,7 @@ export async function createTurno(_previous: FormState, formData: FormData): Pro
   return { success: `Turno ${turnos.turnoLabel(nome.value)} criado.` };
 }
 
-/** RF-08: horários e uso do turno. Não há exclusão: o turno sai de uso desativado. */
+/** RF-09: horários e uso do turno. Não há exclusão: o turno sai de uso desativado. */
 export async function updateTurno(_previous: FormState, formData: FormData): Promise<FormState> {
   await requirePermission('periodo_trabalho', 'A');
   const id = formText(formData, 'turno_id');
@@ -52,7 +52,7 @@ export async function updateTurno(_previous: FormState, formData: FormData): Pro
   return { success: 'Horário salvo.' };
 }
 
-/** RF-09: altera só o valor. Não existe action de criar nem de excluir parâmetro (D4 §3.7). */
+/** RF-08: altera só o valor. Não existe action de criar nem de excluir parâmetro (D4 §3.7). */
 export async function updateParametros(_previous: FormState, formData: FormData): Promise<FormState> {
   const user = await requirePermission('parametros', 'A');
   const valores: Record<string, string> = {};

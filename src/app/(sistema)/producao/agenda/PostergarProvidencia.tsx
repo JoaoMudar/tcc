@@ -13,7 +13,7 @@ interface PostergarProvidenciaProps {
   onFeito: (texto: string) => void;
 }
 
-/** Os prazos que se pedem de verdade: tocados, não digitados (RNF-02). */
+/** Os prazos que se pedem de verdade: tocados, não digitados (RNF-06). */
 export const ATALHOS_DIAS = [1, 2, 3, 7, 15, 30] as const;
 
 const PASSO =
@@ -24,7 +24,7 @@ function limitar(dias: number): number {
 }
 
 /**
- * RF-66: quantos dias postergar. Os atalhos resolvem quase sempre; o − e o +
+ * RF-55: quantos dias postergar. Os atalhos resolvem quase sempre; o − e o +
  * acertam o resto sem teclado. O novo prazo aparece antes de confirmar, e conta
  * de hoje quando o prazo já passou.
  */

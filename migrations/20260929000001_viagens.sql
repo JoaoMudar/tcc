@@ -1,7 +1,7 @@
 -- Migration: 20260929000001_viagens.sql
 -- Descricao: A viagem de entrega, que junta varios pedidos num caminhao e diz a ordem das paradas.
 --
--- Requisitos: RF-63, RF-64 · Regras: RN-59, RN-60
+-- Requisitos: RF-69, RF-71 · Regras: RN-63, RN-65
 -- Entidades: C8 `viagens`, `viagens_paradas`, `cadastro.pessoas_enderecos`, `parametros`,
 --            `pedidos_historico`
 --
@@ -67,7 +67,7 @@ CREATE TRIGGER viagens_define_atualizado_em
   FOR EACH ROW EXECUTE FUNCTION define_atualizado_em();
 
 COMMENT ON TABLE viagens IS
-  'Viagem de entrega do dia: os pedidos que vao no caminhao e a ordem das paradas. RF-63.';
+  'Viagem de entrega do dia: os pedidos que vao no caminhao e a ordem das paradas. RF-69.';
 COMMENT ON COLUMN viagens.situacao IS
   'montando, roteirizando, carregando ou pronta. E tambem a etapa em que o planejamento parou.';
 
@@ -101,7 +101,7 @@ CREATE TABLE viagens_paradas (
 CREATE INDEX viagens_paradas_pedido_idx ON viagens_paradas (pedido_id) WHERE pedido_id IS NOT NULL;
 
 COMMENT ON TABLE viagens_paradas IS
-  'Parada da viagem, na ordem da rota. Com pedido e entrega; sem pedido e parada avulsa. RF-63.';
+  'Parada da viagem, na ordem da rota. Com pedido e entrega; sem pedido e parada avulsa. RF-69.';
 COMMENT ON COLUMN viagens_paradas.endereco IS
   'Endereco da parada avulsa. Na entrega, o endereco vem do cadastro do cliente.';
 
@@ -147,9 +147,9 @@ COMMENT ON COLUMN cadastro.pessoas_enderecos.geocodificado_em IS
 -- ------------------------------------------------------------
 INSERT INTO parametros (chave, valor, tipo_valor, descricao) VALUES
   ('comercial.viagem_partida_agrolandia', 'Agrolândia, SC', 'texto',
-   'Endereco de partida padrao da viagem de entrega (RF-64)'),
+   'Endereco de partida padrao da viagem de entrega (RF-71)'),
   ('comercial.viagem_partida_itapema', 'Itapema, SC', 'texto',
-   'Segundo endereco de partida da viagem de entrega (RF-64)');
+   'Segundo endereco de partida da viagem de entrega (RF-71)');
 
 -- ------------------------------------------------------------
 -- 5. A nota no historico do pedido

@@ -28,7 +28,7 @@ export async function LancarTarefa({ pedido, emModal }: { pedido: PedidoDeLancam
   const diaInicial = dia && diasDaSemana(inicio).includes(dia) ? dia : '';
 
   /**
-   * RF-47: a sugestão aceita abre este mesmo formulário, já com a etapa, o lote
+   * RF-53: a sugestão aceita abre este mesmo formulário, já com a etapa, o lote
    * e o tipo preenchidos. O dia, o turno e quem faz continuam sendo exigidos, e
    * o vencimento o servidor lê da etapa, nunca daqui.
    */

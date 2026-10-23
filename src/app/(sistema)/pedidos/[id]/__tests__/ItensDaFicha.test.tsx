@@ -65,7 +65,7 @@ beforeEach(() => {
 });
 afterEach(() => vi.useRealTimers());
 
-describe('ItensDaFicha: a negociação grava ao digitar (RF-55)', () => {
+describe('ItensDaFicha: a negociação grava ao digitar (RF-65)', () => {
   function negociacao(itens = [item()]) {
     return render(
       <ItensDaFicha
@@ -217,7 +217,7 @@ describe('ItensDaFicha: o que a verificação achou não se perde', () => {
   });
 });
 
-describe('ItensDaFicha: o fechamento do pedido (RF-67)', () => {
+describe('ItensDaFicha: o fechamento do pedido (RF-66)', () => {
   function negociacao(
     itens = [item({ precoCentavos: 300, pesoKg: 0.35 })],
     frete?: { centavos: number | null; entrega?: { endereco: string | null; propria: boolean } },

@@ -8,7 +8,7 @@ import * as recipientes from '@/lib/recipientes';
 import { isUuid } from '@/lib/uuid';
 import { requirePermission } from '@/lib/auth/guards';
 
-/** RF-11: recipiente novo, com nome, volume e peso cheio. */
+/** RF-14: recipiente novo, com nome, volume e peso cheio. */
 export async function createRecipiente(_previous: FormState, formData: FormData): Promise<FormState> {
   await requirePermission('recipientes', 'C');
   const fields = { nome: formText(formData, 'nome'), volume: formText(formData, 'volume'), peso: formText(formData, 'peso') };

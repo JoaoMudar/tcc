@@ -37,9 +37,9 @@ interface AgendaDiaCelularProps {
 const LIMIAR_DESLIZE = 50;
 
 /**
- * A agenda no celular (RNF-14): não é a grade encolhida, é a lista de um dia,
+ * A agenda no celular (RNF-03): não é a grade encolhida, é a lista de um dia,
  * agrupada por pessoa. Deslizar troca o dia; o quadrado à direita marca feito
- * num toque (RF-29); tocar na tarefa abre a folha com os detalhes.
+ * num toque (RF-40); tocar na tarefa abre a folha com os detalhes.
  */
 export function AgendaDiaCelular({
   atribuicoes,

@@ -4,7 +4,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 /**
- * RF-06 e RNF-11 cobrados estaticamente: toda Server Action exportada chama um
+ * RF-03 e RNF-11 cobrados estaticamente: toda Server Action exportada chama um
  * guard. Action sem guard é endpoint público, e ninguém percebe olhando a tela.
  */
 

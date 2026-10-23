@@ -1,7 +1,7 @@
 -- Migration: 20260923000001_pedido_item_quantidade_opcional.sql
 -- Descricao: A quantidade do item do pedido passa a ser opcional no cadastro.
 --
--- Requisitos: RF-54, RF-57
+-- Requisitos: RF-59, RF-61
 -- Entidades: C8 `pedidos_itens`
 --
 -- POR QUE ESTA MIGRATION EXISTE. Quem registra o pedido esta no meio da
@@ -25,4 +25,4 @@
 ALTER TABLE pedidos_itens ALTER COLUMN quantidade DROP NOT NULL;
 
 COMMENT ON COLUMN pedidos_itens.quantidade IS
-  'Quantidade pedida. Nula e "o cliente ainda nao disse quantas"; exigida antes da conferencia. RF-54.';
+  'Quantidade pedida. Nula e "o cliente ainda nao disse quantas"; exigida antes da conferencia. RF-59.';

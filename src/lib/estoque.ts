@@ -14,10 +14,10 @@ export interface SaldoDisponivel {
 }
 
 /**
- * T4.10, RF-43, RN-06: o estoque disponível por espécie, recipiente e altura,
+ * T4.10, RF-32, RN-10: o estoque disponível por espécie, recipiente e altura,
  * somado de **todos** os lotes abertos, em qualquer fase. Não há muda "pronta":
  * toda muda do viveiro está à venda. Não é estoque digitado: perda e venda já
- * saíram do saldo de cada lote. É o que o item de pedido lê (RF-56), a cada consulta.
+ * saíram do saldo de cada lote. É o que o item de pedido lê (RF-62), a cada consulta.
  */
 export async function saldoDisponivel(
   db: Db,

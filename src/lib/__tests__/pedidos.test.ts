@@ -39,7 +39,7 @@ import {
 } from '../pedidos';
 
 describe('canal de venda', () => {
-  it('é a lista fechada de cinco valores da RN-42', () => {
+  it('é a lista fechada de cinco valores da RN-49', () => {
     expect(Object.keys(CANAIS_VENDA)).toEqual(['atacado', 'compensacao', 'paisagismo', 'prefeitura', 'varejo']);
   });
 
@@ -53,7 +53,7 @@ describe('canal de venda', () => {
   });
 });
 
-describe('preço digitado (RF-55, RN-50)', () => {
+describe('preço digitado (RF-65, RN-51)', () => {
   it('lê a vírgula como separador decimal', () => {
     expect(parsePreco('12,50')).toEqual({ value: 1250 });
   });
@@ -87,7 +87,7 @@ describe('preço digitado (RF-55, RN-50)', () => {
   });
 });
 
-describe('totais (RF-55)', () => {
+describe('totais (RF-65)', () => {
   it('o total do item é quantidade por preço', () => {
     expect(totalItem({ quantidade: 200, precoCentavos: 250 })).toBe(50_000);
   });
@@ -379,7 +379,7 @@ describe('quantidade do item', () => {
   });
 });
 
-describe('altura da muda pedida (RF-54)', () => {
+describe('altura da muda pedida (RF-59)', () => {
   it('lê a vírgula, que é como o viveiro escreve', () => {
     expect(parseAltura('1,20')).toEqual({ value: 1.2 });
   });
@@ -468,7 +468,7 @@ describe('campos opcionais do pedido', () => {
   });
 });
 
-describe('filtro da lista por cliente (RF-58)', () => {
+describe('filtro da lista por cliente (RF-60)', () => {
   const pedidos = [
     { id: '1', clienteId: 'c1', cliente: 'José Antônio' },
     { id: '2', clienteId: 'c2', cliente: 'Prefeitura de Ibirama' },
@@ -495,14 +495,14 @@ describe('filtro da lista por cliente (RF-58)', () => {
   });
 });
 
-describe('chave do saldo (RF-56)', () => {
+describe('chave do saldo (RF-62)', () => {
   it('é o par espécie e recipiente, e distingue o recipiente', () => {
     expect(chaveSaldo('e1', 'r1')).toBe(chaveSaldo('e1', 'r1'));
     expect(chaveSaldo('e1', 'r1')).not.toBe(chaveSaldo('e1', 'r2'));
   });
 });
 
-describe('máquina de estados do pedido (T8.5, RN-53)', () => {
+describe('máquina de estados do pedido (T8.5, RN-55)', () => {
   it('são as oito situações, na ordem do fluxo', () => {
     expect(Object.keys(SITUACOES_PEDIDO)).toEqual([
       'cadastrado',
@@ -535,7 +535,7 @@ describe('máquina de estados do pedido (T8.5, RN-53)', () => {
     expect(podeTransicionar('verificando', 'verificado', 'chefia')).toBe(true);
   });
 
-  it('aprovar e devolver são da chefia, porque é quem responde por preço (RN-50)', () => {
+  it('aprovar e devolver são da chefia, porque é quem responde por preço (RN-51)', () => {
     expect(podeTransicionar('verificado', 'aprovado', 'chefia')).toBe(true);
     expect(podeTransicionar('verificado', 'pendente_alteracao', 'chefia')).toBe(true);
     expect(podeTransicionar('verificado', 'aprovado', 'gerencia')).toBe(false);
@@ -603,7 +603,7 @@ describe('máquina de estados do pedido (T8.5, RN-53)', () => {
   });
 });
 
-describe('saldo do item por altura (RN-06, RN-62)', () => {
+describe('saldo do item por altura (RN-10, RN-11)', () => {
   const faixas = [
     { alturaM: 1.5, quantidade: 10 },
     { alturaM: 1.2, quantidade: 100 },

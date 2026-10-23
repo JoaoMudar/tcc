@@ -77,7 +77,7 @@ export interface PessoaRef {
 }
 
 export interface PessoaFormState extends FormState {
-  /** Pessoas com o mesmo telefone: a tela pergunta antes de criar outra (RF-14). */
+  /** Pessoas com o mesmo telefone: a tela pergunta antes de criar outra (RF-17). */
   candidatas?: PessoaRef[];
   /** Dona do documento digitado. */
   existente?: PessoaRef;

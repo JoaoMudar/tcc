@@ -7,7 +7,7 @@ import { encerrarProtocoloDoLote } from './protocolos';
 export { CAUSAS_PERDA, TIPOS_MOVIMENTO, formatQuantidade, isCausaPerda, type CausaPerda, type TipoMovimento } from './lotes-rotulos';
 
 /**
- * A PORTA ÚNICA do saldo do lote (T4.1, RF-33, RF-36). Perda, repicagem, venda,
+ * A PORTA ÚNICA do saldo do lote (T4.1, RF-34, RF-27). Perda, repicagem, venda,
  * ajuste e transferência passam por `registrarMovimento`, e nada mais escreve em
  * `movimentos_lote` nem em `lotes.quantidade_atual`. Quem chama abre a transação
  * (`withTransaction`): a trava de linha só vale dentro dela.
@@ -89,7 +89,7 @@ export type MovimentoInput = MovimentoComum &
 
 export interface ResultadoMovimento {
   saldo: number;
-  /** O saldo chegou a zero e o lote foi encerrado, liberando o canteiro (RN-22). */
+  /** O saldo chegou a zero e o lote foi encerrado, liberando o canteiro (RN-23). */
   encerrado: boolean;
 }
 
@@ -124,7 +124,7 @@ export async function registrarMovimento(client: Client, input: MovimentoInput):
   if (!sinalValido(input.tipo, input.quantidade)) throw new UserError('Quantidade inválida para este movimento.');
   if (input.tipo === 'perda' && !isCausaPerda(input.causa)) throw new UserError('Escolha a causa da perda.');
 
-  // RN-21: baixa maior que o saldo é contagem errada, e o negativo propagaria o erro
+  // RF-27: baixa maior que o saldo é contagem errada, e o negativo propagaria o erro
   const saldo = lote.quantidadeAtual + input.quantidade;
   if (saldo < 0) {
     throw new UserError(
@@ -150,7 +150,7 @@ export async function registrarMovimento(client: Client, input: MovimentoInput):
   );
 
   if (saldo === 0) {
-    // RN-22: zerado, o lote sai do canteiro e continua consultável pelo histórico
+    // RN-23: zerado, o lote sai do canteiro e continua consultável pelo histórico
     await client.query(
       `UPDATE lotes
           SET quantidade_atual = 0, fase = 'encerrado', encerrado_em = NOW(),
@@ -158,7 +158,7 @@ export async function registrarMovimento(client: Client, input: MovimentoInput):
         WHERE id = $1`,
       [lote.id],
     );
-    // RF-53, RN-38: encerrado o lote, as ordens do protocolo que ninguém cumpriu
+    // RF-58, RN-44: encerrado o lote, as ordens do protocolo que ninguém cumpriu
     // são canceladas aqui, e não na tela que registrou a baixa: a expedição total
     // e a divisão chegam ao encerramento por outros caminhos, e todos passam por
     // esta porta.

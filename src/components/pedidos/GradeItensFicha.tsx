@@ -42,7 +42,7 @@ export interface ItemDaFicha extends ItemParaAprovar {
   especiesPermitidas?: readonly string[];
   disponivel: boolean | null;
   quantidadeDisponivel: number | null;
-  /** Peso do recipiente cheio, pedido e conferido (RN-65). Ausente é "sem peso". */
+  /** Peso do recipiente cheio, pedido e conferido (RN-53). Ausente é "sem peso". */
   pesoKg?: number | null;
   pesoDisponivelKg?: number | null;
   /** O item que este completa (P13); no suplente, o item de que ele é reserva (P18). */
@@ -148,7 +148,7 @@ const CLASSE_CELULA_CAMPO =
   'h-11 w-full bg-transparent px-3 text-base text-ink placeholder:text-gray-400 focus:bg-white focus:outline-2 focus:-outline-offset-2 focus:outline-brand';
 
 /**
- * T8.1, RF-55: os itens do pedido na ficha, **com o mesmo desenho da grade do
+ * T8.1, RF-65: os itens do pedido na ficha, **com o mesmo desenho da grade do
  * cadastro** (`GradeItens`): planilha de `lg` para cima, lista no celular.
  *
  * Fora do orçamento a grade é leitura, e na negociação ganha a coluna de preço
@@ -195,7 +195,7 @@ export function GradeItensFicha({
       quantidade: parcial ? item.quantidadeDisponivel : item.quantidade,
       recipiente: item.recipienteDisponivel ?? item.recipiente,
       altura: item.alturaDisponivelM ?? item.alturaM,
-      // RN-06: o que atende é o pedido (espécie, recipiente e altura), e não o que a conferência achou.
+      // RN-10: o que atende é o pedido (espécie, recipiente e altura), e não o que a conferência achou.
       // No item dividido o saldo do pedido vai no título, e a linha do principal não o repete
       saldo: subitem && item.complementaItemId == null ? undefined : saldoDe(item),
       edita,

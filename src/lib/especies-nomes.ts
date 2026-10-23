@@ -25,7 +25,7 @@ export interface NomeConhecido {
 }
 
 /**
- * RN-01: **um nome popular pertence a uma espécie só.** Devolve o nome que já
+ * RN-02: **um nome popular pertence a uma espécie só.** Devolve o nome que já
  * existe, quando o candidato colidir com outra espécie, e `null` quando ele
  * está livre.
  *

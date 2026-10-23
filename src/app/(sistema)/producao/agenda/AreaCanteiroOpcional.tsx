@@ -16,7 +16,7 @@ interface AreaCanteiroOpcionalProps {
   defaultCanteiroId?: string | null;
 }
 
-/** RF-30: onde foi feita a tarefa que não exige lote. Opcional, e o canteiro só depois da área. */
+/** RF-37: onde foi feita a tarefa que não exige lote. Opcional, e o canteiro só depois da área. */
 export function AreaCanteiroOpcional({ areas, defaultAreaId, defaultCanteiroId }: AreaCanteiroOpcionalProps) {
   const inicialArea = defaultAreaId || NENHUM;
   const [areaId, setAreaId] = useState(inicialArea);

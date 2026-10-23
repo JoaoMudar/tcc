@@ -1,7 +1,7 @@
 -- Migration: 20260922000002_pedido_item_altura.sql
 -- Descricao: O item do pedido passa a registrar a altura da muda pedida, em metros.
 --
--- Requisitos: RF-54, RF-57 · Regras: RN-04
+-- Requisitos: RF-59, RF-61 · Regras: RN-07
 -- Entidades: C8 `pedidos_itens`
 --
 -- POR QUE ESTA MIGRATION EXISTE. O cliente nao pede so a especie e o
@@ -31,4 +31,4 @@ ALTER TABLE pedidos_itens
   CHECK (altura_m IS NULL OR (altura_m > 0 AND altura_m <= 20));
 
 COMMENT ON COLUMN pedidos_itens.altura_m IS
-  'Altura da muda pedida pelo cliente, em metros. Nula e "o cliente nao pediu altura". RF-54.';
+  'Altura da muda pedida pelo cliente, em metros. Nula e "o cliente nao pediu altura". RF-59.';

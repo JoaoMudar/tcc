@@ -5,7 +5,7 @@ import { MORTALIDADE } from './parametros';
 import type { Db } from './sql';
 import { isUuid } from './uuid';
 
-/** RF-42: perdas do lote divididas pela quantidade inicial. `null` sem base para dividir. */
+/** RF-36: perdas do lote divididas pela quantidade inicial. `null` sem base para dividir. */
 export function mortalidade(perdas: number, quantidadeInicial: number): number | null {
   if (quantidadeInicial <= 0) return null;
   return perdas / quantidadeInicial;
@@ -22,7 +22,7 @@ export function formatPercentual(taxa: number): string {
   return `${PERCENTUAL.format(taxa * 100)}%`;
 }
 
-/** O limite é parâmetro, não constante (RN-11, TA-25). A migration garante a linha. */
+/** O limite é parâmetro, não constante (RN-21, TA-25). A migration garante a linha. */
 export async function limiteMortalidade(db: Db): Promise<number> {
   const { rows } = await db.query<{ valor: string }>('SELECT valor FROM parametros WHERE chave = $1', [MORTALIDADE]);
   if (!rows[0]) throw new Error(`Parâmetro ${MORTALIDADE} ausente`);
@@ -66,7 +66,7 @@ export interface Perda {
   observacoes: string | null;
 }
 
-/** T4.11, RF-41: perdas do período, com espécie e causa opcionais. */
+/** T4.11, RF-35: perdas do período, com espécie e causa opcionais. */
 export async function listPerdas(db: Db, filtro: FiltroPerdas): Promise<Perda[]> {
   const { rows } = await db.query<Perda>(
     `SELECT m.id, to_char(m.data_movimento, 'YYYY-MM-DD') AS data, l.id AS "loteId", l.codigo,

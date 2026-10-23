@@ -10,7 +10,7 @@ import { ExcluirCanteiroForm } from './ExcluirCanteiroForm';
 import { NovaAreaForm } from './NovaAreaForm';
 import { NovoCanteiroForm } from './NovoCanteiroForm';
 
-/** F1 UC-16: área por letra e canteiro por número, como a equipe já fala no viveiro (RF-13). */
+/** F1 UC-16: área por letra e canteiro por número, como a equipe já fala no viveiro (RF-16). */
 export default async function AreasPage() {
   const user = await requirePageAccess('areas_canteiros');
   const areas = await listAreas(pool);

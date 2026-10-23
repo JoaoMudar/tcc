@@ -177,7 +177,7 @@ export async function otimizarOrdem(
 
 /**
  * P17: a distância de carro entre dois pontos (`/v2/directions/driving-car`),
- * em metros. É a base da sugestão de frete (RN-64).
+ * em metros. É a base da sugestão de frete (RN-54).
  */
 export async function distanciaDeCarro(origem: Coordenada, destino: Coordenada): Promise<number> {
   const busca = new URLSearchParams({

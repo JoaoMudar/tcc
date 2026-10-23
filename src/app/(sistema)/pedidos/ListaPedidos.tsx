@@ -56,7 +56,7 @@ const PROVIDENCIA: Partial<Record<SituacaoPedido, string>> = {
 };
 
 /**
- * RF-58: a carteira, filtrada pelo cliente enquanto se digita. O campo é o
+ * RF-60: a carteira, filtrada pelo cliente enquanto se digita. O campo é o
  * mesmo do novo pedido, e a lista dele só traz quem tem pedido aqui: escolher
  * um cliente sem pedido seria escolher uma tela vazia.
  */

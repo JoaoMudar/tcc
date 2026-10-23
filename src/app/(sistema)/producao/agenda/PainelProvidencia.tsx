@@ -24,7 +24,7 @@ function destinos(p: Providencia): { marcar: string; confirmar: string } {
 }
 
 /**
- * RF-66: as três saídas do que pede providência, cada uma na sua tela. Postergar
+ * RF-55: as três saídas do que pede providência, cada uma na sua tela. Postergar
  * fica no histórico do lote; marcar abre o lançamento (ou a alteração, se a
  * tarefa já existe, trazendo-a para a semana de lançar); confirmar registra a
  * tarefa como feita fora da agenda.

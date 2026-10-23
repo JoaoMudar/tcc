@@ -44,7 +44,7 @@ afterAll(async () => {
   await pool.end();
 });
 
-describe('cópia local da FFB (RF-69)', () => {
+describe('cópia local da FFB (RF-12)', () => {
   it('a importação grava táxons, distribuição, nomes e a versão', async () => {
     const { rows } = await pool.query(
       `SELECT (SELECT count(*)::int FROM ref_ffb_taxon) AS taxons,
@@ -85,7 +85,7 @@ describe('cópia local da FFB (RF-69)', () => {
   });
 });
 
-describe('o nome da espécie e a FFB (RF-68, RN-68)', () => {
+describe('o nome da espécie e a FFB (RF-11, RN-05)', () => {
   it('nome idêntico a um aceito fica validado sem a pessoa ver nada', async () => {
     const id = await cria('Morus nigra', ['Amoreira']);
     await withTransaction(pool, (c) => conferirNomeNaFfb(c, id));
@@ -151,7 +151,7 @@ describe('o nome da espécie e a FFB (RF-68, RN-68)', () => {
   });
 });
 
-describe('planilha antiga com as decisões (RN-67)', () => {
+describe('planilha antiga com as decisões (RN-05)', () => {
   const linha = (l: Partial<Linha>): Linha =>
     ({ __linha: `relatorio.csv linha ${l.id_legado}`, nome_popular: '', origem_csv: '', taxon_id_ffb: '', decisao: '', ...l }) as Linha;
 

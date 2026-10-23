@@ -18,7 +18,7 @@ interface VerificarPageProps {
 }
 
 /**
- * T8.12, RF-56: a conferência de disponibilidade, feita no pátio, no celular.
+ * T8.12, RF-62: a conferência de disponibilidade, feita no pátio, no celular.
  *
  * A tela é de quem está andando entre os canteiros: progresso fixo no topo,
  * um cartão por item, cor dizendo o estado e botão grande. O que ela **não**

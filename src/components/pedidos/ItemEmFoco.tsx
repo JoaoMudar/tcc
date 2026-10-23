@@ -24,7 +24,7 @@ interface ItemEmFocoProps {
 }
 
 /**
- * T8.1, RNF-03: o item do pedido em tela cheia, que é como ele se edita no
+ * T8.1, RNF-08: o item do pedido em tela cheia, que é como ele se edita no
  * celular. Um campo por vez, com o rótulo em cima, porque é aqui que a pessoa
  * está de fato digitando, e não na lista.
  *

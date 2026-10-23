@@ -15,7 +15,7 @@ interface ListaSobrepostasProps {
 
 /**
  * O "+N" da faixa de baixo: a terceira tarefa cruzada em diante não cabe na
- * altura da linha (RF-26), e em vez de sumir vira uma lista que se abre aqui,
+ * altura da linha (RF-38), e em vez de sumir vira uma lista que se abre aqui,
  * com o link da ficha e o "Tornar principal" de cada uma.
  */
 export function ListaSobrepostas({ tarefas, promovivel, onPromover }: ListaSobrepostasProps) {

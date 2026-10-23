@@ -55,7 +55,7 @@ export default async function ProducaoPage({ searchParams }: ProducaoPageProps) 
     <main>
       <PageHeader area="2 · Produção" title={mapa ? 'Mapa de produção' : 'Agenda'} />
       <ProducaoAbas aba={mapa ? 'mapa' : 'agenda'} />
-      {/* O mapa e a grade da semana pedem a largura da tela: é a exceção declarada de RNF-14 */}
+      {/* O mapa e a grade da semana pedem a largura da tela: é a exceção declarada de RNF-03 */}
       <div className="mx-auto flex max-w-7xl flex-col gap-4 p-4 md:p-8">
         {mapa ? (
           <MapaProducao />

@@ -96,9 +96,9 @@ function linhaSobPonteiro(clientX: number, clientY: number, origem: string | nul
  * O arrasto da barra no Gantt da semana, com Pointer Events puros: o projeto não
  * tem biblioteca de arrasto, e o gesto cabe num punhado de contas sobre a
  * geometria, que é testada em `agenda-grade`. Uma sessão só para a grade toda,
- * porque o corpo da barra pode mudar de linha (RN-61).
+ * porque o corpo da barra pode mudar de linha (RF-38).
  *
- * O teclado faz o mesmo caminho por `aoTeclar`, para o gesto não ser a única porta (RNF-03).
+ * O teclado faz o mesmo caminho por `aoTeclar`, para o gesto não ser a única porta (RNF-08).
  */
 export function useArrasteBarra({ dias, janela, ancoras = SEM_ANCORAS, onSoltar }: Opcoes) {
   const [sessao, setSessao] = useState<Sessao | null>(null);
@@ -192,7 +192,7 @@ export function useArrasteBarra({ dias, janela, ancoras = SEM_ANCORAS, onSoltar 
   }, [ativa, dias, janela, ancoras, onSoltar, guardar]);
 
   /**
-   * RNF-03: o mesmo resultado sem ponteiro. Shift com as setas remarca, Alt com
+   * RNF-08: o mesmo resultado sem ponteiro. Shift com as setas remarca, Alt com
    * as setas muda a duração, e um passo é o passo do arrasto.
    */
   const aoTeclar = useCallback(

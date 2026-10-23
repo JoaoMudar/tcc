@@ -1,7 +1,7 @@
 -- Migration: 20260921000001_pedidos_fluxo_situacao.sql
 -- Descricao: O pedido passa a percorrer oito situacoes, e toda mudanca fica registrada.
 --
--- Requisitos: RF-57 · Regras: RN-48
+-- Requisitos: RF-61 · Regras: RN-52
 -- Entidades: C8 `pedidos`, `pedidos_historico`
 --
 -- POR QUE ESTA MIGRATION EXISTE. A 20260901000006 declarou tres situacoes
@@ -30,7 +30,7 @@ UPDATE pedidos SET situacao = 'aprovado'   WHERE situacao = 'confirmado';
 ALTER TABLE pedidos ALTER COLUMN situacao SET DEFAULT 'cadastrado';
 
 -- A lista fechada continua no banco, e nao so no TypeScript: e a mesma decisao
--- da RN-42 para canal de venda. Um teste le esta constraint e a compara com
+-- da RN-49 para canal de venda. Um teste le esta constraint e a compara com
 -- SITUACOES_PEDIDO, para as duas listas nao divergirem em silencio.
 ALTER TABLE pedidos ADD CONSTRAINT pedidos_situacao_valida CHECK (situacao IN (
   'cadastrado', 'verificando', 'verificado', 'pendente_alteracao',
@@ -87,4 +87,4 @@ SELECT p.id, NULL, p.situacao, p.criado_por, 'Situacao migrada do fluxo de tres 
   FROM pedidos p;
 
 COMMENT ON TABLE pedidos_historico IS
-  'Mudanca de situacao do pedido, com autor e data. RF-57.';
+  'Mudanca de situacao do pedido, com autor e data. RF-61.';

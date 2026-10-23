@@ -25,7 +25,7 @@ interface RegistrarFeitaFormProps {
 }
 
 /**
- * RF-66: a etapa feita fora da agenda, registrada como tarefa já confirmada.
+ * RF-55: a etapa feita fora da agenda, registrada como tarefa já confirmada.
  * Dia, turno e quem fez são do lançamento; a quantidade de cada um e as mudas
  * que morreram são da confirmação (UC-20). A etapa, o lote e o tipo vêm prontos.
  */

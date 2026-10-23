@@ -8,7 +8,7 @@ import { listLotesAbertos, montarOcupacao } from '@/lib/lotes';
 import { can } from '@/lib/permissions';
 import { requirePageAccess } from '@/lib/auth/guards';
 
-/** T4.3, RF-33: o viveiro por área e canteiro, com os lotes de cada canteiro e os livres à vista. */
+/** T4.3, RF-34: o viveiro por área e canteiro, com os lotes de cada canteiro e os livres à vista. */
 export default async function OcupacaoPage() {
   const user = await requirePageAccess('lotes');
   const [areas, lotes] = await Promise.all([listAreas(pool), listLotesAbertos(pool)]);

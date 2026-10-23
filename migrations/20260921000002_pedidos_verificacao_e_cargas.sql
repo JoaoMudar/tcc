@@ -1,7 +1,7 @@
 -- Migration: 20260921000002_pedidos_verificacao_e_cargas.sql
 -- Descricao: A verificacao de disponibilidade por item e a contagem para carregar.
 --
--- Requisitos: RF-56, RF-57
+-- Requisitos: RF-62, RF-61
 -- Entidades: C8 `pedidos_itens`, `pedidos_itens_especies_permitidas`,
 --            `pedidos_cargas`, `pedidos_cargas_itens`
 --
@@ -23,7 +23,7 @@
 -- 1. Disponibilidade e item generico em `pedidos_itens`
 -- ------------------------------------------------------------
 -- A 20260901000006 registrou que nao havia coluna de disponibilidade, e o
--- argumento era bom: o saldo exibido ao lado do item (RF-56) e somado dos lotes
+-- argumento era bom: o saldo exibido ao lado do item (RF-62) e somado dos lotes
 -- a cada consulta, e grava-lo congelaria uma leitura que muda a cada perda.
 -- ISSO CONTINUA VERDADE, E ESTAS COLUNAS NAO SAO AQUELE SALDO. O saldo diz o
 -- que o viveiro tem; estas colunas dizem o que uma pessoa foi ate o patio

@@ -91,7 +91,7 @@ describe('colagem de planilha nas células (T8.16)', () => {
   });
 });
 
-describe('estoque disponível no item (RF-56, RN-06, RN-62)', () => {
+describe('estoque disponível no item (RF-62, RN-10, RN-11)', () => {
   const faixas = [
     { especieId: 'ipe', recipienteId: 'tub', alturaM: 1.2, quantidade: 100 },
     { especieId: 'ipe', recipienteId: 'tub', alturaM: 1, quantidade: 30 },

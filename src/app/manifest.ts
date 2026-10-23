@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { COR_FUNDO, COR_MARCA } from '@/lib/icone';
 
-/** T9.1, RNF-23: instalar pelo navegador, sem loja de aplicativos. */
+/** T9.1, RNF-01: instalar pelo navegador, sem loja de aplicativos. */
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'Viveiro Mudar',

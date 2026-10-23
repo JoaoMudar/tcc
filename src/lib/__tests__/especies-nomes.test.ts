@@ -6,7 +6,7 @@ const CONHECIDOS: NomeConhecido[] = [
   { especieId: 'arauc', nome: 'Pinheiro-do-paraná', especie: 'Araucária' },
 ];
 
-describe('normalizeNomePopular (RN-01)', () => {
+describe('normalizeNomePopular (RN-02)', () => {
   it('tira acento, maiúscula e os separadores que viram espaço', () => {
     expect(normalizeNomePopular('Ipê-Amarelo')).toBe('ipe amarelo');
     expect(normalizeNomePopular('  pau_d arco / amarelo ')).toBe('pau d arco amarelo');
@@ -21,7 +21,7 @@ describe('normalizeNomePopular (RN-01)', () => {
   });
 });
 
-describe('achaConflitoDeNome (RN-01)', () => {
+describe('achaConflitoDeNome (RN-02)', () => {
   it('o nome de outra espécie é conflito, ainda que escrito diferente', () => {
     expect(achaConflitoDeNome('pinheiro do parana', CONHECIDOS)).toMatchObject({ especieId: 'arauc' });
   });

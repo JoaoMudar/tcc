@@ -1,10 +1,10 @@
 -- Migration: 20260901000008_agenda_hora_opcional.sql
 -- Descricao: A atribuicao passa a poder declarar a hora da tarefa.
 --
--- Requisitos: RF-26 · Regras: RN-12
+-- Requisitos: RF-38 · Regras: RN-24
 -- Entidades: C8 `atribuicoes`
 --
--- POR QUE ESTA MIGRATION EXISTE. RN-12 afirmava que o viveiro planeja "por turno,
+-- POR QUE ESTA MIGRATION EXISTE. RN-24 afirmava que o viveiro planeja "por turno,
 -- nao por horario", e isso e falso: a irrigacao das sete as oito TEM horario na
 -- vida real, e a carga de terra que chega meio-dia tambem. O enunciado antigo
 -- confundia duas coisas diferentes: registrar a hora da TAREFA, que o viveiro faz,
@@ -32,6 +32,6 @@ ALTER TABLE atribuicoes
   );
 
 COMMENT ON COLUMN atribuicoes.hora_inicio IS
-  'Hora de inicio da tarefa que tem hora marcada. Nula na maioria: a unidade do planejamento e o turno. RN-12.';
+  'Hora de inicio da tarefa que tem hora marcada. Nula na maioria: a unidade do planejamento e o turno. RN-24.';
 COMMENT ON COLUMN atribuicoes.hora_fim IS
-  'Hora de fim, quando ha inicio e se sabe o fim. Nao mede jornada de ninguem: nao ha apontamento por relogio. RN-12.';
+  'Hora de fim, quando ha inicio e se sabe o fim. Nao mede jornada de ninguem: nao ha apontamento por relogio. RN-24.';

@@ -1,14 +1,14 @@
 import { type Turno, parseHora } from './turnos';
 
 /**
- * A geometria da agenda da semana em tela larga (RNF-14): o dia vira eixo de hora
+ * A geometria da agenda da semana em tela larga (RNF-03): o dia vira eixo de hora
  * real, e a barra ocupa o intervalo dela dentro desse eixo.
  *
  * Fica separada do componente de propósito, sem React nem DOM, porque é aqui que
  * o arrasto pode ser testado: o hook só converte pixel em minuto e chama estas
  * funções.
  *
- * O turno continua sendo a unidade do planejamento (RN-12). Quem não tem hora
+ * O turno continua sendo a unidade do planejamento (RN-24). Quem não tem hora
  * declarada desenha ocupando a janela do próprio turno, e é o arrasto que torna
  * a hora explícita.
  */
@@ -28,7 +28,7 @@ export interface Eixo extends Janela {
 }
 
 export interface Faixa extends Janela {
-  /** O fim mostrado foi inferido, e não declarado (RN-12). */
+  /** O fim mostrado foi inferido, e não declarado (RN-24). */
   derivada: boolean;
 }
 
@@ -38,7 +38,7 @@ export type Borda = 'inicio' | 'fim';
 export const PASSO_MINUTOS = 15;
 /** Abaixo disto a barra deixa de ser clicável, e a tarefa deixa de ser legível. */
 export const DURACAO_MINIMA = 30;
-/** Quanto dura, no desenho, a tarefa que declarou só o início (RN-12). */
+/** Quanto dura, no desenho, a tarefa que declarou só o início (RN-24). */
 export const DURACAO_PADRAO = 60;
 
 /** Só quando não há turno nenhum em uso: a página não chega a desenhar a grade. */
@@ -209,7 +209,7 @@ export function turnoDoMinuto(minuto: number, turnos: readonly Turno[]): Turno |
 /**
  * O turno que a tarefa passa a ter depois do arrasto. Dentro de um turno, é ele.
  * No vão entre dois, é o turno seguinte: quem solta a barra às 12h30 está
- * mirando a tarde, e o turno nunca pode ficar vazio (RN-12).
+ * mirando a tarde, e o turno nunca pode ficar vazio (RN-24).
  */
 export function turnoParaMinuto(minuto: number, turnos: readonly Turno[]): Turno | null {
   const dentro = turnoDoMinuto(minuto, turnos);
@@ -277,7 +277,7 @@ export interface Trecho<T> {
 /** O que decide qual tarefa fica com a faixa de cima. */
 export interface Precedencia {
   id: string;
-  /** Quando a gerência escolheu esta como principal; nula segue a regra (RF-26). */
+  /** Quando a gerência escolheu esta como principal; nula segue a regra (RF-38). */
   prioridadeEm: string | null;
   faixa: Pick<Janela, 'inicio' | 'fim'>;
 }
@@ -300,7 +300,7 @@ export function comparaPrecedencia(um: Precedencia, outro: Precedencia): number 
 }
 
 /**
- * RF-26 admite mais de uma tarefa ao mesmo tempo, mas a linha da pessoa não
+ * RF-38 admite mais de uma tarefa ao mesmo tempo, mas a linha da pessoa não
  * cresce: onde elas se cruzam, a primeira na precedência fica com a faixa de
  * cima e as outras dividem a de baixo, até `maxCamadas`. As que não cabem são
  * contadas na última camada. O corte é só do desenho: os horários não mudam.
@@ -486,7 +486,7 @@ export function ocupacaoDoDia(faixas: readonly Janela[], eixo: Eixo): number {
 
 export interface VaoParaLancar {
   turno: Turno;
-  /** Nulas quando o turno está livre: a tarefa vale pelo turno inteiro (RN-12). */
+  /** Nulas quando o turno está livre: a tarefa vale pelo turno inteiro (RN-24). */
   horaInicio: string | null;
   horaFim: string | null;
 }

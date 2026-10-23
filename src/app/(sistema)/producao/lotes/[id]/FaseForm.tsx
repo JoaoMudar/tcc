@@ -13,8 +13,8 @@ const OPCOES = FASES_EDITAVEIS.map((fase) => ({ value: fase, label: FASES[fase] 
 
 /**
  * A fase à mão. Com protocolo, ela avança sozinha ao concluir etapa sequencial
- * (RF-48); sem protocolo, este é o único caminho para avançar. A fase é do
- * manejo e não decide o que se vende (RN-06).
+ * (RF-54); sem protocolo, este é o único caminho para avançar. A fase é do
+ * manejo e não decide o que se vende (RN-10).
  */
 export function FaseForm({ loteId, fase }: { loteId: string; fase: Fase }) {
   const [state, formAction, pending] = useActionState(alterarFaseAction, EMPTY_FORM_STATE);

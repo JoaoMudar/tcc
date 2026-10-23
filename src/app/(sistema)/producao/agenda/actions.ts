@@ -46,7 +46,7 @@ function lerAtribuicao(formData: FormData): { fields: Record<string, string>; br
     quantidade_planejada: formText(formData, 'quantidade_planejada'),
     recorrente: formText(formData, 'recorrente'),
     observacoes: formText(formData, 'observacoes'),
-    // A etapa que originou a sugestão (RF-47); o vencimento dela o servidor lê
+    // A etapa que originou a sugestão (RF-53); o vencimento dela o servidor lê
     lote_etapa_id: formText(formData, 'lote_etapa_id'),
   };
   return {
@@ -81,7 +81,7 @@ async function validarAtribuicao(formData: FormData): Promise<{ fields: Record<s
   return { ...agenda.parseAtribuicao(tipo, bruta), fields };
 }
 
-/** T5.1, T5.2, RF-26: uma tarefa por dia escolhido, com o grupo inteiro. */
+/** T5.1, T5.2, RF-38: uma tarefa por dia escolhido, com o grupo inteiro. */
 export async function criarAtribuicaoAction(_previous: FormState, formData: FormData): Promise<FormState> {
   await requirePermission('agenda', 'C');
   const resultado = await validarAtribuicao(formData);
@@ -113,7 +113,7 @@ export async function atualizarAtribuicaoAction(_previous: FormState, formData: 
 }
 
 /**
- * O arrasto na grade da semana (RNF-14). Não redireciona: a grade fica onde
+ * O arrasto na grade da semana (RNF-03). Não redireciona: a grade fica onde
  * está, e quem conta o que mudou é o próprio card no lugar novo.
  */
 export async function reagendarAtribuicaoAction(_previous: FormState, formData: FormData): Promise<FormState> {
@@ -139,7 +139,7 @@ export async function reagendarAtribuicaoAction(_previous: FormState, formData: 
   return { success: 'Tarefa remarcada.' };
 }
 
-/** RF-26: a tarefa coberta, arrastada para cima na grade, passa a aparecer por inteiro. */
+/** RF-38: a tarefa coberta, arrastada para cima na grade, passa a aparecer por inteiro. */
 export async function promoverAtribuicaoAction(_previous: FormState, formData: FormData): Promise<FormState> {
   await requirePermission('agenda', 'A');
   const id = formText(formData, 'id');
@@ -173,7 +173,7 @@ function lerSemanaDoForm(formData: FormData): string | null {
   return isInicioDeSemana(semana) ? semana : null;
 }
 
-/** T5.6, RF-28, RF-31. */
+/** T5.6, RF-41, RF-42. */
 export async function fecharSemanaAction(_previous: FormState, formData: FormData): Promise<FormState> {
   await requirePermission('fechamento_semana', 'A');
   const semana = lerSemanaDoForm(formData);
@@ -194,7 +194,7 @@ function lerEtapa(formData: FormData): { loteId: string; etapaId: string } | nul
   return isUuid(loteId) && isUuid(etapaId) ? { loteId, etapaId } : null;
 }
 
-/** RF-66, RN-63: adia a etapa do protocolo a partir de hoje, se já venceu; fica no histórico do lote. */
+/** RF-55, RN-41: adia a etapa do protocolo a partir de hoje, se já venceu; fica no histórico do lote. */
 export async function adiarEtapaAction(_previous: FormState, formData: FormData): Promise<FormState> {
   const user = await requirePermission('agenda', 'C');
   const etapa = lerEtapa(formData);
@@ -213,7 +213,7 @@ export async function adiarEtapaAction(_previous: FormState, formData: FormData)
 }
 
 /**
- * RF-66: a etapa feita fora da agenda. Lança a tarefa no dia em que foi feita e
+ * RF-55: a etapa feita fora da agenda. Lança a tarefa no dia em que foi feita e
  * a confirma na mesma hora: quem fez, quanto, e as mudas que morreram.
  */
 export async function registrarTarefaFeitaAction(_previous: FormState, formData: FormData): Promise<FormState> {
@@ -258,7 +258,7 @@ export async function registrarTarefaFeitaAction(_previous: FormState, formData:
   redirect(perda ? `${agendaDoDia}&perda=${perda.quantidade}&causa=${perda.causa}` : agendaDoDia);
 }
 
-/** RF-66: a tarefa atrasada adiada X dias a partir de hoje, mesmo que caia em outra semana. */
+/** RF-55: a tarefa atrasada adiada X dias a partir de hoje, mesmo que caia em outra semana. */
 export async function adiarAtribuicaoAction(_previous: FormState, formData: FormData): Promise<FormState> {
   await requirePermission('agenda', 'A');
   const id = formText(formData, 'id');

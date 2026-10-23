@@ -1,7 +1,7 @@
 -- Migration: 20260901000005_producao_agenda.sql
 -- Descricao: A agenda da semana: o planejado e o confirmado, na mesma linha.
 --
--- Requisitos: RF-26 a RF-31 · Regras: RN-12 a RN-14, RN-23 a RN-25, RN-29
+-- Requisitos: RF-38 a RF-42 · Regras: RN-24, RN-30, RN-31, RN-26, RN-28, RN-29
 -- Entidades: C8 `semanas`, `atribuicoes`, `atribuicoes_participantes`
 --
 -- NAO HA APONTAMENTO POR RELOGIO. `atribuicoes.situacao` percorre planejada,
@@ -22,7 +22,7 @@ CREATE TABLE semanas (
 
   CONSTRAINT semanas_situacao_valida CHECK (situacao IN ('rascunho', 'publicada', 'fechada')),
 
-  -- RN-13: a semana fecha e, fechada, nao se altera. O momento do fechamento
+  -- RN-30: a semana fecha e, fechada, nao se altera. O momento do fechamento
   -- existe se e somente se ela estiver fechada.
   CONSTRAINT semanas_fechamento_coerente CHECK (
     (situacao = 'fechada' AND fechada_em IS NOT NULL)
@@ -42,7 +42,7 @@ CREATE TABLE atribuicoes (
   semana_id            UUID NOT NULL REFERENCES semanas(id) ON DELETE CASCADE,
   data_trabalho        DATE NOT NULL,
 
-  -- OBRIGATORIO (RN-12): a unidade do planejamento e o turno, e a duracao dele sai
+  -- OBRIGATORIO (RN-24): a unidade do planejamento e o turno, e a duracao dele sai
   -- de `turnos_trabalho`. A tarefa que tem hora marcada a declara em `hora_inicio` /
   -- `hora_fim` (20260901000008), sem dispensar o turno: os turnos nao cobrem o dia
   -- inteiro, e a hora nao diz a qual deles a tarefa pertence.
@@ -50,12 +50,12 @@ CREATE TABLE atribuicoes (
 
   tipo_tarefa_id       UUID NOT NULL REFERENCES tipos_tarefa(id),
 
-  -- Preenchidos conforme o tipo de tarefa declarar exigir (RF-21, RN-24).
+  -- Preenchidos conforme o tipo de tarefa declarar exigir (RF-37).
   especie_id           UUID REFERENCES especies(id),
   recipiente_id        UUID REFERENCES recipientes(id),
   lote_id              UUID REFERENCES lotes(id),
 
-  -- Area ou canteiro da tarefa que NAO exige lote (RF-30). Quando ha lote, ele ja
+  -- Area ou canteiro da tarefa que NAO exige lote (RF-37). Quando ha lote, ele ja
   -- carrega o canteiro, e pedi-lo de novo e redundancia.
   area_id              UUID REFERENCES areas(id),
   canteiro_id          UUID REFERENCES canteiros(id),
@@ -64,18 +64,18 @@ CREATE TABLE atribuicoes (
 
   -- E UMA MARCA, E NAO UMA REGRA DE CALENDARIO (RN-29). Diz que a atribuicao faz
   -- parte da rotina fixa e, por isso, vem preenchida ao copiar a semana anterior
-  -- (RF-27). Uma entidade de recorrencia existiria para gerar dias sozinha, e o que
+  -- (RF-39). Uma entidade de recorrencia existiria para gerar dias sozinha, e o que
   -- gera dia sozinho neste modelo e o protocolo, cujo sujeito e o lote.
   e_recorrente         BOOLEAN NOT NULL DEFAULT false,
 
-  -- Etapa do protocolo cuja sugestao originou esta tarefa (RF-47). Nula = lancada
+  -- Etapa do protocolo cuja sugestao originou esta tarefa (RF-53). Nula = lancada
   -- sem sugestao por tras. A FK entra com `lotes_etapas`, quando o protocolo existir.
   lote_etapa_id        UUID,
 
   -- Vencimento da etapa que gerou a sugestao, congelado no aceite. Distingue-se de
   -- `data_trabalho`, que a gerencia escolhe: sem separar os dois, lancar a tarefa
   -- para a semana seguinte apagaria o atraso que a etapa existe para denunciar
-  -- (RF-47).
+  -- (RF-53).
   vencimento_protocolo DATE,
 
   situacao             TEXT NOT NULL DEFAULT 'planejada',
@@ -83,8 +83,8 @@ CREATE TABLE atribuicoes (
   criado_em            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   atualizado_em        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
-  -- `nao_confirmada` e a que o fechamento da semana assume como realizada (RN-14),
-  -- e `cancelada` e a ordem que o encerramento do lote invalidou (RN-38).
+  -- `nao_confirmada` e a que o fechamento da semana assume como realizada (RN-31),
+  -- e `cancelada` e a ordem que o encerramento do lote invalidou (RN-44).
   CONSTRAINT atribuicoes_situacao_valida CHECK (situacao IN
     ('planejada', 'confirmada', 'nao_confirmada', 'cancelada')),
 
@@ -95,7 +95,7 @@ CREATE TABLE atribuicoes (
 CREATE INDEX atribuicoes_semana_idx ON atribuicoes (semana_id, data_trabalho);
 CREATE INDEX atribuicoes_lote_idx   ON atribuicoes (lote_id) WHERE lote_id IS NOT NULL;
 
--- RF-45: a situacao do lote sai da atribuicao que segue planejada e cuja data ja
+-- RF-52: a situacao do lote sai da atribuicao que segue planejada e cuja data ja
 -- passou. Este indice e o que torna o mapa barato.
 CREATE INDEX atribuicoes_pendentes_idx
   ON atribuicoes (lote_id, data_trabalho) WHERE situacao = 'planejada';
@@ -107,11 +107,11 @@ CREATE TRIGGER atribuicoes_define_atualizado_em
 -- ------------------------------------------------------------
 -- Quem executa, e quanto cada um fez
 -- ------------------------------------------------------------
--- A QUANTIDADE E DE CADA PESSOA, E NAO DA TAREFA (RN-23). Quatro pessoas enchendo
+-- A QUANTIDADE E DE CADA PESSOA, E NAO DA TAREFA (RN-28). Quatro pessoas enchendo
 -- saquinho produzem quatro numeros, e e assim que o viveiro fala. Guardar um total
 -- na atribuicao perderia justamente o dado que ela quer.
 --
--- O PROTOCOLO SOZINHO NAO CRIA LINHA NENHUMA AQUI NEM EM `atribuicoes` (RF-47): ele
+-- O PROTOCOLO SOZINHO NAO CRIA LINHA NENHUMA AQUI NEM EM `atribuicoes` (RF-53): ele
 -- diz o que fazer e quando, como sugestao. A tarefa so existe quando a gerencia
 -- aceita a sugestao e a preenche por inteiro, participantes inclusive.
 CREATE TABLE atribuicoes_participantes (
@@ -139,10 +139,10 @@ ALTER TABLE movimentos_lote
   FOREIGN KEY (atribuicao_id) REFERENCES atribuicoes(id);
 
 COMMENT ON TABLE semanas IS
-  'Semana de trabalho: rascunho, publicada, fechada. Semana fechada nao se altera. RN-13.';
+  'Semana de trabalho: rascunho, publicada, fechada. Semana fechada nao se altera. RN-30.';
 COMMENT ON TABLE atribuicoes IS
-  'A celula da agenda. O planejado e o confirmado na mesma linha: situacao distingue os dois. RN-14.';
+  'A celula da agenda. O planejado e o confirmado na mesma linha: situacao distingue os dois. RN-31.';
 COMMENT ON COLUMN atribuicoes.e_recorrente IS
   'Marca de rotina fixa: vem preenchida ao copiar a semana. Nao e regra de calendario. RN-29.';
 COMMENT ON TABLE atribuicoes_participantes IS
-  'Quem executou e quanto fez. A quantidade e de cada pessoa. RN-25, RN-23.';
+  'Quem executou e quanto fez. A quantidade e de cada pessoa. RN-26, RN-28.';

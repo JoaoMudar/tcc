@@ -31,11 +31,11 @@ const TEXTO: Record<SituacaoLote, string> = {
 };
 
 /**
- * T7.1 a T7.3, RF-44, RF-45, RF-42, UC-27: o viveiro desenhado como ele é. A
+ * T7.1 a T7.3, RF-33, RF-52, RF-36, UC-27: o viveiro desenhado como ele é. A
  * área é o quadro, o canteiro é a faixa dentro dela e o lote é o quadrado dentro
  * do canteiro, porque um canteiro comporta várias levas.
  *
- * **É tela de computador (RNF-14)**, e é exceção declarada: o mapa existe para
+ * **É tela de computador (RNF-03)**, e é exceção declarada: o mapa existe para
  * mostrar o viveiro inteiro de uma vez, e trinta canteiros lado a lado não cabem
  * na largura de um celular. Espremer não encolhe o mapa, desfaz a comparação
  * entre áreas, que é o que se veio ver. **No celular ele vira lista**, com o
@@ -48,7 +48,7 @@ export async function MapaProducao() {
   const mapa = montarMapa(areas, lotes);
   const contagem = contarSituacoes(lotes);
   const providencia = pedemProvidencia(lotes);
-  // RF-42: a mortalidade tem destaque próprio, e de propósito não entra na cor
+  // RF-36: a mortalidade tem destaque próprio, e de propósito não entra na cor
   const destacados = new Set(lotes.filter((lote) => acimaDoLimite(lote.taxa, limite)).map((lote) => lote.id));
   const canteiros = mapa.reduce((soma, area) => soma + area.canteiros.length, 0);
 
@@ -65,7 +65,7 @@ export async function MapaProducao() {
 
   return (
     <>
-      {/* O desenho, só no computador: é ele que não cabe no celular (RNF-14) */}
+      {/* O desenho, só no computador: é ele que não cabe no celular (RNF-03) */}
       <div className="hidden gap-4 md:grid md:grid-cols-2 xl:grid-cols-3">
         {mapa.map((area) => (
           <section key={area.id} className="flex flex-col gap-2 rounded-xl border border-line bg-white p-4">

@@ -1,7 +1,7 @@
 import type { TipoEnvio } from './envios';
 
 /**
- * A fila do aparelho (T9.3, RNF-05). Guarda **só o que foi digitado e ainda não
+ * A fila do aparelho (T9.3, RNF-04). Guarda **só o que foi digitado e ainda não
  * chegou ao servidor**, nunca cópia do banco (E4 A-08): um registro de perda na
  * fila não revela preço nem cliente. Fica no IndexedDB para sobreviver ao
  * recarregar a página e ao fechar o navegador (TA-59).

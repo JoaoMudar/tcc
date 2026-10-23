@@ -13,7 +13,7 @@ import { carregarOpcoes } from './opcoes';
 /**
  * Alterar a tarefa ainda planejada: em modal sobre a agenda, ou página pelo
  * endereço. Fica na semana dela, salvo quando `semana` pede uma à frente: é o
- * "Marcar na agenda" da tarefa atrasada (RF-66), e aí o dia vem em branco.
+ * "Marcar na agenda" da tarefa atrasada (RF-55), e aí o dia vem em branco.
  * Esse caminho traz `voltar=agenda`: salva, volta para a agenda, não para a ficha.
  */
 export async function EditarTarefa({

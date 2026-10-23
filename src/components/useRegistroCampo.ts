@@ -30,7 +30,7 @@ function camposDe(formData: FormData): Record<string, string> {
 }
 
 /**
- * O formulário de campo que funciona sem rede (T9.3, RNF-05). O registro entra
+ * O formulário de campo que funciona sem rede (T9.3, RNF-04). O registro entra
  * na fila **antes** de qualquer tentativa de envio, para sobreviver a recarregar
  * a página no meio (TA-59), e só então vai ao servidor. Com rede, a pessoa vê a
  * resposta do servidor como antes; sem rede, vê na hora que ficou guardado.

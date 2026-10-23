@@ -1,7 +1,7 @@
 -- Migration: 20260924000001_pedido_orcamento_incompleto.sql
 -- Descricao: O item do pedido nasce sem recipiente, e a conferencia responde o que falta.
 --
--- Requisitos: RF-54, RF-56, RF-57
+-- Requisitos: RF-59, RF-62, RF-61
 -- Entidades: C8 `pedidos_itens`
 --
 -- POR QUE ESTA MIGRATION EXISTE. O pedido chega pelo WhatsApp de sete jeitos
@@ -21,7 +21,7 @@
 ALTER TABLE pedidos_itens ALTER COLUMN recipiente_id DROP NOT NULL;
 
 COMMENT ON COLUMN pedidos_itens.recipiente_id IS
-  'Recipiente pedido. Nulo e "o cliente nao disse o tamanho"; a conferencia responde em qual existe, e a aprovacao o exige. RF-54.';
+  'Recipiente pedido. Nulo e "o cliente nao disse o tamanho"; a conferencia responde em qual existe, e a aprovacao o exige. RF-59.';
 
 ALTER TABLE pedidos_itens DROP CONSTRAINT pedidos_itens_disponibilidade_coerente;
 ALTER TABLE pedidos_itens DROP CONSTRAINT pedidos_itens_recipiente_disponivel_com_muda;

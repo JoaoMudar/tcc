@@ -101,7 +101,7 @@ describe('relatório de conciliação', () => {
   });
 });
 
-describe('decisões (RN-67)', () => {
+describe('decisões (RN-05)', () => {
   it('lê as quatro decisões e recusa o resto', () => {
     expect(lerDecisao('')).toEqual({ tipo: 'vazia' });
     expect(lerDecisao(' Aceitar ')).toEqual({ tipo: 'aceitar' });

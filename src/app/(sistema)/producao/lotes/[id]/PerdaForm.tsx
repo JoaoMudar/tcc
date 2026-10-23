@@ -10,7 +10,7 @@ import { CausaPicker } from '../CausaPicker';
 
 /**
  * F1 UC-25, T4.5: quantidade, causa e observação. Espécie, recipiente e canteiro
- * vêm do lote (RF-37). Funciona sem rede: fica no aparelho e vai depois (TA-23).
+ * vêm do lote (RF-24). Funciona sem rede: fica no aparelho e vai depois (TA-23).
  */
 export function PerdaForm({ loteId, codigo, saldo }: { loteId: string; codigo: string; saldo: number }) {
   const [state, formAction, pending] = useRegistroCampo('perda', {

@@ -131,7 +131,7 @@ beforeAll(async () => {
   const turnoId = turno.rows[0].id;
   turnoManha = turnoId;
 
-  // O tipo da sugestão exige lote: é o que o protocolo sempre carrega (RF-47)
+  // O tipo da sugestão exige lote: é o que o protocolo sempre carrega (RF-53)
   const { rows: tipoRows } = await pool.query<{ id: string }>(
     `INSERT INTO tipos_tarefa (nome, categoria, exige_lote) VALUES ($1, 'manutencao', true) RETURNING id`,
     [`${prefixo} Limpar`],
@@ -140,14 +140,14 @@ beforeAll(async () => {
   const tipoTarefaId = tipoComLote;
 
   // A categoria `plantio` é o que diz ao motor que esta etapa grava a data de
-  // plantio do lote: nada marca uma etapa como "a do plantio" (RF-48, TA-40)
+  // plantio do lote: nada marca uma etapa como "a do plantio" (RF-54, TA-40)
   const { rows: plantioRows } = await pool.query<{ id: string }>(
     `INSERT INTO tipos_tarefa (nome, categoria, exige_lote) VALUES ($1, 'plantio', true) RETURNING id`,
     [`${prefixo} Plantar`],
   );
   tipoPlantio = plantioRows[0].id;
 
-  // Quem executa: a sugestão aceita só vira tarefa com participante (RN-41)
+  // Quem executa: a sugestão aceita só vira tarefa com participante (RN-40)
   const { rows: pessoaRows } = await pool.query<{ id: string }>(
     "INSERT INTO cadastro.pessoas (tipo, nome) VALUES ('pf', $1) RETURNING id",
     [`${prefixo} Rogerio`],
@@ -227,7 +227,7 @@ afterAll(async () => {
   await pool.end();
 });
 
-describe('RF-46, TA-38: o lote nasce seguindo o protocolo do recipiente', () => {
+describe('RF-47, TA-38: o lote nasce seguindo o protocolo do recipiente', () => {
   it('as cinco etapas são materializadas, e a data de plantio fica vazia', async () => {
     const { id } = await novoLote(tubete, canteiro1, '2026-01-10');
 
@@ -262,7 +262,7 @@ describe('RF-46, TA-38: o lote nasce seguindo o protocolo do recipiente', () => 
     expect(await daVisao(id, classificar)).toBeNull();
     expect(await daVisao(id, selecao)).toBeNull();
 
-    // 19/02 é o que sairia se a classificação ancorasse na criação (RN-31)
+    // 19/02 é o que sairia se a classificação ancorasse na criação (RN-34)
     expect((await daVisao(id, classificar))?.proximoVencimento).not.toBe('2026-02-19');
   });
 
@@ -312,7 +312,7 @@ describe('a visão e o motor puro dão o mesmo número', () => {
     const atual = (await estado(id, limpeza))!;
     expect(diasDeAtraso({ dias: 90, intervaloDias: 90, alertaLigado: true, janelaAvisoPct: null }, atual, null, '2026-07-10')).toBe(91);
 
-    // Nenhuma ocorrência nova nasceu no caminho (RN-33)
+    // Nenhuma ocorrência nova nasceu no caminho (RN-37)
     expect(atual.ocorrencias).toBe(0);
     const { rows } = await pool.query<{ n: number }>(
       'SELECT COUNT(*)::int AS n FROM lotes_etapas WHERE lote_id = $1 AND protocolo_etapa_id = $2',
@@ -337,7 +337,7 @@ describe('a visão e o motor puro dão o mesmo número', () => {
     expect(situacaoDaEtapa(etapaIrrigacao, (await estado(id, irrigacao))!, null, JANELA_PADRAO, '2026-06-01')).toBe('sem_alerta');
   });
 
-  /** TA-44, RN-36: o tempo da espécie manda no tempo do protocolo. */
+  /** TA-44, RN-38: o tempo da espécie manda no tempo do protocolo. */
   it('TA-44: a espécie com 70 dias próprios vence em 70, e a sem customização em 40', async () => {
     await saveTempoDaEspecie(pool, especieLenta, classificar, { dias: 70, intervaloDias: null, observacoes: 'germina devagar' });
 
@@ -372,10 +372,10 @@ describe('a visão e o motor puro dão o mesmo número', () => {
 });
 
 /**
- * RF-47, TA-39. O protocolo **sugere**, e nada mais: enquanto ninguém aceitar,
+ * RF-53, TA-39. O protocolo **sugere**, e nada mais: enquanto ninguém aceitar,
  * não existe linha nenhuma em `atribuicoes`.
  */
-describe('RF-66, RN-63: postergar e confirmar a tarefa feita fora da agenda', () => {
+describe('RF-55, RN-41: postergar e confirmar a tarefa feita fora da agenda', () => {
   const LIMPEZA = { dias: 90, intervaloDias: 90, alertaLigado: true, janelaAvisoPct: null };
 
   it('o adiamento soma no vencimento da ocorrência, nos dois lados, e some quando ela é concluída', async () => {
@@ -438,7 +438,7 @@ describe('RF-66, RN-63: postergar e confirmar a tarefa feita fora da agenda', ()
       [atribuicaoId],
     );
     expect(rows[0]).toEqual({ situacao: 'confirmada', data: '2030-02-06' });
-    // A etapa conclui na data do trabalho, como qualquer tarefa confirmada (RF-48)
+    // A etapa conclui na data do trabalho, como qualquer tarefa confirmada (RF-54)
     expect(await estado(id, limpeza)).toMatchObject({ ultimaExecucaoEm: '2030-02-06', ocorrencias: 1 });
     // A perda entra pela porta única, ligada à tarefa
     expect(perda).toEqual({ saldo: 988, encerrado: false });
@@ -555,7 +555,7 @@ describe('as sugestões ao lado da semana', () => {
     expect(rows[0].vencimento).toBe('2026-04-10');
   });
 
-  it('RN-33: aceitar duas vezes o mesmo vencimento é recusado pelo banco', async () => {
+  it('RN-37: aceitar duas vezes o mesmo vencimento é recusado pelo banco', async () => {
     const { id } = await novoLote(tubete, canteiro1, '2026-01-10');
     await aceitar(id, limpeza);
     await expect(aceitar(id, limpeza, '2030-02-11')).rejects.toMatchObject({ code: '23505' });
@@ -588,7 +588,7 @@ describe('as sugestões ao lado da semana', () => {
 });
 
 /**
- * RF-48, TA-40. A sequencial avança a fase e libera quem ancorava nela; a
+ * RF-54, TA-40. A sequencial avança a fase e libera quem ancorava nela; a
  * recorrente não avança fase nenhuma. É a linha 25/01 da prova de mesa.
  */
 describe('concluir a etapa: a fase, a data de plantio e as âncoras', () => {
@@ -647,7 +647,7 @@ describe('concluir a etapa: a fase, a data de plantio e as âncoras', () => {
     expect((await doLote(id)).fase).toBe('germinado');
   });
 
-  it('a etapa que ancorava na concluída ganha a âncora e passa a vencer (RN-31)', async () => {
+  it('a etapa que ancorava na concluída ganha a âncora e passa a vencer (RN-34)', async () => {
     const { id } = await novoLote(tubete, canteiro1, '2026-01-10');
     // Antes: classificar não vence nada, porque o plantio não foi concluído
     expect(await estado(id, classificar)).toMatchObject({ dataAncora: null });
@@ -669,13 +669,13 @@ describe('concluir a etapa: a fase, a data de plantio e as âncoras', () => {
     expect(await estado(id, plantar)).toMatchObject({ ocorrencias: 1, ultimaExecucaoEm: '2030-03-04' });
 
     await concluir(id, limpeza, '2030-03-11');
-    // Recorrente: continua na visão, e a próxima conta de 11/03 mais 90 (RN-32)
+    // Recorrente: continua na visão, e a próxima conta de 11/03 mais 90 (RN-36)
     expect(await estado(id, limpeza)).toMatchObject({ ocorrencias: 1, ultimaExecucaoEm: '2030-03-11' });
     expect((await daVisao(id, limpeza))!.proximoVencimento).toBe('2030-06-09');
   });
 });
 
-/** RF-51, RF-52, TA-43: a ficha responde o que já foi feito e o que vem. */
+/** RF-48, RF-51, TA-43: a ficha responde o que já foi feito e o que vem. */
 describe('a ficha do protocolo do lote', () => {
   it('TA-43: a concluída com a data real, a vencida com o atraso, e a sem âncora sem vencimento', async () => {
     const { id } = await novoLote(tubete, canteiro1, '2026-01-10');
@@ -740,7 +740,7 @@ describe('a etapa desativada sai da cobrança, e o lote encerrado também', () =
   });
 
   /**
-   * TA-45, RF-53, RN-38. O encerramento do lote chega pela porta única de
+   * TA-45, RF-58, RN-44. O encerramento do lote chega pela porta única de
    * `movimentos.ts`, e é lá que as ordens em aberto são canceladas: a perda que
    * zera o saldo é só o caminho mais curto até ele.
    */
@@ -802,7 +802,7 @@ describe('a etapa desativada sai da cobrança, e o lote encerrado também', () =
   });
 
   /**
-   * TA-46, RF-40, RN-39. É a linha 20/12 da prova de mesa, e **o caso que decide
+   * TA-46, RF-30, RN-43. É a linha 20/12 da prova de mesa, e **o caso que decide
    * se a divisão herda ou recomeça**: os dois filhos nascem vencendo em 14/12,
    * já vermelhos, e não em 20/03.
    */
@@ -865,8 +865,8 @@ describe('a etapa desativada sai da cobrança, e o lote encerrado também', () =
   });
 
   /**
-   * TA-48, RF-45. A visão `situacao_lote` nasceu antes do protocolo e só
-   * enxergava tarefa lançada. Como o protocolo **sugere sem lançar** (RN-41), a
+   * TA-48, RF-52. A visão `situacao_lote` nasceu antes do protocolo e só
+   * enxergava tarefa lançada. Como o protocolo **sugere sem lançar** (RN-40), a
    * etapa vencida não produzia linha nenhuma em `atribuicoes`, e o mapa pintava
    * de verde justamente o lote que ninguém olhou.
    *
@@ -922,7 +922,7 @@ describe('a etapa desativada sai da cobrança, e o lote encerrado também', () =
     expect(await daVisaoDoLote()).toMatchObject({ situacao: 'saudavel', tarefaPendente: null, diasAtraso: 0 });
   });
 
-  it('a etapa de alerta desligado não pinta o lote, como não colore na ficha (RN-35)', async () => {
+  it('a etapa de alerta desligado não pinta o lote, como não colore na ficha (RN-39)', async () => {
     const hoje = hojeNoViveiro();
     // Criado há 30 dias: a irrigação diária está vencida há 29, e a limpeza ainda nem venceu
     const { id } = await novoLote(tubete, canteiro1, somaDias(hoje, -30));
@@ -945,7 +945,7 @@ describe('a etapa desativada sai da cobrança, e o lote encerrado também', () =
       'Limpar mato',
       'Irrigacao',
     ]);
-    // A âncora vem resolvida com o rótulo, e não só com o id (RF-23)
+    // A âncora vem resolvida com o rótulo, e não só com o id (RF-44)
     expect(etapas[1].etapaAncoraRotulo).toBe('Plantar no tubete');
   });
 });

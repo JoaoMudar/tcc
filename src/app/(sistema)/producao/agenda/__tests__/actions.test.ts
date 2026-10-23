@@ -113,7 +113,7 @@ describe('permissões da agenda (D4 §3.3)', () => {
     expect(client.query).not.toHaveBeenCalledWith(expect.stringContaining('UPDATE atribuicoes SET data_trabalho'), expect.anything());
   });
 
-  it('RF-26: trazer para cima grava a precedência, e a semana fechada recusa', async () => {
+  it('RF-38: trazer para cima grava a precedência, e a semana fechada recusa', async () => {
     loggedAs('gerencia');
     let situacao = 'aberta';
     client.query.mockImplementation(async (sql: string) => {
@@ -131,7 +131,7 @@ describe('permissões da agenda (D4 §3.3)', () => {
     expect(client.query).not.toHaveBeenCalledWith(expect.stringContaining('SET prioridade_em'), expect.anything());
   });
 
-  it('RN-61: o arrasto entre linhas leva quem sai e quem entra; sair sem entrar é recusado antes do banco', async () => {
+  it('RF-38: o arrasto entre linhas leva quem sai e quem entra; sair sem entrar é recusado antes do banco', async () => {
     loggedAs('gerencia');
     expect(
       await actions.reagendarAtribuicaoAction({}, form({ id: ID, data: SEMANA, turno_id: PESSOA, hora_inicio: '', hora_fim: '', sai: PESSOA })),
@@ -146,7 +146,7 @@ describe('permissões da agenda (D4 §3.3)', () => {
   });
 });
 
-describe('RF-66: postergar e confirmar o que pede providência', () => {
+describe('RF-55: postergar e confirmar o que pede providência', () => {
   const LOTE = '2d9f4e5a-0b7c-4e3d-9f2a-4b8c9d0e1f2a';
   const ETAPA = '3e0a5f6b-1c8d-4f4e-8a3b-5c9d0e1f2a3b';
 

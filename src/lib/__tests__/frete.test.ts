@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { formatPesoCarga, freteParaCampo, isOrigemFrete, pesoDoPedido, sugerirFrete } from '../frete';
 
-describe('sugerirFrete (RN-64)', () => {
+describe('sugerirFrete (RN-54)', () => {
   it('ida e volta, pelo consumo e pelo preço do litro, em centavos', () => {
     // 85 km de ida: 170 km ÷ 17 km/L = 10 L × R$ 7 = R$ 70,00
     expect(sugerirFrete(85, 17, 7)).toBe(7000);
@@ -14,7 +14,7 @@ describe('sugerirFrete (RN-64)', () => {
   });
 });
 
-describe('pesoDoPedido (RN-65)', () => {
+describe('pesoDoPedido (RN-53)', () => {
   it('soma quantidade × peso do recipiente cheio', () => {
     expect(pesoDoPedido([
       { quantidade: 100, pesoKg: 0.35 },

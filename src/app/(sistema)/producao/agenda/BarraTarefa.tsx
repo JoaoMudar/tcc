@@ -33,7 +33,7 @@ interface BarraTarefaProps {
   alvo: AlvoArrasto;
   /** O que o card ocupa no eixo: a tarefa inteira, mesmo cruzada por outra. */
   desenho: Faixa;
-  /** A altura em cada pedaço: cruzada por outra, só ali ela perde a faixa da outra (RF-26). */
+  /** A altura em cada pedaço: cruzada por outra, só ali ela perde a faixa da outra (RF-38). */
   perfil: readonly Degrau<AtribuicaoResumo>[];
   janela: Eixo;
   /** Minutos de eixo livres à direita do card: onde o título do card estreito pode ficar. */
@@ -111,7 +111,7 @@ const SEM_QUEBRA_NA_PALAVRA = '[word-break:normal] [overflow-wrap:normal] hyphen
  * faixa abaixo disso. Toca para abrir a ficha; o corpo se arrasta e as bordas se
  * puxam. Cruzada com outra da mesma pessoa, a tarefa continua um card só, do
  * início ao fim: só o pedaço cruzado perde altura, a principal fica com a faixa
- * de cima, a secundária com a de baixo, e ela pode virar a principal (RF-26).
+ * de cima, a secundária com a de baixo, e ela pode virar a principal (RF-38).
  */
 export function BarraTarefa({
   atribuicao: a,

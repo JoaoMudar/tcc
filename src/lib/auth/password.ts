@@ -16,7 +16,7 @@ const MAX_MEMORY = 64 * 1024 * 1024;
 export const MIN_PASSWORD_LENGTH = 8;
 export const MAX_PASSWORD_LENGTH = 128;
 
-/** Hash de senha com scrypt e sal aleatório (RNF-08). Formato: scrypt$N$r$p$sal$hash. */
+/** Hash de senha com scrypt e sal aleatório (RNF-12). Formato: scrypt$N$r$p$sal$hash. */
 export async function hashPassword(password: string): Promise<string> {
   const salt = randomBytes(16);
   const key = await scrypt(password.normalize('NFKC'), salt, KEY_LENGTH, { ...PARAMS, maxmem: MAX_MEMORY });

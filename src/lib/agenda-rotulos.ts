@@ -6,7 +6,7 @@
 import type { PillTone } from '@/components/ui/Pill';
 import { lerQuantidade } from './lotes-rotulos';
 
-/** Lista fechada do CHECK `tipos_tarefa_unidade_valida` (RNF-02). */
+/** Lista fechada do CHECK `tipos_tarefa_unidade_valida` (RNF-06). */
 export const UNIDADES_TAREFA = ['un', 'kg', 'g', 'L', 'mL'] as const;
 
 export type UnidadeTarefa = (typeof UNIDADES_TAREFA)[number];
@@ -40,7 +40,7 @@ export function lerQuantidadeMedida(text: string, unidade: UnidadeTarefa): numbe
   return numero < MAXIMO ? numero : null;
 }
 
-/** RF-28: a semana nasce aberta no primeiro lançamento, e fechada não se altera (RN-13). */
+/** RF-41: a semana nasce aberta no primeiro lançamento, e fechada não se altera (RN-30). */
 export const SITUACOES_SEMANA = {
   aberta: 'Aberta',
   fechada: 'Fechada',
@@ -53,7 +53,7 @@ export const TOM_SEMANA: Record<SituacaoSemana, PillTone> = {
   fechada: 'neutral',
 };
 
-/** RN-14: `nao_confirmada` é a assumida como realizada no fechamento, e a marca fica à vista. */
+/** RN-31: `nao_confirmada` é a assumida como realizada no fechamento, e a marca fica à vista. */
 export const SITUACOES_ATRIBUICAO = {
   planejada: 'Planejada',
   confirmada: 'Confirmada',
@@ -86,7 +86,7 @@ export const ESTADOS_TAREFA = {
 
 export type EstadoTarefa = keyof typeof ESTADOS_TAREFA;
 
-/** A cor nunca decide sozinha (RNF-04): o glifo acompanha todo estado. */
+/** A cor nunca decide sozinha (RNF-09): o glifo acompanha todo estado. */
 export const GLIFO_ESTADO: Record<EstadoTarefa, string> = {
   planejada: '·',
   feita: '✓',
@@ -117,7 +117,7 @@ export interface EstadoTarefaInput {
 }
 
 /**
- * RF-31 e RN-14: a não confirmada entra como realizada, mas fica `presumida`, e
+ * RF-42 e RN-31: a não confirmada entra como realizada, mas fica `presumida`, e
  * é isso que a mantém distinguível da confirmada. Quantidade em branco é "sem
  * contagem" (FA-4 de `parseConfirmacao`), e não zero: a tarefa contada por
  * ninguém está feita, não vazia.
@@ -140,7 +140,7 @@ export function estadoTarefa(a: EstadoTarefaInput): EstadoTarefa {
  * O estado na semana que já pode ser fechada (passou o domingo e segue aberta):
  * a planejada com gente escalada já aparece como o fechamento vai deixá-la,
  * `presumida`, para a gerência ver o que falta confirmar. A sem ninguém segue
- * planejada, porque o fechamento a deixa pendente (RN-14). Fora dessa semana, o
+ * planejada, porque o fechamento a deixa pendente (RN-31). Fora dessa semana, o
  * "?" só existe depois do fechamento de fato.
  */
 export function estadoNaGrade(a: EstadoTarefaInput, aFechar: boolean): EstadoTarefa {
@@ -151,7 +151,7 @@ export function estadoNaGrade(a: EstadoTarefaInput, aFechar: boolean): EstadoTar
 /** Valor da opção "nenhum" nas listas opcionais: o servidor lê qualquer coisa que não seja UUID como vazio. */
 export const NENHUM = 'nenhum';
 
-/** RN-12: a hora só aparece na tarefa que a tem. "07:00", ou "07:00 às 08:00". */
+/** RN-24: a hora só aparece na tarefa que a tem. "07:00", ou "07:00 às 08:00". */
 export function formatHoraTarefa(inicio: string | null, fim: string | null): string | null {
   if (!inicio) return null;
   return fim ? `${inicio} às ${fim}` : inicio;
@@ -193,7 +193,7 @@ export interface ConfirmavelInput {
 }
 
 /**
- * O toque único da agenda do celular (RF-29, RNF-14): só quando a confirmação não
+ * O toque único da agenda do celular (RF-40, RNF-03): só quando a confirmação não
  * tem nada a perguntar. A quantitativa pede um número por pessoa, e a que exige
  * lote sem tê-lo pede o lote: essas abrem a ficha, onde está o formulário.
  */

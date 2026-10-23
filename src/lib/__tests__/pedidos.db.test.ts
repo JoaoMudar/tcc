@@ -136,7 +136,7 @@ afterAll(async () => {
   await pool.end();
 });
 
-describe('cadastro do pedido (T8.1, RF-54, RF-55)', () => {
+describe('cadastro do pedido (T8.1, RF-59, RF-65)', () => {
   it('nasce cadastrado, com número sequencial e os três itens (TA-51)', async () => {
     const primeiro = await novoPedido();
     const segundo = await novoPedido();
@@ -163,7 +163,7 @@ describe('cadastro do pedido (T8.1, RF-54, RF-55)', () => {
     expect(naLista.itens).toBe(3);
   });
 
-  it('P17: o frete entra no total da carteira e volta na ficha (RN-64)', async () => {
+  it('P17: o frete entra no total da carteira e volta na ficha (RN-54)', async () => {
     const { id } = await novoPedido();
     await pool.query("UPDATE pedidos SET situacao = 'verificado' WHERE id = $1", [id]);
     await tx((c) => salvarFrete(c, id, { centavos: 8450, origem: 'itapema' }, chefia()));
@@ -192,7 +192,7 @@ describe('cadastro do pedido (T8.1, RF-54, RF-55)', () => {
     await expect(tx((c) => salvarFrete(c, id, { centavos: 1, origem: 'outro' }, chefia()))).rejects.toThrow(/endereço/);
   });
 
-  it('P17: o item traz o peso do recipiente cheio (RN-65)', async () => {
+  it('P17: o item traz o peso do recipiente cheio (RN-53)', async () => {
     await pool.query('UPDATE recipientes SET peso_kg = 0.35 WHERE id = $1', [tubete]);
     const { id } = await novoPedido();
     const item = (await listItens(pool, id)).find((i) => i.recipienteId === tubete)!;
@@ -259,7 +259,7 @@ describe('cadastro do pedido (T8.1, RF-54, RF-55)', () => {
   });
 });
 
-describe('situação do pedido (T8.3, T8.6, RF-57)', () => {
+describe('situação do pedido (T8.3, T8.6, RF-61)', () => {
   it('aprovado recusa alterar, acrescentar e remover item (TA-53)', async () => {
     const { id } = await novoPedido();
     const [item] = await listItens(pool, id);
@@ -354,7 +354,7 @@ describe('situação do pedido (T8.3, T8.6, RF-57)', () => {
   });
 });
 
-describe('lista da carteira (T8.4, RF-58, TA-54)', () => {
+describe('lista da carteira (T8.4, RF-60, TA-54)', () => {
   it('vem do mais novo ao mais antigo, sem corte de data', async () => {
     const antigo = await novoPedido({ clienteId: outroCliente });
     await pool.query(`UPDATE pedidos SET criado_em = now() - interval '400 days' WHERE id = $1`, [antigo.id]);
@@ -366,7 +366,7 @@ describe('lista da carteira (T8.4, RF-58, TA-54)', () => {
   });
 });
 
-describe('estoque disponível no item (T8.2, RF-56, UC-32)', () => {
+describe('estoque disponível no item (T8.2, RF-62, UC-32)', () => {
   it('sai de todo lote aberto, e a perda registrada muda o número exibido (TA-64)', async () => {
     const lote = await tx((client) =>
       criarLote(client, {
@@ -380,7 +380,7 @@ describe('estoque disponível no item (T8.2, RF-56, UC-32)', () => {
       }),
     );
 
-    // RN-06: o lote recém-semeado já entra no saldo do item; não há fase de "muda pronta"
+    // RN-10: o lote recém-semeado já entra no saldo do item; não há fase de "muda pronta"
     const [antes] = await saldoDisponivel(pool, { especieId: especie, recipienteId: tubete });
     expect(antes.quantidade).toBe(500);
     await alterarFase(pool, lote.id, 'pronto');
@@ -401,7 +401,7 @@ describe('estoque disponível no item (T8.2, RF-56, UC-32)', () => {
   });
 });
 
-describe('fluxo e histórico (T8.6, RF-57)', () => {
+describe('fluxo e histórico (T8.6, RF-61)', () => {
   it('a lista fechada do banco é a mesma do TypeScript', async () => {
     // As oito situações vivem no CHECK e em SITUACOES_PEDIDO. Este teste existe
     // para as duas não divergirem em silêncio quando uma delas mudar.
@@ -648,7 +648,7 @@ describe('verificação de disponibilidade (T8.10)', () => {
   });
 });
 
-describe('negociação depois da conferência (RF-55, RN-50)', () => {
+describe('negociação depois da conferência (RF-65, RN-51)', () => {
   /** Um pedido sem preço nenhum, como o cadastro passa a criá-lo. */
   function semPreco() {
     return novoPedido({

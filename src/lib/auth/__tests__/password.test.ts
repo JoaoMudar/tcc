@@ -17,7 +17,7 @@ describe('hashPassword e verifyPassword', () => {
     expect(await verifyPassword('araucaria#2026', hash)).toBe(false);
   });
 
-  it('não guarda a senha legível e usa sal diferente a cada vez (RNF-08)', async () => {
+  it('não guarda a senha legível e usa sal diferente a cada vez (RNF-12)', async () => {
     const a = await hashPassword('Araucaria#2026');
     const b = await hashPassword('Araucaria#2026');
     expect(a).toMatch(/^scrypt\$16384\$8\$1\$[^$]+\$[^$]+$/);

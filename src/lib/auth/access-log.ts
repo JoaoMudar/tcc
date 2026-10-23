@@ -19,7 +19,7 @@ export interface LoginEventFilter {
   limit?: number;
 }
 
-/** Consulta o registro de acessos (RF-04), do mais recente para o mais antigo. */
+/** Consulta o registro de acessos (RF-07), do mais recente para o mais antigo. */
 export async function listLoginEvents(db: Db, filter: LoginEventFilter = {}): Promise<LoginEventRow[]> {
   const conditions: string[] = [];
   const params: unknown[] = [];

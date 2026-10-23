@@ -22,7 +22,7 @@ export async function findUserForLogin(db: Db, login: string): Promise<LoginUser
   return rows[0] ?? null;
 }
 
-/** RF-04: toda tentativa, com origem e aparelho. Usuário nulo quando o login não existe. */
+/** RF-07: toda tentativa, com origem e aparelho. Usuário nulo quando o login não existe. */
 export async function recordLoginEvent(
   db: Db,
   event: { usuarioId: string | null; loginTentado: string; sucesso: boolean; ip: string | null; agenteUsuario: string | null },

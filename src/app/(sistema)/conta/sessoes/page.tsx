@@ -12,7 +12,7 @@ import { describeUserAgent } from '@/lib/auth/user-agent';
 import { chavePublicaVapid } from '@/lib/notificacoes-envio';
 import { desinscreverAparelhoAction, endOtherSessions, endSession, inscreverAparelhoAction } from './actions';
 
-/** F1 UC-04: aparelhos conectados e tentativas recusadas (RF-03, RF-04, RF-07). */
+/** F1 UC-04: aparelhos conectados e tentativas recusadas (RF-05, RF-07, RF-06). */
 export default async function SessoesPage() {
   const user = await requirePageAccess('sessoes_proprias');
   const [sessions, refused] = await Promise.all([

@@ -127,7 +127,7 @@ export interface NovoItem {
   recipienteId: string | null;
   /** Nula enquanto o cliente não disse quantas: a conferência responde, a aprovação exige. */
   quantidade: number | null;
-  /** Nulo no cadastro: o preço é digitado depois da conferência (RN-50). */
+  /** Nulo no cadastro: o preço é digitado depois da conferência (RN-51). */
   precoCentavos: number | null;
   /**
    * Altura da muda pedida, em metros. Nula é "o cliente não pediu altura", que
@@ -166,7 +166,7 @@ export interface ItemPedido extends NovoItem {
   complementaItemId: string | null;
   /** P18: o complemento do item sem quantidade, que só vira linha quando a chefia o usa. */
   suplente: boolean;
-  /** Peso do recipiente cheio, pedido e conferido (RN-65). Nulo é "sem peso no cadastro". */
+  /** Peso do recipiente cheio, pedido e conferido (RN-53). Nulo é "sem peso no cadastro". */
   pesoKg: number | null;
   pesoDisponivelKg: number | null;
 }
@@ -189,7 +189,7 @@ export interface FichaPedido extends Omit<PedidoResumo, 'itens' | 'totalCentavos
   clienteTelefone: string | null;
   observacoes: string | null;
   criadoPor: string;
-  /** RN-64: o frete combinado, em centavos. Nulo é "sem frete". */
+  /** RN-54: o frete combinado, em centavos. Nulo é "sem frete". */
   freteCentavos: number | null;
   freteOrigem: OrigemFrete | null;
   /** O endereço de saída digitado, quando a origem é `outro`. */
@@ -242,7 +242,7 @@ const TOTAL_SQL = `CASE
 END::bigint`;
 
 /**
- * RF-58: a carteira inteira, do pedido mais novo ao mais antigo. Sem corte de
+ * RF-60: a carteira inteira, do pedido mais novo ao mais antigo. Sem corte de
  * data: quem procura pelo cliente quer achar também o pedido de meses atrás, e
  * o filtro por cliente é feito na tela, enquanto se digita.
  */
@@ -320,7 +320,7 @@ export async function listItens(db: Db, pedidoId: string): Promise<ItemPedido[]>
        FROM pedidos_itens i
        -- LEFT: o item genérico não tem espécie até a gerência compor
        LEFT JOIN especies e ON e.id = i.especie_id
-       -- LEFT: o cliente pode não ter dito o tamanho (RF-54)
+       -- LEFT: o cliente pode não ter dito o tamanho (RF-59)
        LEFT JOIN recipientes r ON r.id = i.recipiente_id
        LEFT JOIN recipientes rd ON rd.id = i.recipiente_disponivel_id
        -- O pai só existe para ordenar: o filho precisa sair logo abaixo dele
@@ -388,7 +388,7 @@ export async function travarPedido(client: Client, pedidoId: string): Promise<Pe
 }
 
 /**
- * RF-57: **a trava do item é do servidor**. Esconder o botão na tela não impede
+ * RF-61: **a trava do item é do servidor**. Esconder o botão na tela não impede
  * o formulário reenviado, e é o registro do que foi vendido que está protegido.
  *
  * O item só muda enquanto o pedido está em `cadastrado`. Depois disso a gerência
@@ -456,7 +456,7 @@ export interface NovoPedido {
 }
 
 /**
- * T8.1, RF-54, UC-31: o pedido nasce em rascunho, com número sequencial do banco
+ * T8.1, RF-59, UC-31: o pedido nasce em rascunho, com número sequencial do banco
  * e ao menos um item. Pedido e itens entram na mesma transação: pedido sem item
  * nenhum seria um número gasto à toa.
  */
@@ -480,7 +480,7 @@ export async function criarPedido(client: Client, input: NovoPedido): Promise<{ 
 }
 
 /**
- * RF-57: item novo só entra em pedido que ainda é rascunho. Devolve o id, porque
+ * RF-61: item novo só entra em pedido que ainda é rascunho. Devolve o id, porque
  * a grade da ficha grava a linha ao digitar e continua editando a mesma linha.
  */
 export async function adicionarItem(client: Client, pedidoId: string, item: NovoItem): Promise<string> {
@@ -545,7 +545,7 @@ async function trocarIdentidade(client: Client, pedidoId: string, itemId: string
 }
 
 /**
- * RF-57: recipiente, quantidade e altura do item, enquanto o pedido é
+ * RF-61: recipiente, quantidade e altura do item, enquanto o pedido é
  * orçamento. É por aqui que a chefia completa o que o cliente disse depois. **O
  * preço não passa por aqui**: ele é digitado depois da conferência, por
  * `negociarItens`.
@@ -729,7 +729,7 @@ interface ItemParaNegociar {
 }
 
 /**
- * RF-55, RN-50: **a negociação acontece depois da conferência**, e é onde a
+ * RF-65, RN-51: **a negociação acontece depois da conferência**, e é onde a
  * chefia fecha a venda com o cliente: por quanto, quantas e em que recipiente.
  *
  * Quem registra o pedido está no meio de uma conversa e anota o que o cliente
@@ -775,7 +775,7 @@ export async function usarSuplente(client: Client, pedidoId: string, itemId: str
 }
 
 /**
- * RN-64: o frete que a chefia combinou, gravado como o preço dos itens: na
+ * RN-54: o frete que a chefia combinou, gravado como o preço dos itens: na
  * negociação, e só por ela. Nulo é "sem frete". A origem fica junto, porque é
  * ela que diz de onde a sugestão foi calculada; a origem nula mantém a gravada.
  */
@@ -912,7 +912,7 @@ function contaItens(n: number, singular: string, plural: string): string | null 
 }
 
 /**
- * T8.11, RF-57: aprovar exige ao menos um item, que é a pós-condição do UC-31,
+ * T8.11, RF-61: aprovar exige ao menos um item, que é a pós-condição do UC-31,
  * porque pedido sem item não registra venda nenhuma.
  *
  * **A aprovação consome o que a gerência apurou**, e é o que faz a etapa
@@ -922,7 +922,7 @@ function contaItens(n: number, singular: string, plural: string): string | null 
  * 300, que é o que vai no caminhão.
  *
  * **É aqui que o orçamento deixa de ser incompleto.** O cadastro aceita item sem
- * recipiente, sem quantidade e sem preço (RF-54); a aprovação recusa item
+ * recipiente, sem quantidade e sem preço (RF-59); a aprovação recusa item
  * vendável a que falte qualquer um dos três, e genérico sem composição.
  */
 export async function confirmarPedido(

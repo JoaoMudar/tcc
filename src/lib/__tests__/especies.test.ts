@@ -43,7 +43,7 @@ describe('parseEspecieFields (RF-10)', () => {
     );
   });
 
-  it('nome antigo de outra espécie, ou a mesma planta com outro nome (RF-69)', () => {
+  it('nome antigo de outra espécie, ou a mesma planta com outro nome (RF-12)', () => {
     expect(duplicateMessage({ code: '23505', constraint: 'especies_nome_e_sinonimo' })).toMatch(/nome antigo de outra espécie/);
     expect(duplicateMessage({ code: '23505', constraint: 'especies_taxon_ffb_unico' })).toMatch(/já está cadastrada/);
     expect(duplicateMessage({ code: '23505', constraint: 'outra' })).toBeNull();

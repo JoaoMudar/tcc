@@ -1,7 +1,7 @@
 -- Migration: 20261006000001_pedido_item_suplente.sql
 -- Descricao: O item sem quantidade guarda, na conferencia, os outros recipientes em que a especie tambem esta.
 --
--- Requisitos: RF-56
+-- Requisitos: RF-62
 -- Entidades: C8 `pedidos_itens`
 --
 -- POR QUE ESTA MIGRATION EXISTE. O cliente pede "pitanga" sem dizer quantas, e
@@ -30,4 +30,4 @@ ALTER TABLE pedidos_itens ADD CONSTRAINT pedidos_itens_suplente_sem_linha CHECK 
 );
 
 COMMENT ON COLUMN pedidos_itens.suplente IS
-  'Complemento de item sem quantidade: outro recipiente em que a especie tambem esta, guardado para o caso de faltar. Nao e linha do orcamento ate a chefia o usar, e e apagado na aprovacao. RF-56.';
+  'Complemento de item sem quantidade: outro recipiente em que a especie tambem esta, guardado para o caso de faltar. Nao e linha do orcamento ate a chefia o usar, e e apagado na aprovacao. RF-62.';

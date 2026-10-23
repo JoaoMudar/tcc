@@ -6,7 +6,7 @@ import { normalizeTexto } from './busca-opcoes';
 import { somaDias } from './datas';
 import type { Perfil } from './perfis';
 
-/** RN-42: lista fechada de cinco valores, e não entidade própria. `atacado` é o padrão. */
+/** RN-49: lista fechada de cinco valores, e não entidade própria. `atacado` é o padrão. */
 export const CANAIS_VENDA = {
   atacado: 'Atacado',
   compensacao: 'Compensação ambiental',
@@ -24,12 +24,12 @@ export function isCanalVenda(value: string): value is CanalVenda {
 }
 
 /**
- * RN-53: o pedido percorre oito situações, e **cada uma tem dono**. A chefia
+ * RN-55: o pedido percorre oito situações, e **cada uma tem dono**. A chefia
  * cadastra e decide; a conferência no viveiro e a separação são da gerência, e a
  * chefia também as executa. Saber de quem o pedido está esperando é o que a
  * lista usa para pôr a etiqueta de providência.
  *
- * Substitui as três situações da RN-48 (`rascunho`, `confirmado`, `cancelado`),
+ * Substitui as três situações da RN-52 (`rascunho`, `confirmado`, `cancelado`),
  * que descreviam um comercial sem conferência nem separação.
  */
 export const SITUACOES_PEDIDO = {
@@ -115,7 +115,7 @@ function executa(transicao: Transicao, perfil: Perfil): boolean {
 }
 
 /**
- * A trava de verdade é do servidor (RF-57), e esta função é o contrato que ela
+ * A trava de verdade é do servidor (RF-61), e esta função é o contrato que ela
  * consulta. Esconder o botão na tela não impede o formulário reenviado.
  */
 export function podeTransicionar(de: SituacaoPedido, para: SituacaoPedido, perfil: Perfil): boolean {
@@ -170,7 +170,7 @@ const ALTURA_MINIMA_M = 0.05;
 /**
  * A altura da muda pedida, em metros, como o viveiro fala: 0,80 · 1,20.
  *
- * **Vazio é nulo, e não erro** (RF-54): a altura é opcional, porque o
+ * **Vazio é nulo, e não erro** (RF-59): a altura é opcional, porque o
  * recipiente já determina o porte na maior parte das vendas. Quem digita
  * ponto no lugar da vírgula é entendido do mesmo jeito.
  *
@@ -247,7 +247,7 @@ export function precoParaCampo(centavos: number): string {
 }
 
 /**
- * RF-56: a chave do saldo é o par espécie e recipiente, e é ela que liga o item
+ * RF-62: a chave do saldo é o par espécie e recipiente, e é ela que liga o item
  * do pedido à leitura da Produção. Fica aqui, e não no SQL, porque a tela de
  * pedido novo faz a mesma busca no navegador enquanto a pessoa digita.
  */
@@ -262,20 +262,20 @@ export interface FaixaDeAltura {
   quantidade: number;
 }
 
-/** RN-62: quanto abaixo da altura pedida a muda ainda é oferecida para completar o item. */
+/** RN-11: quanto abaixo da altura pedida a muda ainda é oferecida para completar o item. */
 export const TOLERANCIA_ALTURA_M = 0.2;
 
 export interface SaldoDoItem {
   /** O que atende o item: a mesma espécie e recipiente, com altura igual ou maior que a pedida. */
   disponivel: number;
-  /** Até 20 cm abaixo da pedida: não atende, mas pode completar o que falta (RN-62). */
+  /** Até 20 cm abaixo da pedida: não atende, mas pode completar o que falta (RN-11). */
   abaixo: number;
   /** Lotes sem altura medida, quando o item pede altura: não se sabe se atendem. */
   semAltura: number;
 }
 
 /**
- * RN-06, RN-62: o saldo que atende o item. Toda muda de lote aberto está à
+ * RN-10, RN-11: o saldo que atende o item. Toda muda de lote aberto está à
  * venda, em qualquer fase; o que decide é a espécie, o recipiente e a altura.
  * Item sem altura é atendido por todos os lotes do par. A comparação é em
  * centímetros inteiros, para 1,00 - 0,20 não virar 0,7999.
@@ -331,13 +331,13 @@ export function itemVendavel(item: ItemCalculavel, itens: readonly ItemCalculave
   return pai !== undefined && pai.quantidade === null;
 }
 
-/** RF-55: o total do item é quantidade por preço, em centavos. Sem preço, nulo. */
+/** RF-65: o total do item é quantidade por preço, em centavos. Sem preço, nulo. */
 export function totalItem(item: ItemCalculavel): number | null {
   return item.precoCentavos === null || item.quantidade === null ? null : item.quantidade * item.precoCentavos;
 }
 
 /**
- * RF-55: o total do pedido é a soma dos itens vendáveis (`itemVendavel`), e
+ * RF-65: o total do pedido é a soma dos itens vendáveis (`itemVendavel`), e
  * nada mais entra nele. O filho do genérico com quantidade herda o preço do pai,
  * e contar os dois dobraria a venda.
  *
@@ -469,7 +469,7 @@ export function formatTotal(centavos: number | null): string {
 }
 
 /**
- * RF-58: o filtro da lista de pedidos, que corre enquanto se digita. Com um
+ * RF-60: o filtro da lista de pedidos, que corre enquanto se digita. Com um
  * cliente tocado na lista, vale o id: dois clientes podem ter nome parecido.
  * Sem ele, vale o texto, em pedaços soltos e sem acento, como na busca de espécie.
  */
@@ -952,7 +952,7 @@ export function estadoDoGenerico(
 // ------------------------------------------------------------
 
 /**
- * RN-53 para a carga: **dois valores, e não três**. Um estado intermediário de
+ * RN-55 para a carga: **dois valores, e não três**. Um estado intermediário de
  * "separando" seria gravado no primeiro item marcado e não diria nada que o
  * progresso de itens separados já não diga. O CHECK do banco tem a mesma lista,
  * e um teste compara as duas.

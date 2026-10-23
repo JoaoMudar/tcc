@@ -6,7 +6,7 @@ import { type Campos, processarRegistro } from '@/lib/registros-campo';
 import { isUuid } from '@/lib/uuid';
 
 /**
- * Porta da fila do aparelho (T9.3, RNF-05): perda, contagem e confirmação de
+ * Porta da fila do aparelho (T9.3, RNF-04): perda, contagem e confirmação de
  * tarefa, com a chave de idempotência gerada no aparelho.
  *
  * **Rota fixa, e não Server Action**: o identificador da action muda a cada
@@ -18,7 +18,7 @@ import { isUuid } from '@/lib/uuid';
  * outra falha lança e vira 500, e a fila tenta de novo.
  */
 export async function POST(request: Request) {
-  // Guard da rota: sessão e permissão no servidor, como em toda Server Action (RF-06)
+  // Guard da rota: sessão e permissão no servidor, como em toda Server Action (RF-03)
   const session = await getCurrentSession();
   if (!session || session.deveTrocarSenha) {
     return Response.json({ error: 'Sua sessão terminou. Entre de novo para enviar.' }, { status: 401 });

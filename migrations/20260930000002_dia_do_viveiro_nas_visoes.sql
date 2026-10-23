@@ -1,7 +1,7 @@
 -- Migration: 20260930000002_dia_do_viveiro_nas_visoes.sql
 -- Descricao: O "hoje" das visoes passa a ser o dia do viveiro, e nao o do banco.
 --
--- Requisitos: RF-45, RF-51, RF-52 · Entidades: C8 `situacao_lote`, `lotes_etapas_vencimento`
+-- Requisitos: RF-52, RF-48, RF-51 · Entidades: C8 `situacao_lote`, `lotes_etapas_vencimento`
 --
 -- POR QUE ESTA MIGRATION EXISTE. As duas visoes mediam o atraso com
 -- `CURRENT_DATE`, que e o dia no fuso da sessao do banco. O Neon roda em UTC:
@@ -39,7 +39,7 @@ SELECT
 
   efetivo.dias_efetivos,
 
-  -- RN-40: conta da execucao real quando ja houve uma, e da ancora quando nunca
+  -- RN-35: conta da execucao real quando ja houve uma, e da ancora quando nunca
   -- houve. E o que separa o protocolo de uma agenda de calendario.
   (COALESCE(le.ultima_execucao_em, le.data_ancora) + efetivo.dias_efetivos) AS proximo_vencimento,
 
@@ -60,7 +60,7 @@ JOIN lotes b             ON b.id = le.lote_id
 JOIN protocolos_etapas pe ON pe.id = le.protocolo_etapa_id
 CROSS JOIN padrao p
 
--- O TEMPO EFETIVO E O DA ESPECIE QUANDO ELA O DECLARA (RN-36), e `dias` vale na
+-- O TEMPO EFETIVO E O DA ESPECIE QUANDO ELA O DECLARA (RN-38), e `dias` vale na
 -- primeira ocorrencia enquanto `intervalo_dias` vale nas seguintes.
 CROSS JOIN LATERAL (
   SELECT CASE
@@ -86,7 +86,7 @@ WITH limites AS (
     (SELECT valor::INTEGER FROM parametros WHERE chave = 'producao.atraso_atencao_dias') AS atencao,
     (SELECT valor::INTEGER FROM parametros WHERE chave = 'producao.atraso_critico_dias') AS critico
 ),
--- Fonte 1: a tarefa que alguem lancou e ninguem confirmou (RN-14).
+-- Fonte 1: a tarefa que alguem lancou e ninguem confirmou (RN-31).
 da_agenda AS (
   SELECT
     a.lote_id,
@@ -103,7 +103,7 @@ da_agenda AS (
     AND a.lote_id IS NOT NULL
     AND a.data_trabalho < hoje_no_viveiro()
 ),
--- Fonte 2: a etapa que o protocolo cobra e que ninguem lancou (RF-45, RF-47).
+-- Fonte 2: a etapa que o protocolo cobra e que ninguem lancou (RF-52, RF-53).
 do_protocolo AS (
   SELECT
     v.lote_id,
@@ -128,7 +128,7 @@ do_protocolo AS (
 pendencia AS (
   -- A MAIS ANTIGA MANDA, venha de onde vier: havendo tarefa atrasada e etapa
   -- vencida no mesmo lote, quem determina a cor e a que espera ha mais tempo, e e
-  -- ela que aparece ao apontar o lote (RF-45).
+  -- ela que aparece ao apontar o lote (RF-52).
   SELECT DISTINCT ON (lote_id) *
     FROM (SELECT * FROM da_agenda UNION ALL SELECT * FROM do_protocolo) AS tudo
    ORDER BY lote_id, desde ASC

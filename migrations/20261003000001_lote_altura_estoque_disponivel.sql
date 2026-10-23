@@ -1,7 +1,7 @@
 -- Migration: 20261003000001_lote_altura_estoque_disponivel.sql
 -- Descricao: O lote passa a registrar a altura da muda, e o estoque disponivel deixa de depender da fase.
 --
--- Requisitos: RF-43, RF-56, RF-65 · Regras: RN-06, RN-62
+-- Requisitos: RF-32, RF-62, RF-31 · Regras: RN-10, RN-11
 -- Entidades: C8 `lotes`
 --
 -- POR QUE ESTA MIGRATION EXISTE. O saldo vendavel somava so os lotes na fase
@@ -28,11 +28,11 @@ ALTER TABLE lotes
   CHECK (altura_m IS NULL OR (altura_m > 0 AND altura_m <= 20));
 
 COMMENT ON COLUMN lotes.altura_m IS
-  'Altura atual da muda do lote, em metros, medida na ficha. Nula e "ainda nao medida". RF-65.';
+  'Altura atual da muda do lote, em metros, medida na ficha. Nula e "ainda nao medida". RF-31.';
 
 DROP INDEX lotes_prontos_idx;
 
--- RF-43, RF-56: o estoque disponivel e a soma dos lotes abertos daquela especie
+-- RF-32, RF-62: o estoque disponivel e a soma dos lotes abertos daquela especie
 -- e recipiente, em qualquer fase.
 CREATE INDEX lotes_disponiveis_idx
   ON lotes (especie_id, recipiente_id) WHERE encerrado_em IS NULL;

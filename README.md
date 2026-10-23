@@ -86,7 +86,7 @@ testes. O CI (`.github/workflows/ci.yml`) roda o mesmo, mais typecheck e `test:d
    a publicação para e a versão anterior continua no ar.
    Publicação de preview pula as migrações, para nunca mexer no banco de produção.
 5. Conferir a página inicial: ela mostra **Banco de dados conectado**. A Vercel serve só por HTTPS
-   (RNF-12).
+   (RNF-10).
 6. No GitHub, em *Settings > Branches*, proteger `master` exigindo o check **verificar** do CI: é
    isso que bloqueia PR com teste quebrado.
 

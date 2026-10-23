@@ -8,7 +8,7 @@ import { can } from '@/lib/permissions';
 import { requirePageAccess } from '@/lib/auth/guards';
 import { ParametrosForm } from './ParametrosForm';
 
-/** F1 UC-06: parâmetros do sistema (RF-09). Só se altera o valor: não há criar nem excluir. */
+/** F1 UC-06: parâmetros do sistema (RF-08). Só se altera o valor: não há criar nem excluir. */
 export default async function ParametrosPage() {
   const user = await requirePageAccess('parametros');
   const parametros = await listParametros(pool);

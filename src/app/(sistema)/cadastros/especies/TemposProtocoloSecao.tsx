@@ -11,7 +11,7 @@ interface SecaoProps {
 
 /**
  * UC-18: a espécie de germinação lenta usa setenta dias onde o protocolo diz
- * quarenta, sem duplicar a receita inteira (RF-25, RN-36).
+ * quarenta, sem duplicar a receita inteira (RF-46, RN-38).
  */
 export function TemposProtocoloSecao({ especieId, tempos, podeEditar }: SecaoProps) {
   if (tempos.length === 0) {

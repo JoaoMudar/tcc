@@ -1,7 +1,7 @@
 -- Migration: 20261004000001_lotes_etapas_acoes.sql
 -- Descricao: Historico das acoes sobre a etapa do protocolo do lote: adiar X dias e concluir sem agenda.
 --
--- Requisitos: RF-66, RF-27 · Regras: RN-63, RN-29
+-- Requisitos: RF-55, RF-39 · Regras: RN-41, RN-29
 -- Entidades: C8 `lotes_etapas_acoes`, `lotes_etapas_vencimento`, `atribuicoes`
 --
 -- POR QUE ESTA MIGRATION EXISTE. A lista "Pedem providencia" so mostrava a
@@ -11,11 +11,11 @@
 -- agenda (foi feita no meio de outro servico). Os dois ficam registrados aqui,
 -- uma linha por acao, e e esta tabela que a ficha do lote mostra como historico.
 --
--- O ADIAMENTO VALE PARA UMA OCORRENCIA SO (RN-63). A linha guarda a ocorrencia
+-- O ADIAMENTO VALE PARA UMA OCORRENCIA SO (RN-41). A linha guarda a ocorrencia
 -- que adiou, e a visao soma so os adiamentos da ocorrencia que esta por vir.
 -- Concluida a etapa, a ocorrencia muda e o adiamento antigo deixa de contar
 -- sozinho: nada precisa ser zerado, e o historico continua inteiro. O
--- vencimento continua calculado, nunca digitado (RN-40): o adiamento e uma
+-- vencimento continua calculado, nunca digitado (RN-35): o adiamento e uma
 -- parcela da conta, e nao uma data que a substitui.
 --
 -- Compatibilidade: tabela nova; a visao mantem as mesmas colunas, por isso
@@ -61,13 +61,13 @@ CREATE TABLE lotes_etapas_acoes (
 CREATE INDEX lotes_etapas_acoes_etapa_idx ON lotes_etapas_acoes (lote_id, protocolo_etapa_id, ocorrencia);
 
 COMMENT ON TABLE lotes_etapas_acoes IS
-  'Historico das acoes da gerencia sobre a etapa do protocolo do lote fora da agenda: adiar e concluir sem agenda. RF-66, RN-63.';
+  'Historico das acoes da gerencia sobre a etapa do protocolo do lote fora da agenda: adiar e concluir sem agenda. RF-55, RN-41.';
 COMMENT ON COLUMN lotes_etapas_acoes.ocorrencia IS
-  'Ocorrencia da etapa que a acao afetou. O adiamento so conta enquanto ela e a que esta por vir (RN-63).';
+  'Ocorrencia da etapa que a acao afetou. O adiamento so conta enquanto ela e a que esta por vir (RN-41).';
 COMMENT ON COLUMN lotes_etapas_acoes.dias IS
   'So no adiamento: dias somados ao vencimento da ocorrencia. Nulo nas demais acoes.';
 
--- RF-27: a copia manual da semana saiu; a marca segue trazendo a rotina fixa.
+-- RF-39: a copia manual da semana saiu; a marca segue trazendo a rotina fixa.
 COMMENT ON COLUMN atribuicoes.e_recorrente IS
   'Marca de rotina fixa: nasce sozinha na semana seguinte, no primeiro lancamento dela. Nao e regra de calendario. RN-29.';
 
@@ -85,8 +85,8 @@ SELECT
 
   efetivo.dias_efetivos,
 
-  -- RN-40: conta da execucao real quando ja houve uma, e da ancora quando nunca
-  -- houve. RN-63: mais os adiamentos desta ocorrencia.
+  -- RN-35: conta da execucao real quando ja houve uma, e da ancora quando nunca
+  -- houve. RN-41: mais os adiamentos desta ocorrencia.
   vence.data AS proximo_vencimento,
 
   FLOOR(efetivo.dias_efetivos * COALESCE(pe.janela_aviso_pct, p.janela_pct) / 100)::INTEGER AS dias_aviso,
@@ -105,7 +105,7 @@ JOIN lotes b             ON b.id = le.lote_id
 JOIN protocolos_etapas pe ON pe.id = le.protocolo_etapa_id
 CROSS JOIN padrao p
 
--- O TEMPO EFETIVO E O DA ESPECIE QUANDO ELA O DECLARA (RN-36), e `dias` vale na
+-- O TEMPO EFETIVO E O DA ESPECIE QUANDO ELA O DECLARA (RN-38), e `dias` vale na
 -- primeira ocorrencia enquanto `intervalo_dias` vale nas seguintes.
 CROSS JOIN LATERAL (
   SELECT CASE
@@ -117,7 +117,7 @@ CROSS JOIN LATERAL (
     ON ept.protocolo_etapa_id = le.protocolo_etapa_id AND ept.especie_id = b.especie_id
 ) AS efetivo
 
--- RN-63: so o adiamento da ocorrencia que esta por vir
+-- RN-41: so o adiamento da ocorrencia que esta por vir
 CROSS JOIN LATERAL (
   SELECT COALESCE(SUM(ac.dias), 0)::INTEGER AS dias
     FROM lotes_etapas_acoes ac

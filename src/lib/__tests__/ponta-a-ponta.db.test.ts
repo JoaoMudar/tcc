@@ -17,7 +17,7 @@ import { withTransaction } from '../transaction';
  * Postgres real. As suítes de cada fase já conferem as peças; esta confere que
  * elas se encaixam: a perda de campo, a tarefa confirmada na semana e o saldo
  * lido pelo pedido falam do mesmo número, e a soma dos movimentos o reproduz ao
- * fim de cada passo (RN-21, TA-64).
+ * fim de cada passo (RF-27, TA-64).
  *
  * Os `it` rodam em ordem e cada um parte do estado que o anterior deixou.
  */
@@ -137,7 +137,7 @@ describe('fluxo 1: lote e perda', () => {
     await tx((client) => registrarMovimento(client, { loteId: lote, tipo: 'perda', quantidade: -50, causa: 'seca', registradoPor: gerencia }));
     expect(await saldoConferido()).toBe(950);
 
-    // A contagem física achou dez a menos: vira ajuste, e não correção escondida (RN-09)
+    // A contagem física achou dez a menos: vira ajuste, e não correção escondida (RN-17)
     const contagem = await tx((client) => contarLote(client, { loteId: lote, contado: 940, observacoes: null, registradoPor: gerencia }));
     expect(contagem.diferenca).toBe(-10);
     expect(await saldoConferido()).toBe(940);
@@ -192,7 +192,7 @@ describe('fluxo 2: semana montada e fechada', () => {
 
 describe('fluxo 3: pedido com saldo', () => {
   it('o saldo exibido no item sai do lote aberto, e a perda de campo o muda sem tocar o pedido', async () => {
-    // RN-06: o lote é oferecido à venda em qualquer fase
+    // RN-10: o lote é oferecido à venda em qualquer fase
     expect((await saldoDisponivel(pool, { especieId: especie, recipienteId: tubete }))[0].quantidade).toBe(920);
 
     ({ id: pedido } = await tx((client) =>
@@ -218,7 +218,7 @@ describe('fluxo 3: pedido com saldo', () => {
     await tx((client) => confirmarPedido(client, pedido, { perfil: 'chefia', usuarioId: chefia }));
     expect((await findPedido(pool, pedido))?.situacao).not.toBe('cadastrado');
 
-    // Nenhuma tela grava a saída de venda ainda (RF-37): a porta a aceita, e o saldo acompanha
+    // Nenhuma tela grava a saída de venda ainda (RF-24): a porta a aceita, e o saldo acompanha
     await tx((client) => registrarMovimento(client, { loteId: lote, tipo: 'venda', quantidade: -300, registradoPor: chefia }));
     expect((await saldoDisponivel(pool, { especieId: especie, recipienteId: tubete }))[0].quantidade).toBe(520);
     expect(await saldoConferido()).toBe(520);

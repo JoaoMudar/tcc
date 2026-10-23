@@ -1,5 +1,5 @@
 /**
- * IP de quem fez a requisição, para a sessão e o registro de acesso (RF-04).
+ * IP de quem fez a requisição, para a sessão e o registro de acesso (RF-07).
  *
  * O cliente controla o começo de `X-Forwarded-For` e pode mandar o que quiser;
  * quem o proxy viu de verdade é o último item, o que ele próprio acrescentou

@@ -31,8 +31,8 @@ interface AgendaDaSemanaProps {
 
 /**
  * T5.1, F1 UC-19: a semana do dia escolhido. Gantt por pessoa no computador,
- * lista de um dia no celular (RNF-14). A semana não se abre nem se publica: nasce
- * aberta no primeiro lançamento, e o único ato sobre ela é fechar (RF-28, RN-14).
+ * lista de um dia no celular (RNF-03). A semana não se abre nem se publica: nasce
+ * aberta no primeiro lançamento, e o único ato sobre ela é fechar (RF-41, RN-31).
  */
 export async function AgendaDaSemana({ dia, hoje, perfil }: AgendaDaSemanaProps) {
   const inicio = inicioDaSemana(dia);
@@ -42,7 +42,7 @@ export async function AgendaDaSemana({ dia, hoje, perfil }: AgendaDaSemanaProps)
 
   const [semana, funcionarios, turnos] = await Promise.all([findSemana(pool, inicio), listFuncionarios(pool), listTurnos(pool)]);
   const atribuicoes = semana ? await listAgendaSemana(pool, semana.id) : [];
-  // RF-47: o protocolo sugere abaixo da semana, e não lança nada na grade.
+  // RF-53: o protocolo sugere abaixo da semana, e não lança nada na grade.
   // A busca precisa alcançar o fim da semana, que pode estar além do horizonte;
   // quem recorta para a semana é sugestoesDaSemana.
   const horizonte = await horizonteProtocolo(pool);
@@ -50,7 +50,7 @@ export async function AgendaDaSemana({ dia, hoje, perfil }: AgendaDaSemanaProps)
   const fimDaSemana = dias[6];
   const diasAteOFim = diasEntre(hoje, fimDaSemana);
   const sugestoes = sugestoesDaSemana(await listSugestoes(pool, hoje, Math.max(horizonte, diasAteOFim, 0)), inicio, hoje);
-  // RF-45, RF-66: o que pede providência, de qualquer semana. O lançamento cai na
+  // RF-52, RF-55: o que pede providência, de qualquer semana. O lançamento cai na
   // semana aberta na tela, ou na de hoje quando a da tela já passou.
   const semanaDeLancar = semanaJaPassou(inicio, hoje) ? inicioDaSemana(hoje) : inicio;
   const providencias: ItemProvidencia[] = pedemProvidencia(await listLotesDoMapa(pool)).map((lote) => {
@@ -70,7 +70,7 @@ export async function AgendaDaSemana({ dia, hoje, perfil }: AgendaDaSemanaProps)
 
   const fechada = semana?.situacao === 'fechada';
   const podeMontar = can(perfil, 'agenda', 'C') && !fechada;
-  // Semana que ainda não existe não tem o que fechar, e a corrente ainda não terminou (RF-28)
+  // Semana que ainda não existe não tem o que fechar, e a corrente ainda não terminou (RF-41)
   const aFechar = semana?.situacao === 'aberta' && semanaJaPassou(inicio, hoje);
   const podeFechar = can(perfil, 'fechamento_semana', 'A') && aFechar;
   const podeArrastar = can(perfil, 'agenda', 'A') && !fechada;
@@ -148,7 +148,7 @@ export async function AgendaDaSemana({ dia, hoje, perfil }: AgendaDaSemanaProps)
           />
         )}
 
-        {/* Abaixo da semana, e nunca dentro da grade (RF-47) */}
+        {/* Abaixo da semana, e nunca dentro da grade (RF-53) */}
         <SugestoesProtocolo sugestoes={sugestoes} semana={inicio} podeLancar={podeMontar} />
         <PedemProvidencia itens={providencias} podeAgir={can(perfil, 'agenda', 'C')} />
       </section>

@@ -13,7 +13,7 @@ import {
 } from './session-store';
 import { generateSessionToken, hashToken } from './tokens';
 
-/** Origem e aparelho da requisição, para a sessão e o registro de acesso (RF-04). */
+/** Origem e aparelho da requisição, para a sessão e o registro de acesso (RF-07). */
 export async function requestOrigin(): Promise<{ ip: string | null; agenteUsuario: string | null }> {
   const h = await headers();
   return {
@@ -56,7 +56,7 @@ export const getCurrentSession = cache(async (): Promise<SessionUser | null> => 
   return session;
 });
 
-/** RF-03: apaga a sessão no banco e o cookie. Só em Server Action. */
+/** RF-05: apaga a sessão no banco e o cookie. Só em Server Action. */
 export async function endCurrentSession(): Promise<void> {
   const store = await cookies();
   const token = store.get(SESSION_COOKIE)?.value;

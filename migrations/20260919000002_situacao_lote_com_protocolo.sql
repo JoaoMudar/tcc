@@ -2,14 +2,14 @@
 -- Descricao: A situacao do lote passa a enxergar a etapa do protocolo vencida,
 -- mesmo sem tarefa nenhuma lancada na agenda.
 --
--- Requisitos: RF-45, RF-44 · Regras: RN-35, RN-40, RN-41
+-- Requisitos: RF-52, RF-33 · Regras: RN-39, RN-35, RN-40
 -- Entidades: C8 `situacao_lote` (visao recriada)
 --
 -- O QUE ESTAVA ERRADO. A visao de 20260901000007 nasceu antes do protocolo, e so
 -- conhecia uma fonte de pendencia: a atribuicao `planejada` cuja data passou.
--- Desde que o protocolo sugere sem lancar (RF-47, RN-41), a etapa vencida nao
+-- Desde que o protocolo sugere sem lancar (RF-53, RN-40), a etapa vencida nao
 -- produz linha nenhuma em `atribuicoes` ate alguem aceitar a sugestao, e o mapa
--- pintava de verde justamente o lote que ninguem olhou. O RF-45 pede o contrario:
+-- pintava de verde justamente o lote que ninguem olhou. O RF-52 pede o contrario:
 -- lote com etapa vencida aparece critico AINDA QUE NADA tenha sido lancado, e o
 -- G2 ja descrevia a fonte do indicador como `atribuicoes` e `lotes_etapas`.
 --
@@ -22,7 +22,7 @@
 -- com o seu atraso em dias e e comparada a `producao.atraso_atencao_dias` e
 -- `producao.atraso_critico_dias`, como qualquer pendencia. A etapa em ATENCAO,
 -- que ainda nao venceu, entra direto como `atencao` e com zero dia de atraso: a
--- janela dela e percentual do intervalo (RN-35), e passa-la por um limite em dias
+-- janela dela e percentual do intervalo (RN-39), e passa-la por um limite em dias
 -- devolveria o limite fixo que o protocolo existe para nao ter. A etapa de alerta
 -- desligado nao pinta nada, pelo mesmo motivo por que nao colore na ficha: a
 -- irrigacao diaria deixaria o viveiro inteiro vermelho toda manha.
@@ -54,7 +54,7 @@ WITH limites AS (
     (SELECT valor::INTEGER FROM parametros WHERE chave = 'producao.atraso_atencao_dias') AS atencao,
     (SELECT valor::INTEGER FROM parametros WHERE chave = 'producao.atraso_critico_dias') AS critico
 ),
--- Fonte 1: a tarefa que alguem lancou e ninguem confirmou (RN-14).
+-- Fonte 1: a tarefa que alguem lancou e ninguem confirmou (RN-31).
 da_agenda AS (
   SELECT
     a.lote_id,
@@ -71,7 +71,7 @@ da_agenda AS (
     AND a.lote_id IS NOT NULL
     AND a.data_trabalho < CURRENT_DATE
 ),
--- Fonte 2: a etapa que o protocolo cobra e que ninguem lancou (RF-45, RF-47).
+-- Fonte 2: a etapa que o protocolo cobra e que ninguem lancou (RF-52, RF-53).
 do_protocolo AS (
   SELECT
     v.lote_id,
@@ -96,7 +96,7 @@ do_protocolo AS (
 pendencia AS (
   -- A MAIS ANTIGA MANDA, venha de onde vier: havendo tarefa atrasada e etapa
   -- vencida no mesmo lote, quem determina a cor e a que espera ha mais tempo, e e
-  -- ela que aparece ao apontar o lote (RF-45).
+  -- ela que aparece ao apontar o lote (RF-52).
   SELECT DISTINCT ON (lote_id) *
     FROM (SELECT * FROM da_agenda UNION ALL SELECT * FROM do_protocolo) AS tudo
    ORDER BY lote_id, desde ASC
@@ -126,4 +126,4 @@ LEFT JOIN pendencia p ON p.lote_id = b.id
 WHERE b.encerrado_em IS NULL;
 
 COMMENT ON VIEW situacao_lote IS
-  'Situacao do lote: saudavel, atencao, critico. Derivada do atraso da tarefa lancada e da etapa do protocolo vencida, nunca digitada. RF-45.';
+  'Situacao do lote: saudavel, atencao, critico. Derivada do atraso da tarefa lancada e da etapa do protocolo vencida, nunca digitada. RF-52.';

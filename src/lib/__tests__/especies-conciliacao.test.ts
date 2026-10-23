@@ -30,7 +30,7 @@ const ACEITO: TaxonAceito = {
   nativaSc: false,
 };
 
-describe('homônimos (RF-69)', () => {
+describe('homônimos (RF-12)', () => {
   it('desempata pela autoria, sem pontuação nem espaço', () => {
     const curtis = C({ taxonId: '9', autoria: 'Curtis' });
     const aiton = C({ taxonId: '10', autoria: 'Aiton', situacao: 'SEM_SITUACAO' });

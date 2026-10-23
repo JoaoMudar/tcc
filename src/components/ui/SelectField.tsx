@@ -39,7 +39,7 @@ interface SelectFieldProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>,
   error?: string;
 }
 
-/** Categoria é sempre lista fechada, nunca texto digitado (RNF-02). */
+/** Categoria é sempre lista fechada, nunca texto digitado (RNF-06). */
 export function SelectField({
   label,
   options,

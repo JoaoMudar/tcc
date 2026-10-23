@@ -10,7 +10,7 @@ const ler = (location: string) => {
   return conteudo;
 };
 
-describe('meta.xml (RF-69)', () => {
+describe('meta.xml (RF-12)', () => {
   it('a coluna é achada pelo termo, e não pela posição', () => {
     const meta = lerMeta(arquivos['meta.xml']);
     expect(meta.core.location).toBe('taxon.txt');

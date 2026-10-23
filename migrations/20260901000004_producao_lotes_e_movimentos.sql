@@ -1,7 +1,7 @@
 -- Migration: 20260901000004_producao_lotes_e_movimentos.sql
 -- Descricao: O lote e o razao que explica o seu saldo.
 --
--- Requisitos: RF-32 a RF-40, RF-46 · Regras: RN-08 a RN-11, RN-18 a RN-22, RN-27, RN-23
+-- Requisitos: RF-23 a RF-30, RF-34, RF-47 · Regras: RN-17 a RN-19, RN-21, RN-13, RN-14, RN-22, RN-23, RN-20, RN-28
 -- Entidades: C8 `lotes`, `movimentos_lote`
 --
 -- O LOTE E O ENDERECO DA MUDA. Especie e recipiente dizem O QUE a muda e; `canteiro_id`
@@ -19,18 +19,18 @@ CREATE TABLE lotes (
 
   -- Nulo APENAS no lote encerrado. Enquanto aberto, todo lote tem canteiro: lote
   -- sem lugar e a situacao que a entidade existe para eliminar. Ao encerrar, o
-  -- canteiro e liberado (RN-22).
+  -- canteiro e liberado (RN-23).
   canteiro_id         UUID REFERENCES canteiros(id),
 
-  -- Reflexivo: e o que a repicagem produz (RN-20) e o que a divisao produz
-  -- (RN-39). A muda que passa do tubete para o saco mudou de recipiente, e
+  -- Reflexivo: e o que a repicagem produz (RN-22) e o que a divisao produz
+  -- (RN-43). A muda que passa do tubete para o saco mudou de recipiente, e
   -- recipiente define produto e preco: comercialmente, virou outra coisa.
   -- Percorrer esta cadeia responde, de cada mil sementes semeadas, quantas mudas
   -- chegaram a venda.
   lote_origem_id      UUID REFERENCES lotes(id),
 
   -- Protocolo que rege o lote, fotografado na criacao a partir do recipiente
-  -- (RF-46). Nulo enquanto `protocolos` nao existir, e tambem quando o recipiente
+  -- (RF-47). Nulo enquanto `protocolos` nao existir, e tambem quando o recipiente
   -- nao tiver protocolo: o lote e criado e nao cobra etapa nenhuma (C2 UC-22 FA-2).
   protocolo_id        UUID,
 
@@ -46,11 +46,11 @@ CREATE TABLE lotes (
   fase                TEXT NOT NULL DEFAULT 'semeado',
 
   -- Data em que a leva foi plantada e passou a ocupar o canteiro. E a ancora das
-  -- etapas do protocolo que contam da criacao do lote (RN-31).
+  -- etapas do protocolo que contam da criacao do lote (RN-34).
   data_plantio        DATE NOT NULL DEFAULT CURRENT_DATE,
 
   -- Ordem do lote dentro do canteiro, a partir de 1. Da ao mapa um desenho estavel
-  -- (RF-44).
+  -- (RF-33).
   posicao             INTEGER,
 
   encerrado_em        TIMESTAMPTZ,
@@ -61,7 +61,7 @@ CREATE TABLE lotes (
 
   CONSTRAINT lotes_inicial_positivo CHECK (quantidade_inicial > 0),
 
-  -- RN-21: nenhum lote tem saldo negativo. Movimento que levaria o saldo abaixo de
+  -- RF-27: nenhum lote tem saldo negativo. Movimento que levaria o saldo abaixo de
   -- zero significa que a contagem esta errada, e gravar o negativo propagaria o
   -- erro para o estoque.
   CONSTRAINT lotes_saldo_nao_negativo CHECK (quantidade_atual >= 0),
@@ -69,14 +69,14 @@ CREATE TABLE lotes (
   CONSTRAINT lotes_fase_valida CHECK (fase IN
     ('semeado', 'germinado', 'repicado', 'crescimento', 'rustificacao', 'pronto', 'encerrado')),
 
-  -- RN-22: lote encerrado nao ocupa canteiro, e lote aberto ocupa. Os dois lados da
+  -- RN-23: lote encerrado nao ocupa canteiro, e lote aberto ocupa. Os dois lados da
   -- regra, numa restricao so.
   CONSTRAINT lotes_encerrado_sem_canteiro CHECK (
     (encerrado_em IS NULL AND canteiro_id IS NOT NULL)
     OR (encerrado_em IS NOT NULL AND canteiro_id IS NULL)
   ),
 
-  -- RN-38: o motivo do encerramento existe se e somente se o lote estiver
+  -- RN-44: o motivo do encerramento existe se e somente se o lote estiver
   -- encerrado.
   CONSTRAINT lotes_motivo_com_encerramento CHECK (
     (encerrado_em IS NULL AND motivo_encerramento IS NULL)
@@ -90,7 +90,7 @@ CREATE INDEX lotes_especie_idx ON lotes (especie_id);
 CREATE INDEX lotes_origem_idx  ON lotes (lote_origem_id) WHERE lote_origem_id IS NOT NULL;
 CREATE INDEX lotes_abertos_idx ON lotes (canteiro_id) WHERE encerrado_em IS NULL;
 
--- RF-43: o saldo disponivel e a soma dos lotes PRONTOS daquela especie e
+-- RF-32: o saldo disponivel e a soma dos lotes PRONTOS daquela especie e
 -- recipiente. Este indice e o que torna a consulta do item de pedido barata.
 CREATE INDEX lotes_prontos_idx
   ON lotes (especie_id, recipiente_id) WHERE encerrado_em IS NULL AND fase = 'pronto';
@@ -119,8 +119,8 @@ CREATE TABLE movimentos_lote (
   canteiro_origem_id  UUID REFERENCES canteiros(id),
   canteiro_destino_id UUID REFERENCES canteiros(id),
 
-  -- Causa da perda em LISTA FECHADA (RN-10). Campo livre inviabilizaria a analise
-  -- por causa, que e para o que RF-41 existe.
+  -- Causa da perda em LISTA FECHADA (RN-19). Campo livre inviabilizaria a analise
+  -- por causa, que e para o que RF-35 existe.
   causa_perda         TEXT,
 
   -- Liga o movimento a tarefa que o causou, e e OPCIONAL: movimento sem origem e o
@@ -158,16 +158,16 @@ CREATE TABLE movimentos_lote (
 
 CREATE INDEX movimentos_lote_lote_idx ON movimentos_lote (lote_id, data_movimento);
 
--- RF-41, RF-42: a analise de perdas filtra por periodo e causa, e a mortalidade
+-- RF-35, RF-36: a analise de perdas filtra por periodo e causa, e a mortalidade
 -- soma as perdas do lote.
 CREATE INDEX movimentos_lote_perdas_idx
   ON movimentos_lote (data_movimento, causa_perda) WHERE tipo_movimento = 'perda';
 
 COMMENT ON TABLE lotes IS
-  'A leva de mudas da mesma especie, no mesmo recipiente, ocupando um canteiro. RN-18, RN-19.';
+  'A leva de mudas da mesma especie, no mesmo recipiente, ocupando um canteiro. RN-13, RN-14.';
 COMMENT ON COLUMN lotes.quantidade_atual IS
   'Saldo vivo, materializado de proposito. movimentos_lote e a fonte que o audita.';
 COMMENT ON COLUMN lotes.lote_origem_id IS
-  'Lote de origem. A repicagem nao move o lote: cria um novo apontando para ele. RN-20.';
+  'Lote de origem. A repicagem nao move o lote: cria um novo apontando para ele. RN-22.';
 COMMENT ON TABLE movimentos_lote IS
-  'Razao do saldo do lote. Toda alteracao de quantidade_atual tem uma linha aqui. Perda e ajuste sao tipos, e nao tabelas. RN-10, RN-09.';
+  'Razao do saldo do lote. Toda alteracao de quantidade_atual tem uma linha aqui. Perda e ajuste sao tipos, e nao tabelas. RN-19, RN-17.';

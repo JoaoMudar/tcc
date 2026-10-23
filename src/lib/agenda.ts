@@ -22,7 +22,7 @@ import { isUuid } from './uuid';
 export * from './agenda-rotulos';
 
 /**
- * A agenda da semana (Fase 5, RF-26 a RF-31). Toda escrita trava primeiro a
+ * A agenda da semana (Fase 5, RF-38 a RF-42). Toda escrita trava primeiro a
  * linha da semana e só depois a atribuição: a mesma ordem em todo lugar é o que
  * impede o fechamento e a confirmação de se esperarem um ao outro para sempre.
  */
@@ -34,7 +34,7 @@ type Resultado<T> = { error: string } | { value: T };
 // Validação, pura
 // ------------------------------------------------------------
 
-/** RN-12: sem hora, só início, ou início e fim. Fim sem início não é nenhum dos três (TA-28). */
+/** RN-24: sem hora, só início, ou início e fim. Fim sem início não é nenhum dos três (TA-28). */
 export function parseHorario(inicio: string, fim: string): Resultado<{ inicio: string | null; fim: string | null }> {
   const textoInicio = inicio.trim();
   const textoFim = fim.trim();
@@ -69,7 +69,7 @@ export interface AtribuicaoBruta {
   quantidadePlanejada: string;
   recorrente: boolean;
   observacoes: string;
-  /** Etapa cuja sugestão originou a tarefa (RF-47). Vazio na tarefa lançada à mão. */
+  /** Etapa cuja sugestão originou a tarefa (RF-53). Vazio na tarefa lançada à mão. */
   loteEtapaId: string;
 }
 
@@ -90,7 +90,7 @@ export interface AtribuicaoInput {
   recorrente: boolean;
   observacoes: string | null;
   /**
-   * Etapa de origem, quando a tarefa nasceu de uma sugestão (RF-47). O
+   * Etapa de origem, quando a tarefa nasceu de uma sugestão (RF-53). O
    * vencimento **não** vem daqui: é lido no servidor, em `conferirReferencias`,
    * porque data postada no formulário apagaria o atraso que a coluna existe para
    * denunciar.
@@ -99,7 +99,7 @@ export interface AtribuicaoInput {
 }
 
 /**
- * T5.2, RF-21, RF-26, RF-30. O tipo de tarefa comanda: o campo que ele não
+ * T5.2, RF-37, RF-38. O tipo de tarefa comanda: o campo que ele não
  * declara é descartado, e não gravado. No planejamento o lote, a espécie e o
  * recipiente são opcionais (a semeadura se planeja antes de o lote existir); a
  * confirmação é que exige o lote.
@@ -123,7 +123,7 @@ export function parseAtribuicao(
   if ('error' in horario) return horario;
 
   const escolhido = (declarado: boolean, valor: string) => (declarado && isUuid(valor) ? valor : null);
-  // Área e canteiro só no tipo que os declara; o banco já recusa junto com lote (RN-24)
+  // Área e canteiro só no tipo que os declara; o banco já recusa junto com lote (RF-37)
   const areaId = escolhido(tipo.exigeArea, bruta.areaId);
   const canteiroId = areaId ? escolhido(tipo.exigeArea, bruta.canteiroId) : null;
 
@@ -181,10 +181,10 @@ export interface ReagendamentoInput {
 }
 
 /**
- * O arrasto na agenda da semana (tela larga, RNF-14): dia, turno e hora, e quem
+ * O arrasto na agenda da semana (tela larga, RNF-03): dia, turno e hora, e quem
  * faz. A tarefa é de um grupo, e soltar o card na linha de outra pessoa
  * **substitui**: quem estava na linha de origem sai, quem está na de destino
- * entra (RN-61). O card vindo da linha "Sem ninguém" não tem quem sair, e só
+ * entra (RF-38). O card vindo da linha "Sem ninguém" não tem quem sair, e só
  * acrescenta. Tirar alguém sem pôr ninguém continua no formulário.
  */
 export function parseReagendamento(bruto: ReagendamentoBruto): Resultado<ReagendamentoInput> {
@@ -225,7 +225,7 @@ export interface ConfirmacaoInput {
 }
 
 /**
- * T5.5, RF-29, UC-20. O lote uma vez para a tarefa, exigido quando o tipo o
+ * T5.5, RF-40, UC-20. O lote uma vez para a tarefa, exigido quando o tipo o
  * declara (FE-2); um número por participante só na tarefa quantitativa, e em
  * branco vale "sem contagem" (FA-4); um número inválido recusa a tarefa inteira
  * (FE-1). As mudas que morreram viram perda do lote (decisão de 14/09/2026).
@@ -329,7 +329,7 @@ export interface AtribuicaoResumo {
   exigeRecipiente: boolean;
   exigeArea: boolean;
   unidadeMedida: UnidadeTarefa;
-  /** Dá a cor do card na agenda: uma cor por categoria, e nada mais (RNF-04). */
+  /** Dá a cor do card na agenda: uma cor por categoria, e nada mais (RNF-09). */
   categoria: CategoriaTarefa;
   especieId: string | null;
   especie: string | null;
@@ -347,7 +347,7 @@ export interface AtribuicaoResumo {
   observacoes: string | null;
   /**
    * Quando a gerência escolheu esta tarefa como a principal onde duas se cruzam
-   * na grade (RF-26): ISO em UTC com microssegundos, para a ordem de texto ser a
+   * na grade (RF-38): ISO em UTC com microssegundos, para a ordem de texto ser a
    * ordem do tempo. Nula segue a regra: a mais longa fica em cima.
    */
   prioridadeEm: string | null;
@@ -407,7 +407,7 @@ export async function findAtribuicao(db: Db, id: string): Promise<AtribuicaoResu
 
 export interface ResumoFechamento {
   confirmadas: number;
-  /** Planejadas com gente escalada: o fechamento as assume como realizadas (RN-14). */
+  /** Planejadas com gente escalada: o fechamento as assume como realizadas (RN-31). */
   semConfirmacao: number;
   /** Planejadas sem ninguém, como a ordem do protocolo: seguem pendentes. */
   semNinguem: number;
@@ -440,7 +440,7 @@ async function travarSemana(client: Client, coluna: 'id' | 'inicio_semana', valo
   return rows[0];
 }
 
-/** RF-28, RN-13: a trava no servidor. */
+/** RF-41, RN-30: a trava no servidor. */
 function recusarSeFechada(semana: Semana): void {
   if (semana.situacao === 'fechada') {
     throw new UserError(
@@ -454,9 +454,9 @@ interface AtribuicaoTravada {
   situacao: SituacaoAtribuicao;
   loteId: string | null;
   exigeLote: boolean;
-  /** Etapa de origem, quando a tarefa nasceu de sugestão (RF-47). */
+  /** Etapa de origem, quando a tarefa nasceu de sugestão (RF-53). */
   loteEtapaId: string | null;
-  /** O dia em que a tarefa aconteceu: é a data real da execução (RN-32). */
+  /** O dia em que a tarefa aconteceu: é a data real da execução (RN-36). */
   dataTrabalho: string;
   semana: Semana;
 }
@@ -539,7 +539,7 @@ async function inserirAtribuicao(client: Client, semanaId: string, dados: DadosA
 }
 
 /**
- * RF-47: o vencimento da etapa, lido **no servidor**. Nunca vem do formulário:
+ * RF-53: o vencimento da etapa, lido **no servidor**. Nunca vem do formulário:
  * data postada apagaria o atraso que a coluna existe para denunciar. Confere de
  * passagem que a etapa é daquele lote, e devolve a data a congelar no aceite.
  */
@@ -605,14 +605,14 @@ async function conferirReferencias(client: Client, input: AtribuicaoInput): Prom
 }
 
 /**
- * RF-27, RN-29: traz as atribuições recorrentes da semana `origemInicio` para a
+ * RF-39, RN-29: traz as atribuições recorrentes da semana `origemInicio` para a
  * semana `destinoId`, sete dias depois. Volta planejada e sem contagem; só com
  * quem ainda é funcionário, e com o lote só se ele segue aberto. A tarefa que
  * ficou sem ninguém não é trazida. Não há mais cópia manual da semana inteira:
  * o que se repete é marcado como recorrente, e o resto se lança.
  *
  * **A tarefa que nasceu de sugestão não é copiada** (`lote_etapa_id IS NULL`), e
- * a razão mudou com o RF-47: não é que o motor a gere sozinho, é que ela
+ * a razão mudou com o RF-53: não é que o motor a gere sozinho, é que ela
  * pertence a um vencimento específico do lote. Copiá-la para a semana seguinte
  * carregaria um vencimento que não é o daquela semana. O protocolo torna a
  * sugeri-la enquanto a etapa continuar vencida.
@@ -666,7 +666,7 @@ export async function abrirSemana(client: Client, inicio: string): Promise<{ id:
 }
 
 /**
- * T5.6, RF-31, RN-14: fecha a semana aberta. A planejada com gente escalada é
+ * T5.6, RF-42, RN-31: fecha a semana aberta. A planejada com gente escalada é
  * assumida como realizada, marcada de não confirmada; a sem ninguém fica pendente.
  * Só depois do domingo dela: a semana corrente ainda tem dia por trabalhar.
  */
@@ -691,7 +691,7 @@ export async function criarAtribuicoes(client: Client, input: AtribuicaoInput): 
   recusarSeFechada(semana);
   await conferirReferencias(client, input);
 
-  // RF-47: a sugestão aceita congela o vencimento da etapa, lido do servidor
+  // RF-53: a sugestão aceita congela o vencimento da etapa, lido do servidor
   const vencimentoProtocolo = input.loteEtapaId
     ? await vencimentoDaSugestao(client, input.loteEtapaId, input.loteId)
     : null;
@@ -706,7 +706,7 @@ export async function criarAtribuicoes(client: Client, input: AtribuicaoInput): 
 /** Só a planejada, num dia só, e dentro da mesma semana. */
 /**
  * Altera a tarefa planejada. Fica na mesma semana, ou vai para uma à frente: é o
- * "Marcar na agenda" da tarefa atrasada (RF-66), que a traz para a semana de
+ * "Marcar na agenda" da tarefa atrasada (RF-55), que a traz para a semana de
  * hoje. Movida, não pode cair antes de hoje, senão seguiria atrasada; a semana
  * de destino nasce se preciso e recusa se fechada, travada depois da de origem,
  * na mesma ordem do adiamento.
@@ -786,7 +786,7 @@ export async function reagendarAtribuicao(client: Client, id: string, input: Rea
 }
 
 /**
- * RF-66: a tarefa atrasada que pede providência, adiada X dias a partir de hoje
+ * RF-55: a tarefa atrasada que pede providência, adiada X dias a partir de hoje
  * (ou da data dela, se ainda não chegou): adiar para um dia que já passou a
  * deixaria atrasada do mesmo jeito. Ao contrário do arraste, pode cair em outra
  * semana: a de destino nasce se ainda não existia, e recusa se estiver fechada.
@@ -805,7 +805,7 @@ export async function adiarAtribuicao(client: Client, id: string, dias: number, 
 }
 
 /**
- * RF-26: torna a tarefa a principal na grade da semana. É só desenho, e por isso
+ * RF-38: torna a tarefa a principal na grade da semana. É só desenho, e por isso
  * vale para qualquer situação; a semana fechada, como tudo nela, não se altera.
  */
 export async function promoverAtribuicao(client: Client, id: string): Promise<{ semanaInicio: string }> {
@@ -815,7 +815,7 @@ export async function promoverAtribuicao(client: Client, id: string): Promise<{ 
   return { semanaInicio: atribuicao.semana.inicio };
 }
 
-/** RN-61: quem entra substitui quem sai. Entrar quem já está somaria nada, e sair quem não está, menos ainda. */
+/** RF-38: quem entra substitui quem sai. Entrar quem já está somaria nada, e sair quem não está, menos ainda. */
 async function trocarParticipante(client: Client, id: string, troca: { sai: string | null; entra: string }): Promise<void> {
   const { rows: grupo } = await client.query<{ pessoaId: string; nome: string }>(
     `SELECT p.pessoa_id AS "pessoaId", pe.nome
@@ -911,8 +911,8 @@ export async function confirmarAtribuicao(
         })
       : null;
 
-  // RF-48: a tarefa que nasceu de sugestão conclui a etapa que a originou. A
-  // data é a do trabalho, e não a de hoje: é quando a coisa foi feita (RN-32).
+  // RF-54: a tarefa que nasceu de sugestão conclui a etapa que a originou. A
+  // data é a do trabalho, e não a de hoje: é quando a coisa foi feita (RN-36).
   if (atribuicao.loteEtapaId && input.loteId) {
     await concluirEtapa(client, input.loteId, atribuicao.loteEtapaId, atribuicao.dataTrabalho);
   }
@@ -921,7 +921,7 @@ export async function confirmarAtribuicao(
 }
 
 /**
- * RF-66: a etapa feita fora da agenda vira tarefa já confirmada, num dia só.
+ * RF-55: a etapa feita fora da agenda vira tarefa já confirmada, num dia só.
  * Lança e confirma na mesma transação, para a etapa se concluir na data do
  * trabalho e a perda entrar pela porta única, como em qualquer confirmação.
  */

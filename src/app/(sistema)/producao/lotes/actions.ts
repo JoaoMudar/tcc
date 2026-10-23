@@ -19,7 +19,7 @@ function revalidarProducao() {
   revalidatePath('/producao', 'layout');
 }
 
-/** T4.2, RF-32. */
+/** T4.2, RF-23. */
 export async function criarLoteAction(_previous: FormState, formData: FormData): Promise<FormState> {
   const user = await requirePermission('lotes', 'C');
   const fields = {
@@ -81,7 +81,7 @@ export async function transferirLoteAction(_previous: FormState, formData: FormD
   return { success: 'Lote transferido.' };
 }
 
-/** T4.8, RF-34: baixa o lote de origem e cria o novo apontando para ele, com a perda do processo (RN-27). */
+/** T4.8, RF-29: baixa o lote de origem e cria o novo apontando para ele, com a perda do processo (RN-20). */
 export async function repicarLoteAction(_previous: FormState, formData: FormData): Promise<FormState> {
   const user = await requirePermission('movimentos_lote', 'C');
   await requirePermission('lotes', 'C');
@@ -135,7 +135,7 @@ export async function repicarLoteAction(_previous: FormState, formData: FormData
 }
 
 /**
- * T6.10, RF-40: a leva passa a ocupar dois lugares. Os dois resultantes herdam a
+ * T6.10, RF-30: a leva passa a ocupar dois lugares. Os dois resultantes herdam a
  * fase e o acompanhamento do protocolo, e o original encerra como `dividido`.
  */
 export async function dividirLoteAction(_previous: FormState, formData: FormData): Promise<FormState> {
@@ -181,7 +181,7 @@ export async function dividirLoteAction(_previous: FormState, formData: FormData
 
 /**
  * A fase trocada à mão. O protocolo a avança sozinho ao concluir etapa
- * sequencial (RF-48); isto aqui é o caminho do lote sem protocolo e a correção
+ * sequencial (RF-54); isto aqui é o caminho do lote sem protocolo e a correção
  * de engano.
  */
 export async function alterarFaseAction(_previous: FormState, formData: FormData): Promise<FormState> {
@@ -202,7 +202,7 @@ export async function alterarFaseAction(_previous: FormState, formData: FormData
   return { success: `Fase alterada para ${lotes.FASES[fase.value].toLowerCase()}.` };
 }
 
-/** RF-65: a altura medida da muda do lote. Vazio apaga a medida. */
+/** RF-31: a altura medida da muda do lote. Vazio apaga a medida. */
 export async function alterarAlturaAction(_previous: FormState, formData: FormData): Promise<FormState> {
   await requirePermission('lotes', 'A');
   const loteId = formText(formData, 'lote_id');

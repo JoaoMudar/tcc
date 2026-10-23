@@ -30,7 +30,7 @@ afterAll(async () => {
   await pool.end();
 });
 
-describe('turnos_trabalho contra Postgres real (RF-08)', () => {
+describe('turnos_trabalho contra Postgres real (RF-09)', () => {
   it('a carga inicial tem manhã e tarde, somando oito horas', async () => {
     const turnos = await listTurnos(pool);
     expect(turnos).toEqual(
@@ -69,7 +69,7 @@ describe('turnos_trabalho contra Postgres real (RF-08)', () => {
   });
 });
 
-describe('parametros contra Postgres real (RF-09)', () => {
+describe('parametros contra Postgres real (RF-08)', () => {
   it('TA-07: grava o valor e quem alterou, sem criar linha', async () => {
     const { rows: antes } = await pool.query<{ total: number }>('SELECT COUNT(*)::int AS total FROM parametros');
     const novos = { [MORTALIDADE]: '30', [ATENCAO]: '1', [CRITICO]: '5' };

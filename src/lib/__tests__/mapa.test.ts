@@ -42,7 +42,7 @@ const AREAS: Area[] = [
   { id: 'area-b', letra: 'B', nome: null, canteiros: [{ id: 'b1', numero: 1, capacidade: null }] },
 ];
 
-describe('montarMapa (RF-44)', () => {
+describe('montarMapa (RF-33)', () => {
   it('põe cada lote no seu canteiro e marca livre o que não tem nenhum', () => {
     const mapa = montarMapa(AREAS, [
       lote('2026-0001', 'a1'),
@@ -84,7 +84,7 @@ describe('contarSituacoes', () => {
   });
 });
 
-describe('pedemProvidencia (RF-45)', () => {
+describe('pedemProvidencia (RF-52)', () => {
   it('deixa o saudável de fora, põe o crítico na frente e, dentro do mesmo, o que espera há mais tempo', () => {
     const lista = pedemProvidencia([
       lote('2026-0001', 'a1'),

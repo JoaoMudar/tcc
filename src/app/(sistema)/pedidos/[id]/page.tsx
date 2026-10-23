@@ -38,7 +38,7 @@ const TOM: Record<SituacaoPedido, PillTone> = {
  * T8.1 a T8.3, UC-31 e UC-32: a ficha do pedido. De cima para baixo: o cliente,
  * o andamento, o próximo passo, os itens e, no fim, o cancelamento.
  *
- * **O saldo é lido a cada abertura desta página** (RF-56): é a perda registrada
+ * **O saldo é lido a cada abertura desta página** (RF-62): é a perda registrada
  * no lote aparecendo no item do pedido, que é a interligação que o trabalho
  * existe para demonstrar.
  */
@@ -51,7 +51,7 @@ export default async function PedidoPage({ params }: PedidoPageProps) {
 
   const { situacao } = pedido;
   const editaItens = situacao === 'cadastrado' && can(user.perfil, 'pedidos', 'A');
-  // RF-55: o preço se digita depois da conferência, e é da chefia (D4 §3.2)
+  // RF-65: o preço se digita depois da conferência, e é da chefia (D4 §3.2)
   const negocia =
     (situacao === 'verificado' || situacao === 'pendente_alteracao') &&
     can(user.perfil, 'pedidos', 'A') &&

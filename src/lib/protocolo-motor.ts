@@ -1,6 +1,6 @@
 /**
  * O motor do protocolo: vencimento e situação de cada etapa do lote, derivados a
- * cada leitura e **nunca gravados** (RN-40). Sem SQL e sem `pg`, para o
+ * cada leitura e **nunca gravados** (RN-35). Sem SQL e sem `pg`, para o
  * navegador poder receber (RNF-11, TA-60) e para a prova de mesa poder testá-lo
  * sem banco.
  *
@@ -23,7 +23,7 @@ export interface EtapaDoProtocolo {
   dias: number;
   intervaloDias: number | null;
   alertaLigado: boolean;
-  /** Percentual próprio; nulo usa o de Configurações (RN-35). */
+  /** Percentual próprio; nulo usa o de Configurações (RN-39). */
   janelaAvisoPct: number | null;
 }
 
@@ -31,14 +31,14 @@ export interface EtapaDoProtocolo {
 export interface EstadoDaEtapa {
   /** Nula: a âncora ainda não ocorreu, e a etapa não vence nada. */
   dataAncora: string | null;
-  /** Data real da execução anterior, nunca a planejada (RN-32). */
+  /** Data real da execução anterior, nunca a planejada (RN-36). */
   ultimaExecucaoEm: string | null;
   ocorrencias: number;
-  /** RN-63: soma dos adiamentos da ocorrência que está por vir. Ausente vale zero. */
+  /** RN-41: soma dos adiamentos da ocorrência que está por vir. Ausente vale zero. */
   diasAdiados?: number;
 }
 
-/** O que a espécie sobrescreve, quando sobrescreve (RN-36). */
+/** O que a espécie sobrescreve, quando sobrescreve (RN-38). */
 export interface TempoDaEspecie {
   dias: number | null;
   intervaloDias: number | null;
@@ -60,8 +60,8 @@ export function diasEfetivos(
 }
 
 /**
- * RN-40: conta da execução real quando já houve uma, e da âncora quando nunca
- * houve, mais o adiamento da ocorrência (RN-63). **Âncora não resolvida não vence nada**, e o nulo é informação: é o
+ * RN-35: conta da execução real quando já houve uma, e da âncora quando nunca
+ * houve, mais o adiamento da ocorrência (RN-41). **Âncora não resolvida não vence nada**, e o nulo é informação: é o
  * estado de "classificar pós-germinação" enquanto o plantio não foi concluído.
  */
 export function vencimentoDaEtapa(
@@ -89,9 +89,9 @@ export function diasDeAviso(
 }
 
 /**
- * RF-52. `sem_alerta` na etapa que não avisa, e ela não recebe cor nenhuma, nem
+ * RF-51. `sem_alerta` na etapa que não avisa, e ela não recebe cor nenhuma, nem
  * verde: etapa diária colorida deixaria o viveiro inteiro em atraso toda manhã
- * (RN-35, TA-37). Nulo quando a etapa não vence nada.
+ * (RN-39, TA-37). Nulo quando a etapa não vence nada.
  */
 export function situacaoDaEtapa(
   etapa: EtapaDoProtocolo,
@@ -110,7 +110,7 @@ export function situacaoDaEtapa(
 }
 
 /**
- * RN-33: a pendência é uma só, e o que muda é a idade dela. Etapa vencida há
+ * RN-37: a pendência é uma só, e o que muda é a idade dela. Etapa vencida há
  * cinco meses tem cinco meses de atraso, e não cinco pendências (RF-50, TA-42).
  * Zero quando está em dia ou quando não vence nada.
  */

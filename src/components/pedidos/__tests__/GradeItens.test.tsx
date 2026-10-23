@@ -36,7 +36,7 @@ function enviados(container: HTMLElement, nome: string): string[] {
   return [...container.querySelectorAll<HTMLInputElement>(`input[name="${nome}"]`)].map((campo) => campo.value);
 }
 
-describe('planilha de itens do pedido (T8.1, RF-54)', () => {
+describe('planilha de itens do pedido (T8.1, RF-59)', () => {
   it('as colunas saem na ordem em que se lê um pedido', () => {
     montar([preenchida()]);
     const textos = screen.getAllByRole('columnheader').map((th) => th.textContent);
@@ -198,7 +198,7 @@ describe('planilha de itens do pedido (T8.1, RF-54)', () => {
   });
 });
 
-describe('estoque disponível na linha (RF-56, RN-06)', () => {
+describe('estoque disponível na linha (RF-62, RN-10)', () => {
   it('fala em disponível, sem "pronto" nem "em produção", e avisa a falta com o que há até 20 cm abaixo', () => {
     montar([preenchida()], {
       saldos: {

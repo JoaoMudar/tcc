@@ -302,7 +302,7 @@ describe('pessoas contra Postgres real', () => {
     expect(await findPessoasPorTelefone(pool, '49991882210')).toEqual([{ id: pessoaId, nome: fornecedor.nome }]);
   });
 
-  it('RF-15 e RF-20: cliente rápido e funcionário sem usuário', async () => {
+  it('RF-20 e RF-22: cliente rápido e funcionário sem usuário', async () => {
     const id = await withTransaction(pool, (client) =>
       insertClienteRapido(client, { nome: `${prefixo} Sítio Boa Vista`, telefone: '47996124408' }),
     );

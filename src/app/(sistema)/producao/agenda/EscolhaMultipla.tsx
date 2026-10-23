@@ -15,7 +15,7 @@ interface EscolhaMultiplaProps {
   onChange?: (marcados: string[]) => void;
 }
 
-/** Pessoas, dias e turno são tocados, nunca digitados (RNF-02), com alvo de toque grande (RNF-03). */
+/** Pessoas, dias e turno são tocados, nunca digitados (RNF-06), com alvo de toque grande (RNF-08). */
 export function EscolhaMultipla({ legenda, name, opcoes, marcados, tipo = 'checkbox', colunas = 2, obrigatorio = false, onChange }: EscolhaMultiplaProps) {
   return (
     <fieldset

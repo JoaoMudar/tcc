@@ -4,7 +4,7 @@ import { useCallback, useState } from 'react';
 import type { Providencia } from '@/lib/providencia';
 import type { AvisoDesfazer } from './ToastDesfazer';
 
-/** O painel de providência aberto e o aviso que fica quando ele fecha por ter feito algo (RF-66). */
+/** O painel de providência aberto e o aviso que fica quando ele fecha por ter feito algo (RF-55). */
 export function useProvidencia() {
   const [aberta, setAberta] = useState<Providencia | null>(null);
   const [aviso, setAviso] = useState<AvisoDesfazer | null>(null);

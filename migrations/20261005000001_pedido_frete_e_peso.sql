@@ -1,7 +1,7 @@
 -- Migration: 20261005000001_pedido_frete_e_peso.sql
 -- Descricao: Peso do recipiente cheio, frete do pedido e coordenada que acompanha o texto do endereco.
 --
--- Requisitos: RF-55, RF-67, RF-64 · Regras: RN-64, RN-65
+-- Requisitos: RF-65, RF-66, RF-71 · Regras: RN-54, RN-53
 -- Entidades: C8 `recipientes`, `pedidos`, `parametros`, `cadastro.pessoas_enderecos`
 --
 -- POR QUE ESTA MIGRATION EXISTE. Na aprovacao a chefia fecha o preco com o
@@ -10,14 +10,14 @@
 -- item, e o peso sai do recipiente: a muda em saco 20x26 pesa o que pesa o saco
 -- cheio de substrato, qualquer que seja a especie.
 --
--- O FRETE E SUGERIDO, E NUNCA IMPOSTO (RN-64). A sugestao e a distancia de ida
+-- O FRETE E SUGERIDO, E NUNCA IMPOSTO (RN-54). A sugestao e a distancia de ida
 -- e volta ate o cliente, dividida pelo consumo do caminhao e multiplicada pelo
 -- preco do litro. O valor gravado e o que a chefia digitou, mesmo que destoe da
 -- conta: o frete se negocia como o preco. `frete_distancia_km` guarda so a
 -- distancia da ultima sugestao, para a ficha mostrar de onde veio o numero.
 --
 -- O PRECO DO LITRO E PARAMETRO POR ENQUANTO. O insumo nao tem preco no escopo
--- atual (RN-07); quando tiver, o parametro da lugar ao custo da gasolina.
+-- atual (RN-08); quando tiver, o parametro da lugar ao custo da gasolina.
 --
 -- A COORDENADA PASSA A PODER SER GRAVADA JUNTO DO TEXTO. A 20260929000001 apaga
 -- a coordenada quando o texto do endereco muda, porque ela foi achada para o
@@ -38,7 +38,7 @@ ALTER TABLE recipientes
   ADD CONSTRAINT recipientes_peso_positivo CHECK (peso_kg IS NULL OR peso_kg > 0);
 
 COMMENT ON COLUMN recipientes.peso_kg IS
-  'Peso aproximado do recipiente cheio de substrato, com a muda, em kg. Base do peso estimado da carga (RN-65).';
+  'Peso aproximado do recipiente cheio de substrato, com a muda, em kg. Base do peso estimado da carga (RN-53).';
 
 -- ------------------------------------------------------------
 -- 2. Frete do pedido
@@ -52,7 +52,7 @@ ALTER TABLE pedidos
   ADD CONSTRAINT pedidos_frete_distancia_positiva CHECK (frete_distancia_km IS NULL OR frete_distancia_km > 0);
 
 COMMENT ON COLUMN pedidos.frete IS
-  'Frete combinado com o cliente, em reais. Nulo e "sem frete". Sugerido pela distancia, gravado o que foi digitado (RN-64).';
+  'Frete combinado com o cliente, em reais. Nulo e "sem frete". Sugerido pela distancia, gravado o que foi digitado (RN-54).';
 COMMENT ON COLUMN pedidos.frete_origem IS
   'De onde parte a conta do frete: agrolandia ou itapema, os dois enderecos de partida da viagem.';
 COMMENT ON COLUMN pedidos.frete_distancia_km IS
@@ -63,9 +63,9 @@ COMMENT ON COLUMN pedidos.frete_distancia_km IS
 -- ------------------------------------------------------------
 INSERT INTO parametros (chave, valor, tipo_valor, descricao) VALUES
   ('comercial.frete_km_por_litro', '17', 'numero',
-   'Consumo do caminhao de entrega, em km por litro, para sugerir o frete (RN-64)'),
+   'Consumo do caminhao de entrega, em km por litro, para sugerir o frete (RN-54)'),
   ('comercial.frete_preco_litro', '7', 'numero',
-   'Preco do litro de gasolina, em reais, para sugerir o frete. Futuramente vira do insumo gasolina (RN-64)');
+   'Preco do litro de gasolina, em reais, para sugerir o frete. Futuramente vira do insumo gasolina (RN-54)');
 
 -- ------------------------------------------------------------
 -- 4. A coordenada que chega junto do texto fica

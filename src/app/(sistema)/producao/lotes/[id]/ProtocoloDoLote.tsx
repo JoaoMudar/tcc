@@ -6,8 +6,8 @@ import type { AcaoDaEtapa, EtapaDoLote } from '@/lib/protocolos';
 const TOM_PILL = { em_dia: 'green', atencao: 'amber', atraso: 'red' } as const;
 
 /**
- * RF-51, RF-52: o que este lote já recebeu e o que ele tem a receber. A etapa de
- * alerta desligado não recebe indicação nenhuma, nem verde (RN-35, TA-37): a
+ * RF-48, RF-51: o que este lote já recebeu e o que ele tem a receber. A etapa de
+ * alerta desligado não recebe indicação nenhuma, nem verde (RN-39, TA-37): a
  * irrigação diária colorida deixaria o viveiro inteiro em atraso toda manhã.
  */
 export function ProtocoloDoLote({ etapas, acoes = [] }: { etapas: readonly EtapaDoLote[]; acoes?: readonly AcaoDaEtapa[] }) {
@@ -57,7 +57,7 @@ export function ProtocoloDoLote({ etapas, acoes = [] }: { etapas: readonly Etapa
         })}
       </ol>
 
-      {/* RF-66: o que a gerência fez com o protocolo fora da agenda. A conclusão por tarefa confirmada fica na agenda. */}
+      {/* RF-55: o que a gerência fez com o protocolo fora da agenda. A conclusão por tarefa confirmada fica na agenda. */}
       {acoes.length > 0 && (
         <>
           <h3 className="mt-2 text-sm font-semibold text-ink">Histórico do protocolo</h3>

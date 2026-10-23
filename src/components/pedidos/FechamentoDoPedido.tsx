@@ -35,12 +35,12 @@ interface FechamentoDoPedidoProps {
 }
 
 /**
- * P17, RF-67: a linha final do pedido. A soma das mudas, o frete, o total e o
+ * P17, RF-66: a linha final do pedido. A soma das mudas, o frete, o total e o
  * peso estimado da carga, que é o que o cliente pergunta quando fecha o preço.
  *
- * O frete se sugere pela distância (RN-64), mas **o campo é da chefia**: ela
+ * O frete se sugere pela distância (RN-54), mas **o campo é da chefia**: ela
  * digita o que negociou, mesmo que destoe da conta. O peso é estimado pelo
- * recipiente cheio (RN-65), e diz quantos itens ficaram de fora da conta.
+ * recipiente cheio (RN-53), e diz quantos itens ficaram de fora da conta.
  *
  * P19: o frete vai até o **destino do pedido**, que a linha mostra e troca. Ele
  * tem prioridade sobre o endereço do cliente, e trocá-lo não mexe no cadastro.

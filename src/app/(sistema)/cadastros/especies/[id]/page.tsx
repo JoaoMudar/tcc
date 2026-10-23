@@ -24,7 +24,7 @@ export default async function EspeciePage({ params, searchParams }: PageProps<'/
   const podeEditar = can(user.perfil, 'especies', 'A');
   const caracteristicas = Object.entries(CARACTERISTICA_LABELS).map(([value, label]) => ({ value, label }));
 
-  // RF-25: o tempo da etapa é do protocolo, e o D4 nota 3 o guarda como protocolo
+  // RF-46: o tempo da etapa é do protocolo, e o D4 nota 3 o guarda como protocolo
   const tempos = await listTemposDaEspecie(pool, id);
   const atribuicao = await atribuicaoFfb(pool);
   const podeTempos = can(user.perfil, 'protocolos', 'A');

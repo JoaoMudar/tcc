@@ -16,11 +16,11 @@ interface SugestoesProps {
 }
 
 /**
- * RF-47: o protocolo **sugere**, e quem lança é a gerência. Enquanto ninguém
+ * RF-53: o protocolo **sugere**, e quem lança é a gerência. Enquanto ninguém
  * aceitar, nada existe na agenda: não há tarefa sem responsável, nem tarefa que
- * apareceu sozinha na semana de alguém (RN-41).
+ * apareceu sozinha na semana de alguém (RN-40).
  *
- * Tocar na sugestão abre as mesmas três saídas de "Pedem providência" (RF-66):
+ * Tocar na sugestão abre as mesmas três saídas de "Pedem providência" (RF-55):
  * postergar, adicionar na agenda (o mesmo formulário de lançar tarefa, já com a
  * etapa, o lote e o tipo preenchidos, e o resto exigido normalmente) ou concluir
  * sem agenda.

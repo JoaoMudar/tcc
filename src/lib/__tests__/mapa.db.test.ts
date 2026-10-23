@@ -106,7 +106,7 @@ afterAll(async () => {
   await pool.end();
 });
 
-describe('TA-47, RF-44: o mapa por área e canteiro', () => {
+describe('TA-47, RF-33: o mapa por área e canteiro', () => {
   it('o canteiro com seis lotes apresenta os seis, e os livres se distinguem dos ocupados', async () => {
     const hoje = hojeNoViveiro();
     for (let i = 0; i < 6; i += 1) await novoLote(100, 1, hoje);
@@ -122,7 +122,7 @@ describe('TA-47, RF-44: o mapa por área e canteiro', () => {
     expect(area.canteiros[0].lotes.map((l) => l.posicao)).toEqual([1, 2, 3, 4, 5, 6]);
   });
 
-  it('o lote zerado sai do mapa e larga o canteiro (RF-33)', async () => {
+  it('o lote zerado sai do mapa e larga o canteiro (RF-34)', async () => {
     const hoje = hojeNoViveiro();
     const { id } = await novoLote(80, 3, hoje);
     expect((await areaDoTeste()).canteiros[2].livre).toBe(false);
@@ -137,13 +137,13 @@ describe('TA-47, RF-44: o mapa por área e canteiro', () => {
   });
 });
 
-describe('TA-48, RF-45: a situação sai da visão, e ninguém a digita', () => {
+describe('TA-48, RF-52: a situação sai da visão, e ninguém a digita', () => {
   it('a etapa vencida há cinco dias deixa o lote crítico, com a tarefa e o atraso', async () => {
     const hoje = hojeNoViveiro();
     // A limpeza conta 90 dias da criação: criado há 95, ela venceu há 5
     const { id, codigo } = await novoLote(1000, 2, somaDias(hoje, -95));
 
-    // Nada foi lançado na agenda: a cobrança é do protocolo (RN-41)
+    // Nada foi lançado na agenda: a cobrança é do protocolo (RN-40)
     const { rows } = await pool.query<{ n: number }>('SELECT COUNT(*)::int AS n FROM atribuicoes WHERE lote_id = $1', [id]);
     expect(rows[0].n).toBe(0);
 
@@ -165,7 +165,7 @@ describe('TA-48, RF-45: a situação sai da visão, e ninguém a digita', () => 
   });
 });
 
-describe('TA-24 e TA-25, RF-42: a mortalidade no mapa', () => {
+describe('TA-24 e TA-25, RF-36: a mortalidade no mapa', () => {
   it('a taxa é as perdas sobre a quantidade inicial, e o limite que destaca é parâmetro', async () => {
     const hoje = hojeNoViveiro();
     const { id } = await novoLote(1000, 1, hoje);

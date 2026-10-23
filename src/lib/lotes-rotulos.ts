@@ -19,7 +19,7 @@ export type Fase = keyof typeof FASES;
 
 export const FASES_EDITAVEIS = (Object.keys(FASES) as Fase[]).filter((fase) => fase !== 'encerrado');
 
-/** Lista fechada do RN-10. Texto livre não vira estatística por causa. */
+/** Lista fechada do RN-19. Texto livre não vira estatística por causa. */
 export const CAUSAS_PERDA = {
   seca: 'Seca',
   praga: 'Praga',
@@ -43,7 +43,7 @@ export const TIPOS_MOVIMENTO = {
   ajuste_contagem: 'Ajuste de contagem',
   transferencia: 'Transferência de canteiro',
   // A divisão mantém o recipiente e separa a leva em dois lugares; a repicagem
-  // troca o vasilhame. São operações diferentes, e o razão as distingue (RN-39).
+  // troca o vasilhame. São operações diferentes, e o razão as distingue (RN-43).
   divisao_saida: 'Saída por divisão',
   divisao_entrada: 'Entrada por divisão',
 } as const;
@@ -105,7 +105,7 @@ export interface CanteiroResumo {
   mudas: number;
 }
 
-/** RN-28: a capacidade avisa e não recusa. `null` quando cabe ou quando o canteiro não tem capacidade. */
+/** RN-15: a capacidade avisa e não recusa. `null` quando cabe ou quando o canteiro não tem capacidade. */
 export function avisoCapacidade(canteiro: CanteiroResumo, quantidade: number): string | null {
   if (canteiro.capacidade === null || canteiro.mudas + quantidade <= canteiro.capacidade) return null;
   const label = canteiroLabel(canteiro.letra, canteiro.numero);

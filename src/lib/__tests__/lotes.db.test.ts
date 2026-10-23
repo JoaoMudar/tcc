@@ -45,7 +45,7 @@ function novoLote(quantidade: number, numeroCanteiro: number, recipienteId = tub
   );
 }
 
-/** RF-35 em todo teste: a soma dos movimentos reproduz o saldo gravado. */
+/** RF-28 em todo teste: a soma dos movimentos reproduz o saldo gravado. */
 async function fichaConferida(loteId: string) {
   const lote = await findLote(pool, loteId);
   expect(lote).not.toBeNull();
@@ -96,7 +96,7 @@ describe('criar lote contra Postgres real', () => {
       expect.objectContaining({ tipo: 'entrada', quantidade: 500, data: '2026-01-10', registradoPor: 'Gerência de teste' }),
     ]);
 
-    // O canteiro comporta vários lotes (RN-19): o segundo entra depois do primeiro
+    // O canteiro comporta vários lotes (RN-14): o segundo entra depois do primeiro
     const segundo = await novoLote(300, 1);
     expect(Number(segundo.codigo.slice(5))).toBe(Number(codigo.slice(5)) + 1);
     const posicoes = (await listLotesAbertos(pool)).filter((l) => l.canteiroId === canteiro[1]).map((l) => l.posicao);
@@ -310,7 +310,7 @@ describe('saldo e perdas contra Postgres real', () => {
     const antes = (await semAltura()) ?? { quantidade: 0, lotes: 0 };
     const a = await novoLote(1000, 5);
     const b = await novoLote(400, 5);
-    // RN-06: a fase não decide o que se vende; o lote pronto e o semeado entram do mesmo jeito
+    // RN-10: a fase não decide o que se vende; o lote pronto e o semeado entram do mesmo jeito
     expect(await alterarFase(pool, a.id, 'pronto')).toBe('ok');
     await tx(async (client) => {
       await registrarMovimento(client, { loteId: a.id, tipo: 'perda', quantidade: -35, causa: 'seca', registradoPor: usuario });
@@ -330,7 +330,7 @@ describe('saldo e perdas contra Postgres real', () => {
     expect(saldo.quantidade).toBe(rows[0].soma);
   });
 
-  it('RF-65: a altura medida separa o estoque em faixas, e lote encerrado não se mede', async () => {
+  it('RF-31: a altura medida separa o estoque em faixas, e lote encerrado não se mede', async () => {
     const a = await novoLote(300, 5);
     const b = await novoLote(200, 5);
     expect(await alterarAltura(pool, a.id, 1.2)).toBe('ok');

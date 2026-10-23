@@ -66,7 +66,7 @@ function valor<T>(resultado: { error: string } | { value: T }): T {
   return resultado.value;
 }
 
-describe('hora da tarefa (RN-12)', () => {
+describe('hora da tarefa (RN-24)', () => {
   it('admite sem hora, só início, e início com fim (TA-27)', () => {
     expect(parseHorario('', '')).toEqual({ value: { inicio: null, fim: null } });
     expect(parseHorario('12:00', '')).toEqual({ value: { inicio: '12:00', fim: null } });
@@ -80,7 +80,7 @@ describe('hora da tarefa (RN-12)', () => {
   });
 });
 
-describe('parseReagendamento (arrasto na agenda, RNF-14)', () => {
+describe('parseReagendamento (arrasto na agenda, RNF-03)', () => {
   const TURNO = '0b9f3f3e-8a5b-4c1a-9d0e-2f6a7b8c9d0a';
 
   it('aceita dia, turno e o intervalo que o arrasto declarou', () => {
@@ -89,7 +89,7 @@ describe('parseReagendamento (arrasto na agenda, RNF-14)', () => {
     });
   });
 
-  describe('troca de pessoa (RN-61)', () => {
+  describe('troca de pessoa (RF-38)', () => {
     const A = '1c8e2d4f-9a6b-4d2c-8e1f-3a7b8c9d0e1f';
     const B = '2d9f3e5a-0b7c-4e3d-9f2a-4b8c9d0e1f2a';
     const base = { data: '2026-09-15', turnoId: TURNO, horaInicio: '', horaFim: '' };
@@ -120,7 +120,7 @@ describe('parseReagendamento (arrasto na agenda, RNF-14)', () => {
     });
   });
 
-  it('exige o turno, que o arrasto nunca deixa vazio (RN-12)', () => {
+  it('exige o turno, que o arrasto nunca deixa vazio (RN-24)', () => {
     expect(parseReagendamento({ data: '2026-09-15', turnoId: '', horaInicio: '07:00', horaFim: '08:00' })).toEqual({
       error: expect.stringContaining('Escolha o turno'),
     });
@@ -133,7 +133,7 @@ describe('parseReagendamento (arrasto na agenda, RNF-14)', () => {
   });
 });
 
-describe('estadoTarefa (RF-29, RF-31, RN-14)', () => {
+describe('estadoTarefa (RF-40, RF-42, RN-31)', () => {
   function tarefa(over: Partial<EstadoTarefaInput> = {}): EstadoTarefaInput {
     return { situacao: 'confirmada', eQuantitativa: true, quantidadePlanejada: 100, participantes: [], ...over };
   }
@@ -143,7 +143,7 @@ describe('estadoTarefa (RF-29, RF-31, RN-14)', () => {
     expect(estadoTarefa(tarefa({ situacao: 'cancelada' }))).toBe('cancelada');
   });
 
-  it('marca a não confirmada como presumida, e não como feita (RF-31, TA-34)', () => {
+  it('marca a não confirmada como presumida, e não como feita (RF-42, TA-34)', () => {
     expect(estadoTarefa(tarefa({ situacao: 'nao_confirmada' }))).toBe('presumida');
   });
 
@@ -169,7 +169,7 @@ describe('estadoTarefa (RF-29, RF-31, RN-14)', () => {
   });
 });
 
-describe('estadoNaGrade: a semana que já pode ser fechada (RF-31, RN-14)', () => {
+describe('estadoNaGrade: a semana que já pode ser fechada (RF-42, RN-31)', () => {
   const planejada: EstadoTarefaInput = { situacao: 'planejada', eQuantitativa: false, quantidadePlanejada: null, participantes: [{ quantidade: null }] };
 
   it('a planejada com gente já mostra o "?" que o fechamento vai dar', () => {
@@ -189,7 +189,7 @@ describe('estadoNaGrade: a semana que já pode ser fechada (RF-31, RN-14)', () =
   });
 });
 
-describe('parseAtribuicao (RF-21, RF-26, RF-30)', () => {
+describe('parseAtribuicao (RF-37, RF-38)', () => {
   it('aceita pessoas, dias e turno, sem repetir', () => {
     const v = valor(parseAtribuicao(SIMPLES, bruta({ participantes: [P1, P2, P1], dias: ['2026-09-16', SEMANA, SEMANA] })));
     expect(v.participantes).toEqual([P1, P2]);
@@ -242,7 +242,7 @@ describe('parseAtribuicao (RF-21, RF-26, RF-30)', () => {
     expect(valor(parseAtribuicao(SIMPLES, bruta({ canteiroId: CANTEIRO })))).toMatchObject({ areaId: null, canteiroId: null });
   });
 
-  it('RN-24: com lote exigido, área e canteiro não são pedidos; o lote pode ficar para a confirmação', () => {
+  it('RF-37: com lote exigido, área e canteiro não são pedidos; o lote pode ficar para a confirmação', () => {
     expect(valor(parseAtribuicao(COM_LOTE, bruta({ loteId: LOTE, areaId: AREA, canteiroId: CANTEIRO })))).toMatchObject({
       loteId: LOTE,
       areaId: null,
@@ -262,7 +262,7 @@ describe('parseAtribuicao (RF-21, RF-26, RF-30)', () => {
   });
 });
 
-describe('parseConfirmacao (RF-29, UC-20)', () => {
+describe('parseConfirmacao (RF-40, UC-20)', () => {
   const vazia = { loteId: '', areaId: '', canteiroId: '', quantidades: {}, perdidas: '', causa: '' };
 
   it('TA-32: a tarefa que declara lote não confirma sem ele', () => {

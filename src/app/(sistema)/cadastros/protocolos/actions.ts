@@ -9,7 +9,7 @@ import * as protocolos from '@/lib/protocolos';
 import { isUuid } from '@/lib/uuid';
 import { requirePermission } from '@/lib/auth/guards';
 
-/** RF-22, UC-17: cria (sem `protocolo_id`) ou altera o protocolo do recipiente. */
+/** RF-43, UC-17: cria (sem `protocolo_id`) ou altera o protocolo do recipiente. */
 export async function saveProtocolo(_previous: FormState, formData: FormData): Promise<FormState> {
   const id = formText(formData, 'protocolo_id');
   const user = await requirePermission('protocolos', id ? 'A' : 'C');
@@ -53,7 +53,7 @@ export async function saveProtocolo(_previous: FormState, formData: FormData): P
 }
 
 /**
- * RF-22 a RF-24, UC-17: a etapa do protocolo. A âncora circular (FE-1) é
+ * RF-43 a RF-45, UC-17: a etapa do protocolo. A âncora circular (FE-1) é
  * conferida aqui, e não no banco: a restrição não cabe em verificação
  * declarativa, e sem esta barreira as etapas do ciclo nunca venceriam nada, em
  * silêncio.
@@ -122,9 +122,9 @@ export async function saveEtapa(_previous: FormState, formData: FormData): Promi
 }
 
 /**
- * RF-25, UC-18: o tempo que a espécie sobrescreve na etapa. O guard é
+ * RF-46, UC-18: o tempo que a espécie sobrescreve na etapa. O guard é
  * `protocolos`, e não `especies`: o dado é do protocolo, e o D4 nota 3 lista o
- * RF-25 entre os recursos dele. Guardá-lo como espécie tiraria da gerência o que
+ * RF-46 entre os recursos dele. Guardá-lo como espécie tiraria da gerência o que
  * o UC-18 lhe dá.
  */
 export async function saveTempoEspecie(_previous: FormState, formData: FormData): Promise<FormState> {

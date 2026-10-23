@@ -9,7 +9,7 @@ interface SearchFormProps {
 }
 
 /**
- * Busca por GET: campo e botão numa peça só, com a mesma altura de toque (RNF-03).
+ * Busca por GET: campo e botão numa peça só, com a mesma altura de toque (RNF-08).
  * O botão não disputa largura com o campo, que ocupa o resto da linha.
  */
 export function SearchForm({ label, name = 'busca', defaultValue, children }: SearchFormProps) {

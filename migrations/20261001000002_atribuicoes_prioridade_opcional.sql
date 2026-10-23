@@ -1,7 +1,7 @@
 -- Migration: 20261001000002_atribuicoes_prioridade_opcional.sql
 -- Descricao: A precedencia de desenho da tarefa passa a ser opcional.
 --
--- Requisitos: RF-26, RNF-14
+-- Requisitos: RF-38, RNF-03
 -- Entidades: C8 `atribuicoes`
 --
 -- POR QUE ESTA MIGRATION EXISTE. A `20261001000001` fez a precedencia nascer

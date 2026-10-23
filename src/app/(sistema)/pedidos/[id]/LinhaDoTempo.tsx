@@ -44,7 +44,7 @@ const MARCADOR: Record<SentidoDaFase, { simbolo: string; cor: string; rotulo?: s
 };
 
 /**
- * RN-53: o andamento do pedido como ele aconteceu, uma fase por linha
+ * RN-55: o andamento do pedido como ele aconteceu, uma fase por linha
  * (`pedidos_historico`). A seta diz se o pedido andou para a frente ou voltou;
  * a última fase é a situação de agora, e vem destacada.
  */

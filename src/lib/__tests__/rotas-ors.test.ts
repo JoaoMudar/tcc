@@ -178,7 +178,7 @@ describe('otimizarOrdem', () => {
   });
 });
 
-describe('distanciaDeCarro (RN-64)', () => {
+describe('distanciaDeCarro (RN-54)', () => {
   const viveiro = { lat: -27.4086, lng: -49.8219 };
   const cliente = { lat: -27.2141, lng: -49.6431 };
 

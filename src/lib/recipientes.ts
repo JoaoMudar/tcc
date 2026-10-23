@@ -4,7 +4,7 @@ export interface Recipiente {
   id: string;
   nome: string;
   volumeLitros: number | null;
-  /** Peso do recipiente cheio, com substrato e muda (RN-65). */
+  /** Peso do recipiente cheio, com substrato e muda (RN-53). */
   pesoKg: number | null;
   ativo: boolean;
 }
@@ -27,8 +27,8 @@ function lerDecimal(texto: string): number | null | 'invalido' {
 
 /**
  * Nome obrigatório; volume em litros e peso cheio em kg opcionais, aceitando
- * vírgula (RF-11). O peso é o do recipiente cheio de substrato, com a muda: é
- * ele que soma o peso da carga na aprovação (RN-65).
+ * vírgula (RF-14). O peso é o do recipiente cheio de substrato, com a muda: é
+ * ele que soma o peso da carga na aprovação (RN-53).
  */
 export function parseRecipienteFields(input: {
   nome: string;

@@ -134,7 +134,7 @@ describe('item do pedido em tela cheia (T8.1)', () => {
   });
 });
 
-describe('estoque disponível no item em tela cheia (RF-56, RN-06)', () => {
+describe('estoque disponível no item em tela cheia (RF-62, RN-10)', () => {
   it('a altura digitada decide quais lotes atendem', () => {
     render(
       <ItemEmFoco

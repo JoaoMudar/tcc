@@ -66,7 +66,7 @@ interface ItensDaFichaProps {
   /** Até a aprovação a grade mostra o que a verificação achou de cada item. */
   mostraConferencia?: boolean;
   proximoPasso: ProximoPassoProps;
-  /** RN-64: o frete gravado no pedido. */
+  /** RN-54: o frete gravado no pedido. */
   frete?: {
     centavos: number | null;
     origem: OrigemFrete | null;
@@ -220,7 +220,7 @@ function textoDistancia(km: number | null): string | null {
 }
 
 /**
- * RN-65: o peso que vai no caminhão. A quantidade é a que a grade mostra (a
+ * RN-53: o peso que vai no caminhão. A quantidade é a que a grade mostra (a
  * confirmada no parcial), e o peso é o do recipiente em que o item vai: o
  * escolhido na negociação, ou o conferido, ou o pedido.
  */
@@ -264,7 +264,7 @@ function valoresIniciais(itens: readonly ItemDaFicha[]): Record<string, ValoresN
  *
  * - **Orçamento**: a mesma grade do cadastro (`GradeItens`), linha por linha.
  *   A linha nova vira item quando ganha espécie (ou Genérico).
- * - **Negociação** (RF-55): preço e quantidade na grade da ficha, gravados
+ * - **Negociação** (RF-65): preço e quantidade na grade da ficha, gravados
  *   juntos por `negociarItensAction`, como o formulário que ela substituiu.
  * - **Leitura**: o resto.
  *

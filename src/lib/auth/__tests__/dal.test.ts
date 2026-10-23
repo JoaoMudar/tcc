@@ -32,7 +32,7 @@ describe('requireUser', () => {
     await expect(requireUser()).rejects.toThrow('redirect:/login');
   });
 
-  it('senha provisória vai para a troca antes de qualquer tela (RF-02)', async () => {
+  it('senha provisória vai para a troca antes de qualquer tela (RF-04)', async () => {
     vi.mocked(getCurrentSession).mockResolvedValue(session({ deveTrocarSenha: true }));
     await expect(requireUser()).rejects.toThrow('redirect:/trocar-senha');
   });
