@@ -36,7 +36,7 @@ const TOM: Record<SituacaoPedido, PillTone> = {
 
 /**
  * T8.1 a T8.3, UC-31 e UC-32: a ficha do pedido. De cima para baixo: o cliente,
- * o andamento, o próximo passo, os itens e, no fim, o cancelamento.
+ * o andamento, o próximo passo, o fechamento, os itens e, no fim, o cancelamento.
  *
  * **O saldo é lido a cada abertura desta página** (RF-62): é a perda registrada
  * no lote aparecendo no item do pedido, que é a interligação que o trabalho

@@ -243,6 +243,12 @@ describe('ItensDaFicha: o fechamento do pedido (RF-66)', () => {
     expect(fechamento.textContent).toContain('≈ 35 kg');
   });
 
+  it('a linha final fica acima da grade de itens', () => {
+    negociacao(undefined, { centavos: 5000 });
+    const fechamento = screen.getByRole('region', { name: 'Fechamento do pedido' });
+    expect(fechamento.compareDocumentPosition(screen.getByRole('table')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it('o total acompanha o frete digitado, e o frete grava quando a digitação para', async () => {
     negociacao();
     fireEvent.change(screen.getByLabelText('Frete'), { target: { value: '80,00' } });
