@@ -20,6 +20,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { href: '/configuracoes', label: 'Configurações', resource: 'parametros', placement: 'more' },
   { href: '/admin/usuarios', label: 'Usuários', resource: 'usuarios', placement: 'more' },
   { href: '/admin/acessos', label: 'Registro de acessos', resource: 'auditoria_acesso', placement: 'more' },
+  { href: '/admin/ffb', label: 'Flora e Funga do Brasil', resource: 'referencia_ffb', placement: 'more' },
   { href: '/conta/sessoes', label: 'Aparelhos conectados', resource: 'sessoes_proprias', placement: 'more' },
 ];
 

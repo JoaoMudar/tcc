@@ -133,6 +133,21 @@ export function PessoaForm({ pessoa, verFiscal, podeEditar, paraPedido }: Pessoa
           <section className="flex flex-col gap-3">
             <input type="hidden" name="inclui_fiscal" value="1" />
             <h2 className="mt-3 text-sm font-bold tracking-widest text-muted uppercase">Dados fiscais</h2>
+            {/* RF-19: o que a NF-e pede do destinatário, além do documento e do endereço */}
+            {tipo === 'pj' && (
+              <TextField
+                label="Razão social"
+                name="razao_social"
+                hint="Em branco se for igual ao nome."
+                defaultValue={fields?.razao_social ?? pessoa?.razaoSocial ?? ''}
+              />
+            )}
+            <TextField
+              label="Inscrição estadual"
+              name="inscricao_estadual"
+              hint="Só número, ou ISENTO. Em branco se não for contribuinte."
+              defaultValue={fields?.inscricao_estadual ?? pessoa?.inscricaoEstadual ?? ''}
+            />
             <TextField
               label={tipo === 'pf' ? 'CPF' : 'CNPJ'}
               name="documento"

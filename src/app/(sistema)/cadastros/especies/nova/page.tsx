@@ -1,12 +1,16 @@
 import Link from 'next/link';
 import { PageHeader } from '@/components/PageHeader';
+import pool from '@/lib/db';
 import { CARACTERISTICA_LABELS } from '@/lib/especies';
+import { atribuicaoFfb } from '@/lib/especies-ffb';
 import { requirePageAccess } from '@/lib/auth/guards';
 import { NovaEspecie } from '../NovaEspecie';
 
 export default async function NovaEspeciePage() {
   await requirePageAccess('especies', 'C');
   const caracteristicas = Object.entries(CARACTERISTICA_LABELS).map(([value, label]) => ({ value, label }));
+  // RNF-18: a busca mostra nomes da Flora e Funga, e a licença CC-BY pede a atribuição onde eles aparecem
+  const atribuicao = await atribuicaoFfb(pool);
 
   return (
     <main>
@@ -16,6 +20,7 @@ export default async function NovaEspeciePage() {
           Voltar
         </Link>
         <NovaEspecie caracteristicas={caracteristicas} />
+        {atribuicao && <p className="pt-2 text-xs text-muted">{atribuicao}</p>}
       </div>
     </main>
   );

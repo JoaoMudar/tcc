@@ -8,12 +8,15 @@
  * O aplicativo nunca consulta o JBRJ: só esta cópia.
  *
  * Tudo numa transação só: se falhar no meio, a versão anterior continua valendo.
+ * Depois da troca, reconfere as espécies cadastradas (RF-13): a que perdeu o nome
+ * aceito volta a pendente, com o nome mantido, e o relatório sai no terminal.
  */
 import { readFile } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
 import { loadEnvConfig } from '@next/env';
 import { createPool } from '../src/lib/db-pool';
 import { montarDadosFfb } from '../src/lib/ffb/dwca';
+import { reconferirEspecies } from '../src/lib/especies-ffb';
 import { importarReferenciaFfb } from '../src/lib/ffb/importar';
 import { lerZip } from '../src/lib/ffb/zip';
 
@@ -56,6 +59,15 @@ async function main() {
     console.log(`táxons         ${r.taxons} (${r.aceitos} aceitos, ${r.sinonimos} sinônimos)`);
     console.log(`distribuição   ${r.distribuicao}`);
     console.log(`nomes populares ${r.nomesPopulares}`);
+
+    // RF-13: na mesma transação, as espécies cadastradas são reconferidas com a versão nova
+    const reconferencia = await reconferirEspecies(client);
+    console.log(`
+Reconferência: ${reconferencia.reconferidas} espécie(s) continuam com nome aceito.`);
+    if (reconferencia.pendentes.length > 0) {
+      console.log(`${reconferencia.pendentes.length} voltaram a pendentes (nome mantido, a chefia decide):`);
+      for (const p of reconferencia.pendentes) console.log(`  - ${p.nome}`);
+    }
     if (!values.gravar) {
       console.log('\nEnsaio: nada foi gravado. Rode de novo com --gravar para valer.');
       throw new Ensaio();

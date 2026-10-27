@@ -24,6 +24,7 @@ export const ACCESS_MATRIX = {
   usuarios: { label: 'Usuários e perfis', chefia: '', gerencia: '', admin: 'CLAE' },
   sessoes_proprias: { label: 'Sessões próprias', chefia: 'LE', gerencia: 'LE', admin: 'LE' },
   auditoria_acesso: { label: 'Auditoria de acesso', chefia: '', gerencia: '', admin: 'L' },
+  referencia_ffb: { label: 'Referência da Flora e Funga', chefia: '', gerencia: '', admin: 'LA' },
   // Configurações
   periodo_trabalho: { label: 'Período de trabalho', chefia: 'CLA', gerencia: 'L', admin: 'CLA' },
   parametros: { label: 'Parâmetros do sistema', chefia: 'LA', gerencia: 'L', admin: 'LA' },

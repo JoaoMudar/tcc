@@ -238,7 +238,18 @@ describe('pessoas contra Postgres real', () => {
         { ...fornecedor, papeis: [...fornecedor.papeis, { papel: 'cliente', tipoVinculo: null }] },
         {
           documento: '11222333000181',
-          enderecoCobranca: { tipo: 'cobranca', logradouro: 'Rua XV, 10', cidade: 'Rio do Sul', uf: 'SC', cep: '89160000' },
+          razaoSocial: 'Viveiro Teste Comercio de Mudas Ltda',
+          inscricaoEstadual: 'ISENTO',
+          enderecoCobranca: {
+            tipo: 'cobranca',
+            logradouro: 'Rua XV de Novembro',
+            numero: '10',
+            bairro: 'Centro',
+            cidade: 'Rio do Sul',
+            codigoIbge: '4214805',
+            uf: 'SC',
+            cep: '89160000',
+          },
         },
       ),
     );
@@ -252,11 +263,19 @@ describe('pessoas contra Postgres real', () => {
     ]);
     expect(ficha?.documento).toBe('11222333000181');
     expect(ficha?.enderecos.map((e) => e.tipo).sort()).toEqual(['cobranca', 'entrega']);
+    // RF-19: o leiaute da NF-e grava e volta inteiro
+    expect(ficha).toMatchObject({ razaoSocial: 'Viveiro Teste Comercio de Mudas Ltda', inscricaoEstadual: 'ISENTO' });
+    expect(ficha?.enderecos.find((e) => e.tipo === 'cobranca')).toMatchObject({
+      numero: '10',
+      bairro: 'Centro',
+      codigoIbge: '4214805',
+    });
   });
 
   it('sem verFiscal, a ficha não traz documento nem endereço de cobrança', async () => {
     const ficha = await findPessoa(pool, pessoaId, false);
     expect(ficha).not.toHaveProperty('documento');
+    expect(ficha).not.toHaveProperty('inscricaoEstadual');
     expect(ficha?.enderecos.map((e) => e.tipo)).toEqual(['entrega']);
   });
 

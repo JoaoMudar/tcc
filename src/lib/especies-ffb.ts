@@ -1,6 +1,7 @@
 import type { PoolClient } from 'pg';
 import { buscarTaxonAceito } from './especies-conciliacao';
 import { versaoFfbAtual } from './ffb/importar';
+import { UserError } from './errors';
 import type { Db } from './sql';
 
 /**
@@ -218,4 +219,40 @@ export async function atribuicaoFfb(db: Db): Promise<string | null> {
   const versao = await versaoFfbAtual(db);
   if (!versao) return null;
   return `Fonte da nomenclatura: Flora e Funga do Brasil, Jardim Botânico do Rio de Janeiro (versão ${versao.versao}), licença CC-BY 4.0.`;
+}
+
+export interface ResultadoReconferencia {
+  versao: string;
+  /** As validadas que continuam batendo com um nome aceito, carimbadas com a versão nova. */
+  reconferidas: number;
+  /** As que deixaram de bater: voltam a pendentes, com o nome mantido (RN-05). */
+  pendentes: { id: string; nome: string }[];
+}
+
+/**
+ * RF-13, RN-04: reconfere as espécies validadas contra a cópia da Flora e Funga
+ * recém-importada. A que perdeu o nome aceito (virou sinônimo, ou saiu da lista)
+ * volta a `pendente` **com o nome mantido**: quem decide a troca é a chefia
+ * (RN-05). As que continuam batendo passam a carregar a versão nova.
+ *
+ * Sem cópia importada não reconfere: com a referência vazia, todas cairiam.
+ */
+export async function reconferirEspecies(db: Db): Promise<ResultadoReconferencia> {
+  const versao = await versaoFfbAtual(db);
+  const { rows: total } = await db.query<{ n: number }>('SELECT COUNT(*)::int AS n FROM ref_ffb_taxon');
+  if (!versao || total[0].n === 0) {
+    throw new UserError('Não há cópia da Flora e Funga importada: importe uma versão antes de reconferir.');
+  }
+  const { rows: pendentes } = await db.query<{ id: string; nome: string }>(
+    `UPDATE especies e
+        SET status_validacao = 'pendente', taxon_id_ffb = NULL, validado_em = NULL, validado_versao_ipt = NULL
+      WHERE e.status_validacao = 'validado'
+        AND NOT EXISTS (SELECT 1 FROM ref_ffb_taxon t WHERE t.taxon_id = e.taxon_id_ffb AND t.situacao = 'NOME_ACEITO')
+      RETURNING e.id, e.nome_cientifico AS nome`,
+  );
+  const { rowCount } = await db.query(
+    "UPDATE especies SET validado_versao_ipt = $1 WHERE status_validacao = 'validado'",
+    [versao.versao],
+  );
+  return { versao: versao.versao, reconferidas: rowCount ?? 0, pendentes };
 }
