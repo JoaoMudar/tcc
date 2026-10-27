@@ -96,4 +96,15 @@ describe('rotas de /api', () => {
     }
     expect(semGuard).toEqual([]);
   });
+
+  it('RF-04: todo método recusa a sessão com troca de senha pendente', () => {
+    const semTroca: string[] = [];
+    for (const file of rotas) {
+      const relative = path.relative(process.cwd(), file).split(path.sep).join('/');
+      for (const metodo of exportedActions(readFileSync(file, 'utf8'))) {
+        if (!/deveTrocarSenha/.test(metodo.body)) semTroca.push(`${relative}#${metodo.name}`);
+      }
+    }
+    expect(semTroca).toEqual([]);
+  });
 });

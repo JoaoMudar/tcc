@@ -5,7 +5,6 @@ import { hojeNoViveiro } from '@/lib/datas';
 import pool from '@/lib/db';
 import { formatQuantidade } from '@/lib/lotes-rotulos';
 import {
-  type LoteNoMapa,
   type SituacaoLote,
   SITUACOES_LOTE,
   TOM_SITUACAO,
@@ -16,13 +15,7 @@ import {
   textoPendencia,
 } from '@/lib/mapa';
 import { acimaDoLimite, formatPercentual, limiteMortalidade } from '@/lib/perdas';
-
-/** A cor do quadradinho, e ela mede uma coisa só: tarefa que não foi feita. */
-const FUNDO: Record<SituacaoLote, string> = {
-  saudavel: 'bg-green-200',
-  atencao: 'bg-amber-200',
-  critico: 'bg-red-300',
-};
+import { MapaCelular, Quadrado } from './MapaLotes';
 
 const TEXTO: Record<SituacaoLote, string> = {
   saudavel: 'text-green-800',
@@ -38,9 +31,9 @@ const TEXTO: Record<SituacaoLote, string> = {
  * **É tela de computador (RNF-03)**, e é exceção declarada: o mapa existe para
  * mostrar o viveiro inteiro de uma vez, e trinta canteiros lado a lado não cabem
  * na largura de um celular. Espremer não encolhe o mapa, desfaz a comparação
- * entre áreas, que é o que se veio ver. **No celular ele vira lista**, com o
- * contador de cada área e os lotes que pedem providência: perde-se o lugar e
- * mantém-se a providência, que é a metade que serve para quem está no pátio.
+ * entre áreas, que é o que se veio ver. **No celular ele vira lista recolhível**
+ * (área, canteiro e lote), com a situação, a pendência e a mortalidade de cada
+ * lote: perde-se a disposição lado a lado, e não a informação (RNF-03).
  */
 export async function MapaProducao() {
   const [areas, lotes, limite] = await Promise.all([listAreas(pool), listLotesDoMapa(pool), limiteMortalidade(pool)]);
@@ -100,31 +93,12 @@ export async function MapaProducao() {
       </div>
 
       <p className="hidden text-sm text-muted md:block">
-        Cada quadradinho é um lote, e a faixa é o canteiro. O contorno escuro marca mortalidade acima de {limite}%.
+        Cada quadradinho é um lote, e a faixa é o canteiro. O contorno escuro e o número escrito marcam mortalidade acima de{' '}
+        {limite}%.
       </p>
 
-      {/* No celular o desenho vira contador por área, e a providência fica abaixo */}
-      <ul className="flex flex-col divide-y divide-line rounded-xl border border-line bg-white md:hidden">
-        {mapa.map((area) => (
-          <li key={area.id} className="flex items-center justify-between gap-3 px-4 py-3">
-            <span className="flex flex-col">
-              <span className="text-base font-semibold text-ink">Área {area.letra}</span>
-              <span className="text-sm text-muted">
-                {area.ocupados} de {area.canteiros.length} canteiros ocupados
-              </span>
-            </span>
-            <span className="flex gap-1">
-              {(Object.keys(SITUACOES_LOTE) as SituacaoLote[])
-                .filter((situacao) => area.contagem[situacao] > 0)
-                .map((situacao) => (
-                  <Pill key={situacao} tone={TOM_SITUACAO[situacao]}>
-                    {area.contagem[situacao]}
-                  </Pill>
-                ))}
-            </span>
-          </li>
-        ))}
-      </ul>
+      {/* No celular o desenho vira lista recolhível, com a mesma informação (RNF-03) */}
+      <MapaCelular mapa={mapa} hoje={hoje} destacados={destacados} limite={limite} />
 
       {/* Os contadores ficam abaixo do desenho: quem abre o mapa vem ver o viveiro, e o resumo confere depois */}
       <div className="flex flex-col gap-3">
@@ -180,42 +154,3 @@ export async function MapaProducao() {
   );
 }
 
-/**
- * O lote no desenho. Apontá-lo diz qual tarefa falta e há quantos dias (T7.2):
- * a cor sozinha diz que algo está errado, e o que se quer é a providência. O
- * mesmo texto vai no `title`, para o ponteiro, e no `aria-label`, para quem lê
- * por leitor de tela; no celular ele está na lista de providência, porque
- * tocar não produz ponteiro parado.
- */
-function Quadrado({
-  lote,
-  hoje,
-  destacado,
-  limite,
-}: {
-  lote: LoteNoMapa;
-  hoje: string;
-  destacado: boolean;
-  limite: number;
-}) {
-  const pendencia = textoPendencia(lote, hoje);
-  const descricao = [
-    `${lote.codigo} · ${lote.especie} · ${formatQuantidade(lote.saldo)} mudas`,
-    pendencia ?? SITUACOES_LOTE[lote.situacao],
-    destacado && lote.taxa !== null ? `mortalidade ${formatPercentual(lote.taxa)}, acima do limite de ${limite}%` : null,
-  ]
-    .filter(Boolean)
-    .join(' · ');
-
-  return (
-    <Link
-      href={`/producao/lotes/${lote.id}`}
-      title={descricao}
-      aria-label={descricao}
-      className={`h-7 w-7 rounded-sm ${FUNDO[lote.situacao]} ${
-        // O contorno escuro é a mortalidade, e não a cor: as duas medem coisas diferentes
-        destacado ? 'border-2 border-ink' : 'border border-black/10'
-      }`}
-    />
-  );
-}

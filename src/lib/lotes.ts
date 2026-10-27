@@ -10,6 +10,7 @@ import {
   FASES_EDITAVEIS,
   formatQuantidade,
   lerQuantidade,
+  recipienteMaior,
 } from './lotes-rotulos';
 import { proximaPosicao, registrarAjusteDeContagem, registrarMovimento, travarLote } from './movimentos';
 // `protocolos.ts` não importa daqui: importa de `lotes-rotulos`, que é sem `pg`.
@@ -27,6 +28,11 @@ export {
 } from './lotes-rotulos';
 
 type Client = Pick<PoolClient, 'query'>;
+
+/** `NUMERIC` volta do `pg` como texto. */
+function numeroOuNulo(valor: string | null): number | null {
+  return valor === null ? null : Number(valor);
+}
 
 const MAX_QUANTIDADE = 10_000_000;
 
@@ -197,6 +203,17 @@ export async function repicarLote(
   if (origem.encerrado) throw new UserError(`O lote ${origem.codigo} está encerrado e não pode ser repicado.`);
   if (input.recipienteId === origem.recipienteId) {
     throw new UserError('A repicagem muda o recipiente. Para trocar só de canteiro, use a transferência.');
+  }
+  // RF-29, RN-22: a repicagem vai para recipiente maior; sem volume cadastrado, não há como conferir
+  const { rows: volumes } = await client.query<{ origem: string | null; destino: string | null; nome: string }>(
+    `SELECT (SELECT volume_litros FROM recipientes WHERE id = $1) AS origem,
+            (SELECT volume_litros FROM recipientes WHERE id = $2) AS destino,
+            (SELECT nome FROM recipientes WHERE id = $2) AS nome`,
+    [origem.recipienteId, input.recipienteId],
+  );
+  const volume = volumes[0];
+  if (volume && !recipienteMaior(numeroOuNulo(volume.origem), numeroOuNulo(volume.destino))) {
+    throw new UserError(`A repicagem vai para um recipiente maior, e ${volume.nome} não é maior que o atual.`);
   }
 
   const total = input.quantidade + input.perdidas;
