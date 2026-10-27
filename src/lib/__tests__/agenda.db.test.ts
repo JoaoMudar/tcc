@@ -424,3 +424,18 @@ describe('agenda da semana contra Postgres', () => {
     await expect(tx((client) => fecharSemana(client, S1, '2030-01-14'))).rejects.toThrow('já está fechada');
   });
 });
+
+describe('RNF-15: autor e momento da tarefa e da semana', () => {
+  it('quem lançou, quem confirmou e quem fechou ficam gravados', async () => {
+    const S = '2032-09-06';
+    const [id] = await tx((client) => criarAtribuicoes(client, tarefa({ semana: S, dias: [S], participantes: [jaison] }), usuario));
+    await confirmar(id);
+    await tx((client) => fecharSemana(client, S, '2032-09-13', usuario));
+    const { rows } = await pool.query<{ criado: string; confirmado: string; quando: Date | null; fechada: string }>(
+      `SELECT a.criado_por AS criado, a.confirmado_por AS confirmado, a.confirmado_em AS quando, s.fechada_por AS fechada
+         FROM atribuicoes a JOIN semanas s ON s.id = a.semana_id WHERE a.id = $1`,
+      [id],
+    );
+    expect(rows[0]).toMatchObject({ criado: usuario, confirmado: usuario, quando: expect.any(Date), fechada: usuario });
+  });
+});

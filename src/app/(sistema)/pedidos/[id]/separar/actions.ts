@@ -91,14 +91,14 @@ export async function criarCargasAction(_previous: FormState, formData: FormData
  * atual: o toque repetido pela conexão ruim do galpão chega ao mesmo resultado.
  */
 export async function marcarItemSeparadoAction(_previous: FormState, formData: FormData): Promise<FormState> {
-  await requirePermission('cargas_pedido', 'A');
+  const user = await requirePermission('cargas_pedido', 'A');
   const pedidoId = formText(formData, 'pedido_id');
   const cargaItemId = formText(formData, 'carga_item_id');
   if (!isUuid(pedidoId) || !isUuid(cargaItemId)) return { error: 'Item inválido.' };
   const separado = formText(formData, 'separado') === 'sim';
 
   try {
-    await withTransaction(pool, (client) => cargas.marcarItemSeparado(client, cargaItemId, separado));
+    await withTransaction(pool, (client) => cargas.marcarItemSeparado(client, cargaItemId, separado, user.usuarioId));
   } catch (error) {
     return { error: toUserMessage(error) };
   }

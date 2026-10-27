@@ -432,8 +432,8 @@ describe('negociação depois da conferência (RF-65, RN-51)', () => {
       form({ pedido_id: PEDIDO, negociar_item_id: ITEM, negociar_preco: '2,50', negociar_quantidade: '200' }),
     );
     expect(state.error).toBeUndefined();
-    // preço, quantidade, encerra a conferência, recipiente
-    expect(gravacoes()[0][1]).toEqual([PEDIDO, ITEM, '2.50', 200, true, null]);
+    // preço, quantidade, encerra a conferência, recipiente e quem precificou (RNF-15)
+    expect(gravacoes()[0][1]).toEqual([PEDIDO, ITEM, '2.50', 200, true, null, 'u1']);
   });
 
   it('mais do que a conferência confirmou manda reenviar para verificação', async () => {

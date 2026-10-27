@@ -181,7 +181,7 @@ async function registrarAltura(campos: Campos, envio: Envio): Promise<ResultadoR
   if ('error' in altura) return { status: 'recusado', error: altura.error, fields };
 
   return gravar(envio, fields, async (client) => {
-    if ((await lotes.alterarAltura(client, loteId, altura.value)) === 'nao_encontrado') {
+    if ((await lotes.alterarAltura(client, loteId, altura.value, envio.usuarioId)) === 'nao_encontrado') {
       throw new UserError('Lote não encontrado, ou já encerrado.');
     }
     return { success: altura.value === null ? 'Altura apagada.' : `Altura registrada: ${formatAltura(altura.value)}.` };

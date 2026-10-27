@@ -204,7 +204,7 @@ export async function alterarFaseAction(_previous: FormState, formData: FormData
 
 /** RF-31: a altura medida da muda do lote. Vazio apaga a medida. */
 export async function alterarAlturaAction(_previous: FormState, formData: FormData): Promise<FormState> {
-  await requirePermission('lotes', 'A');
+  const user = await requirePermission('lotes', 'A');
   const loteId = formText(formData, 'lote_id');
   if (!isUuid(loteId)) return { error: 'Lote inválido.' };
   const fields = { altura: formText(formData, 'altura') };
@@ -212,7 +212,7 @@ export async function alterarAlturaAction(_previous: FormState, formData: FormDa
   if ('error' in altura) return { error: altura.error, fields };
 
   try {
-    if ((await lotes.alterarAltura(pool, loteId, altura.value)) === 'nao_encontrado') {
+    if ((await lotes.alterarAltura(pool, loteId, altura.value, user.usuarioId)) === 'nao_encontrado') {
       return { error: 'Lote não encontrado, ou já encerrado.', fields };
     }
   } catch (error) {

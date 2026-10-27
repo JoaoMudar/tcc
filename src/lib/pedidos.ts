@@ -855,8 +855,9 @@ export async function negociarItens(
       if (item.quantidade === null) throw new UserError('A lista montada se negocia espécie por espécie.');
       if (linha.precoCentavos !== null) {
         await client.query(
-          'UPDATE pedidos_itens SET preco_unitario = $3 WHERE pedido_id = $1 AND (id = $2 OR item_pai_id = $2)',
-          [pedidoId, linha.itemId, centavosParaSql(linha.precoCentavos)],
+          `UPDATE pedidos_itens SET preco_unitario = $3, precificado_por = $4, precificado_em = NOW()
+            WHERE pedido_id = $1 AND (id = $2 OR item_pai_id = $2)`,
+          [pedidoId, linha.itemId, centavosParaSql(linha.precoCentavos), autor.usuarioId],
         );
       }
       continue;
@@ -877,6 +878,8 @@ export async function negociarItens(
     await client.query(
       `UPDATE pedidos_itens
           SET preco_unitario = COALESCE($3, preco_unitario),
+              precificado_por = CASE WHEN $3 IS NULL THEN precificado_por ELSE $7::uuid END,
+              precificado_em = CASE WHEN $3 IS NULL THEN precificado_em ELSE NOW() END,
               quantidade = COALESCE($4, quantidade),
               disponivel = CASE WHEN $5::boolean THEN true ELSE disponivel END,
               quantidade_disponivel = CASE WHEN $5::boolean THEN NULL ELSE quantidade_disponivel END,
@@ -891,6 +894,7 @@ export async function negociarItens(
         linha.quantidade,
         encerra,
         linha.recipienteId,
+        autor.usuarioId,
       ],
     );
   }
@@ -1172,9 +1176,19 @@ export async function marcarDisponibilidade(
   await client.query(
     `UPDATE pedidos_itens
         SET disponivel = $3, quantidade_disponivel = $4, recipiente_disponivel_id = $5,
-            altura_disponivel_m = $6, observacoes_disponibilidade = $7, resposta_em_aberto = NULL
+            altura_disponivel_m = $6, observacoes_disponibilidade = $7, resposta_em_aberto = NULL,
+            conferido_por = $8, conferido_em = NOW()
       WHERE id = $2 AND pedido_id = $1`,
-    [pedidoId, itemId, disponivel, quantidadeDisponivel, recipienteDisponivelId, alturaDisponivelM, extras.observacoes ?? null],
+    [
+      pedidoId,
+      itemId,
+      disponivel,
+      quantidadeDisponivel,
+      recipienteDisponivelId,
+      alturaDisponivelM,
+      extras.observacoes ?? null,
+      autor.usuarioId,
+    ],
   );
 }
 
@@ -1252,9 +1266,10 @@ export async function marcarGenericoIndisponivel(
   await client.query(
     `UPDATE pedidos_itens
         SET disponivel = false, quantidade_disponivel = 0, recipiente_disponivel_id = NULL,
-            altura_disponivel_m = NULL, observacoes_disponibilidade = $3, resposta_em_aberto = NULL
+            altura_disponivel_m = NULL, observacoes_disponibilidade = $3, resposta_em_aberto = NULL,
+            conferido_por = $4, conferido_em = NOW()
       WHERE id = $2 AND pedido_id = $1`,
-    [pedidoId, itemPaiId, observacoes],
+    [pedidoId, itemPaiId, observacoes, autor.usuarioId],
   );
 }
 
@@ -1328,9 +1343,10 @@ export async function definirComposicaoGenerico(
   await client.query(
     `UPDATE pedidos_itens
         SET disponivel = $3, quantidade_disponivel = $4, recipiente_disponivel_id = NULL,
-            altura_disponivel_m = NULL, observacoes_disponibilidade = $5, resposta_em_aberto = NULL
+            altura_disponivel_m = NULL, observacoes_disponibilidade = $5, resposta_em_aberto = NULL,
+            conferido_por = $6, conferido_em = NOW()
       WHERE id = $2 AND pedido_id = $1`,
-    [pedidoId, itemPaiId, disponivel, quantidadeDisponivel, observacoes],
+    [pedidoId, itemPaiId, disponivel, quantidadeDisponivel, observacoes, autor.usuarioId],
   );
 }
 

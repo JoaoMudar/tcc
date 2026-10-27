@@ -158,15 +158,21 @@ export async function criarCargas(
  * A condição do `WHERE` é a trava: carga já pronta e pedido fora da separação
  * não aceitam marcação, e zero linhas afetadas é erro, e não silêncio.
  */
-export async function marcarItemSeparado(client: Client, cargaItemId: string, separado: boolean): Promise<void> {
+export async function marcarItemSeparado(
+  client: Client,
+  cargaItemId: string,
+  separado: boolean,
+  autor: string | null = null,
+): Promise<void> {
+  // RNF-15: quem marcou e quando; desfeita a marcação, o autor sai junto
   const { rowCount } = await client.query(
-    `UPDATE pedidos_cargas_itens SET separado = $2
+    `UPDATE pedidos_cargas_itens SET separado = $2, separado_por = CASE WHEN $2 THEN $3::uuid END, separado_em = CASE WHEN $2 THEN NOW() END
       WHERE id = $1
         AND carga_id IN (SELECT c.id
                            FROM pedidos_cargas c
                            JOIN pedidos p ON p.id = c.pedido_id
                           WHERE c.situacao <> 'pronto' AND p.situacao = 'separando')`,
-    [cargaItemId, separado],
+    [cargaItemId, separado, autor],
   );
   if (!rowCount) {
     throw new UserError('Este item não pode mais ser marcado: a carga já está pronta ou o pedido saiu da separação.');

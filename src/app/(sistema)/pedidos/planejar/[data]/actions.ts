@@ -318,14 +318,14 @@ export async function iniciarCarregamentoAction(_previous: FormState, formData: 
 
 /** P19: a contagem de um item no caminhão. Grava o valor final, e não inverte o atual. */
 export async function marcarItemAction(_previous: FormState, formData: FormData): Promise<FormState> {
-  await requirePermission('cargas_pedido', 'A');
+  const user = await requirePermission('cargas_pedido', 'A');
   const data = formText(formData, 'data');
   const cargaItemId = formText(formData, 'carga_item_id');
   if (!isDataIso(data) || !isUuid(cargaItemId)) return { error: 'Item inválido.' };
   const carregado = formText(formData, 'carregado') === 'sim';
 
   try {
-    await withTransaction(pool, (client) => viagens.marcarItemCarregado(client, cargaItemId, carregado));
+    await withTransaction(pool, (client) => viagens.marcarItemCarregado(client, cargaItemId, carregado, user.usuarioId));
   } catch (error) {
     return { error: toUserMessage(error) };
   }

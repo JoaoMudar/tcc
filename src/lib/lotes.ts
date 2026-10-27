@@ -417,11 +417,18 @@ export async function alterarFase(db: Db, loteId: string, fase: Exclude<Fase, 'e
  * É o que o item de pedido compara com a altura pedida (RN-10, RN-11), e por
  * isso guarda só a última: a muda cresce, e a medida antiga não vende nada.
  */
-export async function alterarAltura(db: Db, loteId: string, alturaM: number | null): Promise<'ok' | 'nao_encontrado'> {
-  const { rowCount } = await db.query('UPDATE lotes SET altura_m = $2 WHERE id = $1 AND encerrado_em IS NULL', [
-    loteId,
-    alturaM,
-  ]);
+export async function alterarAltura(
+  db: Db,
+  loteId: string,
+  alturaM: number | null,
+  medidaPor: string | null = null,
+): Promise<'ok' | 'nao_encontrado'> {
+  // RNF-15: quem mediu e quando, junto da medida
+  const { rowCount } = await db.query(
+    `UPDATE lotes SET altura_m = $2, altura_medida_por = $3, altura_medida_em = NOW()
+      WHERE id = $1 AND encerrado_em IS NULL`,
+    [loteId, alturaM, medidaPor],
+  );
   return rowCount ? 'ok' : 'nao_encontrado';
 }
 
