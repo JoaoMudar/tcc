@@ -1053,6 +1053,36 @@ describe('editar a etapa (RF-44, RN-42)', () => {
     expect(await updateEtapa(pool, protocolo, limpeza, { ...atuais, rotulo: 'Limpar mato e capim' })).toBe('ok');
     await updateEtapa(pool, protocolo, limpeza, atuais);
   });
+
+  // Decisão de 27/10/2026: os dias novos valem para o lote em curso, da etapa em
+  // que ele está em diante. O vencimento é calculado na leitura (a visão), a partir
+  // da execução real, e a etapa concluída sai da conta: nada a migrar.
+  it('RN-42: mudar os dias recalcula o lote em curso da etapa em que ele está; o que foi feito não muda', async () => {
+    const { id } = await novoLote(tubete, canteiro1, '2026-01-10');
+    await tx((client) => concluirEtapa(client, id, plantar, '2026-01-10'));
+    await tx((client) => concluirEtapa(client, id, classificar, '2026-02-19'));
+    await tx((client) => concluirEtapa(client, id, limpeza, '2026-04-10'));
+    const [antesClassificar, antesSelecao, antesLimpeza] = [await campos(classificar), await campos(selecao), await campos(limpeza)];
+
+    try {
+      await updateEtapa(pool, protocolo, classificar, { ...antesClassificar, dias: 50 });
+      await updateEtapa(pool, protocolo, selecao, { ...antesSelecao, dias: 70 });
+      await updateEtapa(pool, protocolo, limpeza, { ...antesLimpeza, intervaloDias: 100 });
+
+      // A etapa já concluída fica como foi feita, e não volta a vencer
+      expect(await estado(id, classificar)).toMatchObject({ ultimaExecucaoEm: '2026-02-19', ocorrencias: 1 });
+      expect(await daVisao(id, classificar)).toBeNull();
+      // A seguinte conta da conclusão real com os dias novos: 19/02 + 70
+      expect((await daVisao(id, selecao))!.proximoVencimento).toBe('2026-04-30');
+      // A recorrente guarda a ocorrência feita, e a próxima usa o intervalo novo: 10/04 + 100
+      expect(await estado(id, limpeza)).toMatchObject({ ultimaExecucaoEm: '2026-04-10', ocorrencias: 1 });
+      expect((await daVisao(id, limpeza))!.proximoVencimento).toBe('2026-07-19');
+    } finally {
+      await updateEtapa(pool, protocolo, classificar, antesClassificar);
+      await updateEtapa(pool, protocolo, selecao, antesSelecao);
+      await updateEtapa(pool, protocolo, limpeza, antesLimpeza);
+    }
+  });
 });
 
 /**

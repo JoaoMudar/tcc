@@ -30,7 +30,7 @@ function textFields(formData: FormData): Record<string, string> {
 export async function savePessoaAction(_previous: PessoaFormState, formData: FormData): Promise<PessoaFormState> {
   const id = formText(formData, 'pessoa_id');
   const operacao = id ? 'A' : 'C';
-  await requirePermission('pessoas', operacao);
+  const usuario = await requirePermission('pessoas', operacao);
   const incluiFiscal = formData.get('inclui_fiscal') === '1';
   if (incluiFiscal) await requirePermission('dados_fiscais', operacao);
   if (id && !isUuid(id)) return { error: 'Pessoa inválida.' };
@@ -88,7 +88,7 @@ export async function savePessoaAction(_previous: PessoaFormState, formData: For
     }
 
     const result = await withTransaction(pool, (client) =>
-      pessoas.savePessoa(client, id || null, parsed.value, fiscal?.value ?? null),
+      pessoas.savePessoa(client, id || null, parsed.value, fiscal?.value ?? null, usuario.usuarioId),
     );
     if (result.resultado === 'nao_encontrado') return { error: 'Pessoa não encontrada.' };
     pessoaId = result.id;
@@ -108,7 +108,7 @@ export async function savePessoaAction(_previous: PessoaFormState, formData: For
  * cadastrado não cria outra pessoa sem que quem cadastra escolha.
  */
 export async function createClienteRapido(_previous: ClienteRapidoState, formData: FormData): Promise<ClienteRapidoState> {
-  await requirePermission('pessoas', 'C');
+  const usuario = await requirePermission('pessoas', 'C');
   const fields = { nome: formText(formData, 'nome'), telefone: formText(formData, 'telefone') };
 
   const usarId = formText(formData, 'usar_pessoa_id');
@@ -126,7 +126,7 @@ export async function createClienteRapido(_previous: ClienteRapidoState, formDat
       if (candidatas.length > 0) return { candidatas, fields };
     }
     const id = await withTransaction(pool, (client) =>
-      pessoas.insertClienteRapido(client, { nome, telefone: telefone.value }),
+      pessoas.insertClienteRapido(client, { nome, telefone: telefone.value }, usuario.usuarioId),
     );
     revalidatePath('/cadastros/pessoas');
     return { success: `Cliente ${nome} cadastrado.`, cliente: { id, nome } };

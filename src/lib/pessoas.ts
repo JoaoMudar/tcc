@@ -342,6 +342,8 @@ export async function savePessoa(
   id: string | null,
   fields: PessoaFields,
   fiscal: FiscalFields | null,
+  /** RNF-15: quem grava. Nulo na carga por script. */
+  autor: string | null = null,
 ): Promise<{ resultado: 'ok'; id: string } | { resultado: 'nao_encontrado' }> {
   const base = [fields.tipo, fields.nome, fields.telefone, fields.email, fields.observacoes, fields.ativa];
   let pessoaId: string;
@@ -352,17 +354,27 @@ export async function savePessoa(
           SET tipo = $1, nome = $2, telefone = $3, email = $4, observacoes = $5, ativa = $6,
               documento = CASE WHEN $8 THEN $9 ELSE documento END,
               razao_social = CASE WHEN $8 THEN $10 ELSE razao_social END,
-              inscricao_estadual = CASE WHEN $8 THEN $11 ELSE inscricao_estadual END
+              inscricao_estadual = CASE WHEN $8 THEN $11 ELSE inscricao_estadual END,
+              atualizado_por = $12
         WHERE id = $7`,
-      [...base, id, fiscal !== null, fiscal?.documento ?? null, fiscal?.razaoSocial ?? null, fiscal?.inscricaoEstadual ?? null],
+      [
+        ...base,
+        id,
+        fiscal !== null,
+        fiscal?.documento ?? null,
+        fiscal?.razaoSocial ?? null,
+        fiscal?.inscricaoEstadual ?? null,
+        autor,
+      ],
     );
     if (!rowCount) return { resultado: 'nao_encontrado' };
     pessoaId = id;
   } else {
     const { rows } = await client.query<{ id: string }>(
-      `INSERT INTO cadastro.pessoas (tipo, nome, telefone, email, observacoes, ativa, documento, razao_social, inscricao_estadual)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
-      [...base, fiscal?.documento ?? null, fiscal?.razaoSocial ?? null, fiscal?.inscricaoEstadual ?? null],
+      `INSERT INTO cadastro.pessoas (tipo, nome, telefone, email, observacoes, ativa, documento, razao_social, inscricao_estadual,
+                                    criado_por, atualizado_por)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10) RETURNING id`,
+      [...base, fiscal?.documento ?? null, fiscal?.razaoSocial ?? null, fiscal?.inscricaoEstadual ?? null, autor],
     );
     pessoaId = rows[0].id;
   }
@@ -398,10 +410,14 @@ export interface EnderecoDeEntrega {
 }
 
 /** RF-20: nome e telefone bastam para o pedido; a ficha se completa depois. */
-export async function insertClienteRapido(client: PoolClient, input: { nome: string; telefone: string | null }): Promise<string> {
+export async function insertClienteRapido(
+  client: PoolClient,
+  input: { nome: string; telefone: string | null },
+  autor: string | null = null,
+): Promise<string> {
   const { rows } = await client.query<{ id: string }>(
-    "INSERT INTO cadastro.pessoas (tipo, nome, telefone) VALUES ('pf', $1, $2) RETURNING id",
-    [input.nome, input.telefone],
+    "INSERT INTO cadastro.pessoas (tipo, nome, telefone, criado_por, atualizado_por) VALUES ('pf', $1, $2, $3, $3) RETURNING id",
+    [input.nome, input.telefone, autor],
   );
   await writePapeis(client, rows[0].id, [{ papel: 'cliente', tipoVinculo: null }]);
   return rows[0].id;

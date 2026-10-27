@@ -844,7 +844,10 @@ export async function encerrarProtocoloDoLote(client: Db, loteId: string): Promi
 }
 
 /**
- * Edita a etapa no lugar. Duas travas:
+ * Edita a etapa no lugar. **Os dias novos valem para o lote em curso** (RN-42,
+ * decisão de 27/10/2026), da etapa em que ele está em diante: o vencimento é
+ * calculado na leitura, pela visão `lotes_etapas_vencimento`, a partir da execução
+ * real, e a etapa concluída já saiu da conta. Duas travas:
  * - RF-44: só a etapa deste protocolo (`AND protocolo_id`), e o identificador
  *   postado de outro protocolo não altera nada;
  * - RN-42: o tipo de tarefa e o tipo de agendamento não mudam depois que algum

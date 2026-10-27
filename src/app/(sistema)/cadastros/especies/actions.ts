@@ -15,7 +15,7 @@ import { requirePermission } from '@/lib/auth/guards';
 /** RF-10: cria (sem `especie_id`) ou altera a espécie, com nomes e foto numa transação só. */
 export async function saveEspecieAction(_previous: FormState, formData: FormData): Promise<FormState> {
   const id = formText(formData, 'especie_id');
-  await requirePermission('especies', id ? 'A' : 'C');
+  const usuario = await requirePermission('especies', id ? 'A' : 'C');
   if (id && !isUuid(id)) return { error: 'Espécie inválida.' };
 
   const caracteristicas = formData.getAll('caracteristicas').filter((v): v is string => typeof v === 'string');
@@ -49,6 +49,7 @@ export async function saveEspecieAction(_previous: FormState, formData: FormData
         id || null,
         { ...parsed.value, ativa: id ? formData.get('ativa') === 'on' : true },
         { nova: foto.value, remover: formData.get('remover_foto') === 'on' },
+        usuario.usuarioId,
       );
       // RN-05: conferir o nome não bloqueia; o que não bate fica pendente para a chefia
       if (salva.resultado === 'ok') {

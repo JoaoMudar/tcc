@@ -523,3 +523,27 @@ describe('pessoas (RF-17, RF-19 a RF-21)', () => {
     });
   });
 });
+
+/** RNF-15, segunda etapa: quem está logado é o autor gravado no cadastro. */
+describe('autor do cadastro (RNF-15)', () => {
+  it('recipiente criado e alterado leva o usuário da sessão', async () => {
+    loggedAs('admin');
+    vi.mocked(pool.query).mockResolvedValue({ rows: [{ id: ID }], rowCount: 1 } as never);
+    await recipientes.createRecipiente({}, form({ nome: 'Saco 10x18', volume: '0,9', peso: '' }));
+    expect(vi.mocked(pool.query).mock.calls[0][1]).toEqual(['Saco 10x18', 0.9, null, 'u1']);
+
+    vi.clearAllMocks();
+    vi.mocked(pool.query).mockResolvedValue({ rows: [], rowCount: 1 } as never);
+    await recipientes.updateRecipiente({}, form({ recipiente_id: ID, nome: 'Saco 10x18', volume: '0,9', peso: '', ativo: 'on' }));
+    expect(vi.mocked(pool.query).mock.calls[0][1]).toEqual([ID, 'Saco 10x18', 0.9, null, true, 'u1']);
+  });
+
+  it('o cliente rápido leva o usuário da sessão', async () => {
+    loggedAs('admin');
+    vi.mocked(pool.query).mockResolvedValue({ rows: [] } as never);
+    client.query.mockResolvedValue({ rows: [{ id: ID }] });
+    await pessoas.createClienteRapido({}, form({ nome: 'Sítio Boa Vista', telefone: '(47) 99612-4408' }));
+    const insert = client.query.mock.calls.find(([sql]) => String(sql).includes('INSERT INTO cadastro.pessoas'));
+    expect(insert?.[1]).toEqual(['Sítio Boa Vista', '47996124408', 'u1']);
+  });
+});
