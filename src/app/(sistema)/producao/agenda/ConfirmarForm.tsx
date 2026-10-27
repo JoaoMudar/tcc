@@ -15,6 +15,13 @@ interface ConfirmarFormProps {
   descricao: string;
   exigeLote: boolean;
   exigeArea: boolean;
+  /** RF-37: pedidos de novo na confirmação; o planejamento aceita "Ainda não sei". */
+  exigeEspecie?: boolean;
+  exigeRecipiente?: boolean;
+  especies?: readonly SelectOption[];
+  recipientes?: readonly SelectOption[];
+  especieId?: string | null;
+  recipienteId?: string | null;
   eQuantitativa: boolean;
   unidadeMedida: UnidadeTarefa;
   participantes: readonly { id: string; nome: string }[];
@@ -35,6 +42,12 @@ export function ConfirmarForm({
   descricao,
   exigeLote,
   exigeArea,
+  exigeEspecie = false,
+  exigeRecipiente = false,
+  especies = [],
+  recipientes = [],
+  especieId = null,
+  recipienteId = null,
   eQuantitativa,
   unidadeMedida,
   participantes,
@@ -57,6 +70,18 @@ export function ConfirmarForm({
       <input type="hidden" name="id" value={atribuicaoId} />
       {exigeLote && (
         <SelectField label="Lote" name="lote_id" options={lotes} defaultValue={fields?.lote_id ?? loteId ?? ''} required />
+      )}
+      {exigeEspecie && (
+        <SelectField label="Espécie" name="especie_id" options={especies} defaultValue={fields?.especie_id ?? especieId ?? ''} required />
+      )}
+      {exigeRecipiente && (
+        <SelectField
+          label="Recipiente"
+          name="recipiente_id"
+          options={recipientes}
+          defaultValue={fields?.recipiente_id ?? recipienteId ?? ''}
+          required
+        />
       )}
       {exigeArea && !exigeLote && (
         <AreaCanteiroOpcional

@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import * as agenda from '@/lib/agenda';
 import pool from '@/lib/db';
 import { formatData, hojeNoViveiro, isDataIso } from '@/lib/datas';
+import { findLote } from '@/lib/lotes';
 import { toUserMessage } from '@/lib/errors';
 import { type FormState, formText } from '@/lib/form-state';
 import { parseDiasAdiamento } from '@/lib/protocolo-rotulos';
@@ -104,7 +105,11 @@ export async function atualizarAtribuicaoAction(_previous: FormState, formData: 
   if ('error' in resultado) return { error: resultado.error, fields: resultado.fields };
 
   try {
-    await withTransaction(pool, (client) => agenda.atualizarAtribuicao(client, id, resultado.value, hojeNoViveiro()));
+    await withTransaction(pool, (client) =>
+      agenda.atualizarAtribuicao(client, id, resultado.value, hojeNoViveiro(), {
+        remarcacao: formText(formData, 'voltar') === 'agenda',
+      }),
+    );
   } catch (error) {
     return { error: toUserMessage(error), fields: resultado.fields };
   }
@@ -234,12 +239,23 @@ export async function registrarTarefaFeitaAction(_previous: FormState, formData:
   const tipo = await findTipoTarefa(pool, tipoId);
   if (!tipo) return { error: 'Tipo de tarefa não encontrado.', fields: todos };
 
+  // RF-37: a etapa é de um lote, e é ele quem diz a espécie e o recipiente que o tipo declara
+  if ((tipo.exigeEspecie || tipo.exigeRecipiente) && isUuid(bruta.loteId)) {
+    const lote = await findLote(pool, bruta.loteId);
+    if (lote) {
+      bruta.especieId ||= lote.especieId;
+      bruta.recipienteId ||= lote.recipienteId;
+    }
+  }
+
   const atribuicao = agenda.parseAtribuicao(tipo, { ...bruta, semana: inicioDaSemana(dia), recorrente: false });
   if ('error' in atribuicao) return { error: atribuicao.error, fields: todos };
   const confirmacao = agenda.parseConfirmacao(tipo, atribuicao.value.participantes, {
     loteId: bruta.loteId,
     areaId: bruta.areaId,
     canteiroId: bruta.canteiroId,
+    especieId: bruta.especieId,
+    recipienteId: bruta.recipienteId,
     quantidades,
     perdidas: todos.perdidas,
     causa: todos.causa,
@@ -260,13 +276,15 @@ export async function registrarTarefaFeitaAction(_previous: FormState, formData:
 
 /** RF-55: a tarefa atrasada adiada X dias a partir de hoje, mesmo que caia em outra semana. */
 export async function adiarAtribuicaoAction(_previous: FormState, formData: FormData): Promise<FormState> {
-  await requirePermission('agenda', 'A');
+  const user = await requirePermission('agenda', 'A');
   const id = formText(formData, 'id');
   if (!isUuid(id)) return { error: 'Tarefa inválida.' };
   const dias = parseDiasAdiamento(formText(formData, 'dias'));
   if ('error' in dias) return { error: dias.error };
   try {
-    const { data } = await withTransaction(pool, (client) => agenda.adiarAtribuicao(client, id, dias.value, hojeNoViveiro()));
+    const { data } = await withTransaction(pool, (client) =>
+      agenda.adiarAtribuicao(client, id, dias.value, hojeNoViveiro(), user.usuarioId),
+    );
     revalidarProducao();
     return { success: `Tarefa adiada para ${formatData(data)}.` };
   } catch (error) {

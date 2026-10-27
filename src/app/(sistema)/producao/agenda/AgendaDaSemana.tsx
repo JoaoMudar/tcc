@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers';
 import Link from 'next/link';
-import { findSemana, listAgendaSemana, listFuncionarios } from '@/lib/agenda';
+import { abrirSemana, findSemana, listAgendaSemana, listFuncionarios } from '@/lib/agenda';
 import { COOKIE_ZOOM, lerZoom } from '@/lib/agenda-zoom';
 import { diasEntre } from '@/lib/datas';
 import pool from '@/lib/db';
@@ -11,6 +11,7 @@ import { type Perfil, can } from '@/lib/permissions';
 import { listSugestoes, sugestoesDaSemana } from '@/lib/protocolos';
 import { providenciaDoLote } from '@/lib/providencia';
 import { diasDaSemana, diasUteisDaSemana, inicioDaSemana, rotuloSemana, semanaJaPassou } from '@/lib/semanas';
+import { withTransaction } from '@/lib/transaction';
 import { listTurnos } from '@/lib/turnos';
 import { AgendaDiaCelular } from './AgendaDiaCelular';
 import { ForaDaGrade } from './ForaDaGrade';
@@ -40,6 +41,11 @@ export async function AgendaDaSemana({ dia, hoje, perfil }: AgendaDaSemanaProps)
   // O zoom Semana desenha só os dias úteis; sábado e domingo entram no 3 dias, no Dia e, com tarefa, no celular
   const diasUteis = diasUteisDaSemana(inicio);
 
+  // RF-39: a semana que ainda não existe e não passou nasce ao ser visitada, já
+  // com as recorrentes; senão a rotina só apareceria no primeiro lançamento
+  if (!semanaJaPassou(inicio, hoje) && !(await findSemana(pool, inicio))) {
+    await withTransaction(pool, (client) => abrirSemana(client, inicio, hoje));
+  }
   const [semana, funcionarios, turnos] = await Promise.all([findSemana(pool, inicio), listFuncionarios(pool), listTurnos(pool)]);
   const atribuicoes = semana ? await listAgendaSemana(pool, semana.id) : [];
   // RF-53: o protocolo sugere abaixo da semana, e não lança nada na grade.
@@ -58,7 +64,7 @@ export async function AgendaDaSemana({ dia, hoje, perfil }: AgendaDaSemanaProps)
     return {
       loteId: lote.id,
       titulo: `${lote.codigo} · ${lote.especie}`,
-      providencia: providenciaDoLote(lote, pendencia, semanaDeLancar),
+      providencia: providenciaDoLote(lote, pendencia, semanaDeLancar, inicioDaSemana(hoje)),
       critico: lote.situacao === 'critico',
       situacao: SITUACOES_LOTE[lote.situacao],
       pendencia,

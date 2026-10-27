@@ -6,7 +6,7 @@ import {
   SITUACOES_ATRIBUICAO,
   lerQuantidadeMedida,
 } from './agenda-rotulos';
-import { isDataIso, somaDias } from './datas';
+import { diasEntre, hojeNoViveiro, isDataIso, somaDias } from './datas';
 import { UserError } from './errors';
 import { type CausaPerda, isCausaPerda, lerQuantidade } from './lotes-rotulos';
 import { nomeEspecieSql } from './lotes';
@@ -210,6 +210,9 @@ export interface ConfirmacaoBruta {
   loteId: string;
   areaId: string;
   canteiroId: string;
+  /** RF-37: a espécie e o recipiente que o tipo declara, pedidos de novo na confirmação. */
+  especieId?: string;
+  recipienteId?: string;
   /** Texto digitado por participante, pela id da pessoa. */
   quantidades: Readonly<Record<string, string>>;
   perdidas: string;
@@ -220,6 +223,9 @@ export interface ConfirmacaoInput {
   loteId: string | null;
   areaId: string | null;
   canteiroId: string | null;
+  /** Nulos quando o tipo não os declara; aí a confirmação mantém o que o planejamento gravou. */
+  especieId?: string | null;
+  recipienteId?: string | null;
   quantidades: { pessoaId: string; quantidade: number | null }[];
   perda: { quantidade: number; causa: CausaPerda } | null;
 }
@@ -231,12 +237,18 @@ export interface ConfirmacaoInput {
  * (FE-1). As mudas que morreram viram perda do lote (decisão de 14/09/2026).
  */
 export function parseConfirmacao(
-  tipo: Pick<Declaracoes, 'eQuantitativa' | 'exigeLote' | 'exigeArea'> & { unidadeMedida: UnidadeTarefa },
+  tipo: Pick<Declaracoes, 'eQuantitativa' | 'exigeLote' | 'exigeArea'> &
+    Partial<Pick<Declaracoes, 'exigeEspecie' | 'exigeRecipiente'>> & { unidadeMedida: UnidadeTarefa },
   participantes: readonly string[],
   bruta: ConfirmacaoBruta,
 ): Resultado<ConfirmacaoInput> {
   const loteId = tipo.exigeLote && isUuid(bruta.loteId) ? bruta.loteId : null;
   if (tipo.exigeLote && !loteId) return { error: 'Esta tarefa exige o lote: escolha em qual lote ela foi feita.' };
+  // RF-37: o planejamento aceita "Ainda não sei"; a confirmação, não. "Colher semente" sem espécie não diz nada
+  const especieId = tipo.exigeEspecie && isUuid(bruta.especieId ?? '') ? bruta.especieId! : null;
+  if (tipo.exigeEspecie && !especieId) return { error: 'Esta tarefa exige a espécie: escolha qual foi.' };
+  const recipienteId = tipo.exigeRecipiente && isUuid(bruta.recipienteId ?? '') ? bruta.recipienteId! : null;
+  if (tipo.exigeRecipiente && !recipienteId) return { error: 'Esta tarefa exige o recipiente: escolha qual foi.' };
   const areaId = tipo.exigeArea && !tipo.exigeLote && isUuid(bruta.areaId) ? bruta.areaId : null;
   const canteiroId = areaId && isUuid(bruta.canteiroId) ? bruta.canteiroId : null;
 
@@ -265,7 +277,7 @@ export function parseConfirmacao(
     }
   }
 
-  return { value: { loteId, areaId, canteiroId, quantidades, perda } };
+  return { value: { loteId, areaId, canteiroId, especieId, recipienteId, quantidades, perda } };
 }
 
 // ------------------------------------------------------------
@@ -617,9 +629,32 @@ async function conferirReferencias(client: Client, input: AtribuicaoInput): Prom
  * carregaria um vencimento que não é o daquela semana. O protocolo torna a
  * sugeri-la enquanto a etapa continuar vencida.
  */
-async function copiarRecorrentes(client: Client, origemInicio: string, destinoId: string): Promise<number> {
+async function copiarRecorrentes(client: Client, destinoInicio: string, destinoId: string): Promise<number> {
+  // RF-39: a origem é a última semana anterior que tem recorrente, e não só a de
+  // sete dias antes: uma semana sem lançamento nenhum não quebra a rotina. Até
+  // oito semanas para trás: parado mais que isso, a rotina se planeja de novo
+  const { rows: origem } = await client.query<{ inicio: string | null }>(
+    `SELECT to_char(MAX(s.inicio_semana), 'YYYY-MM-DD') AS inicio
+       FROM semanas s
+      WHERE s.inicio_semana < $1 AND s.inicio_semana >= $1::date - 56
+        AND EXISTS (SELECT 1 FROM atribuicoes a
+                     WHERE a.semana_id = s.id AND a.e_recorrente AND a.lote_etapa_id IS NULL AND a.situacao <> 'cancelada')`,
+    [destinoInicio],
+  );
+  const origemInicio = origem[0]?.inicio;
+  if (!origemInicio) return 0;
+  return copiarRecorrentesDe(client, origemInicio, diasEntre(origemInicio, destinoInicio), destinoId);
+}
+
+async function copiarRecorrentesDe(
+  client: Client,
+  origemInicio: string,
+  deslocamento: number,
+  destinoId: string,
+  soAtribuicaoId: string | null = null,
+): Promise<number> {
   const { rows } = await client.query<DadosAtribuicao & { participantes: string[] }>(
-    `SELECT to_char(a.data_trabalho + 7, 'YYYY-MM-DD') AS data, a.turno_id AS "turnoId", a.tipo_tarefa_id AS "tipoTarefaId",
+    `SELECT to_char(a.data_trabalho + $2::int, 'YYYY-MM-DD') AS data, a.turno_id AS "turnoId", a.tipo_tarefa_id AS "tipoTarefaId",
             to_char(a.hora_inicio, 'HH24:MI') AS "horaInicio", to_char(a.hora_fim, 'HH24:MI') AS "horaFim",
             CASE WHEN l.encerrado_em IS NULL THEN a.lote_id END AS "loteId", a.especie_id AS "especieId",
             a.recipiente_id AS "recipienteId", a.area_id AS "areaId", a.canteiro_id AS "canteiroId",
@@ -635,8 +670,9 @@ async function copiarRecorrentes(client: Client, origemInicio: string, destinoId
        JOIN tipos_tarefa tt ON tt.id = a.tipo_tarefa_id AND tt.ativo
        LEFT JOIN lotes l ON l.id = a.lote_id
       WHERE s.inicio_semana = $1 AND a.e_recorrente AND a.lote_etapa_id IS NULL AND a.situacao <> 'cancelada'
+        AND ($3::uuid IS NULL OR a.id = $3)
       ORDER BY a.data_trabalho, t.inicio, a.criado_em`,
-    [origemInicio],
+    [origemInicio, deslocamento, soAtribuicaoId],
   );
   let copiadas = 0;
   for (const { participantes, ...dados } of rows) {
@@ -650,8 +686,16 @@ async function copiarRecorrentes(client: Client, origemInicio: string, destinoId
 /**
  * Cria a semana aberta, já com as tarefas recorrentes da anterior (RN-29).
  * Semana que já existe volta como está, sem copiar de novo.
+ *
+ * **A semana que já passou nasce sem recorrentes** (RF-57): ela só é criada para
+ * registrar o que foi feito, e copiar a rotina para lá geraria tarefas planejadas
+ * já atrasadas que ninguém vai fazer.
  */
-export async function abrirSemana(client: Client, inicio: string): Promise<{ id: string; criada: boolean; recorrentes: number }> {
+export async function abrirSemana(
+  client: Client,
+  inicio: string,
+  hoje: string = hojeNoViveiro(),
+): Promise<{ id: string; criada: boolean; recorrentes: number }> {
   if (!isInicioDeSemana(inicio)) throw new UserError('Semana inválida.');
   const { rows } = await client.query<{ id: string }>(
     'INSERT INTO semanas (inicio_semana) VALUES ($1) ON CONFLICT (inicio_semana) DO NOTHING RETURNING id',
@@ -661,7 +705,7 @@ export async function abrirSemana(client: Client, inicio: string): Promise<{ id:
     const existente = await travarSemana(client, 'inicio_semana', inicio);
     return { id: existente.id, criada: false, recorrentes: 0 };
   }
-  const recorrentes = await copiarRecorrentes(client, somaDias(inicio, -7), rows[0].id);
+  const recorrentes = semanaJaPassou(inicio, hoje) ? 0 : await copiarRecorrentes(client, inicio, rows[0].id);
   return { id: rows[0].id, criada: true, recorrentes };
 }
 
@@ -711,11 +755,24 @@ export async function criarAtribuicoes(client: Client, input: AtribuicaoInput): 
  * de destino nasce se preciso e recusa se fechada, travada depois da de origem,
  * na mesma ordem do adiamento.
  */
-export async function atualizarAtribuicao(client: Client, id: string, input: AtribuicaoInput, hoje: string): Promise<void> {
+export async function atualizarAtribuicao(
+  client: Client,
+  id: string,
+  input: AtribuicaoInput,
+  hoje: string,
+  /** RF-56: veio do "Marcar na agenda" da tarefa atrasada. */
+  opcoes: { remarcacao?: boolean } = {},
+): Promise<void> {
   const atribuicao = await travarAtribuicao(client, id);
   recusarSeFechada(atribuicao.semana);
   recusarSeNaoPlanejada(atribuicao);
   if (input.dias.length !== 1) throw new UserError('Escolha um dia só.');
+  // RF-56: remarcar é trazer para esta semana, de hoje em diante; antes de hoje continuaria atrasada
+  if (opcoes.remarcacao) {
+    if (input.semana !== inicioDaSemana(hoje)) throw new UserError('A remarcação traz a tarefa para a semana de hoje.');
+    if (input.dias[0] < hoje) throw new UserError('Escolha hoje ou um dia à frente: antes de hoje a tarefa continuaria atrasada.');
+  }
+  const { rows: antes } = await client.query<{ recorrente: boolean }>('SELECT e_recorrente AS recorrente FROM atribuicoes WHERE id = $1', [id]);
   let semanaId = atribuicao.semana.id;
   if (input.semana < atribuicao.semana.inicio) {
     throw new UserError('A tarefa não volta para uma semana anterior. Escolha um dia desta semana ou de uma à frente.');
@@ -756,6 +813,15 @@ export async function atualizarAtribuicao(client: Client, id: string, input: Atr
     id,
     input.participantes,
   ]);
+
+  // RF-39: marcada recorrente agora, com a semana seguinte já criada: a cópia não
+  // pode esperar uma semana que não vai nascer de novo
+  if (input.recorrente && !antes[0]?.recorrente && !atribuicao.loteEtapaId) {
+    const seguinte = await findSemana(client, somaDias(input.semana, 7));
+    if (seguinte && seguinte.situacao === 'aberta') {
+      await copiarRecorrentesDe(client, input.semana, 7, seguinte.id, id);
+    }
+  }
 }
 
 /**
@@ -793,7 +859,13 @@ export async function reagendarAtribuicao(client: Client, id: string, input: Rea
  * Turno, hora e gente seguem. A semana de origem nunca é posterior à de destino,
  * e é nessa ordem que se trava.
  */
-export async function adiarAtribuicao(client: Client, id: string, dias: number, hoje: string): Promise<{ data: string }> {
+export async function adiarAtribuicao(
+  client: Client,
+  id: string,
+  dias: number,
+  hoje: string,
+  registradoPor: string | null = null,
+): Promise<{ data: string }> {
   const atribuicao = await travarAtribuicao(client, id);
   recusarSeFechada(atribuicao.semana);
   recusarSeNaoPlanejada(atribuicao);
@@ -801,6 +873,18 @@ export async function adiarAtribuicao(client: Client, id: string, dias: number, 
   const destino = await abrirSemana(client, inicioDaSemana(data));
   recusarSeFechada(await travarSemana(client, 'id', destino.id));
   await client.query('UPDATE atribuicoes SET data_trabalho = $2, semana_id = $3 WHERE id = $1', [id, data, destino.id]);
+
+  // RF-55: a tarefa do protocolo adiada fica no histórico do lote. Tipo próprio,
+  // que não mexe no vencimento da etapa (migration 20261027000003)
+  if (registradoPor && atribuicao.loteEtapaId && atribuicao.loteId) {
+    await client.query(
+      `INSERT INTO lotes_etapas_acoes (lote_id, protocolo_etapa_id, ocorrencia, tipo_acao, dias, data_acao, registrado_por)
+       SELECT le.lote_id, le.protocolo_etapa_id, le.ocorrencias + 1, 'adiamento_tarefa', $3, $4, $5
+         FROM lotes_etapas le
+        WHERE le.lote_id = $1 AND le.protocolo_etapa_id = $2`,
+      [atribuicao.loteId, atribuicao.loteEtapaId, diasEntre(atribuicao.dataTrabalho, data), hoje, registradoPor],
+    );
+  }
   return { data };
 }
 
@@ -886,9 +970,12 @@ export async function confirmarAtribuicao(
     if (rows[0]?.areaId !== input.areaId) throw new UserError('O canteiro escolhido não é dessa área.');
   }
 
+  // RF-37: espécie e recipiente só mudam quando a confirmação os traz; senão fica o do planejamento
   await client.query(
-    "UPDATE atribuicoes SET lote_id = $2, area_id = $3, canteiro_id = $4, situacao = 'confirmada' WHERE id = $1",
-    [id, input.loteId, input.areaId, input.canteiroId],
+    `UPDATE atribuicoes SET lote_id = $2, area_id = $3, canteiro_id = $4, situacao = 'confirmada',
+            especie_id = COALESCE($5, especie_id), recipiente_id = COALESCE($6, recipiente_id)
+      WHERE id = $1`,
+    [id, input.loteId, input.areaId, input.canteiroId, input.especieId ?? null, input.recipienteId ?? null],
   );
   const quantidadeDe = new Map(input.quantidades.map((q) => [q.pessoaId, q.quantidade]));
   for (const pessoa of pessoas) {

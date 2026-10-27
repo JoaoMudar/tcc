@@ -136,6 +136,8 @@ async function confirmarTarefa(campos: Campos, envio: Envio, user: SessionUser):
     lote_id: campo(campos, 'lote_id'),
     area_id: campo(campos, 'area_id'),
     canteiro_id: campo(campos, 'canteiro_id'),
+    especie_id: campo(campos, 'especie_id'),
+    recipiente_id: campo(campos, 'recipiente_id'),
     perdidas: campo(campos, 'perdidas'),
     causa: campo(campos, 'causa'),
     ...Object.fromEntries(Object.entries(quantidades).map(([pessoa, texto]) => [`quantidade_${pessoa}`, texto])),
@@ -143,7 +145,16 @@ async function confirmarTarefa(campos: Campos, envio: Envio, user: SessionUser):
   const confirmacao = agenda.parseConfirmacao(
     atribuicao,
     atribuicao.participantes.map((p) => p.id),
-    { loteId: fields.lote_id, areaId: fields.area_id, canteiroId: fields.canteiro_id, quantidades, perdidas: fields.perdidas, causa: fields.causa },
+    {
+      loteId: fields.lote_id,
+      areaId: fields.area_id,
+      canteiroId: fields.canteiro_id,
+      especieId: fields.especie_id,
+      recipienteId: fields.recipiente_id,
+      quantidades,
+      perdidas: fields.perdidas,
+      causa: fields.causa,
+    },
   );
   if ('error' in confirmacao) return { status: 'recusado', error: confirmacao.error, fields };
   if (confirmacao.value.perda && !can(user.perfil, 'perdas', 'C')) return { status: 'proibido' };
