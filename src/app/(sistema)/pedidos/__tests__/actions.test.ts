@@ -91,19 +91,40 @@ describe('permissão (RF-03, D4 §3.2)', () => {
     expect(gravou).toHaveLength(1);
   });
 
-  it('aprovar não é da gerência, e a recusa vem antes de gravar', async () => {
+  it('devolver ao orçamento não é da gerência, e a recusa vem antes de gravar', async () => {
     loggedAs('gerencia');
     emSituacao('verificado');
-    const state = await actions.transicionarPedidoAction({}, form({ pedido_id: PEDIDO, para: 'aprovado' }));
+    const state = await actions.transicionarPedidoAction({}, form({ pedido_id: PEDIDO, para: 'cadastrado' }));
     expect(state.error).toMatch(/não pode passar/i);
     const gravou = client.query.mock.calls.filter(([sql]) => String(sql).includes('UPDATE pedidos SET situacao'));
     expect(gravou).toEqual([]);
   });
 
   it('a chefia executa também as fases da gerência', async () => {
-    emSituacao('aprovado');
-    const state = await actions.transicionarPedidoAction({}, form({ pedido_id: PEDIDO, para: 'separando' }));
+    emSituacao('cadastrado');
+    const state = await actions.transicionarPedidoAction({}, form({ pedido_id: PEDIDO, para: 'verificando' }));
     expect(state.error).toBeUndefined();
+  });
+
+  // RF-61: verificado, aprovado, separando e pronto para envio têm tela própria
+  it.each([
+    ['verificando', 'verificado'],
+    ['verificado', 'aprovado'],
+    ['aprovado', 'separando'],
+    ['separando', 'pronto_envio'],
+  ])('a porta genérica recusa %s → %s, mesmo para a chefia, antes do banco', async (de, para) => {
+    emSituacao(de);
+    const state = await actions.transicionarPedidoAction({}, form({ pedido_id: PEDIDO, para }));
+    expect(state.error).toMatch(/tela própria/i);
+    expectNoDatabase();
+  });
+
+  it('a porta genérica não devolve o aprovado ao orçamento (RN-52)', async () => {
+    emSituacao('aprovado');
+    const state = await actions.transicionarPedidoAction({}, form({ pedido_id: PEDIDO, para: 'cadastrado' }));
+    expect(state.error).toMatch(/tela própria/i);
+    const gravou = client.query.mock.calls.filter(([sql]) => String(sql).includes('UPDATE pedidos SET situacao'));
+    expect(gravou).toEqual([]);
   });
 
   it('fase que não existe é recusada antes do banco', async () => {
@@ -132,15 +153,46 @@ describe('permissão (RF-03, D4 §3.2)', () => {
 
   it('a mudança de fase avisa com a situação nova, e a recusada não avisa', async () => {
     vi.mocked(avisarPedido).mockClear();
-    emSituacao('aprovado');
-    await actions.transicionarPedidoAction({}, form({ pedido_id: PEDIDO, para: 'separando' }));
-    expect(avisarPedido).toHaveBeenCalledWith(PEDIDO, 'separando', 'u1');
+    emSituacao('cadastrado');
+    await actions.transicionarPedidoAction({}, form({ pedido_id: PEDIDO, para: 'verificando' }));
+    expect(avisarPedido).toHaveBeenCalledWith(PEDIDO, 'verificando', 'u1');
 
     vi.mocked(avisarPedido).mockClear();
     loggedAs('gerencia');
     emSituacao('verificado');
-    await actions.transicionarPedidoAction({}, form({ pedido_id: PEDIDO, para: 'aprovado' }));
+    await actions.transicionarPedidoAction({}, form({ pedido_id: PEDIDO, para: 'cadastrado' }));
     expect(avisarPedido).not.toHaveBeenCalled();
+  });
+});
+
+describe('reabrir pedido (RN-52)', () => {
+  it('sem motivo é recusado antes do banco', async () => {
+    const state = await actions.reabrirPedidoAction({}, form({ pedido_id: PEDIDO, motivo: '   ' }));
+    expect(state.error).toMatch(/por que/i);
+    expectNoDatabase();
+  });
+
+  it('a gerência não reabre', async () => {
+    loggedAs('gerencia');
+    client.query.mockResolvedValue({ rows: [{ id: PEDIDO, numero: 1, situacao: 'aprovado', n: 0 }], rowCount: 1 });
+    const state = await actions.reabrirPedidoAction({}, form({ pedido_id: PEDIDO, motivo: 'Cliente trocou o ipê.' }));
+    expect(state.error).toMatch(/não pode passar/i);
+  });
+
+  it('a chefia reabre com motivo, desfaz as cargas e grava o motivo no histórico', async () => {
+    client.query.mockResolvedValue({ rows: [{ id: PEDIDO, numero: 1, situacao: 'aprovado', n: 0 }], rowCount: 1 });
+    const state = await actions.reabrirPedidoAction({}, form({ pedido_id: PEDIDO, motivo: 'Cliente trocou o ipê.' }));
+    expect(state.error).toBeUndefined();
+    const sqls = client.query.mock.calls.map(([sql, params]) => [String(sql), params] as const);
+    expect(sqls.some(([sql]) => sql.includes('DELETE FROM pedidos_cargas'))).toBe(true);
+    const historico = sqls.find(([sql]) => sql.includes('INSERT INTO pedidos_historico'));
+    expect(historico?.[1]).toContain('Reaberto: Cliente trocou o ipê.');
+  });
+
+  it('pedido que já está numa viagem não reabre', async () => {
+    client.query.mockResolvedValue({ rows: [{ id: PEDIDO, numero: 1, situacao: 'separando', n: 1 }], rowCount: 1 });
+    const state = await actions.reabrirPedidoAction({}, form({ pedido_id: PEDIDO, motivo: 'Mudou tudo.' }));
+    expect(state.error).toMatch(/viagem/i);
   });
 });
 

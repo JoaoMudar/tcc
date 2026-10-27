@@ -261,6 +261,10 @@ export async function atualizarCabecalhoAction(_previous: FormState, formData: F
  * T8.6, RN-55: a mudança de fase que a tela ofereceu, conferida de novo aqui. O
  * guard do D4 diz que este perfil mexe na situação do pedido; `mudarSituacao`
  * diz se esta fase, saindo desta situação, é dele (D4 §3.2).
+ *
+ * RF-61: **só as passagens sem trabalho próprio** (iniciar a verificação,
+ * devolver ao orçamento, cancelar). Verificado, aprovado, separando e pronto
+ * para envio têm tela, e é ela que confere o que a fase exige.
  */
 export async function transicionarPedidoAction(_previous: FormState, formData: FormData): Promise<FormState> {
   const user = await requirePermission('confirmacao_pedido', 'A');
@@ -268,6 +272,9 @@ export async function transicionarPedidoAction(_previous: FormState, formData: F
   const para = formText(formData, 'para');
   if (!isUuid(pedidoId)) return { error: 'Pedido inválido.' };
   if (!pedidos.isSituacaoPedido(para)) return { error: 'Fase inválida.' };
+  if (!pedidos.PASSAGENS_DA_PORTA_GENERICA.includes(para)) {
+    return { error: `${pedidos.SITUACOES_PEDIDO[para]} se faz pela tela própria dessa etapa.` };
+  }
 
   try {
     const { numero } = await withTransaction(pool, (client) =>
@@ -473,6 +480,27 @@ export async function confirmarPedidoAction(_previous: FormState, formData: Form
     revalidarPedidos(pedidoId);
     after(() => avisarPedido(pedidoId, 'aprovado', user.usuarioId));
     return { success: `Pedido ${numero} aprovado. Os itens não mudam mais.` };
+  } catch (error) {
+    return { error: toUserMessage(error) };
+  }
+}
+
+/** RN-52: volta o aprovado ao orçamento, com o motivo no histórico. Só a chefia (D4 §3.2). */
+export async function reabrirPedidoAction(_previous: FormState, formData: FormData): Promise<FormState> {
+  const user = await requirePermission('confirmacao_pedido', 'A');
+  const pedidoId = formText(formData, 'pedido_id');
+  if (!isUuid(pedidoId)) return { error: 'Pedido inválido.' };
+  const motivo = pedidos.parseObservacoesPedido(formText(formData, 'motivo'));
+  if ('error' in motivo) return { error: 'O motivo pode ter até 500 caracteres.' };
+  if (!motivo.value) return { error: 'Diga por que o pedido está sendo reaberto.' };
+
+  try {
+    const { numero } = await withTransaction(pool, (client) =>
+      pedidos.reabrirPedido(client, pedidoId, motivo.value ?? '', { perfil: user.perfil, usuarioId: user.usuarioId }),
+    );
+    revalidarPedidos(pedidoId);
+    after(() => avisarPedido(pedidoId, 'cadastrado', user.usuarioId));
+    return { success: `Pedido ${numero} reaberto. Os itens voltam a ser editáveis.` };
   } catch (error) {
     return { error: toUserMessage(error) };
   }

@@ -214,7 +214,9 @@ describe('fluxo 3: pedido com saldo', () => {
 
   it('a gerência confere, a chefia aprova, e a saída de venda pela porta única fecha a conta do lote', async () => {
     await tx((client) => mudarSituacao(client, pedido, 'verificando', { perfil: 'gerencia', usuarioId: gerencia }));
-    await tx((client) => mudarSituacao(client, pedido, 'verificado', { perfil: 'gerencia', usuarioId: gerencia }));
+    await tx((client) =>
+      mudarSituacao(client, pedido, 'verificado', { perfil: 'gerencia', usuarioId: gerencia }, null, { viaPortaPropria: true }),
+    );
     await tx((client) => confirmarPedido(client, pedido, { perfil: 'chefia', usuarioId: chefia }));
     expect((await findPedido(pool, pedido))?.situacao).not.toBe('cadastrado');
 

@@ -102,7 +102,7 @@ export async function criarCargaUnica(
     1,
     itens.map((item) => ({ itemId: item.id, quantidade: item.quantidade })),
   );
-  await mudarSituacao(client, pedidoId, 'separando', autor, 'Uma carga só.');
+  await mudarSituacao(client, pedidoId, 'separando', autor, 'Uma carga só.', { viaPortaPropria: true });
   return { cargaId, numero: pedido.numero };
 }
 
@@ -144,7 +144,9 @@ export async function criarCargas(
   for (const [indice, linhas] of usadas.entries()) {
     await inserirCarga(client, pedidoId, indice + 1, linhas);
   }
-  await mudarSituacao(client, pedidoId, 'separando', autor, `Dividido em ${usadas.length} carga(s).`);
+  await mudarSituacao(client, pedidoId, 'separando', autor, `Dividido em ${usadas.length} carga(s).`, {
+    viaPortaPropria: true,
+  });
   return { criadas: usadas.length };
 }
 
@@ -231,7 +233,9 @@ export async function concluirCarga(
   // P19: separar não é carregar. A viagem só fica pronta pelo carregamento
   // (`concluirViagem`), e não porque o pedido ficou separado ao lado do carro
   if (pedidoPronto) {
-    await mudarSituacao(client, carga.pedidoId, 'pronto_envio', autor, 'Todas as cargas foram separadas.');
+    await mudarSituacao(client, carga.pedidoId, 'pronto_envio', autor, 'Todas as cargas foram separadas.', {
+      viaPortaPropria: true,
+    });
   }
   return { numero: carga.numero, pedidoPronto };
 }

@@ -18,6 +18,7 @@ import { CabecalhoPedido } from './CabecalhoPedido';
 import { CancelarPedido } from './CancelarPedido';
 import { ItensDaFicha } from './ItensDaFicha';
 import { LinhaDoTempo } from './LinhaDoTempo';
+import { ReabrirPedido } from './ReabrirPedido';
 
 interface PedidoPageProps {
   params: Promise<{ id: string }>;
@@ -157,6 +158,12 @@ export default async function PedidoPage({ params }: PedidoPageProps) {
         />
 
         <LinhaDoTempo fases={historico} />
+
+        {(situacao === 'aprovado' || situacao === 'separando') && podeTransicionar(situacao, 'cadastrado', user.perfil) && (
+          <div className="mt-4">
+            <ReabrirPedido pedidoId={pedido.id} />
+          </div>
+        )}
 
         {podeTransicionar(situacao, 'cancelado', user.perfil) && (
           <div className="mt-4">
