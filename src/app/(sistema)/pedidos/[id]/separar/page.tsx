@@ -1,9 +1,10 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { PageHeader } from '@/components/PageHeader';
-import { listCargas } from '@/lib/cargas';
+import { listCargas, lotesCandidatosDoPedido } from '@/lib/cargas';
 import { diaUtilAnterior, formatData, hojeNoViveiro } from '@/lib/datas';
 import pool from '@/lib/db';
+import { opcoesDeLote } from '@/lib/lote-da-venda';
 import { findPedido } from '@/lib/pedidos';
 import { ROTULO_URGENCIA, type Urgencia, urgenciaPedido } from '@/lib/pedidos-rotulos';
 import { isUuid } from '@/lib/uuid';
@@ -44,6 +45,7 @@ export default async function SepararPage({ params }: SepararPageProps) {
 
   const cargas = await listCargas(pool, id);
   const organizando = cargas.length === 0;
+  const lotes = organizando ? [] : await lotesCandidatosDoPedido(pool, id);
 
   const hoje = hojeNoViveiro();
   const diaDeCarregar = pedido.dataEntrega ? diaUtilAnterior(pedido.dataEntrega) : null;
@@ -102,6 +104,8 @@ export default async function SepararPage({ params }: SepararPageProps) {
                 alturaM: item.alturaM,
                 quantidade: item.quantidade,
                 separado: item.separado,
+                loteId: item.loteId,
+                opcoesLote: opcoesDeLote(lotes, item),
               })),
             }))}
           />

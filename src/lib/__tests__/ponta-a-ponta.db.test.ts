@@ -220,7 +220,7 @@ describe('fluxo 3: pedido com saldo', () => {
     await tx((client) => confirmarPedido(client, pedido, { perfil: 'chefia', usuarioId: chefia }));
     expect((await findPedido(pool, pedido))?.situacao).not.toBe('cadastrado');
 
-    // Nenhuma tela grava a saída de venda ainda (RF-24): a porta a aceita, e o saldo acompanha
+    // A venda pela porta única, como `concluirViagem` a grava (RF-24; ver viagens.db.test): o saldo acompanha
     await tx((client) => registrarMovimento(client, { loteId: lote, tipo: 'venda', quantidade: -300, registradoPor: chefia }));
     expect((await saldoDisponivel(pool, { especieId: especie, recipienteId: tubete }))[0].quantidade).toBe(520);
     expect(await saldoConferido()).toBe(520);

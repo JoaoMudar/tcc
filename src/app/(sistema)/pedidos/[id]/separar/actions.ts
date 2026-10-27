@@ -106,6 +106,25 @@ export async function marcarItemSeparadoAction(_previous: FormState, formData: F
   return { success: separado ? 'Item separado.' : 'Marcação desfeita.' };
 }
 
+/** RF-24: de que lote saem as mudas do item. Usada também no carregamento da viagem. */
+export async function definirLoteDoItemAction(_previous: FormState, formData: FormData): Promise<FormState> {
+  await requirePermission('cargas_pedido', 'A');
+  const pedidoId = formText(formData, 'pedido_id');
+  const cargaItemId = formText(formData, 'carga_item_id');
+  const loteId = formText(formData, 'lote_id');
+  if (!isUuid(pedidoId) || !isUuid(cargaItemId)) return { error: 'Item inválido.' };
+  if (!isUuid(loteId)) return { error: 'Escolha o lote.' };
+
+  try {
+    await withTransaction(pool, (client) => cargas.definirLoteDoItem(client, cargaItemId, loteId));
+  } catch (error) {
+    return { error: toUserMessage(error) };
+  }
+  revalidar(pedidoId);
+  revalidatePath('/pedidos/planejar', 'layout');
+  return { success: 'Lote escolhido.' };
+}
+
 /** Fecha a carga, e o pedido quando ela for a última. */
 export async function concluirCargaAction(_previous: FormState, formData: FormData): Promise<FormState> {
   const user = await requirePermission('cargas_pedido', 'A');

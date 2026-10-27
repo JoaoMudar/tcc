@@ -178,13 +178,14 @@ async function gravarMovimento(client: Client, input: MovimentoInterno): Promise
   );
 
   if (saldo === 0) {
-    // RN-23: zerado, o lote sai do canteiro e continua consultável pelo histórico
+    // RN-23: zerado, o lote sai do canteiro e continua consultável pelo histórico.
+    // RF-34: zerado pela venda é o lote expedido, e não o que acabou por perda
     await client.query(
       `UPDATE lotes
           SET quantidade_atual = 0, fase = 'encerrado', encerrado_em = NOW(),
-              motivo_encerramento = 'saldo_zero', canteiro_id = NULL, posicao = NULL
+              motivo_encerramento = $2, canteiro_id = NULL, posicao = NULL
         WHERE id = $1`,
-      [lote.id],
+      [lote.id, input.tipo === 'venda' ? 'expedido' : 'saldo_zero'],
     );
     // RF-58, RN-44: encerrado o lote, as ordens do protocolo que ninguém cumpriu
     // são canceladas aqui, e não na tela que registrou a baixa: a expedição total
