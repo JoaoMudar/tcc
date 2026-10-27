@@ -1,6 +1,8 @@
 import { notFound } from 'next/navigation';
+import { lotesCandidatosDoPedido } from '@/lib/cargas';
 import { formatData, isDataIso } from '@/lib/datas';
 import pool from '@/lib/db';
+import { opcoesDeLote } from '@/lib/lote-da-venda';
 import { SITUACOES_PEDIDO } from '@/lib/pedidos-rotulos';
 import { AVISOS_DA_ROTA, formatDistancia, isAvisoDaRota } from '@/lib/rotas';
 import { type PedidoParaViagem, cargasDaViagem, listParadas, partidasBase, pedidosDisponiveis, viagemDoDia } from '@/lib/viagens';
@@ -124,6 +126,10 @@ export default async function PlanejarPage({ params, searchParams }: PlanejarPag
     }
 
     const grupos = await cargasDaViagem(pool, viagem.id);
+    // RF-24: os lotes que podem atender cada pedido, para a escolha de onde sai a venda
+    const lotesPorPedido = new Map(
+      await Promise.all(grupos.map(async (g) => [g.pedidoId, await lotesCandidatosDoPedido(pool, g.pedidoId)] as const)),
+    );
     return (
       <CarregarViagem
         data={data}
@@ -142,6 +148,8 @@ export default async function PlanejarPage({ params, searchParams }: PlanejarPag
             quantidade: item.quantidade,
             separado: item.separado,
             carregado: item.carregado,
+            loteId: item.loteId,
+            opcoesLote: opcoesDeLote(lotesPorPedido.get(grupo.pedidoId) ?? [], item),
           })),
         }))}
       />

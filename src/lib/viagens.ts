@@ -3,6 +3,7 @@ import { type ItemDaCarga, concluirCarga, criarCargaUnica, listCargas } from './
 import { formatData } from './datas';
 import { UserError } from './errors';
 import { nomeEspecieSql } from './lotes';
+import { registrarMovimento } from './movimentos';
 import { PARTIDA_AGROLANDIA, PARTIDA_ITAPEMA } from './parametros';
 import { type AutorDaMudanca, travarPedido } from './pedidos';
 import { ENDERECO_DO_PEDIDO, gravarEnderecoDoPedido, guardarCoordenada } from './pedidos-entrega';
@@ -700,6 +701,42 @@ export async function marcarItemCarregado(client: Client, cargaItemId: string, c
 }
 
 /**
+ * RF-24, RF-34: o caminhão carregado é a venda saindo do viveiro, e é aqui que
+ * ela baixa o lote, pela porta única. Item sem lote recusa a viagem inteira:
+ * baixar de um lote qualquer faria o saldo mentir em outro canteiro. A baixa
+ * maior que o saldo é recusada por `registrarMovimento`, com o lote no texto.
+ */
+async function baixarVendas(client: Client, viagemId: string, registradoPor: string): Promise<void> {
+  const { rows } = await client.query<{ loteId: string | null; quantidade: number; numero: number; especie: string }>(
+    `SELECT ci.lote_id AS "loteId", ci.quantidade, p.numero_pedido AS numero,
+            COALESCE(${nomeEspecieSql('e')}, 'Espécie não definida') AS especie
+       FROM pedidos_cargas_itens ci
+       JOIN pedidos_cargas c ON c.id = ci.carga_id
+       JOIN pedidos p ON p.id = c.pedido_id
+       JOIN viagens_paradas vp ON vp.pedido_id = c.pedido_id
+       JOIN pedidos_itens i ON i.id = ci.item_id
+       LEFT JOIN especies e ON e.id = i.especie_id
+      WHERE vp.viagem_id = $1
+      ORDER BY vp.ordem, c.numero_carga, ci.id`,
+    [viagemId],
+  );
+  const semLote = rows.filter((r) => r.loteId === null);
+  if (semLote.length > 0) {
+    const nomes = [...new Set(semLote.map((r) => `${r.especie} (pedido ${r.numero})`))].join(', ');
+    throw new UserError(`Diga de que lote saem as mudas antes de concluir: ${nomes}.`);
+  }
+  for (const r of rows) {
+    await registrarMovimento(client, {
+      loteId: r.loteId!,
+      tipo: 'venda',
+      quantidade: -r.quantidade,
+      registradoPor,
+      observacoes: `Pedido ${r.numero}`,
+    });
+  }
+}
+
+/**
  * Tela 3: "Carga pronta" fecha a viagem. Item por carregar em qualquer entrega
  * recusa tudo.
  *
@@ -727,6 +764,8 @@ export async function concluirViagem(
   if (faltam[0].n > 0) {
     throw new UserError(faltam[0].n === 1 ? 'Falta carregar 1 item.' : `Faltam carregar ${faltam[0].n} itens.`);
   }
+
+  await baixarVendas(client, viagemId, autor.usuarioId);
 
   await client.query(
     `UPDATE pedidos_cargas_itens ci SET separado = true

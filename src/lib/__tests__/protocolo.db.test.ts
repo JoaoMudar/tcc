@@ -775,7 +775,8 @@ describe('a etapa desativada sai da cobrança, e o lote encerrado também', () =
     // A irrigação já foi feita: é passado, e o encerramento não pode reescrevê-la
     await pool.query("UPDATE atribuicoes SET situacao = 'confirmada' WHERE id = $1", [daIrrigacao]);
 
-    // Uma tarefa lançada à mão, sem etapa por trás: não é ordem do protocolo
+    // Uma tarefa lançada à mão, sem etapa por trás: também é cancelada (RF-58,
+    // auditoria de 24/10/2026), senão ficaria planejada num lote que não existe mais
     const [semEtapa] = await lancar(null, '2030-04-15');
 
     await tx((client) =>
@@ -794,7 +795,7 @@ describe('a etapa desativada sai da cobrança, e o lote encerrado também', () =
     // Cancelada, e não apagada: continua consultável
     expect(depois.get(daLimpeza)).toBe('cancelada');
     expect(depois.get(daIrrigacao)).toBe('confirmada');
-    if (semEtapa) expect(depois.get(semEtapa)).toBe('planejada');
+    if (semEtapa) expect(depois.get(semEtapa)).toBe('cancelada');
 
     // E o lote encerrado deixa de aparecer entre as sugestões
     const sugestoes = await listSugestoes(pool, '2030-04-01', 120);

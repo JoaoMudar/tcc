@@ -815,8 +815,10 @@ export async function encerrarProtocoloDoLote(client: Db, loteId: string): Promi
     `UPDATE atribuicoes
         SET situacao = 'cancelada'
       WHERE lote_id = $1
-        AND lote_etapa_id IS NOT NULL
-        AND situacao = 'planejada'`,
+        AND situacao = 'planejada'
+        -- RF-58: também a tarefa lançada à mão no lote, que ficaria planejada
+        -- num lote encerrado; a semana fechada não se reescreve (RN-30)
+        AND semana_id IN (SELECT id FROM semanas WHERE situacao = 'aberta')`,
     [loteId],
   );
   return rowCount ?? 0;
