@@ -48,7 +48,7 @@ export async function FecharSemana({ semana: semanaPedida, emModal }: { semana?:
                 <span className="text-base font-semibold text-ink">Sem ninguém escalado</span>
                 <span className="text-xl font-bold text-ink">{resumo.semNinguem}</span>
               </div>
-              <span className="text-sm text-muted">Ninguém pegou: seguem pendentes.</span>
+              <span className="text-sm text-muted">Ninguém pegou: são canceladas, e a etapa do protocolo volta a ser sugerida.</span>
             </div>
           )}
           <p className="text-sm text-muted">Depois de fechada, a semana não se altera. Correção, só por lançamento na semana seguinte.</p>

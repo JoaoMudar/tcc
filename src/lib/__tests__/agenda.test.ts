@@ -197,6 +197,12 @@ describe('parseAtribuicao (RF-37, RF-38)', () => {
     expect(v.horaInicio).toBeNull();
   });
 
+  it('RF-53: a sugestão mantém o lote mesmo no tipo que não o declara; a tarefa à mão, não', () => {
+    const ETAPA = '1c8e2d4f-9a6b-4d2c-8e1f-3a7b8c9d0e15';
+    expect(valor(parseAtribuicao(SIMPLES, bruta({ loteId: LOTE, loteEtapaId: ETAPA }))).loteId).toBe(LOTE);
+    expect(valor(parseAtribuicao(SIMPLES, bruta({ loteId: LOTE }))).loteId).toBeNull();
+  });
+
   it('o domingo é da semana, e aceita tarefa', () => {
     expect(valor(parseAtribuicao(SIMPLES, bruta({ dias: ['2026-09-20'] }))).dias).toEqual(['2026-09-20']);
   });

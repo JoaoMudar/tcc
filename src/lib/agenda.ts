@@ -147,7 +147,8 @@ export function parseAtribuicao(
       horaInicio: horario.value.inicio,
       horaFim: horario.value.fim,
       participantes,
-      loteId: escolhido(tipo.exigeLote, bruta.loteId),
+      // RF-53: a sugestão carrega o lote que a originou, mesmo no tipo que não declara lote
+      loteId: isUuid(bruta.loteEtapaId) && isUuid(bruta.loteId) ? bruta.loteId : escolhido(tipo.exigeLote, bruta.loteId),
       especieId: escolhido(tipo.exigeEspecie, bruta.especieId),
       recipienteId: escolhido(tipo.exigeRecipiente, bruta.recipienteId),
       areaId,
@@ -409,7 +410,7 @@ export interface ResumoFechamento {
   confirmadas: number;
   /** Planejadas com gente escalada: o fechamento as assume como realizadas (RN-31). */
   semConfirmacao: number;
-  /** Planejadas sem ninguém, como a ordem do protocolo: seguem pendentes. */
+  /** Planejadas sem ninguém: o fechamento as cancela (RF-42). */
   semNinguem: number;
   naoConfirmadas: number;
 }
@@ -667,21 +668,48 @@ export async function abrirSemana(client: Client, inicio: string): Promise<{ id:
 
 /**
  * T5.6, RF-42, RN-31: fecha a semana aberta. A planejada com gente escalada é
- * assumida como realizada, marcada de não confirmada; a sem ninguém fica pendente.
+ * assumida como realizada, marcada de não confirmada; a sem ninguém é
+ * **cancelada** (decisão de 27/10/2026): ninguém foi escalado, então não houve,
+ * e numa semana fechada ela cobraria atraso para sempre. A etapa do protocolo
+ * que a originou volta a ser sugerida.
+ *
+ * **A presumida conclui a etapa que a originou** (RN-36, RF-49): "assumida como
+ * realizada" vale também para o protocolo, na data do trabalho. Sem isso a
+ * etapa ficava casada com uma tarefa que nunca a concluía, e a recorrente
+ * não gerava a ocorrência seguinte. Na ordem do dia, para a recorrente lançada
+ * duas vezes na semana contar duas execuções.
+ *
  * Só depois do domingo dela: a semana corrente ainda tem dia por trabalhar.
  */
-export async function fecharSemana(client: Client, inicio: string, hoje: string): Promise<{ naoConfirmadas: number }> {
+export async function fecharSemana(
+  client: Client,
+  inicio: string,
+  hoje: string,
+): Promise<{ naoConfirmadas: number; canceladas: number }> {
   if (!semanaJaPassou(inicio, hoje)) throw new UserError('Só se fecha a semana que já terminou.');
   const semana = await travarSemana(client, 'inicio_semana', inicio);
   if (semana.situacao === 'fechada') throw new UserError('A semana já está fechada.');
-  const { rowCount } = await client.query(
+  const { rows: presumidas } = await client.query<{ loteId: string | null; loteEtapaId: string | null; dataTrabalho: string }>(
     `UPDATE atribuicoes a SET situacao = 'nao_confirmada'
       WHERE a.semana_id = $1 AND a.situacao = 'planejada'
-        AND EXISTS (SELECT 1 FROM atribuicoes_participantes p WHERE p.atribuicao_id = a.id)`,
+        AND EXISTS (SELECT 1 FROM atribuicoes_participantes p WHERE p.atribuicao_id = a.id)
+      RETURNING a.lote_id AS "loteId", a.lote_etapa_id AS "loteEtapaId",
+                to_char(a.data_trabalho, 'YYYY-MM-DD') AS "dataTrabalho"`,
+    [semana.id],
+  );
+  const daEtapa = presumidas
+    .filter((a): a is { loteId: string; loteEtapaId: string; dataTrabalho: string } => Boolean(a.loteId && a.loteEtapaId))
+    .sort((a, b) => a.dataTrabalho.localeCompare(b.dataTrabalho));
+  for (const a of daEtapa) await concluirEtapa(client, a.loteId, a.loteEtapaId, a.dataTrabalho);
+
+  const { rowCount: canceladas } = await client.query(
+    `UPDATE atribuicoes a SET situacao = 'cancelada'
+      WHERE a.semana_id = $1 AND a.situacao = 'planejada'
+        AND NOT EXISTS (SELECT 1 FROM atribuicoes_participantes p WHERE p.atribuicao_id = a.id)`,
     [semana.id],
   );
   await client.query("UPDATE semanas SET situacao = 'fechada', fechada_em = NOW() WHERE id = $1", [semana.id]);
-  return { naoConfirmadas: rowCount ?? 0 };
+  return { naoConfirmadas: presumidas.length, canceladas: canceladas ?? 0 };
 }
 
 /** T5.1, T5.2: uma atribuição por dia escolhido, abrindo a semana se preciso. */
@@ -868,6 +896,9 @@ export async function confirmarAtribuicao(
   const atribuicao = await travarAtribuicao(client, id);
   recusarSeFechada(atribuicao.semana);
   recusarSeNaoPlanejada(atribuicao);
+  // RF-40: a tarefa da sugestão já sabe o lote, e o tipo sem `exige_lote` não o
+  // pede na confirmação. Gravar nulo aqui faria a etapa nunca se concluir.
+  if (!input.loteId && atribuicao.loteEtapaId && atribuicao.loteId) input = { ...input, loteId: atribuicao.loteId };
   if (atribuicao.exigeLote && !input.loteId) throw new UserError('Esta tarefa exige o lote: escolha em qual lote ela foi feita.');
 
   const { rows: pessoas } = await client.query<{ id: string }>(
