@@ -29,6 +29,9 @@ jobs:
     steps:
       # Ação fixada pelo SHA do commit: a tag se move, o SHA não (SEC-007)
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          # O commitlint lê todos os commits do pull request, e não só o último
+          fetch-depth: 0
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
@@ -36,6 +39,16 @@ jobs:
           cache: npm
 
       - run: npm ci
+
+      # RNF-22: o hook commit-msg é local e se pula; aqui não. Merge é ignorado
+      # pelo commitlint, e no push confere o último commit
+      - name: Mensagens de commit
+        if: github.event_name == 'pull_request'
+        run: npx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose
+
+      - name: Mensagem do último commit
+        if: github.event_name == 'push'
+        run: npx commitlint --last --verbose
 
       - name: Varredura de segredos
         run: node scripts/scan-secrets.mjs --all

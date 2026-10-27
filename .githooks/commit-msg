@@ -1,0 +1,6 @@
+#!/bin/sh
+# Commit-msg do projeto (RNF-22). Ativado por `npm install` (script prepare),
+# como o pre-commit. Regras em commitlint.config.mjs.
+set -e
+
+npx --no -- commitlint --edit "$1"
