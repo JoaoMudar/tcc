@@ -852,6 +852,32 @@ describe('a etapa desativada sai da cobrança, e o lote encerrado também', () =
     expect((await daVisao(b.id, limpeza))!.proximoVencimento).toBe('2026-12-14');
   });
 
+  it('RF-30: o adiamento, a altura e o protocolo do original vêm junto na divisão', async () => {
+    const { id } = await novoLote(tubete, canteiro1, '2026-01-10');
+    await pool.query(
+      `UPDATE lotes_etapas SET ultima_execucao_em = '2026-09-15', ocorrencias = 1
+        WHERE lote_id = $1 AND protocolo_etapa_id = $2`,
+      [id, limpeza],
+    );
+    // Adiada dez dias: vence em 24/12, e não em 14/12
+    await tx((client) => adiarEtapa(client, id, limpeza, 10, '2026-10-05', usuario));
+    await pool.query('UPDATE lotes SET altura_m = 1.2 WHERE id = $1', [id]);
+    const { rows: original } = await pool.query<{ protocoloId: string }>('SELECT protocolo_id AS "protocoloId" FROM lotes WHERE id = $1', [id]);
+
+    const { a, b } = await tx((client) =>
+      dividirLote(client, { origemId: id, quantidade: 300, canteiroA: canteiro1, canteiroB: canteiro2, observacoes: null, registradoPor: usuario }),
+    );
+
+    for (const filho of [a.id, b.id]) {
+      expect((await daVisao(filho, limpeza))!.proximoVencimento).toBe('2026-12-24');
+      const { rows } = await pool.query<{ altura: string; protocoloId: string }>(
+        'SELECT altura_m AS altura, protocolo_id AS "protocoloId" FROM lotes WHERE id = $1',
+        [filho],
+      );
+      expect(rows[0]).toEqual({ altura: '1.20', protocoloId: original[0].protocoloId });
+    }
+  });
+
   it('a divisão não deixa o resultante contando da própria criação, que é o erro que ela existe para não cometer', async () => {
     const { id } = await novoLote(tubete, canteiro1, '2026-01-10');
     const { a } = await tx((client) =>

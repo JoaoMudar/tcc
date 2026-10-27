@@ -444,12 +444,19 @@ export async function materializarProtocolo(
   loteId: string,
   recipienteId: string,
   dataCriacao: string,
+  /** RF-30: na divisão, o protocolo do original, mesmo que não seja mais o vigente. */
+  herdado?: { id: string | null },
 ): Promise<string | null> {
-  const { rows } = await client.query<{ id: string }>(
-    'SELECT id FROM protocolos WHERE recipiente_id = $1 AND ativo',
-    [recipienteId],
-  );
-  const protocoloId = rows[0]?.id ?? null;
+  let protocoloId: string | null;
+  if (herdado) {
+    protocoloId = herdado.id;
+  } else {
+    const { rows } = await client.query<{ id: string }>(
+      'SELECT id FROM protocolos WHERE recipiente_id = $1 AND ativo',
+      [recipienteId],
+    );
+    protocoloId = rows[0]?.id ?? null;
+  }
   if (!protocoloId) return null;
 
   await client.query('UPDATE lotes SET protocolo_id = $2 WHERE id = $1', [loteId, protocoloId]);
@@ -786,6 +793,17 @@ export async function herdarProtocolo(client: Db, origemId: string, destinoId: s
       WHERE origem.lote_id = $1
         AND destino.lote_id = $2
         AND destino.protocolo_etapa_id = origem.protocolo_etapa_id`,
+    [origemId, destinoId],
+  );
+  // RF-30: o adiamento da ocorrência em aberto vem junto; sem ele o vencimento
+  // dos resultantes voltava ao de antes do adiamento
+  await client.query(
+    `INSERT INTO lotes_etapas_acoes (lote_id, protocolo_etapa_id, ocorrencia, tipo_acao, dias, data_acao, registrado_por, observacoes)
+     SELECT $2, ac.protocolo_etapa_id, ac.ocorrencia, ac.tipo_acao, ac.dias, ac.data_acao, ac.registrado_por, ac.observacoes
+       FROM lotes_etapas_acoes ac
+       JOIN lotes_etapas origem ON origem.lote_id = ac.lote_id AND origem.protocolo_etapa_id = ac.protocolo_etapa_id
+       JOIN lotes_etapas destino ON destino.lote_id = $2 AND destino.protocolo_etapa_id = ac.protocolo_etapa_id
+      WHERE ac.lote_id = $1 AND ac.tipo_acao = 'adiamento' AND ac.ocorrencia = origem.ocorrencias + 1`,
     [origemId, destinoId],
   );
   return rowCount ?? 0;

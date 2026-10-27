@@ -106,6 +106,12 @@ interface InsercaoLote extends NovoLote {
    * hoje. Nos outros caminhos as duas são a mesma.
    */
   dataMovimento?: string;
+  /**
+   * RF-30, RN-43: só a divisão o informa. O resultante segue o protocolo do
+   * original (inclusive nenhum), e não o vigente hoje no recipiente: se o
+   * protocolo mudou desde então, o percurso recomeçaria.
+   */
+  protocoloHerdado?: { id: string | null };
 }
 
 async function inserirLote(client: Client, input: InsercaoLote): Promise<{ id: string; codigo: string }> {
@@ -158,7 +164,7 @@ async function inserirLote(client: Client, input: InsercaoLote): Promise<{ id: s
   // repicagem o recipiente e outro, e por isso o lote novo segue outro
   // protocolo: e o vasilhame que determina o manejo (RN-32), e a muda que passou
   // do tubete para o saco comeca o manejo do saco, contado da criacao dela.
-  await materializarProtocolo(client, id, input.recipienteId, input.dataCriacao);
+  await materializarProtocolo(client, id, input.recipienteId, input.dataCriacao, input.protocoloHerdado);
   return { id, codigo };
 }
 
@@ -311,13 +317,19 @@ export async function dividirLote(client: Client, input: Divisao): Promise<Resul
   }
 
   // A leva inteira sai do original, e volta repartida nos dois resultantes
-  const { rows: ficha } = await client.query<{ fase: Fase; dataPlantio: string | null; dataCriacao: string }>(
+  const { rows: ficha } = await client.query<{
+    fase: Fase;
+    dataPlantio: string | null;
+    dataCriacao: string;
+    alturaM: string | null;
+    protocoloId: string | null;
+  }>(
     `SELECT fase, to_char(data_plantio, 'YYYY-MM-DD') AS "dataPlantio",
-            to_char(data_criacao, 'YYYY-MM-DD') AS "dataCriacao"
+            to_char(data_criacao, 'YYYY-MM-DD') AS "dataCriacao", altura_m AS "alturaM", protocolo_id AS "protocoloId"
        FROM lotes WHERE id = $1`,
     [origem.id],
   );
-  const { fase, dataPlantio, dataCriacao } = ficha[0];
+  const { fase, dataPlantio, dataCriacao, alturaM, protocoloId } = ficha[0];
   const hoje = hojeNoViveiro();
   const paraA = origem.quantidadeAtual - input.quantidade;
 
@@ -336,9 +348,11 @@ export async function dividirLote(client: Client, input: Divisao): Promise<Resul
       fase,
       tipoEntrada: 'divisao_entrada',
       dataMovimento: hoje,
+      protocoloHerdado: { id: protocoloId },
     });
-    // RN-43: a fase e as datas das etapas continuam de onde o original estava
-    if (dataPlantio) await client.query('UPDATE lotes SET data_plantio = $2 WHERE id = $1', [novo.id, dataPlantio]);
+    // RN-43: a fase, as datas das etapas e a altura medida continuam de onde o
+    // original estava; sem a altura, os dois cairiam como "sem medida" no estoque
+    await client.query('UPDATE lotes SET data_plantio = $2, altura_m = $3 WHERE id = $1', [novo.id, dataPlantio, alturaM]);
     await herdarProtocolo(client, origem.id, novo.id);
     return { ...novo, quantidade };
   };
