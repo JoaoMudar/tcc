@@ -2,6 +2,7 @@
 
 import { useRegistroCampo } from '@/components/useRegistroCampo';
 import { Button } from '@/components/ui/Button';
+import { DoisPassos } from '@/components/ui/DoisPassos';
 import { Notice } from '@/components/ui/Notice';
 import { type SelectOption, SelectField } from '@/components/ui/SelectField';
 import { TextField } from '@/components/ui/TextField';
@@ -52,43 +53,59 @@ export function ConfirmarForm({
   // A tarefa confirma uma vez só: guardada no aparelho, o formulário sai para não ser confirmada de novo
   if (state.guardado) return <Notice tone="warning">{state.guardado}</Notice>;
 
+  // RNF-07: lote, área, um número por participante e as mortas; passou de cinco, vira dois passos
+  const campos =
+    (exigeLote ? 1 : 0) + (exigeArea && !exigeLote ? 2 : 0) + (eQuantitativa ? participantes.length : 0) + (exigeLote ? 2 : 0);
+
   return (
     <form key={state.rodada ?? 'confirmar'} action={formAction} className="flex flex-col gap-4">
       <input type="hidden" name="id" value={atribuicaoId} />
-      {exigeLote && (
-        <SelectField label="Lote" name="lote_id" options={lotes} defaultValue={fields?.lote_id ?? loteId ?? ''} required />
-      )}
-      {exigeArea && !exigeLote && (
-        <AreaCanteiroOpcional
-          areas={areas}
-          defaultAreaId={fields ? fields.area_id : areaId}
-          defaultCanteiroId={fields ? fields.canteiro_id : canteiroId}
-        />
-      )}
+      <DoisPassos
+        dividir={campos > 5}
+        rotuloContinuar="Continuar: morreu alguma?"
+        primeiro={
+          <>
+            {exigeLote && (
+              <SelectField label="Lote" name="lote_id" options={lotes} defaultValue={fields?.lote_id ?? loteId ?? ''} required />
+            )}
+            {exigeArea && !exigeLote && (
+              <AreaCanteiroOpcional
+                areas={areas}
+                defaultAreaId={fields ? fields.area_id : areaId}
+                defaultCanteiroId={fields ? fields.canteiro_id : canteiroId}
+              />
+            )}
 
-      {eQuantitativa && (
-        <fieldset className="flex flex-col gap-3">
-          <legend className="mb-1 text-sm font-semibold text-gray-700">Quanto cada um fez ({unidadeMedida})</legend>
-          {participantes.map((p) => (
-            <TextField
-              key={p.id}
-              label={p.nome}
-              name={`quantidade_${p.id}`}
-              inputMode={unidadeMedida === 'un' ? 'numeric' : 'decimal'}
-              autoComplete="off"
-              hint="Em branco se ninguém contou."
-              defaultValue={fields?.[`quantidade_${p.id}`]}
-            />
-          ))}
-        </fieldset>
-      )}
+            {eQuantitativa && (
+              <fieldset className="flex flex-col gap-3">
+                <legend className="mb-1 text-sm font-semibold text-gray-700">Quanto cada um fez ({unidadeMedida})</legend>
+                {participantes.map((p) => (
+                  <TextField
+                    key={p.id}
+                    label={p.nome}
+                    name={`quantidade_${p.id}`}
+                    inputMode={unidadeMedida === 'un' ? 'numeric' : 'decimal'}
+                    autoComplete="off"
+                    hint="Em branco se ninguém contou."
+                    defaultValue={fields?.[`quantidade_${p.id}`]}
+                  />
+                ))}
+              </fieldset>
+            )}
 
-      {exigeLote && <PerdaNaConfirmacao perdidas={fields?.perdidas} causa={fields?.causa} />}
+          </>
+        }
+        segundo={
+          <>
+            {exigeLote && <PerdaNaConfirmacao perdidas={fields?.perdidas} causa={fields?.causa} />}
 
-      {state.error && <Notice tone="error">{state.error}</Notice>}
-      <Button type="submit" pending={pending}>
-        Confirmar tarefa
-      </Button>
+            {state.error && <Notice tone="error">{state.error}</Notice>}
+            <Button type="submit" pending={pending}>
+              Confirmar tarefa
+            </Button>
+          </>
+        }
+      />
     </form>
   );
 }

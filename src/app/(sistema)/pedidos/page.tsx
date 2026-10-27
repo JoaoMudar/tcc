@@ -47,6 +47,11 @@ export default async function PedidosPage({ searchParams }: PedidosPageProps) {
         {/* O pedido recém-cadastrado traz a pessoa de volta para cá, e o aviso
             do que aconteceu some sozinho: quem registra um já vai registrar o
             seguinte, e um banner fixo só ocuparia a tela do celular. */}
+        {params.feito === 'entrega_cancelada' && (
+          <Toast tone="success" limpar={['feito']}>
+            Entrega cancelada. Os pedidos dela podem entrar em outra viagem.
+          </Toast>
+        )}
         {params.feito === 'criado' && (
           <Toast tone="success" limpar={['feito', 'numero']}>
             Pedido {params.numero ?? ''} registrado. O preço entra depois da conferência.
