@@ -95,6 +95,17 @@ describe('espécies contra Postgres real', () => {
     expect(foto).toEqual({ tipoConteudo: 'image/jpeg', conteudo: JPEG });
   });
 
+  it('RN-05: o filtro das pendentes traz só quem espera a revisão do nome', async () => {
+    const { rows } = await pool.query<{ status: string }>('SELECT status_validacao AS status FROM especies WHERE id = $1', [especieId]);
+    const pendentes = await searchEspecies(pool, `${prefixo} CEDRELA`, { soPendentes: true });
+    expect(pendentes.map((e) => e.id)).toEqual(rows[0].status === 'pendente' ? [especieId] : []);
+    await pool.query("UPDATE especies SET status_validacao = 'pendente' WHERE id = $1", [especieId]);
+    expect((await searchEspecies(pool, `${prefixo} CEDRELA`, { soPendentes: true })).map((e) => e.id)).toEqual([especieId]);
+    await pool.query("UPDATE especies SET status_validacao = 'a_identificar' WHERE id = $1", [especieId]);
+    expect(await searchEspecies(pool, `${prefixo} CEDRELA`, { soPendentes: true })).toEqual([]);
+    await pool.query('UPDATE especies SET status_validacao = $2 WHERE id = $1', [especieId, rows[0].status]);
+  });
+
   it('trocar a foto apaga a antiga; remover deixa sem foto', async () => {
     const [antes] = await searchEspecies(pool, `${prefixo} cedrela`);
     const antiga = fotoIdFromUrl(antes.fotoUrl)!;
@@ -340,5 +351,13 @@ describe('pessoas contra Postgres real', () => {
 
     expect(await addPapel(pool, (funcionario as { id: string }).id, 'cliente')).toBe(`${prefixo} Valdir`);
     expect(await addPapel(pool, randomUUID(), 'cliente')).toBeNull();
+  });
+});
+
+describe('RN-06: características em lista fechada também no banco', () => {
+  it('valor fora da lista é recusado pela restrição', async () => {
+    await expect(
+      pool.query("INSERT INTO especies (nome_cientifico, caracteristicas) VALUES ($1, ARRAY['venenosa'])", [`${prefixo} Fora lista`]),
+    ).rejects.toMatchObject({ code: '23514' });
   });
 });

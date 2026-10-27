@@ -95,6 +95,10 @@ export async function saveEtapa(_previous: FormState, formData: FormData): Promi
 
   try {
     const existentes = await protocolos.listEtapas(pool, protocoloId);
+    // RF-44: a âncora é uma etapa deste protocolo, e não um identificador qualquer postado
+    if (parsed.value.etapaAncoraId && !existentes.some((etapa) => etapa.id === parsed.value.etapaAncoraId)) {
+      return { error: 'A etapa de referência precisa ser deste protocolo.', fields };
+    }
     const ciclo = protocolos.detectaCicloDeAncoras(existentes, {
       id: etapaId || null,
       rotulo: parsed.value.rotulo,
@@ -105,7 +109,7 @@ export async function saveEtapa(_previous: FormState, formData: FormData): Promi
     }
 
     if (etapaId) {
-      const result = await protocolos.updateEtapa(pool, etapaId, {
+      const result = await protocolos.updateEtapa(pool, protocoloId, etapaId, {
         ...parsed.value,
         ativo: formData.get('ativo') === 'on',
       });

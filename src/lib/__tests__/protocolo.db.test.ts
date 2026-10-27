@@ -19,6 +19,7 @@ import {
   concluirEtapa,
   listSugestoes,
   saveTempoDaEspecie,
+  updateEtapa,
 } from '../protocolos';
 import { insertRecipiente } from '../recipientes';
 import { withTransaction } from '../transaction';
@@ -947,5 +948,46 @@ describe('a etapa desativada sai da cobrança, e o lote encerrado também', () =
     ]);
     // A âncora vem resolvida com o rótulo, e não só com o id (RF-44)
     expect(etapas[1].etapaAncoraRotulo).toBe('Plantar no tubete');
+  });
+});
+
+/** Auditoria de conformidade de 24/10/2026, opcionais de RF-44 e RN-42. */
+describe('editar a etapa (RF-44, RN-42)', () => {
+  const campos = async (etapaId: string) => {
+    const etapa = (await listEtapas(pool, protocolo)).find((e) => e.id === etapaId)!;
+    return {
+      tipoTarefaId: etapa.tipoTarefaId,
+      rotulo: etapa.rotulo,
+      tipoAgendamento: etapa.tipoAgendamento,
+      tipoAncora: etapa.tipoAncora,
+      etapaAncoraId: etapa.etapaAncoraId,
+      dias: etapa.dias,
+      intervaloDias: etapa.intervaloDias,
+      turnoId: etapa.turnoId,
+      alertaLigado: etapa.alertaLigado,
+      janelaAvisoPct: etapa.janelaAvisoPct,
+      faseResultante: etapa.faseResultante,
+      ativo: true,
+    };
+  };
+
+  it('a etapa de outro protocolo não se altera por este', async () => {
+    const outro = '00000000-0000-4000-8000-000000000000';
+    expect(await updateEtapa(pool, outro, limpeza, await campos(limpeza))).toBe('nao_encontrado');
+  });
+
+  it('depois de feita num lote, o tipo de tarefa e o agendamento não mudam; o rótulo e os dias mudam', async () => {
+    const { id } = await novoLote(tubete, canteiro1, '2026-01-10');
+    await tx((client) => concluirEtapa(client, id, limpeza, '2026-04-10'));
+    const atuais = await campos(limpeza);
+
+    await expect(updateEtapa(pool, protocolo, limpeza, { ...atuais, tipoAgendamento: 'sequencial' })).rejects.toThrow(
+      /Crie uma etapa nova/,
+    );
+    await expect(updateEtapa(pool, protocolo, limpeza, { ...atuais, tipoTarefaId: tipoPlantio })).rejects.toThrow(
+      /Crie uma etapa nova/,
+    );
+    expect(await updateEtapa(pool, protocolo, limpeza, { ...atuais, rotulo: 'Limpar mato e capim' })).toBe('ok');
+    await updateEtapa(pool, protocolo, limpeza, atuais);
   });
 });

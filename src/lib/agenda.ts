@@ -329,7 +329,7 @@ export interface AtribuicaoResumo {
   exigeRecipiente: boolean;
   exigeArea: boolean;
   unidadeMedida: UnidadeTarefa;
-  /** Dá a cor do card na agenda: uma cor por categoria, e nada mais (RNF-09). */
+  /** Dá a cor do card na agenda: uma cor por categoria, e nada mais. */
   categoria: CategoriaTarefa;
   especieId: string | null;
   especie: string | null;

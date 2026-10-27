@@ -10,7 +10,7 @@ import { formatData, hojeNoViveiro } from '@/lib/datas';
 import pool from '@/lib/db';
 import { formatDateTime } from '@/lib/format';
 import { CAUSAS_PERDA, FASES, TIPOS_MOVIMENTO, formatQuantidade } from '@/lib/lotes-rotulos';
-import { findLote, listCanteirosParaLote, listMovimentos } from '@/lib/lotes';
+import { findLote, listCanteirosParaLote, listMovimentos, saldoDosMovimentos } from '@/lib/lotes';
 import { formatAltura } from '@/lib/pedidos-rotulos';
 import { acimaDoLimite, formatPercentual, limiteMortalidade, mortalidade } from '@/lib/perdas';
 import { can } from '@/lib/permissions';
@@ -244,9 +244,15 @@ export default async function LotePage({ params, searchParams }: LotePageProps) 
             </li>
           ))}
         </ol>
-        <p className="text-sm text-muted">
-          A soma do histórico dá o saldo: {formatQuantidade(lote.quantidadeAtual)}.
-        </p>
+        {/* RF-28: a soma é feita de verdade, e a divergência aparece em vez de ser afirmada */}
+        {saldoDosMovimentos(movimentos) === lote.quantidadeAtual ? (
+          <p className="text-sm text-muted">A soma do histórico dá o saldo: {formatQuantidade(lote.quantidadeAtual)}.</p>
+        ) : (
+          <Notice tone="error">
+            A soma do histórico dá {formatQuantidade(saldoDosMovimentos(movimentos))}, e o saldo gravado é{' '}
+            {formatQuantidade(lote.quantidadeAtual)}. Registre uma contagem para acertar.
+          </Notice>
+        )}
       </div>
     </main>
   );

@@ -11,7 +11,7 @@ import {
   formatQuantidade,
   lerQuantidade,
 } from './lotes-rotulos';
-import { proximaPosicao, registrarMovimento, travarLote } from './movimentos';
+import { proximaPosicao, registrarAjusteDeContagem, registrarMovimento, travarLote } from './movimentos';
 // `protocolos.ts` não importa daqui: importa de `lotes-rotulos`, que é sem `pg`.
 // É o que mantém a seta num sentido só e evita o ciclo.
 import { herdarProtocolo, materializarProtocolo } from './protocolos';
@@ -386,9 +386,8 @@ export async function contarLote(
   const diferenca = input.contado - lote.quantidadeAtual;
   if (diferenca === 0) return { codigo: lote.codigo, diferenca, saldo: lote.quantidadeAtual, encerrado: false };
 
-  const resultado = await registrarMovimento(client, {
+  const resultado = await registrarAjusteDeContagem(client, {
     loteId: lote.id,
-    tipo: 'ajuste_contagem',
     quantidade: diferenca,
     observacoes: input.observacoes,
     registradoPor: input.registradoPor,

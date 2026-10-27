@@ -148,3 +148,13 @@ describe('registrarMovimento, a porta única', () => {
     ).rejects.toThrow('já está nesse canteiro');
   });
 });
+
+describe('RN-16: o ajuste de contagem só pela contagem', () => {
+  it('registrarMovimento recusa o ajuste, no tipo e na execução', async () => {
+    const c = cliente();
+    // @ts-expect-error o ajuste não está no tipo público de registrarMovimento
+    const tentativa = registrarMovimento(c, { loteId: 'l1', tipo: 'ajuste_contagem', quantidade: 50, registradoPor: 'u1' });
+    await expect(tentativa).rejects.toThrow('só nasce de uma contagem');
+    expect(escritas(c)).toEqual([]);
+  });
+});

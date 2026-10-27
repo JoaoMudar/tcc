@@ -822,17 +822,43 @@ export async function encerrarProtocoloDoLote(client: Db, loteId: string): Promi
   return rowCount ?? 0;
 }
 
+/**
+ * Edita a etapa no lugar. Duas travas:
+ * - RF-44: só a etapa deste protocolo (`AND protocolo_id`), e o identificador
+ *   postado de outro protocolo não altera nada;
+ * - RN-42: o tipo de tarefa e o tipo de agendamento não mudam depois que algum
+ *   lote executou a etapa. O histórico do lote mostra o rótulo e o tipo atuais, e
+ *   trocá-los reescreveria o que foi feito com o nome de outra coisa: o caminho
+ *   é criar etapa nova e desativar esta.
+ */
 export async function updateEtapa(
   db: Db,
+  protocoloId: string,
   id: string,
   changes: EtapaFields & { ativo: boolean },
 ): Promise<'ok' | 'nao_encontrado'> {
+  const { rows: atual } = await db.query<{ tipoTarefaId: string; tipoAgendamento: TipoAgendamento; executada: boolean }>(
+    `SELECT e.tipo_tarefa_id AS "tipoTarefaId", e.tipo_agendamento AS "tipoAgendamento",
+            EXISTS (SELECT 1 FROM lotes_etapas le WHERE le.protocolo_etapa_id = e.id AND le.ocorrencias > 0) AS executada
+       FROM protocolos_etapas e
+      WHERE e.id = $1 AND e.protocolo_id = $2`,
+    [id, protocoloId],
+  );
+  if (!atual[0]) return 'nao_encontrado';
+  if (
+    atual[0].executada &&
+    (atual[0].tipoTarefaId !== changes.tipoTarefaId || atual[0].tipoAgendamento !== changes.tipoAgendamento)
+  ) {
+    throw new UserError(
+      'Esta etapa já foi feita em algum lote: o tipo de tarefa e o agendamento não mudam mais. Crie uma etapa nova e desative esta.',
+    );
+  }
   const { rowCount } = await db.query(
     `UPDATE protocolos_etapas
         SET tipo_tarefa_id = $2, rotulo = $3, tipo_agendamento = $4, tipo_ancora = $5, etapa_ancora_id = $6,
             dias = $7, intervalo_dias = $8, turno_id = $9, alerta_ligado = $10, janela_aviso_pct = $11,
             fase_resultante = $12, ativo = $13
-      WHERE id = $1`,
+      WHERE id = $1 AND protocolo_id = $14`,
     [
       id,
       changes.tipoTarefaId,
@@ -847,6 +873,7 @@ export async function updateEtapa(
       changes.janelaAvisoPct,
       changes.faseResultante,
       changes.ativo,
+      protocoloId,
     ],
   );
   return rowCount ? 'ok' : 'nao_encontrado';
