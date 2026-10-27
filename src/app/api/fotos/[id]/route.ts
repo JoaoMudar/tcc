@@ -11,7 +11,8 @@ import { getCurrentSession } from '@/lib/auth/session';
  */
 export async function GET(_request: Request, ctx: RouteContext<'/api/fotos/[id]'>) {
   const session = await getCurrentSession();
-  if (!session) return new Response(null, { status: 401 });
+  // RF-04: com a senha provisória ainda por trocar, nada além da troca de senha
+  if (!session || session.deveTrocarSenha) return new Response(null, { status: 401 });
   if (!can(session.perfil, 'especies', 'L')) return new Response(null, { status: 403 });
 
   const { id } = await ctx.params;

@@ -153,6 +153,25 @@ describe('a porta única contra Postgres real', () => {
     expect(await listMovimentos(pool, id)).toHaveLength(1);
   });
 
+  it('RF-29: a repicagem para recipiente menor é recusada, e nada é gravado', async () => {
+    const origem = await novoLote(100, 2, saco);
+    await expect(
+      tx((client) =>
+        repicarLote(client, {
+          origemId: origem.id,
+          quantidade: 50,
+          perdidas: 0,
+          causa: null,
+          recipienteId: tubete,
+          canteiroId: canteiro[4],
+          observacoes: null,
+          registradoPor: usuario,
+        }),
+      ),
+    ).rejects.toThrow(/recipiente maior/);
+    expect(await fichaConferida(origem.id)).toMatchObject({ quantidadeAtual: 100 });
+  });
+
   it('TA-18 e TA-19: repicar 300 com 20 mortas deixa 180 na origem e 300 no lote novo, que aponta para ela', async () => {
     const origem = await novoLote(500, 1);
     const novo = await tx((client) =>
