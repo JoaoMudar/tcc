@@ -1,21 +1,20 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useState } from 'react';
+import { useRegistroCampo } from '@/components/useRegistroCampo';
 import { Button } from '@/components/ui/Button';
 import { Notice } from '@/components/ui/Notice';
 import { TextField } from '@/components/ui/TextField';
 import { Toast } from '@/components/ui/Toast';
-import { EMPTY_FORM_STATE } from '@/lib/form-state';
 import { formatAltura, mascaraAltura } from '@/lib/pedidos-rotulos';
-import { alterarAlturaAction } from '../actions';
 
 /**
  * RF-31: a altura da muda do lote, medida na trena. É ela que o item de pedido
  * compara com a altura pedida (RN-10, RN-11). Guarda só a última medida, e o
- * campo vazio apaga.
+ * campo vazio apaga. Sem rede, fica no aparelho e vai depois (RNF-04).
  */
 export function AlturaForm({ loteId, alturaM }: { loteId: string; alturaM: number | null }) {
-  const [state, formAction, pending] = useActionState(alterarAlturaAction, EMPTY_FORM_STATE);
+  const [state, formAction, pending] = useRegistroCampo('altura', { rotulo: (campos) => `Altura ${campos.altura ?? ''}` });
   const [altura, setAltura] = useState(formatAltura(alturaM));
 
   return (
@@ -31,6 +30,7 @@ export function AlturaForm({ loteId, alturaM }: { loteId: string; alturaM: numbe
         onChange={(evento) => setAltura(mascaraAltura(evento.target.value, altura))}
       />
       {state.error && <Notice tone="error">{state.error}</Notice>}
+      {state.guardado && <Notice tone="warning">{state.guardado}</Notice>}
       {state.success && (
         <Toast tone="success" limpar={[]} gatilho={state}>
           {state.success}

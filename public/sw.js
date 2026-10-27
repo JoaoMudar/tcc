@@ -1,5 +1,5 @@
 /*
- * Service worker do Viveiro Mudar (T9.2, RNF-05, RNF-23). Escrito à mão: o
+ * Service worker do Viveiro Mudar (T9.2, RNF-04, RNF-01). Escrito à mão: o
  * next-pwa é plugin de webpack, e o Next 16 compila com turbopack.
  *
  * O QUE GUARDA, E SÓ ISSO (E4 A-08):

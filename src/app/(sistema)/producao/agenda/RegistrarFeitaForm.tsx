@@ -1,16 +1,15 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useState } from 'react';
+import { useRegistroCampo } from '@/components/useRegistroCampo';
 import { Button } from '@/components/ui/Button';
 import { DoisPassos } from '@/components/ui/DoisPassos';
 import { Notice } from '@/components/ui/Notice';
 import type { SelectOption } from '@/components/ui/SelectField';
 import { TextField } from '@/components/ui/TextField';
 import type { UnidadeTarefa } from '@/lib/agenda-rotulos';
-import { EMPTY_FORM_STATE } from '@/lib/form-state';
 import { EscolhaMultipla } from './EscolhaMultipla';
 import { PerdaNaConfirmacao } from './PerdaNaConfirmacao';
-import { registrarTarefaFeitaAction } from './actions';
 
 interface RegistrarFeitaFormProps {
   etapaId: string;
@@ -41,13 +40,19 @@ export function RegistrarFeitaForm({
   turnoId,
   hoje,
 }: RegistrarFeitaFormProps) {
-  const [state, formAction, pending] = useActionState(registrarTarefaFeitaAction, EMPTY_FORM_STATE);
+  // RNF-04: sem rede, fica no aparelho e vai depois, como a confirmação da tarefa lançada
+  const [state, formAction, pending] = useRegistroCampo('tarefa_feita', { rotulo: (campos) => `Tarefa feita em ${campos.dias ?? ''}` });
   const fields = state.error ? state.fields : undefined;
-  const [quem, setQuem] = useState<string[]>((fields?.participantes ?? '').split(',').filter(Boolean));
+  const [quem, setQuem] = useState<string[]>((fields?.participantes_lista ?? '').split(',').filter(Boolean));
   const marcados = new Set(quem);
 
+  // Registrada uma vez só: guardada no aparelho, o formulário sai para não ser registrada de novo
+  if (state.guardado) return <Notice tone="warning">{state.guardado}</Notice>;
+
   return (
-    <form action={formAction} className="flex flex-col gap-5">
+    <form key={state.rodada ?? 'feita'} action={formAction} className="flex flex-col gap-5">
+      {/* A fila guarda um valor por nome, e as marcações de quem fez repetem o nome */}
+      <input type="hidden" name="participantes_lista" value={quem.join(',')} />
       <input type="hidden" name="lote_etapa_id" value={etapaId} />
       <input type="hidden" name="lote_id" value={loteId} />
       <input type="hidden" name="tipo_tarefa_id" value={tipoTarefaId} />
