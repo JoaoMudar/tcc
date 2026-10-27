@@ -12,6 +12,7 @@ import {
   SITUACOES_PEDIDO,
   type SituacaoPedido,
   centavosParaSql,
+  exigePortaPropria,
   podeTransicionar,
   quantidadeConfirmada,
   resolveResposta,
@@ -27,6 +28,7 @@ export {
   CANAIS_VENDA,
   CANAL_PADRAO,
   DONO_SITUACAO,
+  PASSAGENS_DA_PORTA_GENERICA,
   ROTULO_URGENCIA,
   SITUACOES_PEDIDO,
   TRANSICOES,
@@ -34,6 +36,7 @@ export {
   estadoComComplementos,
   estadoDaResposta,
   estadoDoGenerico,
+  exigePortaPropria,
   filtraPedidosPorCliente,
   formatAltura,
   formatMoeda,
@@ -656,6 +659,11 @@ export async function atualizarCabecalho(
  * Não é trigger de propósito: trigger não conhece o usuário, e toda linha do
  * histórico precisa de autor. É a mesma razão que faz `registrarMovimento` ser
  * a porta única do lote.
+ *
+ * **RF-61: a transição de porta própria exige `viaPortaPropria`**, que só as
+ * funções que fazem o trabalho da fase passam (`concluirVerificacao`,
+ * `confirmarPedido`, `criarCargaUnica`/`criarCargas`, `concluirCarga`,
+ * `reabrirPedido`). Sem isso, um POST levaria o pedido a aprovado sem preço.
  */
 export async function mudarSituacao(
   client: Client,
@@ -663,12 +671,18 @@ export async function mudarSituacao(
   para: SituacaoPedido,
   autor: AutorDaMudanca,
   observacoes: string | null = null,
+  opcoes: { viaPortaPropria?: boolean } = {},
 ): Promise<{ numero: number; de: SituacaoPedido }> {
   const pedido = await travarPedido(client, pedidoId);
   if (!podeTransicionar(pedido.situacao, para, autor.perfil)) {
     throw new UserError(
       `O pedido ${pedido.numero} está em ${SITUACOES_PEDIDO[pedido.situacao].toLowerCase()}, ` +
         `e não pode passar a ${SITUACOES_PEDIDO[para].toLowerCase()}.`,
+    );
+  }
+  if (exigePortaPropria(pedido.situacao, para) && !opcoes.viaPortaPropria) {
+    throw new UserError(
+      `O pedido ${pedido.numero} só passa a ${SITUACOES_PEDIDO[para].toLowerCase()} pela tela própria dessa etapa.`,
     );
   }
   await client.query('UPDATE pedidos SET situacao = $2 WHERE id = $1', [pedidoId, para]);
@@ -1015,7 +1029,7 @@ export async function confirmarPedido(
 
   const resumo =
     removidos + ajustados > 0 ? `${removidos} item(ns) removido(s), ${ajustados} ajustado(s) pela conferência.` : null;
-  const { numero } = await mudarSituacao(client, pedidoId, 'aprovado', autor, resumo);
+  const { numero } = await mudarSituacao(client, pedidoId, 'aprovado', autor, resumo, { viaPortaPropria: true });
   return { numero, removidos, ajustados };
 }
 
@@ -1037,6 +1051,42 @@ export async function cancelarPedido(
   motivo: string | null = null,
 ): Promise<{ numero: number }> {
   return mudarSituacao(client, pedidoId, 'cancelado', autor, motivo);
+}
+
+/**
+ * RN-52, RF-61: o aprovado trava os itens, e a única volta é esta. O motivo é
+ * **obrigatório**, ao contrário do cancelamento: reabrir desfaz uma aprovação, e
+ * "por que este pedido voltou ao orçamento?" precisa de resposta no histórico.
+ *
+ * As cargas são desfeitas (a separação valia para os itens de antes), e o
+ * pedido que já entrou numa viagem não reabre: tirá-lo da viagem vem primeiro.
+ */
+export async function reabrirPedido(
+  client: Client,
+  pedidoId: string,
+  motivo: string,
+  autor: AutorDaMudanca,
+): Promise<{ numero: number }> {
+  const texto = motivo.trim();
+  if (!texto) throw new UserError('Diga por que o pedido está sendo reaberto.');
+  const pedido = await travarPedido(client, pedidoId);
+  if (pedido.situacao !== 'aprovado' && pedido.situacao !== 'separando') {
+    throw new UserError(
+      `O pedido ${pedido.numero} está em ${SITUACOES_PEDIDO[pedido.situacao].toLowerCase()}, e só o aprovado ou em separação se reabre.`,
+    );
+  }
+  const { rows } = await client.query<{ n: number }>(
+    'SELECT COUNT(*)::int AS n FROM viagens_paradas WHERE pedido_id = $1',
+    [pedidoId],
+  );
+  if (rows[0].n > 0) {
+    throw new UserError(`O pedido ${pedido.numero} já está numa viagem. Tire-o da viagem antes de reabrir.`);
+  }
+  await client.query('DELETE FROM pedidos_cargas WHERE pedido_id = $1', [pedidoId]);
+  const { numero } = await mudarSituacao(client, pedidoId, 'cadastrado', autor, `Reaberto: ${texto}`, {
+    viaPortaPropria: true,
+  });
+  return { numero };
 }
 
 // ------------------------------------------------------------
@@ -1403,6 +1453,6 @@ export async function concluirVerificacao(
     genericos > 0
       ? `${disponiveis} de ${total} disponíveis, ${genericos} genérico(s) definido(s).`
       : `${disponiveis} de ${total} disponíveis.`;
-  const { numero } = await mudarSituacao(client, pedidoId, 'verificado', autor, resumo);
+  const { numero } = await mudarSituacao(client, pedidoId, 'verificado', autor, resumo, { viaPortaPropria: true });
   return { numero, resumo };
 }

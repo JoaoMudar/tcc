@@ -29,6 +29,7 @@ import {
   marcarGenericoIndisponivel,
   marcarRespostaEmAberto,
   mudarSituacao,
+  reabrirPedido,
   negociarItens,
   removerItem,
   salvarFrete,
@@ -57,6 +58,8 @@ const soPreco = (itemId: string, precoCentavos: number) => ({ itemId, precoCenta
 /** Quem assina a mudança de situação nos testes. */
 const chefia = () => ({ perfil: 'chefia' as const, usuarioId: usuario });
 const gerencia = () => ({ perfil: 'gerencia' as const, usuarioId: usuario });
+/** RF-61: o atalho dos testes para as fases que, no sistema, só a tela própria executa. */
+const PORTA = { viaPortaPropria: true };
 
 let usuario: string;
 let cliente: string;
@@ -105,7 +108,7 @@ function novoPedido(extra: Partial<Parameters<typeof criarPedido>[1]> = {}) {
  */
 async function aprovar(id: string) {
   await tx((c) => mudarSituacao(c, id, 'verificando', gerencia()));
-  await tx((c) => mudarSituacao(c, id, 'verificado', gerencia()));
+  await tx((c) => mudarSituacao(c, id, 'verificado', gerencia(), null, PORTA));
   return tx((c) => confirmarPedido(c, id, chefia()));
 }
 
@@ -423,7 +426,7 @@ describe('fluxo e histórico (T8.6, RF-61)', () => {
   it('cada mudança grava de onde veio, para onde foi e quem assinou', async () => {
     const { id } = await novoPedido();
     await tx((c) => mudarSituacao(c, id, 'verificando', gerencia()));
-    await tx((c) => mudarSituacao(c, id, 'verificado', gerencia(), 'Faltou ipê.'));
+    await tx((c) => mudarSituacao(c, id, 'verificado', gerencia(), 'Faltou ipê.', PORTA));
 
     const historico = await listHistorico(pool, id);
     expect(historico.map((h) => h.situacaoNova)).toEqual(['cadastrado', 'verificando', 'verificado']);
@@ -459,11 +462,35 @@ describe('fluxo e histórico (T8.6, RF-61)', () => {
   it('a gerência não aprova, e a recusa não deixa o pedido pela metade', async () => {
     const { id } = await novoPedido();
     await tx((c) => mudarSituacao(c, id, 'verificando', gerencia()));
-    await tx((c) => mudarSituacao(c, id, 'verificado', gerencia()));
+    await tx((c) => mudarSituacao(c, id, 'verificado', gerencia(), null, PORTA));
 
     await expect(tx((c) => mudarSituacao(c, id, 'aprovado', gerencia()))).rejects.toThrow(/não pode passar/i);
     expect((await findPedido(pool, id))!.situacao).toBe('verificado');
     expect(await listHistorico(pool, id)).toHaveLength(3);
+  });
+
+  it('sem a porta própria nem a chefia leva o verificado a aprovado (RF-61)', async () => {
+    const { id } = await novoPedido();
+    await tx((c) => mudarSituacao(c, id, 'verificando', gerencia()));
+    await tx((c) => mudarSituacao(c, id, 'verificado', gerencia(), null, PORTA));
+    await expect(tx((c) => mudarSituacao(c, id, 'aprovado', chefia()))).rejects.toThrow(/tela própria/i);
+    expect((await findPedido(pool, id))!.situacao).toBe('verificado');
+  });
+
+  it('o aprovado só volta ao orçamento pela reabertura, com motivo e sem cargas (RN-52)', async () => {
+    const { id } = await novoPedido();
+    await tx((c) => mudarSituacao(c, id, 'verificando', gerencia()));
+    await tx((c) => mudarSituacao(c, id, 'verificado', gerencia(), null, PORTA));
+    await tx((c) => mudarSituacao(c, id, 'aprovado', chefia(), null, PORTA));
+    await expect(tx((c) => mudarSituacao(c, id, 'cadastrado', chefia()))).rejects.toThrow(/tela própria/i);
+    await expect(tx((c) => reabrirPedido(c, id, '  ', chefia()))).rejects.toThrow(/por que/i);
+
+    await tx((c) => reabrirPedido(c, id, 'Cliente trocou o ipê.', chefia()));
+    expect((await findPedido(pool, id))!.situacao).toBe('cadastrado');
+    expect((await listHistorico(pool, id)).at(-1)).toMatchObject({
+      situacaoAnterior: 'aprovado',
+      observacoes: 'Reaberto: Cliente trocou o ipê.',
+    });
   });
 
   it('não se pula etapa: do cadastro não se vai direto a aprovado', async () => {
@@ -475,10 +502,10 @@ describe('fluxo e histórico (T8.6, RF-61)', () => {
   it('o fluxo inteiro chega a pronto para envio, e de lá ainda cancela', async () => {
     const { id } = await novoPedido();
     await tx((c) => mudarSituacao(c, id, 'verificando', gerencia()));
-    await tx((c) => mudarSituacao(c, id, 'verificado', gerencia()));
-    await tx((c) => mudarSituacao(c, id, 'aprovado', chefia()));
-    await tx((c) => mudarSituacao(c, id, 'separando', gerencia()));
-    await tx((c) => mudarSituacao(c, id, 'pronto_envio', gerencia()));
+    await tx((c) => mudarSituacao(c, id, 'verificado', gerencia(), null, PORTA));
+    await tx((c) => mudarSituacao(c, id, 'aprovado', chefia(), null, PORTA));
+    await tx((c) => mudarSituacao(c, id, 'separando', gerencia(), null, PORTA));
+    await tx((c) => mudarSituacao(c, id, 'pronto_envio', gerencia(), null, PORTA));
     expect((await findPedido(pool, id))!.situacao).toBe('pronto_envio');
 
     // A decisão de 21/09/2026: a venda que cai depois de pronta fica registrada
