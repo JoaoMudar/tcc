@@ -163,6 +163,8 @@ export async function saveEspecie(
   id: string | null,
   fields: EspecieFields & { ativa: boolean },
   foto: FotoChange,
+  /** RNF-15: quem grava. Nulo na carga por script. */
+  autor: string | null = null,
 ): Promise<{ resultado: 'ok'; id: string } | { resultado: 'nao_encontrado' }> {
   let fotoAtual: string | null = null;
   if (id) {
@@ -177,19 +179,20 @@ export async function saveEspecie(
   let novaFotoUrl = foto.remover ? null : fotoAtual;
   if (foto.nova) novaFotoUrl = fotoUrl(await insertFoto(client, foto.nova));
 
-  const params = [fields.nomeCientifico, fields.caracteristicas, novaFotoUrl, fields.observacoes, fields.ativa];
+  const params = [fields.nomeCientifico, fields.caracteristicas, novaFotoUrl, fields.observacoes, fields.ativa, autor];
   let especieId: string;
   if (id) {
     await client.query(
-      `UPDATE especies SET nome_cientifico = $1, caracteristicas = $2, foto_url = $3, observacoes = $4, ativa = $5
-        WHERE id = $6`,
+      `UPDATE especies SET nome_cientifico = $1, caracteristicas = $2, foto_url = $3, observacoes = $4, ativa = $5,
+              atualizado_por = $6
+        WHERE id = $7`,
       [...params, id],
     );
     especieId = id;
   } else {
     const { rows } = await client.query<{ id: string }>(
-      `INSERT INTO especies (nome_cientifico, caracteristicas, foto_url, observacoes, ativa)
-       VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+      `INSERT INTO especies (nome_cientifico, caracteristicas, foto_url, observacoes, ativa, criado_por, atualizado_por)
+       VALUES ($1, $2, $3, $4, $5, $6, $6) RETURNING id`,
       params,
     );
     especieId = rows[0].id;
@@ -268,6 +271,7 @@ async function lerEspecieRef(client: PoolClient, id: string): Promise<EspecieRef
 export async function criarEspecieRapida(
   client: PoolClient,
   input: { nomeCientifico: string; nomePopular: string },
+  autor: string | null = null,
 ): Promise<{ criada: EspecieRef } | { existente: EspecieRef }> {
   const parsed = parseEspecieFields({
     nomeCientifico: input.nomeCientifico,
@@ -284,7 +288,7 @@ export async function criarEspecieRapida(
     if (conflito) return { existente: await lerEspecieRef(client, conflito.especieId) };
   }
 
-  const salva = await saveEspecie(client, null, { ...parsed.value, ativa: true }, { nova: null, remover: false });
+  const salva = await saveEspecie(client, null, { ...parsed.value, ativa: true }, { nova: null, remover: false }, autor);
   if (salva.resultado === 'nao_encontrado') throw new UserError('Não foi possível cadastrar a espécie.');
   await conferirNomeNaFfb(client, salva.id);
   return { criada: await lerEspecieRef(client, salva.id) };

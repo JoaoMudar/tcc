@@ -22,7 +22,7 @@ export async function criarEspecieRapidaAction(
   _previous: EspecieRapidaState,
   formData: FormData,
 ): Promise<EspecieRapidaState> {
-  await requirePermission('especies', 'C');
+  const usuario = await requirePermission('especies', 'C');
   const fields = {
     nome_cientifico: formText(formData, 'nome_cientifico'),
     nome_popular: formText(formData, 'nome_popular'),
@@ -30,10 +30,11 @@ export async function criarEspecieRapidaAction(
 
   try {
     const resultado = await withTransaction(pool, (client) =>
-      criarEspecieRapida(client, {
-        nomeCientifico: fields.nome_cientifico,
-        nomePopular: fields.nome_popular,
-      }),
+      criarEspecieRapida(
+        client,
+        { nomeCientifico: fields.nome_cientifico, nomePopular: fields.nome_popular },
+        usuario.usuarioId,
+      ),
     );
     revalidatePath('/cadastros/especies');
     if ('existente' in resultado) {

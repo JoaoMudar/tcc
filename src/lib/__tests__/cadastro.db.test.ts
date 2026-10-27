@@ -15,7 +15,7 @@ import {
   listPessoas,
   savePessoa,
 } from '../pessoas';
-import { insertRecipiente, listRecipientes } from '../recipientes';
+import { insertRecipiente, listRecipientes, updateRecipiente } from '../recipientes';
 import { findTipoTarefa, insertTipoTarefa, listTiposTarefa, updateTipoTarefa } from '../tipos-tarefa';
 import { withTransaction } from '../transaction';
 
@@ -37,6 +37,8 @@ afterAll(async () => {
   await pool.query("DELETE FROM insumos WHERE nome LIKE $1 || '%'", [prefixo]);
   await pool.query("DELETE FROM tipos_tarefa WHERE nome LIKE $1 || '%'", [prefixo]);
   await pool.query("DELETE FROM cadastro.pessoas WHERE nome LIKE $1 || '%'", [prefixo]);
+  // Por último: os cadastros acima apontam para ele (RNF-15)
+  await pool.query("DELETE FROM usuarios WHERE login LIKE $1 || '%'", [prefixo]);
   await pool.end();
 });
 
@@ -359,5 +361,56 @@ describe('RN-06: características em lista fechada também no banco', () => {
     await expect(
       pool.query("INSERT INTO especies (nome_cientifico, caracteristicas) VALUES ($1, ARRAY['venenosa'])", [`${prefixo} Fora lista`]),
     ).rejects.toMatchObject({ code: '23514' });
+  });
+});
+
+/** RNF-15, segunda etapa: o cadastro guarda quem o criou e quem o alterou por último. */
+describe('autor dos cadastros (RNF-15)', () => {
+  const autorDe = async (tabela: string, id: string) =>
+    (
+      await pool.query<{ criadoPor: string | null; atualizadoPor: string | null }>(
+        `SELECT criado_por AS "criadoPor", atualizado_por AS "atualizadoPor" FROM ${tabela} WHERE id = $1`,
+        [id],
+      )
+    ).rows[0];
+  const novoUsuario = async (login: string) =>
+    (
+      await pool.query<{ id: string }>(
+        `INSERT INTO usuarios (login, nome_exibicao, senha_hash, perfil, deve_trocar_senha)
+         VALUES ($1, 'Autor de teste', 'x', 'gerencia', false) RETURNING id`,
+        [login],
+      )
+    ).rows[0].id;
+
+  it('espécie, pessoa e recipiente: quem cria fica nos dois campos, quem altera só no segundo', async () => {
+    const criou = await novoUsuario(`${prefixo}a`);
+    const alterou = await novoUsuario(`${prefixo}b`);
+
+    const especie = await withTransaction(pool, (c) =>
+      saveEspecie(
+        c,
+        null,
+        { nomeCientifico: `${prefixo} Autoria especie`, nomesPopulares: [], caracteristicas: [], observacoes: null, ativa: true },
+        { nova: null, remover: false },
+        criou,
+      ),
+    );
+    if (especie.resultado !== 'ok') throw new Error('espécie não gravada');
+    const pessoa = await withTransaction(pool, (c) =>
+      insertClienteRapido(c, { nome: `${prefixo} Autoria cliente`, telefone: null }, criou),
+    );
+    const recipiente = await insertRecipiente(pool, { nome: `${prefixo} Autoria saco`, volumeLitros: 2 }, criou);
+
+    expect(await autorDe('especies', especie.id)).toEqual({ criadoPor: criou, atualizadoPor: criou });
+    expect(await autorDe('cadastro.pessoas', pessoa)).toEqual({ criadoPor: criou, atualizadoPor: criou });
+    expect(await autorDe('recipientes', recipiente)).toEqual({ criadoPor: criou, atualizadoPor: criou });
+
+    await updateRecipiente(pool, recipiente, { nome: `${prefixo} Autoria saco`, volumeLitros: 2.5, ativo: true }, alterou);
+    expect(await autorDe('recipientes', recipiente)).toEqual({ criadoPor: criou, atualizadoPor: alterou });
+  });
+
+  it('a carga por script grava sem autor', async () => {
+    const id = await insertRecipiente(pool, { nome: `${prefixo} Autoria script`, volumeLitros: 1 });
+    expect(await autorDe('recipientes', id)).toEqual({ criadoPor: null, atualizadoPor: null });
   });
 });

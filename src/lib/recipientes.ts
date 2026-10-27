@@ -98,10 +98,12 @@ export async function listRecipientes(db: Db): Promise<Recipiente[]> {
   return rows;
 }
 
-export async function insertRecipiente(db: Db, input: RecipienteFields): Promise<string> {
+/** RNF-15: `autor` é quem grava; nulo na carga por script. */
+export async function insertRecipiente(db: Db, input: RecipienteFields, autor: string | null = null): Promise<string> {
   const { rows } = await db.query<{ id: string }>(
-    'INSERT INTO recipientes (nome, volume_litros, peso_kg) VALUES ($1, $2, $3) RETURNING id',
-    [input.nome, input.volumeLitros, input.pesoKg ?? null],
+    `INSERT INTO recipientes (nome, volume_litros, peso_kg, criado_por, atualizado_por)
+     VALUES ($1, $2, $3, $4, $4) RETURNING id`,
+    [input.nome, input.volumeLitros, input.pesoKg ?? null, autor],
   );
   return rows[0].id;
 }
@@ -111,10 +113,11 @@ export async function updateRecipiente(
   db: Db,
   id: string,
   changes: RecipienteFields & { ativo: boolean },
+  autor: string | null = null,
 ): Promise<'ok' | 'nao_encontrado'> {
   const { rowCount } = await db.query(
-    'UPDATE recipientes SET nome = $2, volume_litros = $3, peso_kg = $4, ativo = $5 WHERE id = $1',
-    [id, changes.nome, changes.volumeLitros, changes.pesoKg ?? null, changes.ativo],
+    'UPDATE recipientes SET nome = $2, volume_litros = $3, peso_kg = $4, ativo = $5, atualizado_por = $6 WHERE id = $1',
+    [id, changes.nome, changes.volumeLitros, changes.pesoKg ?? null, changes.ativo, autor],
   );
   return rowCount ? 'ok' : 'nao_encontrado';
 }
