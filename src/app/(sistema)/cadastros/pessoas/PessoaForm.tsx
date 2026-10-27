@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useActionState, useEffect, useRef, useState } from 'react';
+import { type ReactNode, useActionState, useEffect, useRef, useState } from 'react';
+import { AcaoRecolhivel } from '@/components/ui/AcaoRecolhivel';
 import { Button } from '@/components/ui/Button';
 import { CampoTelefone } from '@/components/ui/CampoTelefone';
 import { Notice } from '@/components/ui/Notice';
@@ -40,6 +41,16 @@ interface PessoaFormProps {
 }
 
 const VINCULO_OPTIONS = Object.entries(VINCULO_LABELS).map(([value, label]) => ({ value, label }));
+
+/** No cadastro feito de dentro do pedido, o que é opcional fica atrás de um toque. */
+function Completar({ recolher, children }: { recolher: boolean; children: ReactNode }) {
+  if (!recolher) return <>{children}</>;
+  return (
+    <AcaoRecolhivel titulo="Completar cadastro (opcional)">
+      <div className="flex flex-col gap-4">{children}</div>
+    </AcaoRecolhivel>
+  );
+}
 
 export function PessoaForm({ pessoa, verFiscal, podeEditar, paraPedido }: PessoaFormProps) {
   const [state, formAction, pending] = useActionState(savePessoaAction, EMPTY_PESSOA_STATE);
@@ -101,69 +112,72 @@ export function PessoaForm({ pessoa, verFiscal, podeEditar, paraPedido }: Pessoa
           defaultValue={fields?.telefone ?? formatTelefone(pessoa?.telefone ?? null)}
           required={Boolean(paraPedido)}
         />
-        <TextField label="E-mail" name="email" type="email" defaultValue={fields?.email ?? pessoa?.email ?? ''} />
+        {/* RNF-07, RN-48: no pedido bastam nome e telefone; o resto fica recolhido */}
+        <Completar recolher={Boolean(paraPedido)}>
+          <TextField label="E-mail" name="email" type="email" defaultValue={fields?.email ?? pessoa?.email ?? ''} />
 
-        {/* No pedido o papel é um só, e vai escondido lá em cima */}
-        {!paraPedido && (
-        <fieldset className="flex flex-col gap-1">
-          <legend className="text-sm font-semibold text-gray-700">Papéis</legend>
-          {PAPEIS.map((papel) => (
-            <label key={papel} className="flex min-h-touch items-center gap-3 text-base text-gray-700">
-              <input
-                type="checkbox"
-                name={`papel_${papel}`}
-                defaultChecked={temPapel(papel)}
-                onChange={papel === 'funcionario' ? (event) => setFuncionario(event.currentTarget.checked) : undefined}
-                className="size-6 accent-brand"
-              />
-              {PAPEL_LABELS[papel]}
-            </label>
+          {/* No pedido o papel é um só, e vai escondido lá em cima */}
+          {!paraPedido && (
+          <fieldset className="flex flex-col gap-1">
+            <legend className="text-sm font-semibold text-gray-700">Papéis</legend>
+            {PAPEIS.map((papel) => (
+              <label key={papel} className="flex min-h-touch items-center gap-3 text-base text-gray-700">
+                <input
+                  type="checkbox"
+                  name={`papel_${papel}`}
+                  defaultChecked={temPapel(papel)}
+                  onChange={papel === 'funcionario' ? (event) => setFuncionario(event.currentTarget.checked) : undefined}
+                  className="size-6 accent-brand"
+                />
+                {PAPEL_LABELS[papel]}
+              </label>
+            ))}
+          </fieldset>
+          )}
+          {!paraPedido && funcionario && (
+            <SelectField label="Vínculo do funcionário" name="tipo_vinculo" options={VINCULO_OPTIONS} defaultValue={vinculo} required />
+          )}
+
+          {ENDERECOS_COMUNS.map((t) => (
+            <EnderecoFields key={t} tipo={t} endereco={endereco(t)} fields={fields} />
           ))}
-        </fieldset>
-        )}
-        {!paraPedido && funcionario && (
-          <SelectField label="Vínculo do funcionário" name="tipo_vinculo" options={VINCULO_OPTIONS} defaultValue={vinculo} required />
-        )}
 
-        {ENDERECOS_COMUNS.map((t) => (
-          <EnderecoFields key={t} tipo={t} endereco={endereco(t)} fields={fields} />
-        ))}
-
-        {verFiscal && (
-          <section className="flex flex-col gap-3">
-            <input type="hidden" name="inclui_fiscal" value="1" />
-            <h2 className="mt-3 text-sm font-bold tracking-widest text-muted uppercase">Dados fiscais</h2>
-            {/* RF-19: o que a NF-e pede do destinatário, além do documento e do endereço */}
-            {tipo === 'pj' && (
+          {verFiscal && (
+            <section className="flex flex-col gap-3">
+              <input type="hidden" name="inclui_fiscal" value="1" />
+              <h2 className="mt-3 text-sm font-bold tracking-widest text-muted uppercase">Dados fiscais</h2>
+              {/* RF-19: o que a NF-e pede do destinatário, além do documento e do endereço */}
+              {tipo === 'pj' && (
+                <TextField
+                  label="Razão social"
+                  name="razao_social"
+                  hint="Em branco se for igual ao nome."
+                  defaultValue={fields?.razao_social ?? pessoa?.razaoSocial ?? ''}
+                />
+              )}
               <TextField
-                label="Razão social"
-                name="razao_social"
-                hint="Em branco se for igual ao nome."
-                defaultValue={fields?.razao_social ?? pessoa?.razaoSocial ?? ''}
+                label="Inscrição estadual"
+                name="inscricao_estadual"
+                hint="Só número, ou ISENTO. Em branco se não for contribuinte."
+                defaultValue={fields?.inscricao_estadual ?? pessoa?.inscricaoEstadual ?? ''}
               />
-            )}
-            <TextField
-              label="Inscrição estadual"
-              name="inscricao_estadual"
-              hint="Só número, ou ISENTO. Em branco se não for contribuinte."
-              defaultValue={fields?.inscricao_estadual ?? pessoa?.inscricaoEstadual ?? ''}
-            />
-            <TextField
-              label={tipo === 'pf' ? 'CPF' : 'CNPJ'}
-              name="documento"
-              inputMode="numeric"
-              defaultValue={fields?.documento ?? (pessoa?.documento ? formatDocumento(pessoa.documento) : '')}
-              error={documentoErro ?? undefined}
-              onBlur={(event) => {
-                const result = validateDocumento(tipo, event.currentTarget.value);
-                setDocumentoErro('error' in result ? result.error : null);
-              }}
-            />
-            <EnderecoFields tipo={ENDERECO_FISCAL} endereco={endereco(ENDERECO_FISCAL)} fields={fields} />
-          </section>
-        )}
+              <TextField
+                label={tipo === 'pf' ? 'CPF' : 'CNPJ'}
+                name="documento"
+                inputMode="numeric"
+                defaultValue={fields?.documento ?? (pessoa?.documento ? formatDocumento(pessoa.documento) : '')}
+                error={documentoErro ?? undefined}
+                onBlur={(event) => {
+                  const result = validateDocumento(tipo, event.currentTarget.value);
+                  setDocumentoErro('error' in result ? result.error : null);
+                }}
+              />
+              <EnderecoFields tipo={ENDERECO_FISCAL} endereco={endereco(ENDERECO_FISCAL)} fields={fields} />
+            </section>
+          )}
 
-        <TextArea label="Observações" name="observacoes" defaultValue={fields?.observacoes ?? pessoa?.observacoes ?? ''} />
+          <TextArea label="Observações" name="observacoes" defaultValue={fields?.observacoes ?? pessoa?.observacoes ?? ''} />
+        </Completar>
 
         {pessoa && podeEditar && (
           <label className="flex min-h-touch items-center gap-3 text-base font-semibold text-gray-700">
