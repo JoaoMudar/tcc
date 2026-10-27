@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/Button';
+import { Notice } from '@/components/ui/Notice';
 import { SelectField } from '@/components/ui/SelectField';
 import { TextField } from '@/components/ui/TextField';
 import { formatData, hojeNoViveiro } from '@/lib/datas';
@@ -12,6 +13,7 @@ import {
   formatPercentual,
   limiteMortalidade,
   listMortalidadeLotes,
+  LIMITE_PERDAS,
   listPerdas,
   parseFiltroPerdas,
   totaisPorCausa,
@@ -137,6 +139,12 @@ export default async function PerdasPage({ searchParams }: PerdasPageProps) {
         )}
 
         <h2 className="mt-2 text-sm font-bold tracking-widest text-muted uppercase">Registros</h2>
+        {/* RF-35: o corte não é silencioso */}
+        {perdas.length === LIMITE_PERDAS && (
+          <Notice tone="info">
+            Mostrando os {LIMITE_PERDAS} registros mais recentes. Estreite o período, a espécie ou a causa para ver o resto.
+          </Notice>
+        )}
         {perdas.length > 0 && (
           <ul className="flex flex-col divide-y divide-line rounded-xl border border-line bg-white">
             {perdas.map((perda) => (

@@ -80,11 +80,23 @@ interface MovimentoComum {
   atribuicaoId?: string | null;
 }
 
-export type MovimentoInput = MovimentoComum &
+type MovimentoInterno = MovimentoComum &
   (
     | { tipo: 'transferencia'; canteiroDestinoId: string }
     | { tipo: 'perda'; quantidade: number; causa: CausaPerda }
     | { tipo: Exclude<TipoMovimento, 'transferencia' | 'perda'>; quantidade: number }
+  );
+
+/**
+ * RN-16: só a semeadura e a repicagem põem muda no lote, e o ajuste de contagem
+ * só nasce de uma contagem física. Por isso `ajuste_contagem` não está no tipo
+ * público: quem o grava é `registrarAjusteDeContagem`, chamado só por `contarLote`.
+ */
+export type MovimentoInput = MovimentoComum &
+  (
+    | { tipo: 'transferencia'; canteiroDestinoId: string }
+    | { tipo: 'perda'; quantidade: number; causa: CausaPerda }
+    | { tipo: Exclude<TipoMovimento, 'transferencia' | 'perda' | 'ajuste_contagem'>; quantidade: number }
   );
 
 export interface ResultadoMovimento {
@@ -94,6 +106,22 @@ export interface ResultadoMovimento {
 }
 
 export async function registrarMovimento(client: Client, input: MovimentoInput): Promise<ResultadoMovimento> {
+  // A trava do tipo, repetida para quem chama sem TypeScript (RN-16)
+  if ((input.tipo as TipoMovimento) === 'ajuste_contagem') {
+    throw new UserError('O ajuste de contagem só nasce de uma contagem do lote.');
+  }
+  return gravarMovimento(client, input);
+}
+
+/** RN-16, RN-17: a diferença da contagem física. Só `contarLote` chama. */
+export async function registrarAjusteDeContagem(
+  client: Client,
+  input: MovimentoComum & { quantidade: number },
+): Promise<ResultadoMovimento> {
+  return gravarMovimento(client, { ...input, tipo: 'ajuste_contagem' });
+}
+
+async function gravarMovimento(client: Client, input: MovimentoInterno): Promise<ResultadoMovimento> {
   const lote = await travarLote(client, input.loteId);
   if (!lote) throw new UserError('Lote não encontrado.');
   if (lote.encerrado) throw new UserError(`O lote ${lote.codigo} está encerrado e não recebe movimento.`);

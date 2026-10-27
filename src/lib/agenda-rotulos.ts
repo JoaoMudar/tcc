@@ -86,7 +86,7 @@ export const ESTADOS_TAREFA = {
 
 export type EstadoTarefa = keyof typeof ESTADOS_TAREFA;
 
-/** A cor nunca decide sozinha (RNF-09): o glifo acompanha todo estado. */
+/** A cor nunca decide sozinha: o glifo acompanha todo estado. */
 export const GLIFO_ESTADO: Record<EstadoTarefa, string> = {
   planejada: '·',
   feita: '✓',

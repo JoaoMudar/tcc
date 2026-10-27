@@ -3,7 +3,7 @@ import type { CategoriaTarefa } from './tipos-tarefa';
 /**
  * A cor da agenda tem um significado só: a categoria do tipo de tarefa, numa
  * barra de 4px à esquerda do card. A conclusão não usa cor de fundo, e sim o
- * ícone, para as duas leituras não se misturarem (RNF-09).
+ * ícone, para as duas leituras não se misturarem.
  *
  * Seis cores de saturação média, todas com contraste de ao menos 3:1 sobre o
  * branco (elemento gráfico, WCAG 1.4.11), e longe do verde, do âmbar e do
