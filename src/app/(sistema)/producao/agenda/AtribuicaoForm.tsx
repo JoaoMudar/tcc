@@ -66,6 +66,10 @@ export function AtribuicaoForm({ semana, opcoes, inicial, atribuicaoId, fixos, v
       {voltarParaAgenda && <input type="hidden" name="voltar" value="agenda" />}
       {/* RF-53: a etapa que originou a sugestão viaja junto; o vencimento dela o servidor lê */}
       {valores.lote_etapa_id && <input type="hidden" name="lote_etapa_id" value={valores.lote_etapa_id} />}
+      {/* RF-53: a sugestão leva o lote mesmo quando o tipo não o pede, sem mostrar campo */}
+      {valores.lote_etapa_id && !tipo?.exigeLote && valores.lote_id && (
+        <input type="hidden" name="lote_id" value={valores.lote_id} />
+      )}
 
       <EscolhaMultipla legenda="Quem vai fazer" obrigatorio name="participantes" opcoes={opcoes.funcionarios} marcados={lista('participantes')} />
       <SelectField

@@ -392,7 +392,7 @@ describe('agenda da semana contra Postgres', () => {
     ).rejects.toThrow('está fechada');
   });
 
-  it('TA-34 e TA-30: fechar marca a não confirmada, deixa a sem ninguém pendente, e a semana fechada não se altera', async () => {
+  it('TA-34 e TA-30: fechar marca a não confirmada, cancela a sem ninguém, e a semana fechada não se altera', async () => {
     // A ordem sem ninguém escalado, como a que o protocolo vai gerar
     const semana = (await findSemana(pool, S1))!;
     const {
@@ -409,12 +409,14 @@ describe('agenda da semana contra Postgres', () => {
     // A semana corrente não fecha: o domingo dela ainda não passou
     await expect(tx((client) => fecharSemana(client, S1, '2030-01-13'))).rejects.toThrow('já terminou');
     expect(await findSemana(pool, S1)).toMatchObject({ situacao: 'aberta' });
-    const { naoConfirmadas } = await tx((client) => fecharSemana(client, S1, '2030-01-14'));
+    const { naoConfirmadas, canceladas } = await tx((client) => fecharSemana(client, S1, '2030-01-14'));
     expect(naoConfirmadas).toBe(antes.semConfirmacao);
+    expect(canceladas).toBe(1);
 
     expect(await situacao(ids.encher)).toBe('nao_confirmada');
     expect(await situacao(ids.tres)).toBe('confirmada');
-    expect(await situacao(orfa.id)).toBe('planejada');
+    // RF-42: ninguém foi escalado, então não houve; planejada numa semana fechada cobraria atraso para sempre
+    expect(await situacao(orfa.id)).toBe('cancelada');
     expect(await findSemana(pool, S1)).toMatchObject({ situacao: 'fechada', fechadaEm: expect.any(Date) });
 
     await expect(criar()).rejects.toThrow('está fechada e não se altera');
