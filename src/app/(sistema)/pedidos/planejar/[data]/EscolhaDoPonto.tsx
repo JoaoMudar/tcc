@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { CampoEndereco } from '@/components/ui/CampoEndereco';
 import { Notice } from '@/components/ui/Notice';
 import { EMPTY_FORM_STATE } from '@/lib/form-state';
-import { buscarEnderecosAction, definirPartidaAction } from './actions';
+import { definirPartidaAction } from './actions';
 
 export type EscolhaDePartida = 'agrolandia' | 'itapema' | 'outro';
 
@@ -70,7 +70,6 @@ export function EscolhaDoPonto({ ponta, data, viagemId, ponto }: EscolhaDoPontoP
             className="flex-1"
             required
             defaultValue={estado.fields?.endereco ?? (ponto.escolha === 'outro' ? ponto.descricao : '')}
-            buscar={buscarEnderecosAction}
           />
           <Button type="submit" className="w-auto!" pending={escolhendo} pendingLabel="…">
             Usar

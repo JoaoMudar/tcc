@@ -6,6 +6,7 @@ import {
   criarCargaUnica,
   criarCargas,
   listCargas,
+  marcarCargaSeparada,
   marcarItemSeparado,
   pedidosDoPeriodo,
 } from '../cargas';
@@ -270,6 +271,19 @@ describe('contar e concluir (T8.13)', () => {
 
     await tx((c) => marcarItemSeparado(c, item.id, false));
     expect((await listCargas(pool, id))[0].itens.find((i) => i.id === item.id)!.separado).toBe(false);
+  });
+
+  it('"Marcar todos" separa a carga inteira, e não passa da carga pronta', async () => {
+    const { id, carga } = await emSeparacao();
+    await tx((c) => marcarCargaSeparada(c, carga.id, true));
+    expect((await listCargas(pool, id))[0].itens.every((item) => item.separado)).toBe(true);
+
+    await tx((c) => marcarCargaSeparada(c, carga.id, false));
+    expect((await listCargas(pool, id))[0].itens.some((item) => item.separado)).toBe(false);
+
+    await tx((c) => marcarCargaSeparada(c, carga.id, true));
+    await tx((c) => concluirCarga(c, carga.id, gerencia()));
+    await expect(tx((c) => marcarCargaSeparada(c, carga.id, false))).rejects.toThrow(/não pode mais ser marcada/);
   });
 
   it('carga com item por contar não fecha', async () => {

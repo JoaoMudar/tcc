@@ -20,7 +20,6 @@ vi.mock('../../actions', () => ({
   negociarItensAction: vi.fn(async () => ({ success: 'Negociação salva.' })),
   salvarFreteAction: vi.fn(async () => ({ success: 'Frete salvo.' })),
   salvarEnderecoDoPedidoAction: vi.fn(async () => ({ success: 'Endereço salvo.' })),
-  buscarEnderecosDoPedidoAction: vi.fn(async () => []),
   sugerirFreteAction: vi.fn(async () => ({ centavos: 7000, distanciaKm: 85 })),
   usarSuplenteAction: vi.fn(async () => ({ success: 'ok' })),
   confirmarPedidoAction: vi.fn(async () => ({})),

@@ -8,7 +8,7 @@ import { EMPTY_FORM_STATE } from '@/lib/form-state';
 import { formatQuantidade } from '@/lib/lotes-rotulos';
 import { formatAltura } from '@/lib/pedidos-rotulos';
 import { ordemDeCarregamento } from '@/lib/rotas';
-import { concluirViagemAction, marcarItemAction } from './actions';
+import { concluirViagemAction, marcarItemAction, marcarPedidoCarregadoAction } from './actions';
 
 export interface GrupoParaCarregar {
   pedidoId: string;
@@ -51,6 +51,7 @@ const TONS = ['bg-green-900 text-white', 'bg-green-700 text-white', 'bg-green-60
  */
 export function CarregarViagem({ data, viagemId, pronta, grupos }: CarregarViagemProps) {
   const [marcacao, marcar, marcando] = useActionState(marcarItemAction, EMPTY_FORM_STATE);
+  const [marcacaoTodos, marcarTodos, marcandoTodos] = useActionState(marcarPedidoCarregadoAction, EMPTY_FORM_STATE);
   const [conclusao, concluir, concluindo] = useActionState(concluirViagemAction, EMPTY_FORM_STATE);
 
   const naOrdem = ordemDeCarregamento(grupos);
@@ -79,10 +80,11 @@ export function CarregarViagem({ data, viagemId, pronta, grupos }: CarregarViage
           </div>
         </section>
 
-        {marcacao.error && <Notice tone="error">{marcacao.error}</Notice>}
+        {(marcacao.error ?? marcacaoTodos.error) && <Notice tone="error">{marcacao.error ?? marcacaoTodos.error}</Notice>}
 
         {naOrdem.map((grupo, indice) => {
           const feitos = grupo.itens.filter((item) => item.carregado).length;
+          const todos = feitos === grupo.itens.length;
           return (
             <section key={grupo.pedidoId} className="flex flex-col gap-2">
               <div className="flex items-baseline justify-between gap-2">
@@ -94,9 +96,26 @@ export function CarregarViagem({ data, viagemId, pronta, grupos }: CarregarViage
                     {[`${grupo.entrega}ª entrega de ${total}`, grupo.cidade].filter(Boolean).join(' · ')}
                   </span>
                 </div>
-                <span className="shrink-0 text-sm font-bold text-muted">
-                  {feitos}/{grupo.itens.length}
-                </span>
+                <div className="flex shrink-0 flex-col items-end gap-1">
+                  <span className="text-sm font-bold text-muted">
+                    {feitos}/{grupo.itens.length}
+                  </span>
+                  {!pronta && (
+                    <form action={marcarTodos}>
+                      <input type="hidden" name="data" value={data} />
+                      <input type="hidden" name="viagem_id" value={viagemId} />
+                      <input type="hidden" name="pedido_id" value={grupo.pedidoId} />
+                      <input type="hidden" name="carregado" value={todos ? 'nao' : 'sim'} />
+                      <button
+                        type="submit"
+                        disabled={marcando || marcandoTodos}
+                        className="min-h-11 rounded-lg border-[1.5px] border-brand bg-white px-3 text-sm font-bold text-brand-dark active:bg-brand-light disabled:opacity-60"
+                      >
+                        {todos ? 'Desmarcar todos' : 'Marcar todos'}
+                      </button>
+                    </form>
+                  )}
+                </div>
               </div>
 
               <ul className="flex flex-col gap-2">

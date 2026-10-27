@@ -27,6 +27,7 @@ import {
   iniciarCarregamento,
   listParadas,
   marcarItemCarregado,
+  marcarPedidoCarregado,
   mudarEtapa,
   pedidosDisponiveis,
   removerParada,
@@ -380,6 +381,21 @@ describe('o carregamento (Tela 3)', () => {
 
     await tx((c) => voltarEtapa(c, viagemId, 'roteirizando'));
     await expect(tx((c) => marcarItemCarregado(c, item, false))).rejects.toThrow(/não está em carregamento/);
+  });
+
+  it('"Marcar todos" carrega só o pedido escolhido, e só em carregamento', async () => {
+    const { viagemId, a, b } = await viagemNaRota();
+    await tx((c) => iniciarCarregamento(c, viagemId, gerencia()));
+
+    await tx((c) => marcarPedidoCarregado(c, viagemId, a, true));
+    expect((await listCargas(pool, a)).flatMap((carga) => carga.itens).every((item) => item.carregado)).toBe(true);
+    expect((await listCargas(pool, b)).flatMap((carga) => carga.itens).some((item) => item.carregado)).toBe(false);
+
+    await tx((c) => marcarPedidoCarregado(c, viagemId, a, false));
+    expect((await listCargas(pool, a)).flatMap((carga) => carga.itens).some((item) => item.carregado)).toBe(false);
+
+    await tx((c) => voltarEtapa(c, viagemId, 'roteirizando'));
+    await expect(tx((c) => marcarPedidoCarregado(c, viagemId, a, true))).rejects.toThrow(/não está em carregamento/);
   });
 
   it('P19: o pedido tirado da viagem perde o que foi carregado nela', async () => {

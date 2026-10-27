@@ -22,7 +22,6 @@ import { EMPTY_FORM_STATE, type FormState } from '@/lib/form-state';
 import { linkGoogleMaps, moverNaLista } from '@/lib/rotas';
 import {
   adicionarParadaAction,
-  buscarEnderecosAction,
   iniciarCarregamentoAction,
   removerParadaAction,
   salvarEnderecoEntregaAction,
@@ -330,7 +329,7 @@ export function RotaDaViagem({ data, viagemId, partida, chegada, paradas, distan
           <input type="hidden" name="data" value={data} />
           <input type="hidden" name="viagem_id" value={viagemId} />
           <TextField label="Parada extra" name="descricao" required defaultValue={extra.fields?.descricao} />
-          <CampoEndereco key={extra.entraram ?? 0} label="Endereço" name="endereco" buscar={buscarEnderecosAction} />
+          <CampoEndereco key={extra.entraram ?? 0} label="Endereço" name="endereco" />
           {extra.error && <Notice tone="error">{extra.error}</Notice>}
           <Button type="submit" variant="secondary" pending={adicionando} pendingLabel="Adicionando…">
             Adicionar parada
@@ -343,7 +342,6 @@ export function RotaDaViagem({ data, viagemId, partida, chegada, paradas, distan
           nomeCliente={semEndereco.cliente ?? ''}
           endereco={semEndereco.endereco}
           acao={salvarEnderecoEntregaAction}
-          buscar={buscarEnderecosAction}
           camposOcultos={{ data, viagem_id: viagemId, pedido_id: semEndereco.pedidoId }}
           onFechar={fecharEndereco}
         />

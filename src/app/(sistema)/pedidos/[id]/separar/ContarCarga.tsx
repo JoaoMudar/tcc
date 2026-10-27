@@ -7,7 +7,7 @@ import { Toast } from '@/components/ui/Toast';
 import { EMPTY_FORM_STATE } from '@/lib/form-state';
 import { formatQuantidade } from '@/lib/lotes-rotulos';
 import { formatAltura } from '@/lib/pedidos-rotulos';
-import { concluirCargaAction, marcarItemSeparadoAction } from './actions';
+import { concluirCargaAction, marcarCargaSeparadaAction, marcarItemSeparadoAction } from './actions';
 
 export interface CargaParaContar {
   id: string;
@@ -37,6 +37,7 @@ interface ContarCargaProps {
  */
 export function ContarCarga({ pedidoId, cargas }: ContarCargaProps) {
   const [marcacao, marcar, marcando] = useActionState(marcarItemSeparadoAction, EMPTY_FORM_STATE);
+  const [marcacaoTodos, marcarTodos, marcandoTodos] = useActionState(marcarCargaSeparadaAction, EMPTY_FORM_STATE);
   const [conclusao, concluir, concluindo] = useActionState(concluirCargaAction, EMPTY_FORM_STATE);
 
   const primeiraPendente = cargas.findIndex((carga) => carga.situacao !== 'pronto');
@@ -74,9 +75,19 @@ export function ContarCarga({ pedidoId, cargas }: ContarCargaProps) {
           />
         </div>
         {atual.situacao === 'pronto' && <Notice tone="success">Esta carga já está pronta.</Notice>}
+        {atual.situacao !== 'pronto' && (
+          <form action={marcarTodos}>
+            <input type="hidden" name="pedido_id" value={pedidoId} />
+            <input type="hidden" name="carga_id" value={atual.id} />
+            <input type="hidden" name="separado" value={completa ? 'nao' : 'sim'} />
+            <Button type="submit" variant="outline" pending={marcandoTodos} pendingLabel="…" disabled={marcando}>
+              {completa ? 'Desmarcar todos' : 'Marcar todos'}
+            </Button>
+          </form>
+        )}
       </section>
 
-      {marcacao.error && <Notice tone="error">{marcacao.error}</Notice>}
+      {(marcacao.error ?? marcacaoTodos.error) && <Notice tone="error">{marcacao.error ?? marcacaoTodos.error}</Notice>}
 
       <ul className="flex flex-col gap-3">
         {atual.itens.map((item) => (

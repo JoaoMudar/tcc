@@ -6,7 +6,7 @@ import { Notice } from '@/components/ui/Notice';
 import { TextField } from '@/components/ui/TextField';
 import { Toast } from '@/components/ui/Toast';
 import { EMPTY_FORM_STATE } from '@/lib/form-state';
-import { formatAltura, mascaraAltura } from '@/lib/pedidos-rotulos';
+import { formatAltura, mascaraAltura, normalizaCampoAltura } from '@/lib/pedidos-rotulos';
 import { alterarAlturaAction } from '../actions';
 
 /**
@@ -24,11 +24,12 @@ export function AlturaForm({ loteId, alturaM }: { loteId: string; alturaM: numbe
       <TextField
         label="Altura em metros"
         name="altura"
-        inputMode="numeric"
+        inputMode="decimal"
         autoComplete="off"
         placeholder="0,00 m"
         value={altura}
-        onChange={(evento) => setAltura(mascaraAltura(evento.target.value, altura))}
+        onChange={(evento) => setAltura(mascaraAltura(evento.target.value))}
+        onBlur={() => setAltura(normalizaCampoAltura(altura))}
       />
       {state.error && <Notice tone="error">{state.error}</Notice>}
       {state.success && (

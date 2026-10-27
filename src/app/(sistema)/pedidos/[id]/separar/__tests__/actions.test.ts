@@ -158,6 +158,33 @@ describe('contar (T8.14)', () => {
     expect(state.error).toMatch(/não pode mais ser marcado/i);
   });
 
+  it('"Marcar todos" grava a carga inteira com o valor que a tela mandou', async () => {
+    client.query.mockResolvedValue({ rows: [], rowCount: 3 });
+    const dados = form({ pedido_id: PEDIDO, carga_id: CARGA, separado: 'sim' });
+    expect((await actions.marcarCargaSeparadaAction({}, dados)).success).toMatch(/separados/i);
+    const [[sql, valores]] = gravouEm('UPDATE pedidos_cargas_itens');
+    expect(String(sql)).toContain('WHERE carga_id = $1');
+    expect(valores).toEqual([CARGA, true]);
+  });
+
+  it('"Desmarcar todos" manda false', async () => {
+    client.query.mockResolvedValue({ rows: [], rowCount: 3 });
+    await actions.marcarCargaSeparadaAction({}, form({ pedido_id: PEDIDO, carga_id: CARGA, separado: 'nao' }));
+    expect(gravouEm('UPDATE pedidos_cargas_itens')[0][1]).toEqual([CARGA, false]);
+  });
+
+  it('"Marcar todos" numa carga já pronta é recusado', async () => {
+    client.query.mockResolvedValue({ rows: [], rowCount: 0 });
+    const state = await actions.marcarCargaSeparadaAction({}, form({ pedido_id: PEDIDO, carga_id: CARGA, separado: 'sim' }));
+    expect(state.error).toMatch(/não pode mais ser marcada/i);
+  });
+
+  it('"Marcar todos" com carga inválida nem chega ao banco', async () => {
+    const state = await actions.marcarCargaSeparadaAction({}, form({ pedido_id: PEDIDO, carga_id: 'x', separado: 'sim' }));
+    expect(state.error).toMatch(/carga inválida/i);
+    expectNoDatabase();
+  });
+
   it('carga com item por separar não fecha', async () => {
     client.query.mockImplementation(async (sql: unknown) => {
       const texto = String(sql);

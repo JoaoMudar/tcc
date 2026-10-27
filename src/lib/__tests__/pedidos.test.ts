@@ -9,6 +9,7 @@ import {
   TRANSICOES,
   centavosParaSql,
   chaveSaldo,
+  completaPreco,
   saldoDoItem,
   filtraPedidosPorCliente,
   formatAltura,
@@ -19,6 +20,7 @@ import {
   isSituacaoPedido,
   itemVendavel,
   mascaraAltura,
+  mascaraDecimal,
   normalizaCampoAltura,
   parseAltura,
   parsePreco,
@@ -84,6 +86,25 @@ describe('preço digitado (RF-65, RN-51)', () => {
   it('volta para o campo como a pessoa digitou, e para o SQL como o Postgres espera', () => {
     expect(precoParaCampo(1250)).toBe('12,50');
     expect(centavosParaSql(1250)).toBe('12.50');
+  });
+
+  it('a máscara do preço respeita a vírgula e tira zero à esquerda', () => {
+    expect(mascaraDecimal('0')).toBe('0');
+    expect(mascaraDecimal('05')).toBe('5');
+    expect(mascaraDecimal(',5')).toBe('0,5');
+    expect(mascaraDecimal('12.5')).toBe('12,5');
+    expect(mascaraDecimal('1.234,56')).toBe('1234,56');
+    expect(mascaraDecimal('R$ 8,505')).toBe('8,50');
+    expect(mascaraDecimal('')).toBe('');
+  });
+
+  it('o preço sai do campo sempre com os centavos', () => {
+    expect(completaPreco('0')).toBe('0,00');
+    expect(completaPreco('12,5')).toBe('12,50');
+    expect(completaPreco('12,')).toBe('12,00');
+    expect(completaPreco(',5')).toBe('0,50');
+    expect(completaPreco('8,50')).toBe('8,50');
+    expect(completaPreco('')).toBe('');
   });
 });
 
@@ -425,22 +446,27 @@ describe('altura da muda pedida (RF-59)', () => {
     expect(normalizaCampoAltura('grande')).toBe('grande');
   });
 
-  it('a máscara da grade enche pela direita, com os centímetros nas duas últimas casas', () => {
-    expect(mascaraAltura('1', '')).toBe('0,01 m');
-    expect(mascaraAltura('0,01 m2', '0,01 m')).toBe('0,12 m');
-    expect(mascaraAltura('0,12 m3', '0,12 m')).toBe('1,23 m');
-    expect(mascaraAltura('1,23 m4', '1,23 m')).toBe('12,34 m');
-    expect(mascaraAltura('123', '')).toBe('1,23 m');
-    expect(mascaraAltura('1a2b', '')).toBe('0,12 m');
-    expect(mascaraAltura('12345', '')).toBe('12,34 m');
-    expect(mascaraAltura('', '0,01 m')).toBe('');
-    expect(mascaraAltura('abc', '')).toBe('');
+  it('a máscara respeita a vírgula onde a pessoa a pôs', () => {
+    expect(mascaraAltura(',5')).toBe('0,5');
+    expect(mascaraAltura('1,2')).toBe('1,2');
+    expect(mascaraAltura('1.2')).toBe('1,2');
+    expect(mascaraAltura('120')).toBe('120');
+    expect(mascaraAltura('1a2b')).toBe('12');
+    expect(mascaraAltura('12345')).toBe('1234');
+    expect(mascaraAltura('1,234')).toBe('1,23');
+    expect(mascaraAltura('1,2,3')).toBe('1,23');
+    expect(mascaraAltura('')).toBe('');
+    expect(mascaraAltura('abc')).toBe('');
   });
 
-  it('o apagar que só tira o " m" tira o último dígito', () => {
-    expect(mascaraAltura('1,23 ', '1,23 m')).toBe('0,12 m');
-    expect(mascaraAltura('0,01 ', '0,01 m')).toBe('');
-    expect(mascaraAltura('1,2 m', '1,23 m')).toBe('0,12 m');
+  it('o campo que volta formatado segue editável: o apagar tira a unidade, e não o número', () => {
+    expect(mascaraAltura('1,20 ')).toBe('1,20');
+    expect(mascaraAltura('1,20 m5')).toBe('1,20');
+  });
+
+  it('a vírgula sem o zero na frente é lida e formatada ao sair', () => {
+    expect(parseAltura(',5')).toEqual({ value: 0.5 });
+    expect(normalizaCampoAltura(mascaraAltura(',5'))).toBe('0,50 m');
   });
 
   it('não guarda mais que dois decimais, que é o que a trena mede', () => {

@@ -10,8 +10,7 @@ import { isOrigemFrete } from '@/lib/frete';
 import * as pedidos from '@/lib/pedidos';
 import { lerEnderecoDeEntrega } from '@/lib/endereco-entrega-form';
 import { AVISOS_DO_FRETE, salvarEnderecoDoPedido, sugestaoDeFrete } from '@/lib/pedidos-frete';
-import { type SugestaoDeEndereco, lerCoordenada } from '@/lib/rotas';
-import { MapaIndisponivel, sugerirEnderecos } from '@/lib/rotas-ors';
+import { lerCoordenada } from '@/lib/rotas';
 import { avisarMudancaDeData, avisarPedido } from '@/lib/notificacoes-envio';
 import { withTransaction } from '@/lib/transaction';
 import { isUuid } from '@/lib/uuid';
@@ -426,19 +425,6 @@ export async function sugerirFreteAction(
     return 'endereco' in sugestao ? { error, falta: { endereco: sugestao.endereco } } : { error };
   } catch (error) {
     return { error: toUserMessage(error) };
-  }
-}
-
-/** A lista de endereços do modal do frete, com a permissão do pedido. Mapa fora do ar é lista vazia. */
-export async function buscarEnderecosDoPedidoAction(texto: string): Promise<SugestaoDeEndereco[]> {
-  await requirePermission('confirmacao_pedido', 'A');
-  const busca = typeof texto === 'string' ? texto.trim() : '';
-  if (busca.length < 3 || busca.length > 200) return [];
-  try {
-    return await sugerirEnderecos(busca);
-  } catch (error) {
-    if (error instanceof MapaIndisponivel) return [];
-    throw error;
   }
 }
 

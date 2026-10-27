@@ -310,18 +310,6 @@ describe('ordem da rota (Tela 2)', () => {
   });
 });
 
-describe('sugestões de endereço', () => {
-  it('texto curto não consulta o mapa', async () => {
-    await expect(actions.buscarEnderecosAction('ab')).resolves.toEqual([]);
-    expect(sugerirEnderecos).not.toHaveBeenCalled();
-  });
-
-  it('mapa fora do ar é lista vazia, e não erro', async () => {
-    vi.mocked(sugerirEnderecos).mockRejectedValue(new MapaIndisponivel('sem chave'));
-    await expect(actions.buscarEnderecosAction('Rio do Sul')).resolves.toEqual([]);
-  });
-});
-
 describe('o endereço de entrega completado na rota (P17, P19)', () => {
   function enviar(campos: Record<string, string>) {
     return actions.salvarEnderecoEntregaAction({}, form({ data: DIA, viagem_id: VIAGEM, pedido_id: PEDIDO, ...campos }));
@@ -389,5 +377,31 @@ describe('a contagem do carregamento (P19)', () => {
   it('desmarcar grava falso', async () => {
     await actions.marcarItemAction({}, form({ data: DIA, carga_item_id: ITEM, carregado: 'nao' }));
     expect(gravouEm('UPDATE pedidos_cargas_itens SET carregado')[0][1]).toEqual([ITEM, false]);
+  });
+
+  it('"Marcar todos" grava os itens do pedido nesta viagem, só em carregamento', async () => {
+    const dados = form({ data: DIA, viagem_id: VIAGEM, pedido_id: PEDIDO, carregado: 'sim' });
+    const state = await actions.marcarPedidoCarregadoAction({}, dados);
+    expect(state.error).toBeUndefined();
+    const [[sql, valores]] = gravouEm('UPDATE pedidos_cargas_itens SET carregado');
+    expect(String(sql)).toContain("v.situacao = 'carregando'");
+    expect(valores).toEqual([VIAGEM, PEDIDO, true]);
+  });
+
+  it('"Desmarcar todos" grava falso', async () => {
+    await actions.marcarPedidoCarregadoAction({}, form({ data: DIA, viagem_id: VIAGEM, pedido_id: PEDIDO, carregado: 'nao' }));
+    expect(gravouEm('UPDATE pedidos_cargas_itens SET carregado')[0][1]).toEqual([VIAGEM, PEDIDO, false]);
+  });
+
+  it('"Marcar todos" fora do carregamento é recusado', async () => {
+    client.query.mockResolvedValue({ rows: [], rowCount: 0 });
+    const dados = form({ data: DIA, viagem_id: VIAGEM, pedido_id: PEDIDO, carregado: 'sim' });
+    expect((await actions.marcarPedidoCarregadoAction({}, dados)).error).toMatch(/não pode mais ser marcado/i);
+  });
+
+  it('"Marcar todos" com pedido inválido nem chega ao banco', async () => {
+    const state = await actions.marcarPedidoCarregadoAction({}, form({ data: DIA, viagem_id: VIAGEM, pedido_id: 'x' }));
+    expect(state.error).toMatch(/pedido inválido/i);
+    expectNoDatabase();
   });
 });

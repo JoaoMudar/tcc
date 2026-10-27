@@ -173,6 +173,25 @@ export async function marcarItemSeparado(client: Client, cargaItemId: string, se
   }
 }
 
+/**
+ * "Marcar todos": a carga inteira de uma vez, com a mesma trava do item. Grava
+ * o valor final, como o item, e não inverte.
+ */
+export async function marcarCargaSeparada(client: Client, cargaId: string, separado: boolean): Promise<void> {
+  const { rowCount } = await client.query(
+    `UPDATE pedidos_cargas_itens SET separado = $2
+      WHERE carga_id = $1
+        AND carga_id IN (SELECT c.id
+                           FROM pedidos_cargas c
+                           JOIN pedidos p ON p.id = c.pedido_id
+                          WHERE c.situacao <> 'pronto' AND p.situacao = 'separando')`,
+    [cargaId, separado],
+  );
+  if (!rowCount) {
+    throw new UserError('Esta carga não pode mais ser marcada: ela já está pronta ou o pedido saiu da separação.');
+  }
+}
+
 interface CargaTravada {
   pedidoId: string;
   numero: number;

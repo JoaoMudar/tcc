@@ -700,6 +700,30 @@ export async function marcarItemCarregado(client: Client, cargaItemId: string, c
 }
 
 /**
+ * "Marcar todos": os itens de um pedido da viagem de uma vez, com a mesma trava
+ * do item. Grava o valor final, e não inverte.
+ */
+export async function marcarPedidoCarregado(
+  client: Client,
+  viagemId: string,
+  pedidoId: string,
+  carregado: boolean,
+): Promise<void> {
+  const { rowCount } = await client.query(
+    `UPDATE pedidos_cargas_itens SET carregado = $3
+      WHERE carga_id IN (SELECT c.id
+                           FROM pedidos_cargas c
+                           JOIN viagens_paradas vp ON vp.pedido_id = c.pedido_id
+                           JOIN viagens v ON v.id = vp.viagem_id
+                          WHERE v.id = $1 AND c.pedido_id = $2 AND v.situacao = 'carregando')`,
+    [viagemId, pedidoId, carregado],
+  );
+  if (!rowCount) {
+    throw new UserError('Este pedido não pode mais ser marcado: a viagem não está em carregamento.');
+  }
+}
+
+/**
  * Tela 3: "Carga pronta" fecha a viagem. Item por carregar em qualquer entrega
  * recusa tudo.
  *

@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/Button';
 import { CampoEndereco } from '@/components/ui/CampoEndereco';
 import { ORIGENS_FRETE, type OrigemFrete, formatPesoCarga } from '@/lib/frete';
 import { formatMoeda, formatTotal } from '@/lib/pedidos-rotulos';
-import type { SugestaoDeEndereco } from '@/lib/rotas';
 
 interface FechamentoDoPedidoProps {
   /** Soma dos itens, em centavos. Nula enquanto falta preço ou quantidade. */
@@ -27,7 +26,6 @@ interface FechamentoDoPedidoProps {
     /** O endereço de saída na origem `outro`. */
     endereco: string;
     onAlterarEndereco: (texto: string, ponto: { lat: number; lng: number } | null) => void;
-    buscar: (texto: string) => Promise<SugestaoDeEndereco[]>;
     onSugerir: () => void;
     /** Abre o destino do pedido para trocar. */
     onTrocarEntrega: () => void;
@@ -147,7 +145,6 @@ export function FechamentoDoPedido({ subtotalCentavos, freteCentavos, peso, entr
               label="Endereço de saída"
               name="frete_origem_endereco"
               defaultValue={edicao.endereco}
-              buscar={edicao.buscar}
               onAlterar={edicao.onAlterarEndereco}
             />
           )}

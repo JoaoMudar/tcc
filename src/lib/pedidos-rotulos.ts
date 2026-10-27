@@ -185,7 +185,8 @@ export function parseAltura(text: string): { error: string } | { value: number |
   const emCentimetros = /cm$/i.test(texto);
   const limpo = texto.replace(/\s*c?m$/i, '').replace(/\s/g, '');
   if (limpo === '') return { value: null };
-  const normalizado = limpo.replace(',', '.');
+  // ",5" é meio metro: o zero que a pessoa não digitou volta para a frente
+  const normalizado = limpo.replace(',', '.').replace(/^\./, '0.');
   if (!/^\d+(\.\d{1,2})?$/.test(normalizado)) {
     return {
       error: 'A altura precisa ser um valor em metros, como 1,20, ou em centímetros, como 120.',
@@ -222,23 +223,37 @@ export function normalizaCampoAltura(texto: string): string {
   return 'error' in lida ? texto : formatAltura(lida.value);
 }
 
-/** Quatro dígitos bastam: 99,99 m. O teto de 20 m fica com o `parseAltura`. */
-const ALTURA_MAX_DIGITOS = 4;
+/**
+ * A máscara dos campos decimais digitados (preço, altura), aplicada a cada
+ * tecla: a vírgula é onde a pessoa a pôs. ",5" vira "0,5", o ponto vale como
+ * vírgula e o que não é número sai. Com vírgula no texto, o ponto é milhar
+ * colado ("1.234,56"). A unidade e as casas que faltam entram ao sair do campo.
+ */
+export function mascaraDecimal(texto: string, { casas = 2, inteiros = 8 } = {}): string {
+  const semMilhar = texto.includes(',') ? texto.replace(/\./g, '') : texto.replace(/\./g, ',');
+  const limpo = semMilhar.replace(/[^\d,]/g, '');
+  const virgula = limpo.indexOf(',');
+  const inteira = (virgula === -1 ? limpo : limpo.slice(0, virgula)).replace(/^0+(?=\d)/, '').slice(0, inteiros);
+  if (virgula === -1) return inteira;
+  const decimais = limpo.slice(virgula + 1).replace(/,/g, '').slice(0, casas);
+  return `${inteira || '0'},${decimais}`;
+}
 
 /**
- * A máscara da altura na grade de itens, aplicada a cada tecla: os dígitos
- * entram pela direita e as duas últimas casas são os centímetros, como na
- * máquina de somar ("1" é 0,01 m, "123" é 1,23 m).
- *
- * O apagar que só tira o " m" do fim não mudaria nada, porque a máscara
- * devolveria a unidade; por isso ele tira o último dígito.
+ * A altura enquanto se digita. Quatro dígitos inteiros bastam: "120" ainda
+ * precisa caber, porque é centímetro (`parseAltura`), e o teto de 20 m fica
+ * com o `parseAltura`.
  */
-export function mascaraAltura(novo: string, anterior: string): string {
-  const digitosDe = (texto: string) => texto.replace(/\D/g, '').replace(/^0+/, '');
-  let digitos = digitosDe(novo);
-  if (digitos === digitosDe(anterior) && novo.length < anterior.length) digitos = digitos.slice(0, -1);
-  digitos = digitos.slice(0, ALTURA_MAX_DIGITOS);
-  return digitos ? formatAltura(Number(digitos) / 100) : '';
+export function mascaraAltura(texto: string): string {
+  return mascaraDecimal(texto, { casas: 2, inteiros: 4 });
+}
+
+/** O preço ao sair do campo, sempre com os centavos: "0" vira "0,00", "12,5" vira "12,50". */
+export function completaPreco(texto: string): string {
+  const mascarado = mascaraDecimal(texto);
+  if (mascarado === '') return '';
+  const [inteira, decimais = ''] = mascarado.split(',');
+  return `${inteira || '0'},${decimais.padEnd(2, '0')}`;
 }
 
 /** O campo volta para a tela como a pessoa espera lê-lo, e não como "1250". */
