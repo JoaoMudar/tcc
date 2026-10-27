@@ -683,16 +683,22 @@ export async function cargasDaViagem(db: Db, viagemId: string): Promise<GrupoDoC
  * A trava é a viagem em carregamento, e não a separação: o item que já ficou
  * separado ao lado do carro (carga pronta) é justamente o que se conta agora.
  */
-export async function marcarItemCarregado(client: Client, cargaItemId: string, carregado: boolean): Promise<void> {
+export async function marcarItemCarregado(
+  client: Client,
+  cargaItemId: string,
+  carregado: boolean,
+  autor: string | null = null,
+): Promise<void> {
+  // RNF-15: quem marcou e quando; desfeita a marcação, o autor sai junto
   const { rowCount } = await client.query(
-    `UPDATE pedidos_cargas_itens SET carregado = $2
+    `UPDATE pedidos_cargas_itens SET carregado = $2, carregado_por = CASE WHEN $2 THEN $3::uuid END, carregado_em = CASE WHEN $2 THEN NOW() END
       WHERE id = $1
         AND carga_id IN (SELECT c.id
                            FROM pedidos_cargas c
                            JOIN viagens_paradas vp ON vp.pedido_id = c.pedido_id
                            JOIN viagens v ON v.id = vp.viagem_id
                           WHERE v.situacao = 'carregando')`,
-    [cargaItemId, carregado],
+    [cargaItemId, carregado, autor],
   );
   if (!rowCount) {
     throw new UserError('Este item não pode mais ser marcado: a viagem não está em carregamento.');
@@ -729,11 +735,11 @@ export async function concluirViagem(
   }
 
   await client.query(
-    `UPDATE pedidos_cargas_itens ci SET separado = true
+    `UPDATE pedidos_cargas_itens ci SET separado = true, separado_por = $2, separado_em = NOW()
        FROM pedidos_cargas c
        JOIN viagens_paradas vp ON vp.pedido_id = c.pedido_id
       WHERE ci.carga_id = c.id AND vp.viagem_id = $1 AND c.situacao <> 'pronto' AND ci.separado = false`,
-    [viagemId],
+    [viagemId, autor.usuarioId],
   );
 
   const { rows: cargas } = await client.query<{ id: string }>(

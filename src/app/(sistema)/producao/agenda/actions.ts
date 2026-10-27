@@ -83,12 +83,12 @@ async function validarAtribuicao(formData: FormData): Promise<{ fields: Record<s
 
 /** T5.1, T5.2, RF-38: uma tarefa por dia escolhido, com o grupo inteiro. */
 export async function criarAtribuicaoAction(_previous: FormState, formData: FormData): Promise<FormState> {
-  await requirePermission('agenda', 'C');
+  const user = await requirePermission('agenda', 'C');
   const resultado = await validarAtribuicao(formData);
   if ('error' in resultado) return { error: resultado.error, fields: resultado.fields };
 
   try {
-    await withTransaction(pool, (client) => agenda.criarAtribuicoes(client, resultado.value));
+    await withTransaction(pool, (client) => agenda.criarAtribuicoes(client, resultado.value, user.usuarioId));
   } catch (error) {
     return { error: toUserMessage(error), fields: resultado.fields };
   }
@@ -175,11 +175,11 @@ function lerSemanaDoForm(formData: FormData): string | null {
 
 /** T5.6, RF-41, RF-42. */
 export async function fecharSemanaAction(_previous: FormState, formData: FormData): Promise<FormState> {
-  await requirePermission('fechamento_semana', 'A');
+  const user = await requirePermission('fechamento_semana', 'A');
   const semana = lerSemanaDoForm(formData);
   if (!semana) return { error: 'Semana inválida.' };
   try {
-    await withTransaction(pool, (client) => agenda.fecharSemana(client, semana, hojeNoViveiro()));
+    await withTransaction(pool, (client) => agenda.fecharSemana(client, semana, hojeNoViveiro(), user.usuarioId));
   } catch (error) {
     return { error: toUserMessage(error) };
   }

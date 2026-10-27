@@ -502,14 +502,16 @@ interface DadosAtribuicao {
   loteEtapaId?: string | null;
   /** Congelado no aceite: o atraso é do vencimento da etapa, e não do dia escolhido. */
   vencimentoProtocolo?: string | null;
+  /** RNF-15: quem lançou. Nulo na tarefa copiada da semana anterior, que o sistema criou. */
+  criadoPor?: string | null;
 }
 
 async function inserirAtribuicao(client: Client, semanaId: string, dados: DadosAtribuicao, participantes: readonly string[]): Promise<string> {
   const { rows } = await client.query<{ id: string }>(
     `INSERT INTO atribuicoes (semana_id, data_trabalho, turno_id, tipo_tarefa_id, hora_inicio, hora_fim, lote_id, especie_id,
                               recipiente_id, area_id, canteiro_id, quantidade_planejada, e_recorrente, observacoes,
-                              lote_etapa_id, vencimento_protocolo)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+                              lote_etapa_id, vencimento_protocolo, criado_por)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
      RETURNING id`,
     [
       semanaId,
@@ -528,6 +530,7 @@ async function inserirAtribuicao(client: Client, semanaId: string, dados: DadosA
       dados.observacoes,
       dados.loteEtapaId ?? null,
       dados.vencimentoProtocolo ?? null,
+      dados.criadoPor ?? null,
     ],
   );
   const id = rows[0].id;
@@ -670,7 +673,12 @@ export async function abrirSemana(client: Client, inicio: string): Promise<{ id:
  * assumida como realizada, marcada de não confirmada; a sem ninguém fica pendente.
  * Só depois do domingo dela: a semana corrente ainda tem dia por trabalhar.
  */
-export async function fecharSemana(client: Client, inicio: string, hoje: string): Promise<{ naoConfirmadas: number }> {
+export async function fecharSemana(
+  client: Client,
+  inicio: string,
+  hoje: string,
+  fechadaPor: string | null = null,
+): Promise<{ naoConfirmadas: number }> {
   if (!semanaJaPassou(inicio, hoje)) throw new UserError('Só se fecha a semana que já terminou.');
   const semana = await travarSemana(client, 'inicio_semana', inicio);
   if (semana.situacao === 'fechada') throw new UserError('A semana já está fechada.');
@@ -680,12 +688,15 @@ export async function fecharSemana(client: Client, inicio: string, hoje: string)
         AND EXISTS (SELECT 1 FROM atribuicoes_participantes p WHERE p.atribuicao_id = a.id)`,
     [semana.id],
   );
-  await client.query("UPDATE semanas SET situacao = 'fechada', fechada_em = NOW() WHERE id = $1", [semana.id]);
+  await client.query("UPDATE semanas SET situacao = 'fechada', fechada_em = NOW(), fechada_por = $2 WHERE id = $1", [
+    semana.id,
+    fechadaPor,
+  ]);
   return { naoConfirmadas: rowCount ?? 0 };
 }
 
 /** T5.1, T5.2: uma atribuição por dia escolhido, abrindo a semana se preciso. */
-export async function criarAtribuicoes(client: Client, input: AtribuicaoInput): Promise<string[]> {
+export async function criarAtribuicoes(client: Client, input: AtribuicaoInput, criadoPor: string | null = null): Promise<string[]> {
   const aberta = await abrirSemana(client, input.semana);
   const semana = await travarSemana(client, 'id', aberta.id);
   recusarSeFechada(semana);
@@ -698,7 +709,7 @@ export async function criarAtribuicoes(client: Client, input: AtribuicaoInput): 
 
   const ids: string[] = [];
   for (const data of input.dias) {
-    ids.push(await inserirAtribuicao(client, semana.id, { ...input, data, vencimentoProtocolo }, input.participantes));
+    ids.push(await inserirAtribuicao(client, semana.id, { ...input, data, vencimentoProtocolo, criadoPor }, input.participantes));
   }
   return ids;
 }
@@ -887,8 +898,10 @@ export async function confirmarAtribuicao(
   }
 
   await client.query(
-    "UPDATE atribuicoes SET lote_id = $2, area_id = $3, canteiro_id = $4, situacao = 'confirmada' WHERE id = $1",
-    [id, input.loteId, input.areaId, input.canteiroId],
+    `UPDATE atribuicoes SET lote_id = $2, area_id = $3, canteiro_id = $4, situacao = 'confirmada',
+            confirmado_por = $5, confirmado_em = NOW()
+      WHERE id = $1`,
+    [id, input.loteId, input.areaId, input.canteiroId, registradoPor],
   );
   const quantidadeDe = new Map(input.quantidades.map((q) => [q.pessoaId, q.quantidade]));
   for (const pessoa of pessoas) {
@@ -932,7 +945,7 @@ export async function registrarTarefaFeita(
   registradoPor: string,
 ): Promise<{ id: string; loteId: string | null; perda: ResultadoMovimento | null }> {
   if (atribuicao.dias.length !== 1) throw new UserError('Escolha o dia em que a tarefa foi feita.');
-  const [id] = await criarAtribuicoes(client, atribuicao);
+  const [id] = await criarAtribuicoes(client, atribuicao, registradoPor);
   return { id, ...(await confirmarAtribuicao(client, id, confirmacao, registradoPor)) };
 }
 
