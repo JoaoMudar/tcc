@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Linha } from '../carga-inicial';
 import { conciliarNome } from '../especies-conciliacao';
 import { duplicateMessage, saveEspecie } from '../especies';
-import { atribuicaoFfb, buscarNomes, conferirNomeNaFfb } from '../especies-ffb';
+import { atribuicaoFfb, buscarNomes, conferirNomeNaFfb, reconferirEspecies } from '../especies-ffb';
 import { importarEspeciesLegadas } from '../especies-legado';
 import { type DadosFfb, montarDadosFfb } from '../ffb/dwca';
 import { importarReferenciaFfb } from '../ffb/importar';
@@ -207,5 +207,52 @@ describe('planilha antiga com as decisões (RN-05)', () => {
       'relatorio.csv linha 1: Decisão desconhecida: "talvez".',
       'relatorio.csv linha 2: o táxon 10 não está na cópia da FFB, ou não leva a um nome aceito.',
     ]);
+  });
+});
+
+describe('reconferência com versão nova (RF-13, RN-04)', () => {
+  it('sem cópia importada não reconfere, em vez de derrubar todas as espécies', async () => {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query('TRUNCATE ref_ffb_nome_popular, ref_ffb_distribuicao, ref_ffb_taxon');
+      await expect(reconferirEspecies(client)).rejects.toThrow(/importe uma versão/);
+    } finally {
+      await client.query('ROLLBACK');
+      client.release();
+    }
+  });
+
+  it('o nome aceito que virou sinônimo deixa a espécie pendente, com o nome mantido; as outras ganham a versão nova', async () => {
+    // A amoreira foi validada no primeiro teste do nome (táxon 8)
+    const { rows: amoreira } = await pool.query<{ id: string }>("SELECT id FROM especies WHERE nome_cientifico = 'Morus nigra'");
+    const id = amoreira[0].id;
+    expect(await ficha(id)).toMatchObject({ status_validacao: 'validado', taxon_id_ffb: '8' });
+
+    // A versão nova trata o 8 como sinônimo do 9
+    const nova: DadosFfb = {
+      ...dados,
+      versao: '400.0',
+      taxons: dados.taxons.map((t) => (t.taxonId === '8' ? { ...t, situacao: 'SINONIMO', aceitoTaxonId: '9' } : t)),
+    };
+    const resultado = await withTransaction(pool, async (c) => {
+      await importarReferenciaFfb(c, nova);
+      return reconferirEspecies(c);
+    });
+
+    expect(resultado.versao).toBe('400.0');
+    expect(resultado.pendentes.map((p) => p.id)).toContain(id);
+    expect(await ficha(id)).toMatchObject({
+      nome_cientifico: 'Morus nigra',
+      status_validacao: 'pendente',
+      taxon_id_ffb: null,
+      validado_versao_ipt: null,
+    });
+    // A que continua com nome aceito passa a carregar a versão nova
+    const { rows } = await pool.query(
+      "SELECT validado_versao_ipt FROM especies WHERE status_validacao = 'validado' AND id = ANY($1::uuid[])",
+      [criadas],
+    );
+    expect(rows.every((r) => r.validado_versao_ipt === '400.0')).toBe(true);
   });
 });

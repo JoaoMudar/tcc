@@ -4,6 +4,7 @@ import { Pill } from '@/components/ui/Pill';
 import { SearchForm } from '@/components/ui/SearchForm';
 import pool from '@/lib/db';
 import { CARACTERISTICA_LABELS, nomeExibido, searchEspecies } from '@/lib/especies';
+import { atribuicaoFfb } from '@/lib/especies-ffb';
 import { can } from '@/lib/permissions';
 import { requirePageAccess } from '@/lib/auth/guards';
 
@@ -12,7 +13,8 @@ export default async function EspeciesPage({ searchParams }: PageProps<'/cadastr
   const user = await requirePageAccess('especies');
   const params = await searchParams;
   const busca = typeof params.busca === 'string' ? params.busca.slice(0, 80) : '';
-  const especies = await searchEspecies(pool, busca);
+  // RNF-18: a lista traz nomes conferidos na Flora e Funga, e a licença CC-BY pede a atribuição
+  const [especies, atribuicao] = await Promise.all([searchEspecies(pool, busca), atribuicaoFfb(pool)]);
 
   return (
     <main>
@@ -69,6 +71,7 @@ export default async function EspeciesPage({ searchParams }: PageProps<'/cadastr
             + Nova espécie
           </Link>
         )}
+        {atribuicao && <p className="pt-2 text-xs text-muted">{atribuicao}</p>}
       </div>
     </main>
   );
