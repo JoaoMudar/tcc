@@ -1,6 +1,13 @@
-import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
-import { ListaPedidos, type PedidoDaLista } from '../ListaPedidos';
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+import { ATRASO_FILTRO_MS, ListaPedidos, type PedidoDaLista } from '../ListaPedidos';
+
+const replace = vi.fn();
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ replace }),
+  usePathname: () => '/pedidos',
+  useSearchParams: () => new URLSearchParams('feito=criado'),
+}));
 
 function pedido(numero: number, clienteId: string, cliente: string): PedidoDaLista {
   return {
@@ -49,5 +56,26 @@ describe('ListaPedidos e o filtro de cliente (RF-60, TA-54)', () => {
     render(<ListaPedidos pedidos={PEDIDOS} hoje="2026-09-21" />);
     fireEvent.change(screen.getByLabelText('Cliente'), { target: { value: 'xyz' } });
     expect(screen.getByText('Nenhum pedido desse cliente.')).toBeInTheDocument();
+  });
+});
+
+describe('o filtro vai ao servidor (RF-60)', () => {
+  it('depois de uma pausa na digitação, o texto vai para o endereço, sem perder os outros parâmetros', async () => {
+    vi.useFakeTimers();
+    replace.mockClear();
+    render(<ListaPedidos pedidos={PEDIDOS} hoje="2026-09-21" />);
+    fireEvent.change(screen.getByLabelText('Cliente'), { target: { value: 'jose' } });
+    expect(replace).not.toHaveBeenCalled();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(ATRASO_FILTRO_MS);
+    });
+    expect(replace).toHaveBeenCalledWith('/pedidos?feito=criado&q=jose', { scroll: false });
+    vi.useRealTimers();
+  });
+
+  it('abrir a tela não reescreve o endereço', () => {
+    replace.mockClear();
+    render(<ListaPedidos pedidos={PEDIDOS} hoje="2026-09-21" filtroInicial={{ clienteId: '', texto: 'jose' }} />);
+    expect(replace).not.toHaveBeenCalled();
   });
 });

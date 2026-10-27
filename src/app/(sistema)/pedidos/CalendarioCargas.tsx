@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { diaUtilAnterior, formatData, somaDias } from '@/lib/datas';
 import type { SituacaoViagem } from '@/lib/rotas';
 
 export interface DiaDoPedido {
@@ -38,12 +39,22 @@ function planejar(dia: string): string {
 const COR_ATRASADA = 'bg-red-200 text-red-900';
 const COR_PRONTA = 'bg-green-200 text-green-900';
 const COR_A_CONFIGURAR = 'bg-amber-200 text-amber-900';
+const COR_CARREGAR = 'bg-blue-100 text-blue-900';
 
 const LEGENDA = [
   { cor: COR_A_CONFIGURAR, texto: 'não confirmada' },
   { cor: COR_PRONTA, texto: 'entrega' },
   { cor: COR_ATRASADA, texto: 'atrasada' },
+  { cor: COR_CARREGAR, texto: 'carregar (dia útil antes da entrega)' },
 ];
+
+/** `?mes=AAAA-MM` do mês ao lado, para as setas. */
+function mesAoLado(mes: string, sentido: -1 | 1): string {
+  const alvo = sentido === 1 ? somaDias(mes, 31) : somaDias(mes, -1);
+  return alvo.slice(0, 7);
+}
+
+const NOMES_MES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
 
 const DIAS_DA_SEMANA = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'];
 
@@ -81,6 +92,13 @@ export function CalendarioCargas({ mes, hoje, pedidos, viagens = [], diasProntos
     entregas.set(pedido.dataEntrega, [...(entregas.get(pedido.dataEntrega) ?? []), pedido]);
   }
 
+  // RF-68, RN-62: o dia de carregar é o dia útil anterior à entrega
+  const carregamentos = new Map<string, DiaDoPedido[]>();
+  for (const pedido of pedidos) {
+    const dia = diaUtilAnterior(pedido.dataEntrega);
+    carregamentos.set(dia, [...(carregamentos.get(dia) ?? []), pedido]);
+  }
+
   const comViagem = new Set(viagens.map((viagem) => viagem.data));
   const prontos = new Set(diasProntos);
   const dias = diasDoMes(mes);
@@ -88,7 +106,26 @@ export function CalendarioCargas({ mes, hoje, pedidos, viagens = [], diasProntos
 
   return (
     <section className="flex flex-col gap-3 rounded-xl border border-line bg-white p-4">
-      <h2 className="text-sm font-bold tracking-widest text-muted uppercase">Entregas</h2>
+      {/* RF-68: o mês navega; o endereço guarda o mês, para voltar a ele */}
+      <div className="flex items-center justify-between gap-2">
+        <Link
+          href={`/pedidos?mes=${mesAoLado(mes, -1)}`}
+          aria-label="Mês anterior"
+          className="flex min-h-touch min-w-touch items-center justify-center rounded-lg border border-line text-lg font-bold text-ink"
+        >
+          ‹
+        </Link>
+        <h2 className="text-sm font-bold tracking-widest text-muted uppercase">
+          Entregas e carregamentos · {NOMES_MES[Number(mes.slice(5, 7)) - 1]} {mes.slice(0, 4)}
+        </h2>
+        <Link
+          href={`/pedidos?mes=${mesAoLado(mes, 1)}`}
+          aria-label="Mês seguinte"
+          className="flex min-h-touch min-w-touch items-center justify-center rounded-lg border border-line text-lg font-bold text-ink"
+        >
+          ›
+        </Link>
+      </div>
 
       <div className="grid grid-cols-7 gap-1">
         {DIAS_DA_SEMANA.map((dia) => (
@@ -105,10 +142,13 @@ export function CalendarioCargas({ mes, hoje, pedidos, viagens = [], diasProntos
           const entrega = entregas.get(dia) ?? [];
           // Entrega que passou com o pedido ainda não pronto é o que precisa saltar
           const atrasada = entrega.some((p) => dia < hoje && p.situacao !== 'pronto_envio');
+          const carregar = carregamentos.get(dia) ?? [];
           const cor = atrasada
             ? `${COR_ATRASADA} font-bold`
             : entrega.length === 0 && !comViagem.has(dia)
-              ? 'text-ink'
+              ? carregar.length > 0
+                ? `${COR_CARREGAR} font-bold`
+                : 'text-ink'
               : `${prontos.has(dia) ? COR_PRONTA : COR_A_CONFIGURAR} font-bold`;
           const marcado = dia === hoje ? 'ring-2 ring-brand' : '';
           const classe = `flex min-h-touch flex-col items-center justify-center gap-0.5 rounded-lg text-base ${cor} ${marcado} active:bg-brand-light`;
@@ -117,6 +157,11 @@ export function CalendarioCargas({ mes, hoje, pedidos, viagens = [], diasProntos
               <span>{Number(dia.slice(-2))}</span>
               {comViagem.has(dia) && (
                 <span aria-label="viagem em andamento" className="h-1.5 w-1.5 rounded-full bg-brand-dark" />
+              )}
+              {carregar.length > 0 && (
+                <span data-carregar={dia} className="text-[10px] leading-none font-semibold text-blue-900">
+                  carregar
+                </span>
               )}
             </>
           );
@@ -155,7 +200,19 @@ export function CalendarioCargas({ mes, hoje, pedidos, viagens = [], diasProntos
       {aberto && (
         <div className="flex flex-col gap-2 rounded-lg border border-line p-3">
           {/* O painel só abre em dia sem entrega: o dia com entrega já vai para a rotina */}
-          <p className="text-base text-muted">Nada marcado neste dia.</p>
+          {(carregamentos.get(aberto) ?? []).length > 0 ? (
+            <ul className="flex flex-col gap-1">
+              {(carregamentos.get(aberto) ?? []).map((pedido) => (
+                <li key={pedido.id}>
+                  <Link href={planejar(pedido.dataEntrega)} className="text-base font-semibold text-brand-dark underline">
+                    Carregar o pedido {pedido.numero} · {pedido.cliente}, entrega {formatData(pedido.dataEntrega)}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-base text-muted">Nada marcado neste dia.</p>
+          )}
           <Link
             href={planejar(aberto)}
             className="flex min-h-touch items-center justify-center rounded-xl border-2 border-brand bg-white px-4 text-base font-bold text-brand active:bg-brand-light"

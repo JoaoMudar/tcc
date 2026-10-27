@@ -20,7 +20,8 @@ import {
 import type { OrigemFrete } from './frete';
 import { ENDERECO_DO_PEDIDO } from './pedidos-entrega';
 import { enderecoEmTexto } from './rotas';
-import type { Db } from './sql';
+import { normalizeBusca, semAcento } from './especies';
+import { type Db, escapeLike } from './sql';
 import { isUuid } from './uuid';
 
 export {
@@ -241,12 +242,24 @@ const TOTAL_SQL = `CASE
                    FROM pedidos_itens i WHERE i.pedido_id = p.id AND ${itemVendavelSql('i')}), 0)
 END::bigint`;
 
+export interface FiltroPedidos {
+  /** O cliente tocado na lista: vale o id, porque dois clientes podem ter nome parecido. */
+  clienteId?: string | null;
+  /** O texto digitado, em pedaços soltos e sem acento. */
+  texto?: string;
+}
+
 /**
  * RF-60: a carteira inteira, do pedido mais novo ao mais antigo. Sem corte de
- * data: quem procura pelo cliente quer achar também o pedido de meses atrás, e
- * o filtro por cliente é feito na tela, enquanto se digita.
+ * data: quem procura pelo cliente quer achar também o pedido de meses atrás.
+ *
+ * **O filtro de cliente roda no banco, antes do limite**. Filtrado só na tela,
+ * ele olhava os 300 pedidos mais novos, e o pedido antigo de um cliente nunca
+ * aparecia. A tela continua filtrando enquanto se digita, para responder na hora.
  */
-export async function listPedidos(db: Db): Promise<PedidoResumo[]> {
+export async function listPedidos(db: Db, filtro: FiltroPedidos = {}): Promise<PedidoResumo[]> {
+  const clienteId = filtro.clienteId && isUuid(filtro.clienteId) ? filtro.clienteId : null;
+  const termos = normalizeBusca(filtro.texto ?? '').split(/\s+/).filter(Boolean).map(escapeLike);
   const { rows } = await db.query<Omit<PedidoResumo, 'totalCentavos'> & { totalCentavos: string | null }>(
     `SELECT p.id, p.numero_pedido AS numero, p.cliente_id AS "clienteId", c.nome AS cliente,
             p.canal_venda AS canal, p.situacao, p.criado_em AS "criadoEm",
@@ -256,8 +269,12 @@ export async function listPedidos(db: Db): Promise<PedidoResumo[]> {
             (${TOTAL_SQL} + ROUND(COALESCE(p.frete, 0) * 100)::bigint) AS "totalCentavos"
        FROM pedidos p
        JOIN cadastro.pessoas c ON c.id = p.cliente_id
+      WHERE ($1::uuid IS NULL OR p.cliente_id = $1)
+        AND NOT EXISTS (SELECT 1 FROM unnest($2::text[]) AS t(termo)
+                         WHERE ${semAcento('c.nome')} NOT LIKE '%' || t.termo || '%')
       ORDER BY p.numero_pedido DESC
       LIMIT 300`,
+    [clienteId, termos],
   );
   // `bigint` volta do `pg` como texto, para não perder precisão que aqui não existe
   return rows.map((row) => ({ ...row, totalCentavos: row.totalCentavos === null ? null : Number(row.totalCentavos) }));
