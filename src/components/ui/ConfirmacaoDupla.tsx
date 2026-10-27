@@ -4,6 +4,7 @@ import { type ReactNode, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Notice } from '@/components/ui/Notice';
+import { Toast } from '@/components/ui/Toast';
 
 interface ConfirmacaoDuplaProps {
   /** O que o botão da tela diz, antes de qualquer coisa acontecer. */
@@ -20,6 +21,12 @@ interface ConfirmacaoDuplaProps {
    * atrás dela é um aviso que ninguém lê.
    */
   erro?: string;
+  /**
+   * RNF-09: a confirmação de que gravou. Chegando, a folha fecha e o aviso
+   * aparece na tela, e some sozinho: gravar sem dizer que gravou deixa a pessoa
+   * tocando de novo.
+   */
+  sucesso?: string;
   /** Campos ocultos e o que mais o formulário precisar enviar. */
   children?: ReactNode;
   /** `danger` pinta de vermelho o botão da tela e o que confirma, para a ação que desfaz um dia de trabalho. */
@@ -43,13 +50,25 @@ export function ConfirmacaoDupla({
   action,
   pendente = false,
   erro,
+  sucesso,
   children,
   tom = 'secondary',
 }: ConfirmacaoDuplaProps) {
   const [aberta, setAberta] = useState(false);
+  // O sucesso novo fecha a folha, ajustado na renderização e não num efeito
+  const [sucessoVisto, setSucessoVisto] = useState(sucesso);
+  if (sucesso !== sucessoVisto) {
+    setSucessoVisto(sucesso);
+    if (sucesso) setAberta(false);
+  }
 
   return (
     <>
+      {sucesso && (
+        <Toast tone="success" gatilho={sucesso}>
+          {sucesso}
+        </Toast>
+      )}
       <Button type="button" variant={tom} onClick={() => setAberta(true)}>
         {rotuloBotao}
       </Button>

@@ -233,7 +233,7 @@ describe('cancelar a entrega', () => {
   it('em qualquer etapa, apaga a viagem e volta ao calendário', async () => {
     situacaoViagem = 'carregando';
     await expect(actions.cancelarEntregaAction({}, form({ data: DIA, viagem_id: VIAGEM }))).rejects.toThrow(
-      /^REDIRECT \/pedidos$/,
+      /^REDIRECT \/pedidos\?feito=entrega_cancelada$/,
     );
     expect(gravouEm('DELETE FROM viagens WHERE id')[0][1]).toEqual([VIAGEM]);
     expect(gravouEm('UPDATE pedidos SET data_entrega = NULL')).toHaveLength(1);

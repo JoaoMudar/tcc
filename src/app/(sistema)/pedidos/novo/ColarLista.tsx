@@ -370,7 +370,7 @@ export function ColarLista({
                       <button
                         type="button"
                         onClick={() => setCriandoPara(linha)}
-                        className="px-3 pb-2 text-left text-sm font-bold text-brand underline"
+                        className="flex min-h-11 items-center px-3 pb-2 text-left text-sm font-bold text-brand underline"
                       >
                         + Cadastrar &quot;{linha.nomeColado}&quot; como espécie nova
                       </button>
@@ -383,7 +383,7 @@ export function ColarLista({
                         <button
                           type="submit"
                           disabled={aprendendo}
-                          className="text-left text-sm font-bold text-brand underline disabled:opacity-60"
+                          className="flex min-h-11 items-center text-left text-sm font-bold text-brand underline disabled:opacity-60"
                         >
                           + Salvar &quot;{linha.nomeColado}&quot; como outro nome de {linha.especie}
                         </button>

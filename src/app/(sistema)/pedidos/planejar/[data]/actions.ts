@@ -97,7 +97,8 @@ export async function cancelarEntregaAction(_previous: FormState, formData: Form
     return { error: toUserMessage(error) };
   }
   revalidar(viagem.data);
-  redirect('/pedidos');
+  // RNF-09: a carteira diz que a entrega foi cancelada, em vez de só trocar de tela
+  redirect('/pedidos?feito=entrega_cancelada');
 }
 
 /**

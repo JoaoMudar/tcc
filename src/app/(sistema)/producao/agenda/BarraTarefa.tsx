@@ -263,7 +263,7 @@ export function BarraTarefa({
                   onClick={() => onPromover(a.id)}
                   aria-label={`Tornar principal: ${a.tipo}`}
                   title="Tornar principal"
-                  className="pointer-events-auto rounded bg-white/80 px-1 text-xs leading-4 text-muted opacity-0 group-hover/barra:opacity-100 hover:text-ink focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-brand-dark"
+                  className="relative after:absolute after:-inset-3 after:content-[''] pointer-events-auto rounded bg-white/80 px-1 text-xs leading-4 text-muted opacity-0 group-hover/barra:opacity-100 hover:text-ink focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-brand-dark"
                 >
                   ⤒
                 </button>
