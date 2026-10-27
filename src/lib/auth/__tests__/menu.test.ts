@@ -27,6 +27,9 @@ describe('visibleNavItems', () => {
   it('admin vê tudo', () => {
     expect(labels('admin')).toContain('Usuários');
     expect(labels('admin')).toContain('Registro de acessos');
-    expect(labels('admin')).toHaveLength(7);
+    // RF-13: a referência da Flora e Funga é só do administrador
+    expect(labels('admin')).toContain('Flora e Funga do Brasil');
+    expect(labels('chefia')).not.toContain('Flora e Funga do Brasil');
+    expect(labels('admin')).toHaveLength(8);
   });
 });

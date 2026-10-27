@@ -9,6 +9,7 @@ import { NENHUM, type UnidadeTarefa } from '@/lib/agenda-rotulos';
 import { EMPTY_FORM_STATE } from '@/lib/form-state';
 import { CATEGORIA_TAREFA_LABELS, type CategoriaTarefa, type Declaracoes } from '@/lib/tipos-tarefa';
 import { Interruptor } from '../../cadastros/tipos-tarefa/Interruptor';
+import { type AreaOpcao, AreaCanteiroOpcional } from './AreaCanteiroOpcional';
 import { EscolhaMultipla } from './EscolhaMultipla';
 import { atualizarAtribuicaoAction, criarAtribuicaoAction } from './actions';
 
@@ -27,6 +28,8 @@ export interface OpcoesAtribuicao {
   lotes: readonly SelectOption[];
   especies: readonly SelectOption[];
   recipientes: readonly SelectOption[];
+  /** RF-37: área e canteiro no planejamento, quando o tipo os declara e não pede lote. */
+  areas?: readonly AreaOpcao[];
 }
 
 interface AtribuicaoFormProps {
@@ -66,6 +69,10 @@ export function AtribuicaoForm({ semana, opcoes, inicial, atribuicaoId, fixos, v
       {voltarParaAgenda && <input type="hidden" name="voltar" value="agenda" />}
       {/* RF-53: a etapa que originou a sugestão viaja junto; o vencimento dela o servidor lê */}
       {valores.lote_etapa_id && <input type="hidden" name="lote_etapa_id" value={valores.lote_etapa_id} />}
+      {/* RF-53: a sugestão leva o lote mesmo quando o tipo não o pede, sem mostrar campo */}
+      {valores.lote_etapa_id && !tipo?.exigeLote && valores.lote_id && (
+        <input type="hidden" name="lote_id" value={valores.lote_id} />
+      )}
 
       <EscolhaMultipla legenda="Quem vai fazer" obrigatorio name="participantes" opcoes={opcoes.funcionarios} marcados={lista('participantes')} />
       <SelectField
@@ -115,12 +122,9 @@ export function AtribuicaoForm({ semana, opcoes, inicial, atribuicaoId, fixos, v
           defaultValue={valores.recipiente_id || NENHUM}
         />
       )}
-      {/* Na alteração, a área escolhida na confirmação não pode se perder */}
-      {editando && tipo?.exigeArea && (
-        <>
-          <input type="hidden" name="area_id" value={valores.area_id ?? ''} />
-          <input type="hidden" name="canteiro_id" value={valores.canteiro_id ?? ''} />
-        </>
+      {/* RF-37: o tipo que declara área e não pede lote a pede já no planejamento */}
+      {tipo?.exigeArea && !tipo.exigeLote && (
+        <AreaCanteiroOpcional areas={opcoes.areas ?? []} defaultAreaId={valores.area_id} defaultCanteiroId={valores.canteiro_id} />
       )}
       {tipo?.eQuantitativa && (
         <TextField

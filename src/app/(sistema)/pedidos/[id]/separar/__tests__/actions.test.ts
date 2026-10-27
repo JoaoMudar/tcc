@@ -139,7 +139,8 @@ describe('contar (T8.14)', () => {
     const dados = form({ pedido_id: PEDIDO, carga_item_id: ITEM_A, separado: 'sim' });
     expect((await actions.marcarItemSeparadoAction({}, dados)).success).toMatch(/separado/i);
     const [, valores] = gravouEm('UPDATE pedidos_cargas_itens')[0];
-    expect(valores).toEqual([ITEM_A, true]);
+    // RNF-15: quem separou vai junto
+    expect(valores).toEqual([ITEM_A, true, 'u1']);
   });
 
   it('desmarcar manda false, e não inverte no servidor', async () => {
@@ -147,7 +148,7 @@ describe('contar (T8.14)', () => {
     const dados = form({ pedido_id: PEDIDO, carga_item_id: ITEM_A, separado: 'nao' });
     await actions.marcarItemSeparadoAction({}, dados);
     const [, valores] = gravouEm('UPDATE pedidos_cargas_itens')[0];
-    expect(valores).toEqual([ITEM_A, false]);
+    expect(valores).toEqual([ITEM_A, false, 'u1']);
   });
 
   it('item marcado numa carga já pronta é recusado', async () => {

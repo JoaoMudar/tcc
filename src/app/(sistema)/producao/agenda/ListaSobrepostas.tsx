@@ -45,7 +45,7 @@ export function ListaSobrepostas({ tarefas, promovivel, onPromover }: ListaSobre
         onClick={() => setAberta((antes) => !antes)}
         aria-expanded={aberta}
         aria-label={`Mais ${tarefas.length} ${tarefas.length === 1 ? 'tarefa' : 'tarefas'} neste horário`}
-        className="rounded bg-white/90 px-1 text-[11px] leading-4 font-semibold text-ink shadow-sm hover:bg-white focus-visible:outline-2 focus-visible:outline-brand-dark"
+        className="relative after:absolute after:-inset-3 after:content-[''] rounded bg-white/90 px-1 text-[11px] leading-4 font-semibold text-ink shadow-sm hover:bg-white focus-visible:outline-2 focus-visible:outline-brand-dark"
       >
         +{tarefas.length}
       </button>
@@ -67,7 +67,7 @@ export function ListaSobrepostas({ tarefas, promovivel, onPromover }: ListaSobre
                     onPromover(t.id);
                     setAberta(false);
                   }}
-                  className="shrink-0 rounded px-1 text-[11px] font-semibold text-brand-dark hover:underline"
+                  className="flex min-h-11 shrink-0 items-center rounded px-1 text-[11px] font-semibold text-brand-dark hover:underline"
                 >
                   Tornar principal
                 </button>

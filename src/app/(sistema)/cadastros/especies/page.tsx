@@ -4,6 +4,7 @@ import { Pill } from '@/components/ui/Pill';
 import { SearchForm } from '@/components/ui/SearchForm';
 import pool from '@/lib/db';
 import { CARACTERISTICA_LABELS, nomeExibido, searchEspecies } from '@/lib/especies';
+import { atribuicaoFfb } from '@/lib/especies-ffb';
 import { can } from '@/lib/permissions';
 import { requirePageAccess } from '@/lib/auth/guards';
 
@@ -12,7 +13,9 @@ export default async function EspeciesPage({ searchParams }: PageProps<'/cadastr
   const user = await requirePageAccess('especies');
   const params = await searchParams;
   const busca = typeof params.busca === 'string' ? params.busca.slice(0, 80) : '';
-  const especies = await searchEspecies(pool, busca);
+  const soPendentes = params.status === 'pendente';
+  // RNF-18: a lista traz nomes conferidos na Flora e Funga, e a licença CC-BY pede a atribuição
+  const [especies, atribuicao] = await Promise.all([searchEspecies(pool, busca, { soPendentes }), atribuicaoFfb(pool)]);
 
   return (
     <main>
@@ -22,6 +25,13 @@ export default async function EspeciesPage({ searchParams }: PageProps<'/cadastr
           Voltar
         </Link>
         <SearchForm label="Buscar por qualquer nome" defaultValue={busca} />
+        {/* RN-05: a lista das que esperam a revisão do nome pela chefia */}
+        <Link
+          href={soPendentes ? '/cadastros/especies' : '/cadastros/especies?status=pendente'}
+          className="flex min-h-11 items-center text-base font-semibold text-brand-dark underline"
+        >
+          {soPendentes ? 'Ver todas as espécies' : 'Ver só as pendentes de revisão do nome'}
+        </Link>
 
         {especies.map((especie) => (
           <Link
@@ -69,6 +79,7 @@ export default async function EspeciesPage({ searchParams }: PageProps<'/cadastr
             + Nova espécie
           </Link>
         )}
+        {atribuicao && <p className="pt-2 text-xs text-muted">{atribuicao}</p>}
       </div>
     </main>
   );

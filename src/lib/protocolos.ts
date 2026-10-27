@@ -444,12 +444,19 @@ export async function materializarProtocolo(
   loteId: string,
   recipienteId: string,
   dataCriacao: string,
+  /** RF-30: na divisão, o protocolo do original, mesmo que não seja mais o vigente. */
+  herdado?: { id: string | null },
 ): Promise<string | null> {
-  const { rows } = await client.query<{ id: string }>(
-    'SELECT id FROM protocolos WHERE recipiente_id = $1 AND ativo',
-    [recipienteId],
-  );
-  const protocoloId = rows[0]?.id ?? null;
+  let protocoloId: string | null;
+  if (herdado) {
+    protocoloId = herdado.id;
+  } else {
+    const { rows } = await client.query<{ id: string }>(
+      'SELECT id FROM protocolos WHERE recipiente_id = $1 AND ativo',
+      [recipienteId],
+    );
+    protocoloId = rows[0]?.id ?? null;
+  }
   if (!protocoloId) return null;
 
   await client.query('UPDATE lotes SET protocolo_id = $2 WHERE id = $1', [loteId, protocoloId]);
@@ -731,7 +738,8 @@ export async function concluirEtapaSemAgenda(
   return concluirEtapa(client, loteId, protocoloEtapaId, hoje);
 }
 
-export type TipoAcaoEtapa = 'adiamento' | 'conclusao_sem_agenda';
+/** `adiamento_tarefa`: a tarefa lançada andou, e o vencimento da etapa não (RF-55, migration 20261027000003). */
+export type TipoAcaoEtapa = 'adiamento' | 'conclusao_sem_agenda' | 'adiamento_tarefa';
 
 /** Uma linha do histórico do protocolo do lote (RF-55). */
 export interface AcaoDaEtapa {
@@ -788,6 +796,17 @@ export async function herdarProtocolo(client: Db, origemId: string, destinoId: s
         AND destino.protocolo_etapa_id = origem.protocolo_etapa_id`,
     [origemId, destinoId],
   );
+  // RF-30: o adiamento da ocorrência em aberto vem junto; sem ele o vencimento
+  // dos resultantes voltava ao de antes do adiamento
+  await client.query(
+    `INSERT INTO lotes_etapas_acoes (lote_id, protocolo_etapa_id, ocorrencia, tipo_acao, dias, data_acao, registrado_por, observacoes)
+     SELECT $2, ac.protocolo_etapa_id, ac.ocorrencia, ac.tipo_acao, ac.dias, ac.data_acao, ac.registrado_por, ac.observacoes
+       FROM lotes_etapas_acoes ac
+       JOIN lotes_etapas origem ON origem.lote_id = ac.lote_id AND origem.protocolo_etapa_id = ac.protocolo_etapa_id
+       JOIN lotes_etapas destino ON destino.lote_id = $2 AND destino.protocolo_etapa_id = ac.protocolo_etapa_id
+      WHERE ac.lote_id = $1 AND ac.tipo_acao = 'adiamento' AND ac.ocorrencia = origem.ocorrencias + 1`,
+    [origemId, destinoId],
+  );
   return rowCount ?? 0;
 }
 
@@ -815,24 +834,52 @@ export async function encerrarProtocoloDoLote(client: Db, loteId: string): Promi
     `UPDATE atribuicoes
         SET situacao = 'cancelada'
       WHERE lote_id = $1
-        AND lote_etapa_id IS NOT NULL
-        AND situacao = 'planejada'`,
+        AND situacao = 'planejada'
+        -- RF-58: também a tarefa lançada à mão no lote, que ficaria planejada
+        -- num lote encerrado; a semana fechada não se reescreve (RN-30)
+        AND semana_id IN (SELECT id FROM semanas WHERE situacao = 'aberta')`,
     [loteId],
   );
   return rowCount ?? 0;
 }
 
+/**
+ * Edita a etapa no lugar. Duas travas:
+ * - RF-44: só a etapa deste protocolo (`AND protocolo_id`), e o identificador
+ *   postado de outro protocolo não altera nada;
+ * - RN-42: o tipo de tarefa e o tipo de agendamento não mudam depois que algum
+ *   lote executou a etapa. O histórico do lote mostra o rótulo e o tipo atuais, e
+ *   trocá-los reescreveria o que foi feito com o nome de outra coisa: o caminho
+ *   é criar etapa nova e desativar esta.
+ */
 export async function updateEtapa(
   db: Db,
+  protocoloId: string,
   id: string,
   changes: EtapaFields & { ativo: boolean },
 ): Promise<'ok' | 'nao_encontrado'> {
+  const { rows: atual } = await db.query<{ tipoTarefaId: string; tipoAgendamento: TipoAgendamento; executada: boolean }>(
+    `SELECT e.tipo_tarefa_id AS "tipoTarefaId", e.tipo_agendamento AS "tipoAgendamento",
+            EXISTS (SELECT 1 FROM lotes_etapas le WHERE le.protocolo_etapa_id = e.id AND le.ocorrencias > 0) AS executada
+       FROM protocolos_etapas e
+      WHERE e.id = $1 AND e.protocolo_id = $2`,
+    [id, protocoloId],
+  );
+  if (!atual[0]) return 'nao_encontrado';
+  if (
+    atual[0].executada &&
+    (atual[0].tipoTarefaId !== changes.tipoTarefaId || atual[0].tipoAgendamento !== changes.tipoAgendamento)
+  ) {
+    throw new UserError(
+      'Esta etapa já foi feita em algum lote: o tipo de tarefa e o agendamento não mudam mais. Crie uma etapa nova e desative esta.',
+    );
+  }
   const { rowCount } = await db.query(
     `UPDATE protocolos_etapas
         SET tipo_tarefa_id = $2, rotulo = $3, tipo_agendamento = $4, tipo_ancora = $5, etapa_ancora_id = $6,
             dias = $7, intervalo_dias = $8, turno_id = $9, alerta_ligado = $10, janela_aviso_pct = $11,
             fase_resultante = $12, ativo = $13
-      WHERE id = $1`,
+      WHERE id = $1 AND protocolo_id = $14`,
     [
       id,
       changes.tipoTarefaId,
@@ -847,6 +894,7 @@ export async function updateEtapa(
       changes.janelaAvisoPct,
       changes.faseResultante,
       changes.ativo,
+      protocoloId,
     ],
   );
   return rowCount ? 'ok' : 'nao_encontrado';

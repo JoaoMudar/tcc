@@ -30,6 +30,7 @@ const OPCOES: OpcoesAtribuicao = {
   lotes: [{ value: 'l1', label: 'L-1', grupo: 'Área A · Canteiro 1' }],
   especies: [],
   recipientes: [],
+  areas: [{ id: 'a1', letra: 'A', canteiros: [{ id: 'c1', numero: 1 }] }],
 };
 
 function formulario(inicial: Record<string, string>, atribuicaoId?: string) {
@@ -38,12 +39,12 @@ function formulario(inicial: Record<string, string>, atribuicaoId?: string) {
 }
 
 describe('AtribuicaoForm', () => {
-  it('tipo sem declarações: sem área, lote nem quantidade, e os detalhes fechados', () => {
+  it('RF-37: o tipo que declara área e não pede lote a pede já no planejamento; sem lote nem quantidade', () => {
     const container = formulario({ tipo_tarefa_id: SIMPLES.id });
-    expect(screen.queryByLabelText(/Área/)).toBeNull();
+    expect(screen.getByLabelText('Área')).toBeInTheDocument();
+    expect(screen.getByLabelText('Canteiro')).toBeInTheDocument();
     expect(screen.queryByLabelText('Lote')).toBeNull();
     expect(screen.queryByLabelText(/Quantidade prevista/)).toBeNull();
-    expect(container.querySelector('input[name="area_id"]')).toBeNull();
     expect(container.querySelector('details')?.open).toBe(false);
   });
 
@@ -75,11 +76,10 @@ describe('AtribuicaoForm', () => {
     expect(container.querySelector('details')?.open).toBe(true);
   });
 
-  it('na alteração, a área gravada vai junto sem aparecer', () => {
-    const container = formulario({ tipo_tarefa_id: SIMPLES.id, dias: '2026-09-14', area_id: 'a1', canteiro_id: 'c1' }, 'atr1');
-    expect((container.querySelector('input[name="area_id"]') as HTMLInputElement).value).toBe('a1');
-    expect((container.querySelector('input[name="canteiro_id"]') as HTMLInputElement).value).toBe('c1');
-    expect(screen.queryByLabelText(/Área/)).toBeNull();
+  it('na alteração, a área gravada aparece escolhida', () => {
+    formulario({ tipo_tarefa_id: SIMPLES.id, dias: '2026-09-14', area_id: 'a1', canteiro_id: 'c1' }, 'atr1');
+    expect((screen.getByLabelText('Área') as HTMLSelectElement).value).toBe('a1');
+    expect((screen.getByLabelText('Canteiro') as HTMLSelectElement).value).toBe('c1');
   });
 
   it('o tipo sem a declaração de área não carrega área nem na alteração, e a quantidade diz a unidade', () => {

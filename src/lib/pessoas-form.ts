@@ -47,6 +47,10 @@ export interface Endereco {
    */
   lat?: number | null;
   lng?: number | null;
+  /** RF-19: o que a NF-e pede separado. Só o endereço de cobrança os mostra; ausente é nulo. */
+  numero?: string | null;
+  bairro?: string | null;
+  codigoIbge?: string | null;
 }
 
 export interface PessoaResumo {
@@ -64,10 +68,16 @@ export interface PessoaResumo {
 export interface PessoaFicha extends PessoaResumo {
   email: string | null;
   observacoes: string | null;
+  /** RF-19: presentes só com `verFiscal`, como o documento. */
+  razaoSocial?: string | null;
+  inscricaoEstadual?: string | null;
   enderecos: Endereco[];
 }
 
-export function enderecoFieldName(tipo: TipoEndereco, campo: 'logradouro' | 'cidade' | 'uf' | 'cep' | 'localizacao'): string {
+export function enderecoFieldName(
+  tipo: TipoEndereco,
+  campo: 'logradouro' | 'cidade' | 'uf' | 'cep' | 'localizacao' | 'numero' | 'bairro' | 'codigo_ibge',
+): string {
   return `endereco_${tipo}_${campo}`;
 }
 

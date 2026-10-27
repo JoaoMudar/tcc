@@ -98,7 +98,8 @@ export function normalizeBusca(text: string): string {
 
 const COM_ACENTO = 'áàâãäéèêëíìîïóòôõöúùûüçñ';
 const SEM_ACENTO = 'aaaaaeeeeiiiiooooouuuucn';
-const semAcento = (expr: string) => `translate(lower(${expr}), '${COM_ACENTO}', '${SEM_ACENTO}')`;
+/** A expressão SQL que tira acento e caixa, como `normalizeBusca` faz no TypeScript. */
+export const semAcento = (expr: string) => `translate(lower(${expr}), '${COM_ACENTO}', '${SEM_ACENTO}')`;
 
 export function duplicateMessage(error: unknown): string | null {
   switch (violatedConstraint(error, '23505')) {
@@ -121,20 +122,24 @@ const SELECT_ESPECIE = `
     FROM especies e
     LEFT JOIN especies_nomes_populares n ON n.especie_id = e.id`;
 
-/** RF-10: acha pelo nome científico ou por qualquer nome popular. */
-export async function searchEspecies(db: Db, busca = ''): Promise<Especie[]> {
+/**
+ * RF-10: acha pelo nome científico ou por qualquer nome popular. RN-05: `soPendentes`
+ * traz só as que esperam a revisão da chefia (nome que não bateu com a Flora e Funga).
+ */
+export async function searchEspecies(db: Db, busca = '', { soPendentes = false } = {}): Promise<Especie[]> {
   const termo = normalizeBusca(busca);
   const { rows } = await db.query<Especie>(
     `${SELECT_ESPECIE}
-      WHERE $1 = ''
+      WHERE ($1 = ''
          OR ${semAcento('e.nome_cientifico')} LIKE '%' || $2 || '%'
          OR EXISTS (SELECT 1 FROM especies_nomes_populares b
-                     WHERE b.especie_id = e.id AND ${semAcento('b.nome')} LIKE '%' || $2 || '%')
+                     WHERE b.especie_id = e.id AND ${semAcento('b.nome')} LIKE '%' || $2 || '%'))
+        AND (NOT $3 OR e.status_validacao = 'pendente')
       GROUP BY e.id
       ORDER BY e.ativa DESC,
                lower(COALESCE(MAX(n.nome) FILTER (WHERE n.e_principal), e.nome_cientifico))
       LIMIT 300`,
-    [termo, escapeLike(termo)],
+    [termo, escapeLike(termo), soPendentes],
   );
   return rows;
 }

@@ -68,7 +68,9 @@ export function ProtocoloDoLote({ etapas, acoes = [] }: { etapas: readonly Etapa
                   {acao.rotulo}:{' '}
                   {acao.tipoAcao === 'adiamento'
                     ? `postergada ${acao.dias} ${acao.dias === 1 ? 'dia' : 'dias'}`
-                    : 'concluída sem agenda'}
+                    : acao.tipoAcao === 'adiamento_tarefa'
+                      ? `tarefa adiada ${acao.dias} ${acao.dias === 1 ? 'dia' : 'dias'}`
+                      : 'concluída sem agenda'}
                 </span>
                 <span className="text-sm text-muted">
                   {formatData(acao.dataAcao)} · {acao.registradoPor}

@@ -67,6 +67,9 @@ export interface Perda {
 }
 
 /** T4.11, RF-35: perdas do período, com espécie e causa opcionais. */
+/** Quantos registros a lista mostra no máximo; a tela avisa quando o corte acontece (RF-35). */
+export const LIMITE_PERDAS = 500;
+
 export async function listPerdas(db: Db, filtro: FiltroPerdas): Promise<Perda[]> {
   const { rows } = await db.query<Perda>(
     `SELECT m.id, to_char(m.data_movimento, 'YYYY-MM-DD') AS data, l.id AS "loteId", l.codigo,
@@ -81,7 +84,7 @@ export async function listPerdas(db: Db, filtro: FiltroPerdas): Promise<Perda[]>
         AND ($3::uuid IS NULL OR l.especie_id = $3)
         AND ($4::text IS NULL OR m.causa_perda = $4)
       ORDER BY m.data_movimento DESC, m.criado_em DESC
-      LIMIT 500`,
+      LIMIT ${LIMITE_PERDAS}`,
     [filtro.de, filtro.ate, filtro.especieId, filtro.causa],
   );
   return rows;

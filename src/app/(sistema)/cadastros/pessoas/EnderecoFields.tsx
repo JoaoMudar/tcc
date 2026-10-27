@@ -2,7 +2,7 @@ import { CampoLocalizacao } from '@/components/ui/CampoLocalizacao';
 import { SelectField } from '@/components/ui/SelectField';
 import { TextField } from '@/components/ui/TextField';
 import { linkDoPonto } from '@/lib/localizacao';
-import { ENDERECO_LABELS, type Endereco, type TipoEndereco, UFS, enderecoFieldName } from '@/lib/pessoas-form';
+import { ENDERECO_FISCAL, ENDERECO_LABELS, type Endereco, type TipoEndereco, UFS, enderecoFieldName } from '@/lib/pessoas-form';
 
 interface EnderecoFieldsProps {
   tipo: TipoEndereco;
@@ -20,8 +20,12 @@ const UF_OPTIONS = UFS.map((uf) => ({ value: uf, label: uf }));
  * WhatsApp, e mostra o ponto guardado, para conferir no mapa.
  */
 export function EnderecoFields({ tipo, endereco, fields }: EnderecoFieldsProps) {
-  const valor = (campo: 'logradouro' | 'cidade' | 'uf' | 'cep') => fields?.[enderecoFieldName(tipo, campo)] ?? endereco?.[campo] ?? '';
-  const temDado = Boolean(valor('logradouro') || valor('cidade') || valor('uf') || valor('cep'));
+  const valor = (campo: 'logradouro' | 'cidade' | 'uf' | 'cep' | 'numero' | 'bairro') =>
+    fields?.[enderecoFieldName(tipo, campo)] ?? endereco?.[campo] ?? '';
+  const ibge = fields?.[enderecoFieldName(tipo, 'codigo_ibge')] ?? endereco?.codigoIbge ?? '';
+  // RF-19: o endereço de cobrança é o da nota, e a NF-e pede número, bairro e código IBGE separados
+  const daNota = tipo === ENDERECO_FISCAL;
+  const temDado = Boolean(valor('logradouro') || valor('cidade') || valor('uf') || valor('cep') || valor('bairro'));
   const ponto = endereco?.lat != null && endereco.lng != null ? { lat: endereco.lat, lng: endereco.lng } : null;
 
   return (
@@ -30,12 +34,31 @@ export function EnderecoFields({ tipo, endereco, fields }: EnderecoFieldsProps) 
         {ENDERECO_LABELS[tipo]}
       </summary>
       <div className="flex flex-col gap-3 pb-4">
-        <TextField label="Rua e número" name={enderecoFieldName(tipo, 'logradouro')} defaultValue={valor('logradouro')} />
+        {daNota ? (
+          <>
+            <div className="grid grid-cols-[3fr_1fr] gap-3">
+              <TextField label="Rua" name={enderecoFieldName(tipo, 'logradouro')} defaultValue={valor('logradouro')} />
+              <TextField label="Número" name={enderecoFieldName(tipo, 'numero')} defaultValue={valor('numero')} />
+            </div>
+            <TextField label="Bairro" name={enderecoFieldName(tipo, 'bairro')} defaultValue={valor('bairro')} />
+          </>
+        ) : (
+          <TextField label="Rua e número" name={enderecoFieldName(tipo, 'logradouro')} defaultValue={valor('logradouro')} />
+        )}
         <div className="grid grid-cols-[3fr_1fr] gap-3">
           <TextField label="Cidade" name={enderecoFieldName(tipo, 'cidade')} defaultValue={valor('cidade')} />
           <SelectField label="UF" name={enderecoFieldName(tipo, 'uf')} options={UF_OPTIONS} placeholder="UF" defaultValue={valor('uf')} />
         </div>
         <TextField label="CEP" name={enderecoFieldName(tipo, 'cep')} inputMode="numeric" defaultValue={valor('cep')} />
+        {daNota && (
+          <TextField
+            label="Código IBGE do município"
+            name={enderecoFieldName(tipo, 'codigo_ibge')}
+            inputMode="numeric"
+            hint="7 números; está na consulta de CEP dos Correios ou no site do IBGE."
+            defaultValue={ibge}
+          />
+        )}
         {tipo === 'entrega' && (
           <>
             {ponto && (

@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ComboboxField } from '@/components/ui/ComboboxField';
 import { Pill, type PillTone } from '@/components/ui/Pill';
 import { diaUtilAnterior, formatData } from '@/lib/datas';
@@ -36,7 +37,12 @@ export interface PedidoDaLista {
 interface ListaPedidosProps {
   pedidos: readonly PedidoDaLista[];
   hoje: string;
+  /** O filtro que veio no endereço (`?cliente=` ou `?q=`), aplicado também no banco. */
+  filtroInicial?: { clienteId: string; texto: string };
 }
+
+/** Quanto esperar depois da última tecla antes de pedir ao servidor. */
+export const ATRASO_FILTRO_MS = 400;
 
 const TOM: Record<SituacaoPedido, PillTone> = {
   cadastrado: 'neutral',
@@ -60,9 +66,32 @@ const PROVIDENCIA: Partial<Record<SituacaoPedido, string>> = {
  * mesmo do novo pedido, e a lista dele só traz quem tem pedido aqui: escolher
  * um cliente sem pedido seria escolher uma tela vazia.
  */
-export function ListaPedidos({ pedidos, hoje }: ListaPedidosProps) {
-  const [clienteId, setClienteId] = useState('');
-  const [texto, setTexto] = useState('');
+export function ListaPedidos({ pedidos, hoje, filtroInicial = { clienteId: '', texto: '' } }: ListaPedidosProps) {
+  const [clienteId, setClienteId] = useState(filtroInicial.clienteId);
+  const [texto, setTexto] = useState(filtroInicial.texto);
+
+  // RF-60: a lista filtra na hora, e o endereço leva o filtro ao banco depois de
+  // uma pausa na digitação, que é o que acha o pedido antigo fora dos 300 mais novos
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const primeira = useRef(true);
+  useEffect(() => {
+    if (primeira.current) {
+      primeira.current = false;
+      return;
+    }
+    const espera = setTimeout(() => {
+      const params = new URLSearchParams(searchParams?.toString() ?? '');
+      params.delete('cliente');
+      params.delete('q');
+      if (clienteId) params.set('cliente', clienteId);
+      else if (texto.trim()) params.set('q', texto.trim());
+      const query = params.toString();
+      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    }, ATRASO_FILTRO_MS);
+    return () => clearTimeout(espera);
+  }, [clienteId, texto, pathname, router, searchParams]);
 
   const clientes = useMemo(() => {
     const porId = new Map(pedidos.map((pedido) => [pedido.clienteId, pedido.cliente]));
@@ -103,7 +132,8 @@ export function ListaPedidos({ pedidos, hoje }: ListaPedidosProps) {
                   <span className="text-sm text-muted">
                     {CANAIS_VENDA[pedido.canal]} · {formatQuantidade(pedido.itens)}{' '}
                     {pedido.itens === 1 ? 'item' : 'itens'} · {formatDateTime(pedido.criadoEm)}
-                    {pedido.dataEntrega && ` · entrega ${formatData(pedido.dataEntrega)}`}
+                    {pedido.dataEntrega &&
+                      ` · entrega ${formatData(pedido.dataEntrega)} · carregar ${formatData(diaUtilAnterior(pedido.dataEntrega))}`}
                   </span>
                   <Pill tone={TOM[pedido.situacao]}>{SITUACOES_PEDIDO[pedido.situacao]}</Pill>
                 </div>

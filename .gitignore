@@ -13,7 +13,7 @@ build/
 next-env.d.ts
 *.tsbuildinfo
 
-# segredos (RNF-19): nenhum .env entra no git, só o exemplo
+# segredos (RNF-25): nenhum .env entra no git, só o exemplo
 .env*
 !.env.example
 *.pem

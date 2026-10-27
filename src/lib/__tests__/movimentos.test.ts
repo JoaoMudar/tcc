@@ -84,10 +84,16 @@ describe('registrarMovimento, a porta única', () => {
     const c = cliente();
     const resultado = await registrarMovimento(c, { loteId: 'l1', tipo: 'perda', quantidade: -200, causa: 'geada', registradoPor: 'u1' });
     expect(resultado).toEqual({ saldo: 0, encerrado: true });
-    const update = escritas(c)[1].sql;
-    expect(update).toMatch(/encerrado_em = NOW\(\)/);
-    expect(update).toMatch(/canteiro_id = NULL/);
-    expect(update).toMatch(/motivo_encerramento = 'saldo_zero'/);
+    const update = escritas(c)[1];
+    expect(update.sql).toMatch(/encerrado_em = NOW\(\)/);
+    expect(update.sql).toMatch(/canteiro_id = NULL/);
+    expect(update.params).toEqual(['l1', 'saldo_zero']);
+  });
+
+  it('RF-34: a venda que zera o lote o encerra como expedido', async () => {
+    const c = cliente();
+    await registrarMovimento(c, { loteId: 'l1', tipo: 'venda', quantidade: -200, registradoPor: 'u1' });
+    expect(escritas(c)[1].params).toEqual(['l1', 'expedido']);
   });
 
   it('RF-58: encerrado o lote, as ordens do protocolo ainda planejadas são canceladas, e não apagadas', async () => {
@@ -97,7 +103,9 @@ describe('registrarMovimento, a porta única', () => {
     const cancelamento = escritas(c).find(({ sql }) => sql.includes('atribuicoes'));
     expect(cancelamento).toBeDefined();
     expect(cancelamento!.sql).toMatch(/SET situacao = 'cancelada'/);
-    expect(cancelamento!.sql).toMatch(/lote_etapa_id IS NOT NULL/);
+    // Também a tarefa lançada à mão no lote, mas só em semana aberta (auditoria de 24/10/2026)
+    expect(cancelamento!.sql).not.toMatch(/lote_etapa_id IS NOT NULL/);
+    expect(cancelamento!.sql).toMatch(/situacao = 'aberta'/);
     // A confirmada e a não confirmada são passado, e o encerramento não as reescreve
     expect(cancelamento!.sql).toMatch(/situacao = 'planejada'/);
     expect(cancelamento!.sql).not.toMatch(/DELETE/);
@@ -146,5 +154,15 @@ describe('registrarMovimento, a porta única', () => {
     await expect(
       registrarMovimento(cliente(), { loteId: 'l1', tipo: 'transferencia', canteiroDestinoId: 'c1', registradoPor: 'u1' }),
     ).rejects.toThrow('já está nesse canteiro');
+  });
+});
+
+describe('RN-16: o ajuste de contagem só pela contagem', () => {
+  it('registrarMovimento recusa o ajuste, no tipo e na execução', async () => {
+    const c = cliente();
+    // @ts-expect-error o ajuste não está no tipo público de registrarMovimento
+    const tentativa = registrarMovimento(c, { loteId: 'l1', tipo: 'ajuste_contagem', quantidade: 50, registradoPor: 'u1' });
+    await expect(tentativa).rejects.toThrow('só nasce de uma contagem');
+    expect(escritas(c)).toEqual([]);
   });
 });

@@ -233,7 +233,7 @@ describe('cancelar a entrega', () => {
   it('em qualquer etapa, apaga a viagem e volta ao calendário', async () => {
     situacaoViagem = 'carregando';
     await expect(actions.cancelarEntregaAction({}, form({ data: DIA, viagem_id: VIAGEM }))).rejects.toThrow(
-      /^REDIRECT \/pedidos$/,
+      /^REDIRECT \/pedidos\?feito=entrega_cancelada$/,
     );
     expect(gravouEm('DELETE FROM viagens WHERE id')[0][1]).toEqual([VIAGEM]);
     expect(gravouEm('UPDATE pedidos SET data_entrega = NULL')).toHaveLength(1);
@@ -382,12 +382,13 @@ describe('a contagem do carregamento (P19)', () => {
     expect(state.error).toBeUndefined();
     const [[sql, valores]] = gravouEm('UPDATE pedidos_cargas_itens SET carregado');
     expect(String(sql)).toContain("v.situacao = 'carregando'");
-    expect(valores).toEqual([ITEM, true]);
+    // RNF-15: quem carregou vai junto
+    expect(valores).toEqual([ITEM, true, 'u1']);
     expect(gravouEm('SET separado')).toHaveLength(0);
   });
 
   it('desmarcar grava falso', async () => {
     await actions.marcarItemAction({}, form({ data: DIA, carga_item_id: ITEM, carregado: 'nao' }));
-    expect(gravouEm('UPDATE pedidos_cargas_itens SET carregado')[0][1]).toEqual([ITEM, false]);
+    expect(gravouEm('UPDATE pedidos_cargas_itens SET carregado')[0][1]).toEqual([ITEM, false, 'u1']);
   });
 });

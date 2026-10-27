@@ -15,7 +15,7 @@ import { CalendarioCargas } from './CalendarioCargas';
 import { ListaPedidos } from './ListaPedidos';
 
 interface PedidosPageProps {
-  searchParams: Promise<{ feito?: string; numero?: string }>;
+  searchParams: Promise<{ feito?: string; numero?: string; cliente?: string; q?: string; mes?: string }>;
 }
 
 /** T8.4, RF-60: a carteira de pedidos, com o filtro de cliente que se digita. */
@@ -26,13 +26,16 @@ export default async function PedidosPage({ searchParams }: PedidosPageProps) {
   const params = await searchParams;
 
   // O calendário cobre o mês inteiro: quem carrega caminhão planeja o mês.
-  const mes = `${hoje.slice(0, 7)}-01`;
+  // RF-68: e navega entre meses pelo endereço (`?mes=AAAA-MM`)
+  const mes = params.mes && /^\d{4}-(0[1-9]|1[0-2])$/.test(params.mes) ? `${params.mes}-01` : `${hoje.slice(0, 7)}-01`;
   const fimDoMes = somaDias(`${somaDias(mes, 31).slice(0, 7)}-01`, -1);
 
   const inicioDoPeriodo = somaDias(mes, -7);
   const [lista, doMes, viagens, diasProntos] = await Promise.all([
-    listPedidos(pool),
-    pedidosDoPeriodo(pool, inicioDoPeriodo, fimDoMes),
+    // RF-60: o filtro de cliente vai ao banco, e acha também o pedido antigo
+    listPedidos(pool, { clienteId: params.cliente ?? null, texto: params.q ?? '' }),
+    // Até três dias depois do mês: a entrega de segunda carrega na sexta anterior
+    pedidosDoPeriodo(pool, inicioDoPeriodo, somaDias(fimDoMes, 3)),
     viagensEmAndamento(pool),
     diasComViagemPronta(pool, inicioDoPeriodo, fimDoMes),
   ]);
@@ -47,6 +50,11 @@ export default async function PedidosPage({ searchParams }: PedidosPageProps) {
         {/* O pedido recém-cadastrado traz a pessoa de volta para cá, e o aviso
             do que aconteceu some sozinho: quem registra um já vai registrar o
             seguinte, e um banner fixo só ocuparia a tela do celular. */}
+        {params.feito === 'entrega_cancelada' && (
+          <Toast tone="success" limpar={['feito']}>
+            Entrega cancelada. Os pedidos dela podem entrar em outra viagem.
+          </Toast>
+        )}
         {params.feito === 'criado' && (
           <Toast tone="success" limpar={['feito', 'numero']}>
             Pedido {params.numero ?? ''} registrado. O preço entra depois da conferência.
@@ -80,7 +88,7 @@ export default async function PedidosPage({ searchParams }: PedidosPageProps) {
           />
         )}
 
-        <ListaPedidos pedidos={lista} hoje={hoje} />
+        <ListaPedidos pedidos={lista} hoje={hoje} filtroInicial={{ clienteId: params.cliente ?? '', texto: params.q ?? '' }} />
       </div>
     </main>
   );

@@ -67,6 +67,12 @@ export interface Transicao {
   /** Admin não entra aqui: ele passa por cima, como em `can`. */
   por: readonly Exclude<Perfil, 'admin'>[];
   rotulo: string;
+  /**
+   * RF-61: a passagem que só acontece pela tela que faz o trabalho dela
+   * (conferência, aprovação, cargas, reabertura). A porta genérica a recusa:
+   * levar o pedido a `aprovado` sem `confirmarPedido` pularia preço e recipiente.
+   */
+  portaPropria?: true;
 }
 
 /**
@@ -83,8 +89,13 @@ const SO_CHEFIA = ['chefia'] as const;
  * apurou vale para os itens de antes, e quem mudou o pedido precisa que ela
  * olhe de novo. É a chefia quem edita, inclusive em `pendente_alteracao`, que é
  * a situação em que ela mesma foi chamada a mexer.
+ *
+ * **O aprovado e o separando não estão aqui** (RN-52): o aprovado trava os itens,
+ * e voltá-lo ao orçamento é a reabertura (`reabrirPedido`), com motivo no
+ * histórico, e não um botão de salvar.
  */
-const EDITAVEIS_PELA_CHEFIA = ['verificado', 'pendente_alteracao', 'aprovado', 'separando'] as const;
+const EDITAVEIS_PELA_CHEFIA = ['verificado', 'pendente_alteracao'] as const;
+const REABRIVEIS = ['aprovado', 'separando'] as const;
 
 /**
  * **`pronto_envio` também cancela, e é a mesma razão de 21/09/2026**: a venda que
@@ -95,16 +106,23 @@ const CANCELAVEIS = (Object.keys(SITUACOES_PEDIDO) as SituacaoPedido[]).filter((
 
 export const TRANSICOES: readonly Transicao[] = [
   { de: 'cadastrado', para: 'verificando', por: CHEFIA_E_GERENCIA, rotulo: 'Iniciar verificação' },
-  { de: 'verificando', para: 'verificado', por: CHEFIA_E_GERENCIA, rotulo: 'Enviar para a chefia' },
-  { de: 'verificado', para: 'aprovado', por: SO_CHEFIA, rotulo: 'Aprovar pedido' },
+  { de: 'verificando', para: 'verificado', por: CHEFIA_E_GERENCIA, rotulo: 'Enviar para a chefia', portaPropria: true },
+  { de: 'verificado', para: 'aprovado', por: SO_CHEFIA, rotulo: 'Aprovar pedido', portaPropria: true },
   { de: 'verificado', para: 'pendente_alteracao', por: SO_CHEFIA, rotulo: 'Solicitar alteração' },
-  { de: 'aprovado', para: 'separando', por: CHEFIA_E_GERENCIA, rotulo: 'Organizar cargas' },
-  { de: 'separando', para: 'pronto_envio', por: CHEFIA_E_GERENCIA, rotulo: 'Concluir separação' },
+  { de: 'aprovado', para: 'separando', por: CHEFIA_E_GERENCIA, rotulo: 'Organizar cargas', portaPropria: true },
+  { de: 'separando', para: 'pronto_envio', por: CHEFIA_E_GERENCIA, rotulo: 'Concluir separação', portaPropria: true },
   ...EDITAVEIS_PELA_CHEFIA.map((de) => ({
     de,
     para: 'cadastrado' as const,
     por: SO_CHEFIA,
     rotulo: 'Salvar e reenviar para verificação',
+  })),
+  ...REABRIVEIS.map((de) => ({
+    de,
+    para: 'cadastrado' as const,
+    por: SO_CHEFIA,
+    rotulo: 'Reabrir pedido',
+    portaPropria: true as const,
   })),
   ...CANCELAVEIS.map((de) => ({ de, para: 'cancelado' as const, por: SO_CHEFIA, rotulo: 'Cancelar pedido' })),
 ];
@@ -121,6 +139,14 @@ function executa(transicao: Transicao, perfil: Perfil): boolean {
 export function podeTransicionar(de: SituacaoPedido, para: SituacaoPedido, perfil: Perfil): boolean {
   return TRANSICOES.some((t) => t.de === de && t.para === para && executa(t, perfil));
 }
+
+/** RF-61: a passagem existe, mas só pela tela própria (conferência, aprovação, cargas, reabertura). */
+export function exigePortaPropria(de: SituacaoPedido, para: SituacaoPedido): boolean {
+  return TRANSICOES.some((t) => t.de === de && t.para === para && t.portaPropria === true);
+}
+
+/** O que a porta genérica (`transicionarPedidoAction`) aceita: o resto tem tela própria. */
+export const PASSAGENS_DA_PORTA_GENERICA: readonly SituacaoPedido[] = ['verificando', 'cadastrado', 'cancelado'];
 
 /** O que este perfil pode fazer com o pedido agora, para a tela montar os botões. */
 export function transicoesDe(de: SituacaoPedido, perfil: Perfil): readonly Transicao[] {
@@ -329,6 +355,18 @@ export function itemVendavel(item: ItemCalculavel, itens: readonly ItemCalculave
   if (!item.itemPaiId) return !item.generico || item.quantidade !== null;
   const pai = itens.find((outro) => outro.id === item.itemPaiId);
   return pai !== undefined && pai.quantidade === null;
+}
+
+/**
+ * RN-53, RF-66: **o item que vai no caminhão**, que é outra pergunta que a do
+ * `itemVendavel`. O preço é do pai genérico com quantidade ("500 nativas"),
+ * mas quem sobe no caminhão são os filhos; o suplente não vai, e o indisponível
+ * também não. É a regra de `itensReais` em `cargas.ts`, que lê o pedido já
+ * aprovado (sem suplente nem indisponível, que a aprovação tira).
+ */
+export function itemReal(item: ItemCalculavel): boolean {
+  if (item.generico || item.suplente) return false;
+  return !(item.disponivel === false && item.quantidadeDisponivel === 0);
 }
 
 /** RF-65: o total do item é quantidade por preço, em centavos. Sem preço, nulo. */

@@ -118,3 +118,12 @@ export function avisoCapacidade(canteiro: CanteiroResumo, quantidade: number): s
     `Com este lote passa a ${formatQuantidade(canteiro.mudas + quantidade)}. O aviso não impede criar.`
   );
 }
+
+/**
+ * RF-29, RN-22: a repicagem vai para recipiente maior. Sem volume cadastrado em
+ * um dos dois não há como comparar, e a repicagem não é barrada por falta de dado.
+ */
+export function recipienteMaior(volumeOrigem: number | null, volumeDestino: number | null): boolean {
+  if (volumeOrigem === null || volumeDestino === null) return true;
+  return volumeDestino > volumeOrigem;
+}

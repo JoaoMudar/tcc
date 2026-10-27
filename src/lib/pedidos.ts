@@ -12,6 +12,7 @@ import {
   SITUACOES_PEDIDO,
   type SituacaoPedido,
   centavosParaSql,
+  exigePortaPropria,
   podeTransicionar,
   quantidadeConfirmada,
   resolveResposta,
@@ -20,13 +21,15 @@ import {
 import type { OrigemFrete } from './frete';
 import { ENDERECO_DO_PEDIDO } from './pedidos-entrega';
 import { enderecoEmTexto } from './rotas';
-import type { Db } from './sql';
+import { normalizeBusca, semAcento } from './especies';
+import { type Db, escapeLike } from './sql';
 import { isUuid } from './uuid';
 
 export {
   CANAIS_VENDA,
   CANAL_PADRAO,
   DONO_SITUACAO,
+  PASSAGENS_DA_PORTA_GENERICA,
   ROTULO_URGENCIA,
   SITUACOES_PEDIDO,
   TRANSICOES,
@@ -34,6 +37,7 @@ export {
   estadoComComplementos,
   estadoDaResposta,
   estadoDoGenerico,
+  exigePortaPropria,
   filtraPedidosPorCliente,
   formatAltura,
   formatMoeda,
@@ -241,12 +245,24 @@ const TOTAL_SQL = `CASE
                    FROM pedidos_itens i WHERE i.pedido_id = p.id AND ${itemVendavelSql('i')}), 0)
 END::bigint`;
 
+export interface FiltroPedidos {
+  /** O cliente tocado na lista: vale o id, porque dois clientes podem ter nome parecido. */
+  clienteId?: string | null;
+  /** O texto digitado, em pedaços soltos e sem acento. */
+  texto?: string;
+}
+
 /**
  * RF-60: a carteira inteira, do pedido mais novo ao mais antigo. Sem corte de
- * data: quem procura pelo cliente quer achar também o pedido de meses atrás, e
- * o filtro por cliente é feito na tela, enquanto se digita.
+ * data: quem procura pelo cliente quer achar também o pedido de meses atrás.
+ *
+ * **O filtro de cliente roda no banco, antes do limite**. Filtrado só na tela,
+ * ele olhava os 300 pedidos mais novos, e o pedido antigo de um cliente nunca
+ * aparecia. A tela continua filtrando enquanto se digita, para responder na hora.
  */
-export async function listPedidos(db: Db): Promise<PedidoResumo[]> {
+export async function listPedidos(db: Db, filtro: FiltroPedidos = {}): Promise<PedidoResumo[]> {
+  const clienteId = filtro.clienteId && isUuid(filtro.clienteId) ? filtro.clienteId : null;
+  const termos = normalizeBusca(filtro.texto ?? '').split(/\s+/).filter(Boolean).map(escapeLike);
   const { rows } = await db.query<Omit<PedidoResumo, 'totalCentavos'> & { totalCentavos: string | null }>(
     `SELECT p.id, p.numero_pedido AS numero, p.cliente_id AS "clienteId", c.nome AS cliente,
             p.canal_venda AS canal, p.situacao, p.criado_em AS "criadoEm",
@@ -256,8 +272,12 @@ export async function listPedidos(db: Db): Promise<PedidoResumo[]> {
             (${TOTAL_SQL} + ROUND(COALESCE(p.frete, 0) * 100)::bigint) AS "totalCentavos"
        FROM pedidos p
        JOIN cadastro.pessoas c ON c.id = p.cliente_id
+      WHERE ($1::uuid IS NULL OR p.cliente_id = $1)
+        AND NOT EXISTS (SELECT 1 FROM unnest($2::text[]) AS t(termo)
+                         WHERE ${semAcento('c.nome')} NOT LIKE '%' || t.termo || '%')
       ORDER BY p.numero_pedido DESC
       LIMIT 300`,
+    [clienteId, termos],
   );
   // `bigint` volta do `pg` como texto, para não perder precisão que aqui não existe
   return rows.map((row) => ({ ...row, totalCentavos: row.totalCentavos === null ? null : Number(row.totalCentavos) }));
@@ -656,6 +676,11 @@ export async function atualizarCabecalho(
  * Não é trigger de propósito: trigger não conhece o usuário, e toda linha do
  * histórico precisa de autor. É a mesma razão que faz `registrarMovimento` ser
  * a porta única do lote.
+ *
+ * **RF-61: a transição de porta própria exige `viaPortaPropria`**, que só as
+ * funções que fazem o trabalho da fase passam (`concluirVerificacao`,
+ * `confirmarPedido`, `criarCargaUnica`/`criarCargas`, `concluirCarga`,
+ * `reabrirPedido`). Sem isso, um POST levaria o pedido a aprovado sem preço.
  */
 export async function mudarSituacao(
   client: Client,
@@ -663,12 +688,18 @@ export async function mudarSituacao(
   para: SituacaoPedido,
   autor: AutorDaMudanca,
   observacoes: string | null = null,
+  opcoes: { viaPortaPropria?: boolean } = {},
 ): Promise<{ numero: number; de: SituacaoPedido }> {
   const pedido = await travarPedido(client, pedidoId);
   if (!podeTransicionar(pedido.situacao, para, autor.perfil)) {
     throw new UserError(
       `O pedido ${pedido.numero} está em ${SITUACOES_PEDIDO[pedido.situacao].toLowerCase()}, ` +
         `e não pode passar a ${SITUACOES_PEDIDO[para].toLowerCase()}.`,
+    );
+  }
+  if (exigePortaPropria(pedido.situacao, para) && !opcoes.viaPortaPropria) {
+    throw new UserError(
+      `O pedido ${pedido.numero} só passa a ${SITUACOES_PEDIDO[para].toLowerCase()} pela tela própria dessa etapa.`,
     );
   }
   await client.query('UPDATE pedidos SET situacao = $2 WHERE id = $1', [pedidoId, para]);
@@ -855,8 +886,9 @@ export async function negociarItens(
       if (item.quantidade === null) throw new UserError('A lista montada se negocia espécie por espécie.');
       if (linha.precoCentavos !== null) {
         await client.query(
-          'UPDATE pedidos_itens SET preco_unitario = $3 WHERE pedido_id = $1 AND (id = $2 OR item_pai_id = $2)',
-          [pedidoId, linha.itemId, centavosParaSql(linha.precoCentavos)],
+          `UPDATE pedidos_itens SET preco_unitario = $3, precificado_por = $4, precificado_em = NOW()
+            WHERE pedido_id = $1 AND (id = $2 OR item_pai_id = $2)`,
+          [pedidoId, linha.itemId, centavosParaSql(linha.precoCentavos), autor.usuarioId],
         );
       }
       continue;
@@ -877,6 +909,8 @@ export async function negociarItens(
     await client.query(
       `UPDATE pedidos_itens
           SET preco_unitario = COALESCE($3, preco_unitario),
+              precificado_por = CASE WHEN $3 IS NULL THEN precificado_por ELSE $7::uuid END,
+              precificado_em = CASE WHEN $3 IS NULL THEN precificado_em ELSE NOW() END,
               quantidade = COALESCE($4, quantidade),
               disponivel = CASE WHEN $5::boolean THEN true ELSE disponivel END,
               quantidade_disponivel = CASE WHEN $5::boolean THEN NULL ELSE quantidade_disponivel END,
@@ -891,6 +925,7 @@ export async function negociarItens(
         linha.quantidade,
         encerra,
         linha.recipienteId,
+        autor.usuarioId,
       ],
     );
   }
@@ -1011,7 +1046,7 @@ export async function confirmarPedido(
 
   const resumo =
     removidos + ajustados > 0 ? `${removidos} item(ns) removido(s), ${ajustados} ajustado(s) pela conferência.` : null;
-  const { numero } = await mudarSituacao(client, pedidoId, 'aprovado', autor, resumo);
+  const { numero } = await mudarSituacao(client, pedidoId, 'aprovado', autor, resumo, { viaPortaPropria: true });
   return { numero, removidos, ajustados };
 }
 
@@ -1033,6 +1068,42 @@ export async function cancelarPedido(
   motivo: string | null = null,
 ): Promise<{ numero: number }> {
   return mudarSituacao(client, pedidoId, 'cancelado', autor, motivo);
+}
+
+/**
+ * RN-52, RF-61: o aprovado trava os itens, e a única volta é esta. O motivo é
+ * **obrigatório**, ao contrário do cancelamento: reabrir desfaz uma aprovação, e
+ * "por que este pedido voltou ao orçamento?" precisa de resposta no histórico.
+ *
+ * As cargas são desfeitas (a separação valia para os itens de antes), e o
+ * pedido que já entrou numa viagem não reabre: tirá-lo da viagem vem primeiro.
+ */
+export async function reabrirPedido(
+  client: Client,
+  pedidoId: string,
+  motivo: string,
+  autor: AutorDaMudanca,
+): Promise<{ numero: number }> {
+  const texto = motivo.trim();
+  if (!texto) throw new UserError('Diga por que o pedido está sendo reaberto.');
+  const pedido = await travarPedido(client, pedidoId);
+  if (pedido.situacao !== 'aprovado' && pedido.situacao !== 'separando') {
+    throw new UserError(
+      `O pedido ${pedido.numero} está em ${SITUACOES_PEDIDO[pedido.situacao].toLowerCase()}, e só o aprovado ou em separação se reabre.`,
+    );
+  }
+  const { rows } = await client.query<{ n: number }>(
+    'SELECT COUNT(*)::int AS n FROM viagens_paradas WHERE pedido_id = $1',
+    [pedidoId],
+  );
+  if (rows[0].n > 0) {
+    throw new UserError(`O pedido ${pedido.numero} já está numa viagem. Tire-o da viagem antes de reabrir.`);
+  }
+  await client.query('DELETE FROM pedidos_cargas WHERE pedido_id = $1', [pedidoId]);
+  const { numero } = await mudarSituacao(client, pedidoId, 'cadastrado', autor, `Reaberto: ${texto}`, {
+    viaPortaPropria: true,
+  });
+  return { numero };
 }
 
 // ------------------------------------------------------------
@@ -1172,9 +1243,19 @@ export async function marcarDisponibilidade(
   await client.query(
     `UPDATE pedidos_itens
         SET disponivel = $3, quantidade_disponivel = $4, recipiente_disponivel_id = $5,
-            altura_disponivel_m = $6, observacoes_disponibilidade = $7, resposta_em_aberto = NULL
+            altura_disponivel_m = $6, observacoes_disponibilidade = $7, resposta_em_aberto = NULL,
+            conferido_por = $8, conferido_em = NOW()
       WHERE id = $2 AND pedido_id = $1`,
-    [pedidoId, itemId, disponivel, quantidadeDisponivel, recipienteDisponivelId, alturaDisponivelM, extras.observacoes ?? null],
+    [
+      pedidoId,
+      itemId,
+      disponivel,
+      quantidadeDisponivel,
+      recipienteDisponivelId,
+      alturaDisponivelM,
+      extras.observacoes ?? null,
+      autor.usuarioId,
+    ],
   );
 }
 
@@ -1252,9 +1333,10 @@ export async function marcarGenericoIndisponivel(
   await client.query(
     `UPDATE pedidos_itens
         SET disponivel = false, quantidade_disponivel = 0, recipiente_disponivel_id = NULL,
-            altura_disponivel_m = NULL, observacoes_disponibilidade = $3, resposta_em_aberto = NULL
+            altura_disponivel_m = NULL, observacoes_disponibilidade = $3, resposta_em_aberto = NULL,
+            conferido_por = $4, conferido_em = NOW()
       WHERE id = $2 AND pedido_id = $1`,
-    [pedidoId, itemPaiId, observacoes],
+    [pedidoId, itemPaiId, observacoes, autor.usuarioId],
   );
 }
 
@@ -1328,9 +1410,10 @@ export async function definirComposicaoGenerico(
   await client.query(
     `UPDATE pedidos_itens
         SET disponivel = $3, quantidade_disponivel = $4, recipiente_disponivel_id = NULL,
-            altura_disponivel_m = NULL, observacoes_disponibilidade = $5, resposta_em_aberto = NULL
+            altura_disponivel_m = NULL, observacoes_disponibilidade = $5, resposta_em_aberto = NULL,
+            conferido_por = $6, conferido_em = NOW()
       WHERE id = $2 AND pedido_id = $1`,
-    [pedidoId, itemPaiId, disponivel, quantidadeDisponivel, observacoes],
+    [pedidoId, itemPaiId, disponivel, quantidadeDisponivel, observacoes, autor.usuarioId],
   );
 }
 
@@ -1387,6 +1470,6 @@ export async function concluirVerificacao(
     genericos > 0
       ? `${disponiveis} de ${total} disponíveis, ${genericos} genérico(s) definido(s).`
       : `${disponiveis} de ${total} disponíveis.`;
-  const { numero } = await mudarSituacao(client, pedidoId, 'verificado', autor, resumo);
+  const { numero } = await mudarSituacao(client, pedidoId, 'verificado', autor, resumo, { viaPortaPropria: true });
   return { numero, resumo };
 }

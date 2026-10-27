@@ -149,7 +149,7 @@ describe('validação antes do banco', () => {
     const dados = form({ pedido_id: PEDIDO, item_id: ITEM, estado: 'parcial', quantidade: '300' });
     expect((await actions.marcarDisponibilidadeAction({}, dados)).error).toBeUndefined();
     const [[, valores]] = gravouEm('UPDATE pedidos_itens');
-    expect(valores).toEqual([PEDIDO, ITEM, false, 300, null, null, null]);
+    expect(valores).toEqual([PEDIDO, ITEM, false, 300, null, null, null, 'u1']);
   });
 
   it('o item que veio sem quantidade responde "tem 350 em 17x22"', async () => {
@@ -158,7 +158,7 @@ describe('validação antes do banco', () => {
     const dados = form({ pedido_id: PEDIDO, item_id: ITEM, estado: 'disponivel', quantidade: '350', recipiente_id: SACO });
     expect((await actions.marcarDisponibilidadeAction({}, dados)).error).toBeUndefined();
     const [[, valores]] = gravouEm('UPDATE pedidos_itens');
-    expect(valores).toEqual([PEDIDO, ITEM, true, 350, SACO, null, null]);
+    expect(valores).toEqual([PEDIDO, ITEM, true, 350, SACO, null, null, 'u1']);
   });
 
   it('o item que veio sem recipiente não aceita "tem" sem dizer em qual', async () => {
@@ -234,7 +234,7 @@ describe('altura conferida (P12)', () => {
     const dados = form({ pedido_id: PEDIDO, item_id: ITEM, estado: 'parcial', quantidade: '500', altura: '80 cm' });
     expect((await actions.marcarDisponibilidadeAction({}, dados)).error).toBeUndefined();
     const [[, valores]] = gravouEm('UPDATE pedidos_itens');
-    expect(valores).toEqual([PEDIDO, ITEM, true, null, null, 0.8, null]);
+    expect(valores).toEqual([PEDIDO, ITEM, true, null, null, 0.8, null, 'u1']);
   });
 
   it('altura que não se entende é recusada antes do banco', async () => {
@@ -268,7 +268,7 @@ describe('genérico: "Não tem" e "Tem parte" (P12)', () => {
     });
     expect((await actions.definirComposicaoAction({}, dados)).error).toBeUndefined();
     const atualizacao = gravouEm('UPDATE pedidos_itens').at(-1)!;
-    expect(atualizacao[1]).toEqual([PEDIDO, ITEM, false, 300, null]);
+    expect(atualizacao[1]).toEqual([PEDIDO, ITEM, false, 300, null, 'u1']);
   });
 
   it('resposta que não é "Tem tudo" nem "Tem parte" é recusada antes do banco', async () => {
@@ -393,7 +393,7 @@ describe('"Tem tudo" dividido em vários recipientes (P17)', () => {
       [PEDIDO, ITEM, BALDE, 100, null],
     ]);
     const [[, valores]] = gravouEm('UPDATE pedidos_itens');
-    expect(valores).toEqual([PEDIDO, ITEM, false, 200, RECIPIENTE, null, null]);
+    expect(valores).toEqual([PEDIDO, ITEM, false, 200, RECIPIENTE, null, null, 'u1']);
   });
 
   it('as linhas têm de somar o pedido', async () => {

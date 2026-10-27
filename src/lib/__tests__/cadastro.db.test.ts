@@ -95,6 +95,17 @@ describe('espécies contra Postgres real', () => {
     expect(foto).toEqual({ tipoConteudo: 'image/jpeg', conteudo: JPEG });
   });
 
+  it('RN-05: o filtro das pendentes traz só quem espera a revisão do nome', async () => {
+    const { rows } = await pool.query<{ status: string }>('SELECT status_validacao AS status FROM especies WHERE id = $1', [especieId]);
+    const pendentes = await searchEspecies(pool, `${prefixo} CEDRELA`, { soPendentes: true });
+    expect(pendentes.map((e) => e.id)).toEqual(rows[0].status === 'pendente' ? [especieId] : []);
+    await pool.query("UPDATE especies SET status_validacao = 'pendente' WHERE id = $1", [especieId]);
+    expect((await searchEspecies(pool, `${prefixo} CEDRELA`, { soPendentes: true })).map((e) => e.id)).toEqual([especieId]);
+    await pool.query("UPDATE especies SET status_validacao = 'a_identificar' WHERE id = $1", [especieId]);
+    expect(await searchEspecies(pool, `${prefixo} CEDRELA`, { soPendentes: true })).toEqual([]);
+    await pool.query('UPDATE especies SET status_validacao = $2 WHERE id = $1', [especieId, rows[0].status]);
+  });
+
   it('trocar a foto apaga a antiga; remover deixa sem foto', async () => {
     const [antes] = await searchEspecies(pool, `${prefixo} cedrela`);
     const antiga = fotoIdFromUrl(antes.fotoUrl)!;
@@ -238,7 +249,18 @@ describe('pessoas contra Postgres real', () => {
         { ...fornecedor, papeis: [...fornecedor.papeis, { papel: 'cliente', tipoVinculo: null }] },
         {
           documento: '11222333000181',
-          enderecoCobranca: { tipo: 'cobranca', logradouro: 'Rua XV, 10', cidade: 'Rio do Sul', uf: 'SC', cep: '89160000' },
+          razaoSocial: 'Viveiro Teste Comercio de Mudas Ltda',
+          inscricaoEstadual: 'ISENTO',
+          enderecoCobranca: {
+            tipo: 'cobranca',
+            logradouro: 'Rua XV de Novembro',
+            numero: '10',
+            bairro: 'Centro',
+            cidade: 'Rio do Sul',
+            codigoIbge: '4214805',
+            uf: 'SC',
+            cep: '89160000',
+          },
         },
       ),
     );
@@ -252,11 +274,19 @@ describe('pessoas contra Postgres real', () => {
     ]);
     expect(ficha?.documento).toBe('11222333000181');
     expect(ficha?.enderecos.map((e) => e.tipo).sort()).toEqual(['cobranca', 'entrega']);
+    // RF-19: o leiaute da NF-e grava e volta inteiro
+    expect(ficha).toMatchObject({ razaoSocial: 'Viveiro Teste Comercio de Mudas Ltda', inscricaoEstadual: 'ISENTO' });
+    expect(ficha?.enderecos.find((e) => e.tipo === 'cobranca')).toMatchObject({
+      numero: '10',
+      bairro: 'Centro',
+      codigoIbge: '4214805',
+    });
   });
 
   it('sem verFiscal, a ficha não traz documento nem endereço de cobrança', async () => {
     const ficha = await findPessoa(pool, pessoaId, false);
     expect(ficha).not.toHaveProperty('documento');
+    expect(ficha).not.toHaveProperty('inscricaoEstadual');
     expect(ficha?.enderecos.map((e) => e.tipo)).toEqual(['entrega']);
   });
 
@@ -321,5 +351,13 @@ describe('pessoas contra Postgres real', () => {
 
     expect(await addPapel(pool, (funcionario as { id: string }).id, 'cliente')).toBe(`${prefixo} Valdir`);
     expect(await addPapel(pool, randomUUID(), 'cliente')).toBeNull();
+  });
+});
+
+describe('RN-06: características em lista fechada também no banco', () => {
+  it('valor fora da lista é recusado pela restrição', async () => {
+    await expect(
+      pool.query("INSERT INTO especies (nome_cientifico, caracteristicas) VALUES ($1, ARRAY['venenosa'])", [`${prefixo} Fora lista`]),
+    ).rejects.toMatchObject({ code: '23514' });
   });
 });

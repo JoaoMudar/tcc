@@ -23,15 +23,31 @@ describe('CalendarioCargas e a rotina "Planejar pedido" (P14)', () => {
     expect(dia(2).getAttribute('href')).toBe('/pedidos/planejar/2026-10-02');
   });
 
-  it('dia sem entrega abre o painel, com o botão de planejar ali', () => {
+  it('dia sem entrega nem carregamento abre o painel, com o botão de planejar ali', () => {
     render(<CalendarioCargas mes="2026-10-01" hoje="2026-09-29" pedidos={[PEDIDO]} />);
-    expect(dia(1).tagName).toBe('BUTTON');
-    fireEvent.click(dia(1));
+    expect(dia(7).tagName).toBe('BUTTON');
+    fireEvent.click(dia(7));
     const link = screen.getByRole('link', { name: 'Planejar entrega neste dia' });
-    expect(link.getAttribute('href')).toBe('/pedidos/planejar/2026-10-01');
-    // A véspera da entrega não ganha cor nem lista o pedido
-    expect(dia(1).className).not.toMatch(/bg-(green|amber|red)/);
+    expect(link.getAttribute('href')).toBe('/pedidos/planejar/2026-10-07');
+    expect(dia(7).className).not.toMatch(/bg-(green|amber|red|blue)/);
     expect(screen.queryByRole('link', { name: /Prefeitura de Rio do Sul/ })).toBeNull();
+  });
+
+  it('RF-68: a véspera útil da entrega é dia de carregar, com cor e legenda próprias, e lista o pedido', () => {
+    render(<CalendarioCargas mes="2026-10-01" hoje="2026-09-29" pedidos={[PEDIDO]} />);
+    expect(dia(1).className).toMatch(/bg-blue/);
+    expect(dia(1).textContent).toMatch(/carregar/);
+    fireEvent.click(dia(1));
+    expect(screen.getByRole('link', { name: /Carregar o pedido 7/ }).getAttribute('href')).toBe('/pedidos/planejar/2026-10-02');
+    expect(screen.getByText(/carregar \(dia útil antes da entrega\)/)).toBeInTheDocument();
+  });
+
+  it('RF-68: a entrega de segunda carrega na sexta, e o mês navega pelas setas', () => {
+    const segunda = { ...PEDIDO, id: 'p2', dataEntrega: '2026-10-12' };
+    render(<CalendarioCargas mes="2026-10-01" hoje="2026-09-29" pedidos={[segunda]} />);
+    expect(dia(9).textContent).toMatch(/carregar/);
+    expect(screen.getByRole('link', { name: 'Mês anterior' }).getAttribute('href')).toBe('/pedidos?mes=2026-09');
+    expect(screen.getByRole('link', { name: 'Mês seguinte' }).getAttribute('href')).toBe('/pedidos?mes=2026-11');
   });
 
   it('viagem em andamento: sem cartão, o dia fica amarelo, com ponto, e abre a rotina', () => {

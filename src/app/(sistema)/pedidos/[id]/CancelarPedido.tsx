@@ -18,6 +18,7 @@ export function CancelarPedido({ pedidoId }: { pedidoId: string }) {
       action={cancelar}
       pendente={cancelando}
       erro={cancelamento.error}
+      sucesso={cancelamento.success}
     >
       <input type="hidden" name="pedido_id" value={pedidoId} />
       <TextArea label="Motivo" name="motivo" rows={2} maxLength={500} />

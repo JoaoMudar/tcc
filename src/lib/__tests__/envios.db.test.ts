@@ -197,3 +197,25 @@ describe('chave de idempotência (T9.3) contra Postgres real', () => {
     expect(await contarPerdas(id)).toBe(1);
   });
 });
+
+describe('RNF-04: altura e tarefa feita na fila (migration 20261027000005)', () => {
+  it('o banco aceita a chave dos dois tipos novos, e o reenvio da altura não regrava', async () => {
+    let gravacoes = 0;
+    const altura = (chave: string) =>
+      tx((client) =>
+        executarUmaVez(client, { chave, tipo: 'altura', usuarioId: usuario }, async () => {
+          gravacoes++;
+          await client.query('UPDATE lotes SET altura_m = 1.2 WHERE id = $1', [lote]);
+          return { success: 'Altura registrada: 1,20 m.' };
+        }),
+      );
+    const chave = randomUUID();
+    expect(await altura(chave)).toMatchObject({ repetido: false });
+    expect(await altura(chave)).toMatchObject({ repetido: true, resposta: { success: 'Altura registrada: 1,20 m.' } });
+    expect(gravacoes).toBe(1);
+
+    await expect(
+      tx((client) => executarUmaVez(client, { chave: randomUUID(), tipo: 'tarefa_feita', usuarioId: usuario }, async () => ({ success: 'ok' }))),
+    ).resolves.toMatchObject({ repetido: false });
+  });
+});

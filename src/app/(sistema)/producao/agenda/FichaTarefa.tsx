@@ -5,11 +5,13 @@ import { Toast } from '@/components/ui/Toast';
 import { Pill } from '@/components/ui/Pill';
 import { ESTADOS_TAREFA, TOM_ESTADO, estadoNaGrade, findAtribuicao, formatHoraTarefa, formatQuantidadeMedida } from '@/lib/agenda';
 import { listAreas } from '@/lib/areas';
+import { nomeExibido, searchEspecies } from '@/lib/especies';
 import { formatData, hojeNoViveiro } from '@/lib/datas';
 import pool from '@/lib/db';
 import { opcoesDeLote } from '@/lib/lotes-rotulos';
 import { listLotesAbertos } from '@/lib/lotes';
 import { can } from '@/lib/permissions';
+import { listRecipientes } from '@/lib/recipientes';
 import { nomeDia, rotuloSemana, semanaJaPassou } from '@/lib/semanas';
 import { turnoLabel } from '@/lib/turnos';
 import { isUuid } from '@/lib/uuid';
@@ -38,9 +40,11 @@ export async function FichaTarefa({ id, feito, emModal }: FichaTarefaProps) {
   const podeConfirmar = editavel && a.participantes.length > 0 && can(user.perfil, 'confirmacao_tarefa', 'C');
   const podeAlterar = editavel && can(user.perfil, 'agenda', 'A');
   const podeExcluir = editavel && can(user.perfil, 'agenda', 'E');
-  const [lotes, areas] = await Promise.all([
+  const [lotes, areas, especies, recipientes] = await Promise.all([
     podeConfirmar && a.exigeLote ? listLotesAbertos(pool) : [],
     podeConfirmar && a.exigeArea && !a.exigeLote ? listAreas(pool) : [],
+    podeConfirmar && a.exigeEspecie ? searchEspecies(pool) : [],
+    podeConfirmar && a.exigeRecipiente ? listRecipientes(pool) : [],
   ]);
   const hora = formatHoraTarefa(a.horaInicio, a.horaFim);
   const feita = a.situacao === 'confirmada' || a.situacao === 'nao_confirmada';
@@ -143,6 +147,12 @@ export async function FichaTarefa({ id, feito, emModal }: FichaTarefaProps) {
             descricao={`${a.tipo}, ${formatData(a.data)}`}
             exigeLote={a.exigeLote}
             exigeArea={a.exigeArea}
+            exigeEspecie={a.exigeEspecie}
+            exigeRecipiente={a.exigeRecipiente}
+            especies={especies.filter((e) => e.ativa || e.id === a.especieId).map((e) => ({ value: e.id, label: nomeExibido(e) }))}
+            recipientes={recipientes.filter((r) => r.ativo || r.id === a.recipienteId).map((r) => ({ value: r.id, label: r.nome }))}
+            especieId={a.especieId}
+            recipienteId={a.recipienteId}
             eQuantitativa={a.eQuantitativa}
             unidadeMedida={a.unidadeMedida}
             participantes={a.participantes}

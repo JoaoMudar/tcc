@@ -91,19 +91,38 @@ export async function criarCargasAction(_previous: FormState, formData: FormData
  * atual: o toque repetido pela conexão ruim do galpão chega ao mesmo resultado.
  */
 export async function marcarItemSeparadoAction(_previous: FormState, formData: FormData): Promise<FormState> {
-  await requirePermission('cargas_pedido', 'A');
+  const user = await requirePermission('cargas_pedido', 'A');
   const pedidoId = formText(formData, 'pedido_id');
   const cargaItemId = formText(formData, 'carga_item_id');
   if (!isUuid(pedidoId) || !isUuid(cargaItemId)) return { error: 'Item inválido.' };
   const separado = formText(formData, 'separado') === 'sim';
 
   try {
-    await withTransaction(pool, (client) => cargas.marcarItemSeparado(client, cargaItemId, separado));
+    await withTransaction(pool, (client) => cargas.marcarItemSeparado(client, cargaItemId, separado, user.usuarioId));
   } catch (error) {
     return { error: toUserMessage(error) };
   }
   revalidar(pedidoId);
   return { success: separado ? 'Item separado.' : 'Marcação desfeita.' };
+}
+
+/** RF-24: de que lote saem as mudas do item. Usada também no carregamento da viagem. */
+export async function definirLoteDoItemAction(_previous: FormState, formData: FormData): Promise<FormState> {
+  await requirePermission('cargas_pedido', 'A');
+  const pedidoId = formText(formData, 'pedido_id');
+  const cargaItemId = formText(formData, 'carga_item_id');
+  const loteId = formText(formData, 'lote_id');
+  if (!isUuid(pedidoId) || !isUuid(cargaItemId)) return { error: 'Item inválido.' };
+  if (!isUuid(loteId)) return { error: 'Escolha o lote.' };
+
+  try {
+    await withTransaction(pool, (client) => cargas.definirLoteDoItem(client, cargaItemId, loteId));
+  } catch (error) {
+    return { error: toUserMessage(error) };
+  }
+  revalidar(pedidoId);
+  revalidatePath('/pedidos/planejar', 'layout');
+  return { success: 'Lote escolhido.' };
 }
 
 /** Fecha a carga, e o pedido quando ela for a última. */

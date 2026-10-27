@@ -72,7 +72,13 @@ export function providenciaDaSugestao(s: Sugestao, semana: string): Providencia 
  * O lote da lista "Pedem providência", com o texto da pendência já montado por
  * quem tem `textoPendencia`. Nulo no lote sem pendência, que não tem ação nenhuma.
  */
-export function providenciaDoLote(lote: LoteNoMapa, pendencia: string | null, semana: string): Providencia | null {
+export function providenciaDoLote(
+  lote: LoteNoMapa,
+  pendencia: string | null,
+  semana: string,
+  /** RF-56: a remarcação da tarefa atrasada vai sempre para a semana de hoje. */
+  semanaDeHoje: string = semana,
+): Providencia | null {
   const base = {
     chave: `lote-${lote.id}`,
     titulo: `${lote.codigo} · ${lote.especie}`,
@@ -81,7 +87,7 @@ export function providenciaDoLote(lote: LoteNoMapa, pendencia: string | null, se
   };
   if (lote.atribuicaoPendenteId) {
     const id = lote.atribuicaoPendenteId;
-    return { ...base, origem: { tipo: 'tarefa', atribuicaoId: id, marcarHref: `/producao/agenda/${id}/editar?semana=${semana}&voltar=agenda` } };
+    return { ...base, origem: { tipo: 'tarefa', atribuicaoId: id, marcarHref: `/producao/agenda/${id}/editar?semana=${semanaDeHoje}&voltar=agenda` } };
   }
   if (lote.protocoloEtapaPendenteId && lote.tipoTarefaPendenteId) {
     const etapa = { etapaId: lote.protocoloEtapaPendenteId, loteId: lote.id, tipoTarefaId: lote.tipoTarefaPendenteId, turnoId: lote.turnoPendenteId };
