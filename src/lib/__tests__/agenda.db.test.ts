@@ -441,3 +441,58 @@ describe('RNF-15: autor e momento da tarefa e da semana', () => {
     expect(rows[0]).toMatchObject({ criado: usuario, confirmado: usuario, quando: expect.any(Date), fechada: usuario });
   });
 });
+
+/** Auditoria de conformidade de 24/10/2026, itens 10 e 11 (RF-39, RF-56, RF-57). */
+describe('recorrentes e remarcação', () => {
+  // Semanas de 2032, longe das outras suítes
+  const W1 = '2032-06-07';
+  const W2 = '2032-06-14';
+  const W3 = '2032-06-21';
+
+  it('RF-39: marcar recorrente com a semana seguinte já criada copia a tarefa para ela', async () => {
+    const [id] = await criar({ semana: W1, dias: ['2032-06-08'], participantes: [jaison] });
+    await criar({ semana: W2, dias: [W2], participantes: [jaison] });
+    expect((await listAgendaSemana(pool, (await findSemana(pool, W2))!.id)).length).toBe(1);
+
+    await tx((client) =>
+      atualizarAtribuicao(client, id, tarefa({ semana: W1, dias: ['2032-06-08'], participantes: [jaison], recorrente: true }), '2032-06-01'),
+    );
+    const seguinte = await listAgendaSemana(pool, (await findSemana(pool, W2))!.id);
+    expect(seguinte.map((a) => [a.data, a.eRecorrente])).toContainEqual(['2032-06-15', true]);
+    // Salvar de novo, já recorrente, não copia outra vez
+    await tx((client) =>
+      atualizarAtribuicao(client, id, tarefa({ semana: W1, dias: ['2032-06-08'], participantes: [jaison], recorrente: true }), '2032-06-01'),
+    );
+    expect((await listAgendaSemana(pool, (await findSemana(pool, W2))!.id)).length).toBe(2);
+  });
+
+  it('RF-39: uma semana sem lançamento não quebra a rotina; a seguinte copia da última que tinha recorrente', async () => {
+    // W2 já tem a recorrente copiada; W3 nasce copiando de W2, e a de W4 pula W3 se ela ficasse vazia
+    const W5 = '2032-07-05';
+    const aberta = await tx((client) => abrirSemana(client, W5, '2032-06-01'));
+    expect(aberta.criada).toBe(true);
+    // A recorrente de terça (W2, 15/06) cai na terça de W5
+    const copiadas = await listAgendaSemana(pool, aberta.id);
+    expect(copiadas.map((a) => a.data)).toContain('2032-07-06');
+  });
+
+  it('RF-57: a semana que já passou nasce sem recorrentes', async () => {
+    const aberta = await tx((client) => abrirSemana(client, W3, '2032-07-01'));
+    expect(aberta).toMatchObject({ criada: true, recorrentes: 0 });
+  });
+
+  it('RF-56: a remarcação só vai para a semana de hoje, e nunca para antes de hoje', async () => {
+    const S = '2032-08-02';
+    const [id] = await criar({ semana: S, dias: [S], participantes: [jaison] });
+    const hoje = '2032-08-04';
+    const remarcar = (semana: string, dia: string) =>
+      tx((client) => atualizarAtribuicao(client, id, tarefa({ semana, dias: [dia], participantes: [jaison] }), hoje, { remarcacao: true }));
+
+    await expect(remarcar(S, '2032-08-03')).rejects.toThrow('antes de hoje');
+    await expect(remarcar('2032-08-09', '2032-08-10')).rejects.toThrow('semana de hoje');
+    await remarcar(S, '2032-08-05');
+    expect(await findAtribuicao(pool, id)).toMatchObject({ data: '2032-08-05' });
+    // Sem a marca de remarcação, a alteração comum continua livre dentro da semana
+    await tx((client) => atualizarAtribuicao(client, id, tarefa({ semana: S, dias: [S], participantes: [jaison] }), hoje));
+  });
+});

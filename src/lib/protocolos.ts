@@ -738,7 +738,8 @@ export async function concluirEtapaSemAgenda(
   return concluirEtapa(client, loteId, protocoloEtapaId, hoje);
 }
 
-export type TipoAcaoEtapa = 'adiamento' | 'conclusao_sem_agenda';
+/** `adiamento_tarefa`: a tarefa lançada andou, e o vencimento da etapa não (RF-55, migration 20261027000003). */
+export type TipoAcaoEtapa = 'adiamento' | 'conclusao_sem_agenda' | 'adiamento_tarefa';
 
 /** Uma linha do histórico do protocolo do lote (RF-55). */
 export interface AcaoDaEtapa {

@@ -144,6 +144,8 @@ async function confirmarTarefa(campos: Campos, envio: Envio, user: SessionUser):
     lote_id: campo(campos, 'lote_id'),
     area_id: campo(campos, 'area_id'),
     canteiro_id: campo(campos, 'canteiro_id'),
+    especie_id: campo(campos, 'especie_id'),
+    recipiente_id: campo(campos, 'recipiente_id'),
     perdidas: campo(campos, 'perdidas'),
     causa: campo(campos, 'causa'),
     ...Object.fromEntries(Object.entries(quantidades).map(([pessoa, texto]) => [`quantidade_${pessoa}`, texto])),
@@ -151,7 +153,16 @@ async function confirmarTarefa(campos: Campos, envio: Envio, user: SessionUser):
   const confirmacao = agenda.parseConfirmacao(
     atribuicao,
     atribuicao.participantes.map((p) => p.id),
-    { loteId: fields.lote_id, areaId: fields.area_id, canteiroId: fields.canteiro_id, quantidades, perdidas: fields.perdidas, causa: fields.causa },
+    {
+      loteId: fields.lote_id,
+      areaId: fields.area_id,
+      canteiroId: fields.canteiro_id,
+      especieId: fields.especie_id,
+      recipienteId: fields.recipiente_id,
+      quantidades,
+      perdidas: fields.perdidas,
+      causa: fields.causa,
+    },
   );
   if ('error' in confirmacao) return { status: 'recusado', error: confirmacao.error, fields };
   if (confirmacao.value.perda && !can(user.perfil, 'perdas', 'C')) return { status: 'proibido' };
@@ -223,12 +234,22 @@ async function registrarTarefaFeitaCampo(campos: Campos, envio: Envio, user: Ses
     observacoes: '',
     loteEtapaId: campo(campos, 'lote_etapa_id'),
   };
+  // RF-37: a etapa é de um lote, e é ele quem diz a espécie e o recipiente que o tipo declara
+  if ((tipo.exigeEspecie || tipo.exigeRecipiente) && isUuid(bruta.loteId)) {
+    const lote = await lotes.findLote(pool, bruta.loteId);
+    if (lote) {
+      bruta.especieId ||= lote.especieId;
+      bruta.recipienteId ||= lote.recipienteId;
+    }
+  }
   const atribuicao = agenda.parseAtribuicao(tipo, bruta);
   if ('error' in atribuicao) return { status: 'recusado', error: atribuicao.error, fields };
   const confirmacao = agenda.parseConfirmacao(tipo, atribuicao.value.participantes, {
     loteId: bruta.loteId,
     areaId: bruta.areaId,
     canteiroId: bruta.canteiroId,
+    especieId: bruta.especieId,
+    recipienteId: bruta.recipienteId,
     quantidades,
     perdidas: campo(campos, 'perdidas'),
     causa: campo(campos, 'causa'),

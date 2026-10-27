@@ -16,6 +16,13 @@ interface ConfirmarFormProps {
   descricao: string;
   exigeLote: boolean;
   exigeArea: boolean;
+  /** RF-37: pedidos de novo na confirmação; o planejamento aceita "Ainda não sei". */
+  exigeEspecie?: boolean;
+  exigeRecipiente?: boolean;
+  especies?: readonly SelectOption[];
+  recipientes?: readonly SelectOption[];
+  especieId?: string | null;
+  recipienteId?: string | null;
   eQuantitativa: boolean;
   unidadeMedida: UnidadeTarefa;
   participantes: readonly { id: string; nome: string }[];
@@ -36,6 +43,12 @@ export function ConfirmarForm({
   descricao,
   exigeLote,
   exigeArea,
+  exigeEspecie = false,
+  exigeRecipiente = false,
+  especies = [],
+  recipientes = [],
+  especieId = null,
+  recipienteId = null,
   eQuantitativa,
   unidadeMedida,
   participantes,
@@ -55,7 +68,12 @@ export function ConfirmarForm({
 
   // RNF-07: lote, área, um número por participante e as mortas; passou de cinco, vira dois passos
   const campos =
-    (exigeLote ? 1 : 0) + (exigeArea && !exigeLote ? 2 : 0) + (eQuantitativa ? participantes.length : 0) + (exigeLote ? 2 : 0);
+    (exigeLote ? 1 : 0) +
+    (exigeEspecie ? 1 : 0) +
+    (exigeRecipiente ? 1 : 0) +
+    (exigeArea && !exigeLote ? 2 : 0) +
+    (eQuantitativa ? participantes.length : 0) +
+    (exigeLote ? 2 : 0);
 
   return (
     <form key={state.rodada ?? 'confirmar'} action={formAction} className="flex flex-col gap-4">
@@ -67,6 +85,24 @@ export function ConfirmarForm({
           <>
             {exigeLote && (
               <SelectField label="Lote" name="lote_id" options={lotes} defaultValue={fields?.lote_id ?? loteId ?? ''} required />
+            )}
+            {exigeEspecie && (
+              <SelectField
+                label="Espécie"
+                name="especie_id"
+                options={especies}
+                defaultValue={fields?.especie_id ?? especieId ?? ''}
+                required
+              />
+            )}
+            {exigeRecipiente && (
+              <SelectField
+                label="Recipiente"
+                name="recipiente_id"
+                options={recipientes}
+                defaultValue={fields?.recipiente_id ?? recipienteId ?? ''}
+                required
+              />
             )}
             {exigeArea && !exigeLote && (
               <AreaCanteiroOpcional

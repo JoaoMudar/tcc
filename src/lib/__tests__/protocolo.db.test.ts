@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { Pool, type PoolClient } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { confirmarAtribuicao, criarAtribuicoes, fecharSemana, registrarTarefaFeita } from '../agenda';
+import { adiarAtribuicao, confirmarAtribuicao, criarAtribuicoes, fecharSemana, registrarTarefaFeita } from '../agenda';
 import { inicioDaSemana } from '../semanas';
 import { insertArea, insertCanteiro } from '../areas';
 import { hojeNoViveiro, somaDias } from '../datas';
@@ -461,6 +461,37 @@ describe('RF-55, RN-41: postergar e confirmar a tarefa feita fora da agenda', ()
     expect(await tx((client) => adiarEtapa(client, id, limpeza, 3, '2027-01-10', usuario))).toEqual({ vencimento: '2027-01-13' });
     expect((await daVisao(id, limpeza))!.proximoVencimento).toBe('2027-01-13');
     expect(await listAcoesDoLote(pool, id)).toMatchObject([{ tipoAcao: 'adiamento', dias: 30 }]);
+  });
+
+  it('RF-55: adiar a tarefa já lançada fica no histórico do lote, sem mexer no vencimento da etapa', async () => {
+    const { id } = await novoLote(tubete, canteiro1, '2026-01-10');
+    const [atribuicaoId] = await tx((client) =>
+      criarAtribuicoes(client, {
+        semana: '2030-02-04',
+        dias: ['2030-02-05'],
+        turnoId: turnoManha,
+        tipoTarefaId: tipoComLote,
+        horaInicio: null,
+        horaFim: null,
+        participantes: [pessoa],
+        loteId: id,
+        especieId: null,
+        recipienteId: null,
+        areaId: null,
+        canteiroId: null,
+        quantidadePlanejada: null,
+        recorrente: false,
+        observacoes: null,
+        loteEtapaId: limpeza,
+      }),
+    );
+    const antes = (await daVisao(id, limpeza))!.proximoVencimento;
+
+    await tx((client) => adiarAtribuicao(client, atribuicaoId, 1, '2030-02-04', usuario));
+
+    expect(await listAcoesDoLote(pool, id)).toMatchObject([{ tipoAcao: 'adiamento_tarefa', dias: 1 }]);
+    // O vencimento da etapa é o congelado no aceite: adiar a tarefa não o move
+    expect((await daVisao(id, limpeza))!.proximoVencimento).toBe(antes);
   });
 
   it('a etapa que não vence nada não se adia nem se conclui por aqui', async () => {
