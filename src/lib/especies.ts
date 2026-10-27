@@ -98,7 +98,8 @@ export function normalizeBusca(text: string): string {
 
 const COM_ACENTO = 'áàâãäéèêëíìîïóòôõöúùûüçñ';
 const SEM_ACENTO = 'aaaaaeeeeiiiiooooouuuucn';
-const semAcento = (expr: string) => `translate(lower(${expr}), '${COM_ACENTO}', '${SEM_ACENTO}')`;
+/** A expressão SQL que tira acento e caixa, como `normalizeBusca` faz no TypeScript. */
+export const semAcento = (expr: string) => `translate(lower(${expr}), '${COM_ACENTO}', '${SEM_ACENTO}')`;
 
 export function duplicateMessage(error: unknown): string | null {
   switch (violatedConstraint(error, '23505')) {

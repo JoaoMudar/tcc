@@ -1544,3 +1544,26 @@ describe('conferência por tipo de item (P12, 20260925000001)', () => {
     expect((await listItens(pool, id))[0]).toMatchObject({ disponivel: null, alturaDisponivelM: null });
   });
 });
+
+describe('RF-60: o filtro de cliente roda no banco, antes do limite', () => {
+  it('com 301 pedidos mais novos de outro cliente, o pedido antigo ainda é achado pelo nome e pelo id', async () => {
+    const antigo = await tx((c) => insertClienteRapido(c, { nome: `${prefixo} Sítio Antônio Velho`, telefone: null }));
+    await pool.query("INSERT INTO pedidos (cliente_id, canal_venda, situacao, criado_por) VALUES ($1, 'atacado', 'cadastrado', $2)", [
+      antigo,
+      usuario,
+    ]);
+    await pool.query(
+      `INSERT INTO pedidos (cliente_id, canal_venda, situacao, criado_por)
+       SELECT $1, 'atacado', 'cadastrado', $2 FROM generate_series(1, 301)`,
+      [outroCliente, usuario],
+    );
+
+    // Sem filtro, os 300 mais novos não incluem o dele
+    expect((await listPedidos(pool)).some((p) => p.clienteId === antigo)).toBe(false);
+    // Pelo texto, sem acento e em pedaços soltos, e pelo id
+    expect((await listPedidos(pool, { texto: 'antonio velho' })).map((p) => p.clienteId)).toEqual([antigo]);
+    expect((await listPedidos(pool, { clienteId: antigo })).map((p) => p.clienteId)).toEqual([antigo]);
+    // O curinga do LIKE digitado não vira curinga
+    expect(await listPedidos(pool, { texto: '%' })).toEqual([]);
+  });
+});

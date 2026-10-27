@@ -217,9 +217,13 @@ export function ColarLista({
 
   // Recipiente e quantidade em branco não travam: no cadastro são opcionais, e a
   // conferência responde o que o cliente não disse
+  // RF-59: a linha só parecida ("provável") também espera: quem registra confirma
+  // a espécie, ou troca, antes de ela entrar no pedido
+  const aConfirmar = (linha: LinhaRevisao) => !linha.generico && !!linha.especieId && linha.situacao === 'provavel';
   const pendentes = (linhas ?? []).filter(
     (linha) =>
       (!linha.generico && !linha.especieId) ||
+      aConfirmar(linha) ||
       'error' in parseAltura(linha.altura) ||
       (linha.quantidade.trim() !== '' && !/^\d+$/.test(linha.quantidade.trim())),
   ).length;
@@ -330,13 +334,17 @@ export function ColarLista({
                   className="grid grid-cols-[1.4fr_1fr_1fr_2.75rem_2.75rem] border-t border-line first:border-t-0 lg:table-row lg:align-top lg:first:border-t"
                 >
                   <td
-                    data-situacao={linha.generico ? 'generico' : achou ? 'encontrada' : 'nao-encontrada'}
+                    data-situacao={
+                      linha.generico ? 'generico' : aConfirmar(linha) ? 'provavel' : achou ? 'encontrada' : 'nao-encontrada'
+                    }
                     className={`col-span-5 border-l-4 p-0 ${
                       linha.generico
                         ? 'border-l-blue-500 bg-blue-50'
-                        : achou
-                          ? 'border-l-green-600 bg-green-50'
-                          : 'border-l-red-600 bg-red-50'
+                        : aConfirmar(linha)
+                          ? 'border-l-amber-500 bg-amber-50'
+                          : achou
+                            ? 'border-l-green-600 bg-green-50'
+                            : 'border-l-red-600 bg-red-50'
                     }`}
                   >
                     {linha.generico ? (
@@ -364,6 +372,19 @@ export function ColarLista({
                       <p className="px-3 pb-1.5 text-xs text-muted">
                         {formatMoeda(linha.precoCentavos)} não entra no pedido: o preço é lançado depois da conferência
                       </p>
+                    )}
+
+                    {aConfirmar(linha) && (
+                      <div className="flex flex-wrap items-center gap-2 px-3 pb-2">
+                        <span className="text-sm font-semibold text-amber-900">Só parecido: confirme a espécie.</span>
+                        <button
+                          type="button"
+                          onClick={() => alterar(linha.chave, { situacao: 'exata' })}
+                          className="min-h-11 rounded-lg border border-amber-600 bg-white px-3 text-sm font-bold text-amber-900"
+                        >
+                          Confirmar {linha.especie}
+                        </button>
+                      </div>
                     )}
 
                     {!linha.generico && !linha.especieId && linha.nomeColado && (
@@ -470,8 +491,8 @@ export function ColarLista({
       {pendentes > 0 ? (
         <Notice tone="warning">
           {pendentes === 1
-            ? 'Uma linha a resolver: falta a espécie, ou a altura ou a quantidade não se entende.'
-            : `${pendentes} linhas a resolver: falta a espécie, ou a altura ou a quantidade não se entende.`}
+            ? 'Uma linha a resolver: falta a espécie ou a confirmação dela, ou a altura ou a quantidade não se entende.'
+            : `${pendentes} linhas a resolver: falta a espécie ou a confirmação dela, ou a altura ou a quantidade não se entende.`}
         </Notice>
       ) : (
         <Button

@@ -357,6 +357,18 @@ export function itemVendavel(item: ItemCalculavel, itens: readonly ItemCalculave
   return pai !== undefined && pai.quantidade === null;
 }
 
+/**
+ * RN-53, RF-66: **o item que vai no caminhão**, que é outra pergunta que a do
+ * `itemVendavel`. O preço é do pai genérico com quantidade ("500 nativas"),
+ * mas quem sobe no caminhão são os filhos; o suplente não vai, e o indisponível
+ * também não. É a regra de `itensReais` em `cargas.ts`, que lê o pedido já
+ * aprovado (sem suplente nem indisponível, que a aprovação tira).
+ */
+export function itemReal(item: ItemCalculavel): boolean {
+  if (item.generico || item.suplente) return false;
+  return !(item.disponivel === false && item.quantidadeDisponivel === 0);
+}
+
 /** RF-65: o total do item é quantidade por preço, em centavos. Sem preço, nulo. */
 export function totalItem(item: ItemCalculavel): number | null {
   return item.precoCentavos === null || item.quantidade === null ? null : item.quantidade * item.precoCentavos;

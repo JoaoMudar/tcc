@@ -4,13 +4,14 @@ import Link from 'next/link';
 import { type ReactNode, useActionState, useEffect, useRef, useState } from 'react';
 import { AcaoRecolhivel } from '@/components/ui/AcaoRecolhivel';
 import { Button } from '@/components/ui/Button';
+import { CampoDocumento } from '@/components/ui/CampoDocumento';
 import { CampoTelefone } from '@/components/ui/CampoTelefone';
 import { Notice } from '@/components/ui/Notice';
 import { Toast } from '@/components/ui/Toast';
 import { SelectField } from '@/components/ui/SelectField';
 import { TextArea } from '@/components/ui/TextArea';
 import { TextField } from '@/components/ui/TextField';
-import { formatDocumento, formatTelefone, validateDocumento } from '@/lib/documento';
+import { formatDocumento, formatTelefone } from '@/lib/documento';
 import {
   EMPTY_PESSOA_STATE,
   ENDERECO_FISCAL,
@@ -69,7 +70,6 @@ export function PessoaForm({ pessoa, verFiscal, podeEditar, paraPedido }: Pessoa
 
   const [tipo, setTipo] = useState<TipoPessoa>(pessoa?.tipo ?? 'pf');
   const [funcionario, setFuncionario] = useState(temPapel('funcionario'));
-  const [documentoErro, setDocumentoErro] = useState<string | null>(null);
   const vinculo = fields?.tipo_vinculo ?? pessoa?.papeis.find((p) => p.papel === 'funcionario')?.tipoVinculo ?? undefined;
   const endereco = (t: string) => pessoa?.enderecos.find((e) => e.tipo === t);
 
@@ -96,10 +96,7 @@ export function PessoaForm({ pessoa, verFiscal, podeEditar, paraPedido }: Pessoa
                 name="tipo"
                 value={valor}
                 checked={tipo === valor}
-                onChange={() => {
-                  setTipo(valor);
-                  setDocumentoErro(null);
-                }}
+                onChange={() => setTipo(valor)}
                 className="sr-only"
               />
               {TIPO_PESSOA_LABELS[valor]}
@@ -161,16 +158,10 @@ export function PessoaForm({ pessoa, verFiscal, podeEditar, paraPedido }: Pessoa
                 hint="Só número, ou ISENTO. Em branco se não for contribuinte."
                 defaultValue={fields?.inscricao_estadual ?? pessoa?.inscricaoEstadual ?? ''}
               />
-              <TextField
-                label={tipo === 'pf' ? 'CPF' : 'CNPJ'}
-                name="documento"
-                inputMode="numeric"
+              <CampoDocumento
+                key={tipo}
+                tipo={tipo}
                 defaultValue={fields?.documento ?? (pessoa?.documento ? formatDocumento(pessoa.documento) : '')}
-                error={documentoErro ?? undefined}
-                onBlur={(event) => {
-                  const result = validateDocumento(tipo, event.currentTarget.value);
-                  setDocumentoErro('error' in result ? result.error : null);
-                }}
               />
               <EnderecoFields tipo={ENDERECO_FISCAL} endereco={endereco(ENDERECO_FISCAL)} fields={fields} />
             </section>

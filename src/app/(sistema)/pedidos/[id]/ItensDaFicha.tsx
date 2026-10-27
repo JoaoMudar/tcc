@@ -29,6 +29,7 @@ import { ORIGEM_PADRAO, type OrigemFrete, freteParaCampo, pesoDoPedido } from '@
 import { lerQuantidade } from '@/lib/lotes-rotulos';
 import {
   formatAltura,
+  itemReal,
   itemVendavel,
   parsePreco,
   precoParaCampo,
@@ -224,11 +225,14 @@ function textoDistancia(km: number | null): string | null {
  * confirmada no parcial), e o peso é o do recipiente em que o item vai: o
  * escolhido na negociação, ou o conferido, ou o pedido.
  */
-function pesoDaFicha(itens: readonly ItemDaFicha[], valores: Readonly<Record<string, ValoresNegociacao>> | null) {
+export function pesoDaFicha(itens: readonly ItemDaFicha[], valores: Readonly<Record<string, ValoresNegociacao>> | null) {
   return pesoDoPedido(
     itens
-      .filter((item) => itemVendavel(item, itens) && !item.generico)
+      // RF-66: os filhos do genérico com quantidade também pesam, e não só o vendável.
+      // O genérico ainda sem espécies entra sem peso: a tela avisa, em vez de pesar menos
+      .filter((item) => itemReal(item) || (item.generico && !itens.some((filho) => filho.itemPaiId === item.id)))
       .map((item) => {
+        if (item.generico) return { quantidade: item.quantidade, pesoKg: null };
         const parcial = item.disponivel === false && (item.quantidadeDisponivel ?? 0) > 0;
         const escolhido = valores?.[item.id]?.recipienteId || item.recipienteDisponivelId || item.recipienteId;
         const pesoKg =

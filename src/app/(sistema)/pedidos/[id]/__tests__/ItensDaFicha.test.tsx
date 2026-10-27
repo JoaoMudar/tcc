@@ -11,7 +11,7 @@ import {
   sugerirFreteAction,
   usarSuplenteAction,
 } from '../../actions';
-import { ATRASO_GRAVACAO_MS, ItensDaFicha } from '../ItensDaFicha';
+import { ATRASO_GRAVACAO_MS, ItensDaFicha, pesoDaFicha } from '../ItensDaFicha';
 
 vi.mock('../../actions', () => ({
   adicionarItemAction: vi.fn(async () => ({ success: 'ok', itemId: 'novo' })),
@@ -458,5 +458,26 @@ describe('ItensDaFicha: copiar faltantes', () => {
     expect(screen.queryByRole('button', { name: 'Copiar faltantes' })).toBeNull();
     ficha([item({ disponivel: false, quantidadeDisponivel: 0 })], false);
     expect(screen.queryByRole('button', { name: 'Copiar faltantes' })).toBeNull();
+  });
+});
+
+describe('pesoDaFicha (RF-66, RN-53)', () => {
+  it('o genérico com quantidade pesa pelos filhos, e o filho sem peso entra no aviso', () => {
+    const pai = item({ id: 'pai', especieId: null, especie: null, generico: true, quantidade: 500 });
+    const comPeso = item({ id: 'f1', itemPaiId: 'pai', quantidade: 300, pesoKg: 0.5 });
+    const semPeso = item({ id: 'f2', itemPaiId: 'pai', quantidade: 200, recipienteId: 's', pesoKg: null });
+    expect(pesoDaFicha([pai, comPeso, semPeso], null)).toEqual({ kg: 150, semPeso: 1 });
+  });
+
+  it('o genérico ainda sem espécies não pesa menos em silêncio: conta como sem peso', () => {
+    const pai = item({ id: 'pai', especieId: null, especie: null, generico: true, quantidade: 500 });
+    expect(pesoDaFicha([pai], null)).toEqual({ kg: 0, semPeso: 1 });
+  });
+
+  it('o suplente e o indisponível não vão no caminhão', () => {
+    const vai = item({ id: 'v', quantidade: 100, pesoKg: 1 });
+    const suplente = item({ id: 's', suplente: true, quantidade: 100, pesoKg: 1 });
+    const indisponivel = item({ id: 'i', disponivel: false, quantidadeDisponivel: 0, quantidade: 100, pesoKg: 1 });
+    expect(pesoDaFicha([vai, suplente, indisponivel], null)).toEqual({ kg: 100, semPeso: 0 });
   });
 });

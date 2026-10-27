@@ -173,3 +173,17 @@ describe('conferência da lista colada (T8.16)', () => {
     expect(screen.getByLabelText('Quantidade da linha 2')).toBeInTheDocument();
   });
 });
+
+describe('a linha só parecida espera confirmação (RF-59)', () => {
+  it('fica âmbar, segura a importação até o "Confirmar", e depois entra', () => {
+    const { container, onImportar } = conferir('Ipê 500');
+    expect(situacoes(container)).toEqual(['provavel']);
+    expect(screen.queryByText(/Adicionar 1 item/)).toBeNull();
+    expect(screen.getByText(/1 linha a resolver|Uma linha a resolver/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Confirmar Ipê-amarelo'));
+    expect(situacoes(container)).toEqual(['encontrada']);
+    fireEvent.click(screen.getByText('Adicionar 1 item ao pedido'));
+    expect(onImportar).toHaveBeenCalled();
+  });
+});
