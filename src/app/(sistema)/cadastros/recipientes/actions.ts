@@ -10,13 +10,13 @@ import { requirePermission } from '@/lib/auth/guards';
 
 /** RF-14: recipiente novo, com nome, volume e peso cheio. */
 export async function createRecipiente(_previous: FormState, formData: FormData): Promise<FormState> {
-  await requirePermission('recipientes', 'C');
+  const usuario = await requirePermission('recipientes', 'C');
   const fields = { nome: formText(formData, 'nome'), volume: formText(formData, 'volume'), peso: formText(formData, 'peso') };
   const parsed = recipientes.parseRecipienteFields(fields);
   if ('error' in parsed) return { error: parsed.error, fields };
 
   try {
-    await recipientes.insertRecipiente(pool, parsed.value);
+    await recipientes.insertRecipiente(pool, parsed.value, usuario.usuarioId);
   } catch (error) {
     return { error: recipientes.duplicateMessage(error) ?? toUserMessage(error), fields };
   }
@@ -27,7 +27,7 @@ export async function createRecipiente(_previous: FormState, formData: FormData)
 
 /** Nome, volume, peso cheio e uso. Não há exclusão: o recipiente sai de uso desativado. */
 export async function updateRecipiente(_previous: FormState, formData: FormData): Promise<FormState> {
-  await requirePermission('recipientes', 'A');
+  const usuario = await requirePermission('recipientes', 'A');
   const id = formText(formData, 'recipiente_id');
   if (!isUuid(id)) return { error: 'Recipiente inválido.' };
   const parsed = recipientes.parseRecipienteFields({
@@ -38,7 +38,7 @@ export async function updateRecipiente(_previous: FormState, formData: FormData)
   if ('error' in parsed) return { error: parsed.error };
 
   try {
-    const result = await recipientes.updateRecipiente(pool, id, { ...parsed.value, ativo: formData.get('ativo') === 'on' });
+    const result = await recipientes.updateRecipiente(pool, id, { ...parsed.value, ativo: formData.get('ativo') === 'on' }, usuario.usuarioId);
     if (result === 'nao_encontrado') return { error: 'Recipiente não encontrado.' };
   } catch (error) {
     return { error: recipientes.duplicateMessage(error) ?? toUserMessage(error) };

@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from 'react';
 import { Button } from '@/components/ui/Button';
+import { DoisPassos } from '@/components/ui/DoisPassos';
 import { Notice } from '@/components/ui/Notice';
 import { type SelectOption, SelectField } from '@/components/ui/SelectField';
 import { TextField } from '@/components/ui/TextField';
@@ -34,49 +35,62 @@ export function RepicagemForm({ loteId, codigo, saldo, recipientes, canteiros, a
     <form action={formAction} className="flex flex-col gap-4">
       <input type="hidden" name="lote_id" value={loteId} />
       {atribuicaoId && <input type="hidden" name="atribuicao_id" value={atribuicaoId} />}
-      <TextField
-        label="Quantas repicar"
-        name="quantidade"
-        inputMode="numeric"
-        autoComplete="off"
-        hint={`O lote tem ${formatQuantidade(saldo)} mudas.`}
-        defaultValue={fields?.quantidade}
-        onChange={(event) => setRepicar(lerQuantidade(event.target.value))}
-        required
+      {/* RNF-07: seis campos; para onde vão primeiro, as que morreram depois */}
+      <DoisPassos
+        dividir
+        rotuloContinuar="Continuar: morreu alguma?"
+        primeiro={
+          <>
+            <TextField
+              label="Quantas repicar"
+              name="quantidade"
+              inputMode="numeric"
+              autoComplete="off"
+              hint={`O lote tem ${formatQuantidade(saldo)} mudas.`}
+              defaultValue={fields?.quantidade}
+              onChange={(event) => setRepicar(lerQuantidade(event.target.value))}
+              required
+            />
+            <SelectField label="Para o recipiente" name="recipiente_id" options={recipientes} defaultValue={fields?.recipiente_id} required />
+            <CanteiroPicker
+              canteiros={canteiros}
+              quantidade={repicar}
+              defaultAreaId={fields?.area_id}
+              defaultCanteiroId={fields?.canteiro_id}
+              sufixo=" de destino"
+            />
+          </>
+        }
+        segundo={
+          <>
+            <TextField
+              label="Morreram na repicagem"
+              name="perdidas"
+              inputMode="numeric"
+              autoComplete="off"
+              defaultValue={fields?.perdidas}
+              onChange={(event) => setPerdidas(lerQuantidade(event.target.value) ?? 0)}
+            />
+            {perdidas > 0 && <CausaPicker legenda="Causa das que morreram" defaultValue={fields?.causa} />}
+            {repicar !== null && repicar > 0 && (
+              <div className="flex flex-col gap-1 rounded-lg border border-line p-3 text-base">
+                <div className="flex justify-between">
+                  <span className="text-muted">Lote {codigo} fica com</span>
+                  <span className={`font-bold ${fica < 0 ? 'text-red-700' : 'text-ink'}`}>{formatQuantidade(fica)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted">Lote novo</span>
+                  <span className="font-bold text-green-800">{formatQuantidade(repicar)}</span>
+                </div>
+              </div>
+            )}
+            {state.error && <Notice tone="error">{state.error}</Notice>}
+            <Button type="submit" pending={pending}>
+              Confirmar repicagem
+            </Button>
+          </>
+        }
       />
-      <SelectField label="Para o recipiente" name="recipiente_id" options={recipientes} defaultValue={fields?.recipiente_id} required />
-      <CanteiroPicker
-        canteiros={canteiros}
-        quantidade={repicar}
-        defaultAreaId={fields?.area_id}
-        defaultCanteiroId={fields?.canteiro_id}
-        sufixo=" de destino"
-      />
-      <TextField
-        label="Morreram na repicagem"
-        name="perdidas"
-        inputMode="numeric"
-        autoComplete="off"
-        defaultValue={fields?.perdidas}
-        onChange={(event) => setPerdidas(lerQuantidade(event.target.value) ?? 0)}
-      />
-      {perdidas > 0 && <CausaPicker legenda="Causa das que morreram" defaultValue={fields?.causa} />}
-      {repicar !== null && repicar > 0 && (
-        <div className="flex flex-col gap-1 rounded-lg border border-line p-3 text-base">
-          <div className="flex justify-between">
-            <span className="text-muted">Lote {codigo} fica com</span>
-            <span className={`font-bold ${fica < 0 ? 'text-red-700' : 'text-ink'}`}>{formatQuantidade(fica)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted">Lote novo</span>
-            <span className="font-bold text-green-800">{formatQuantidade(repicar)}</span>
-          </div>
-        </div>
-      )}
-      {state.error && <Notice tone="error">{state.error}</Notice>}
-      <Button type="submit" pending={pending}>
-        Confirmar repicagem
-      </Button>
     </form>
   );
 }

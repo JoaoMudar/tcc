@@ -151,7 +151,7 @@ function CartaoDaParada({ parada, marca, primeiro, ultimo, onMover, remover, onE
           <button
             type="submit"
             aria-label="Tirar parada"
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-line bg-white text-muted"
+            className="flex h-11 w-11 items-center justify-center rounded-lg border border-line bg-white text-muted"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
               <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
@@ -165,7 +165,7 @@ function CartaoDaParada({ parada, marca, primeiro, ultimo, onMover, remover, onE
           aria-label="Subir"
           disabled={primeiro}
           onClick={() => onMover(-1)}
-          className="flex h-8 w-9 items-center justify-center rounded-md border border-line bg-white text-ink disabled:opacity-40"
+          className="flex h-11 w-11 items-center justify-center rounded-md border border-line bg-white text-ink disabled:opacity-40"
         >
           <Seta para="cima" />
         </button>
@@ -174,7 +174,7 @@ function CartaoDaParada({ parada, marca, primeiro, ultimo, onMover, remover, onE
           aria-label="Descer"
           disabled={ultimo}
           onClick={() => onMover(1)}
-          className="flex h-8 w-9 items-center justify-center rounded-md border border-line bg-white text-ink disabled:opacity-40"
+          className="flex h-11 w-11 items-center justify-center rounded-md border border-line bg-white text-ink disabled:opacity-40"
         >
           <Seta para="baixo" />
         </button>

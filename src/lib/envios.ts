@@ -9,7 +9,7 @@ import { UserError } from './errors';
 
 type Client = Pick<PoolClient, 'query'>;
 
-export const TIPOS_ENVIO = ['perda', 'contagem', 'confirmacao_tarefa'] as const;
+export const TIPOS_ENVIO = ['perda', 'contagem', 'confirmacao_tarefa', 'altura', 'tarefa_feita'] as const;
 export type TipoEnvio = (typeof TIPOS_ENVIO)[number];
 
 export function isTipoEnvio(valor: unknown): valor is TipoEnvio {

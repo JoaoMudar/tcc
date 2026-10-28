@@ -9,8 +9,8 @@ import { Pill } from '@/components/ui/Pill';
 import { formatData, hojeNoViveiro } from '@/lib/datas';
 import pool from '@/lib/db';
 import { formatDateTime } from '@/lib/format';
-import { CAUSAS_PERDA, FASES, TIPOS_MOVIMENTO, formatQuantidade } from '@/lib/lotes-rotulos';
-import { findLote, listCanteirosParaLote, listMovimentos } from '@/lib/lotes';
+import { CAUSAS_PERDA, FASES, TIPOS_MOVIMENTO, formatQuantidade, recipienteMaior } from '@/lib/lotes-rotulos';
+import { findLote, listCanteirosParaLote, listMovimentos, saldoDosMovimentos } from '@/lib/lotes';
 import { formatAltura } from '@/lib/pedidos-rotulos';
 import { acimaDoLimite, formatPercentual, limiteMortalidade, mortalidade } from '@/lib/perdas';
 import { can } from '@/lib/permissions';
@@ -59,8 +59,10 @@ export default async function LotePage({ params, searchParams }: LotePageProps) 
   ]);
   const taxa = mortalidade(lote.perdas, lote.quantidadeInicial);
   const alerta = acimaDoLimite(taxa, limite);
+  // RF-29: só recipiente maior que o do lote (o sem volume cadastrado não se compara)
+  const volumeAtual = recipientes.find((r) => r.id === lote.recipienteId)?.volumeLitros ?? null;
   const destinos = recipientes
-    .filter((r) => r.ativo && r.id !== lote.recipienteId)
+    .filter((r) => r.ativo && r.id !== lote.recipienteId && recipienteMaior(volumeAtual, r.volumeLitros))
     .map((r) => ({ value: r.id, label: r.volumeLitros === null ? r.nome : `${r.nome} · ${formatVolume(r.volumeLitros)}` }));
 
   return (
@@ -244,9 +246,15 @@ export default async function LotePage({ params, searchParams }: LotePageProps) 
             </li>
           ))}
         </ol>
-        <p className="text-sm text-muted">
-          A soma do histórico dá o saldo: {formatQuantidade(lote.quantidadeAtual)}.
-        </p>
+        {/* RF-28: a soma é feita de verdade, e a divergência aparece em vez de ser afirmada */}
+        {saldoDosMovimentos(movimentos) === lote.quantidadeAtual ? (
+          <p className="text-sm text-muted">A soma do histórico dá o saldo: {formatQuantidade(lote.quantidadeAtual)}.</p>
+        ) : (
+          <Notice tone="error">
+            A soma do histórico dá {formatQuantidade(saldoDosMovimentos(movimentos))}, e o saldo gravado é{' '}
+            {formatQuantidade(lote.quantidadeAtual)}. Registre uma contagem para acertar.
+          </Notice>
+        )}
       </div>
     </main>
   );

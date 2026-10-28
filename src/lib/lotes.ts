@@ -10,8 +10,9 @@ import {
   FASES_EDITAVEIS,
   formatQuantidade,
   lerQuantidade,
+  recipienteMaior,
 } from './lotes-rotulos';
-import { proximaPosicao, registrarMovimento, travarLote } from './movimentos';
+import { proximaPosicao, registrarAjusteDeContagem, registrarMovimento, travarLote } from './movimentos';
 // `protocolos.ts` não importa daqui: importa de `lotes-rotulos`, que é sem `pg`.
 // É o que mantém a seta num sentido só e evita o ciclo.
 import { herdarProtocolo, materializarProtocolo } from './protocolos';
@@ -27,6 +28,11 @@ export {
 } from './lotes-rotulos';
 
 type Client = Pick<PoolClient, 'query'>;
+
+/** `NUMERIC` volta do `pg` como texto. */
+function numeroOuNulo(valor: string | null): number | null {
+  return valor === null ? null : Number(valor);
+}
 
 const MAX_QUANTIDADE = 10_000_000;
 
@@ -106,6 +112,12 @@ interface InsercaoLote extends NovoLote {
    * hoje. Nos outros caminhos as duas são a mesma.
    */
   dataMovimento?: string;
+  /**
+   * RF-30, RN-43: só a divisão o informa. O resultante segue o protocolo do
+   * original (inclusive nenhum), e não o vigente hoje no recipiente: se o
+   * protocolo mudou desde então, o percurso recomeçaria.
+   */
+  protocoloHerdado?: { id: string | null };
 }
 
 async function inserirLote(client: Client, input: InsercaoLote): Promise<{ id: string; codigo: string }> {
@@ -158,7 +170,7 @@ async function inserirLote(client: Client, input: InsercaoLote): Promise<{ id: s
   // repicagem o recipiente e outro, e por isso o lote novo segue outro
   // protocolo: e o vasilhame que determina o manejo (RN-32), e a muda que passou
   // do tubete para o saco comeca o manejo do saco, contado da criacao dela.
-  await materializarProtocolo(client, id, input.recipienteId, input.dataCriacao);
+  await materializarProtocolo(client, id, input.recipienteId, input.dataCriacao, input.protocoloHerdado);
   return { id, codigo };
 }
 
@@ -191,6 +203,17 @@ export async function repicarLote(
   if (origem.encerrado) throw new UserError(`O lote ${origem.codigo} está encerrado e não pode ser repicado.`);
   if (input.recipienteId === origem.recipienteId) {
     throw new UserError('A repicagem muda o recipiente. Para trocar só de canteiro, use a transferência.');
+  }
+  // RF-29, RN-22: a repicagem vai para recipiente maior; sem volume cadastrado, não há como conferir
+  const { rows: volumes } = await client.query<{ origem: string | null; destino: string | null; nome: string }>(
+    `SELECT (SELECT volume_litros FROM recipientes WHERE id = $1) AS origem,
+            (SELECT volume_litros FROM recipientes WHERE id = $2) AS destino,
+            (SELECT nome FROM recipientes WHERE id = $2) AS nome`,
+    [origem.recipienteId, input.recipienteId],
+  );
+  const volume = volumes[0];
+  if (volume && !recipienteMaior(numeroOuNulo(volume.origem), numeroOuNulo(volume.destino))) {
+    throw new UserError(`A repicagem vai para um recipiente maior, e ${volume.nome} não é maior que o atual.`);
   }
 
   const total = input.quantidade + input.perdidas;
@@ -311,13 +334,19 @@ export async function dividirLote(client: Client, input: Divisao): Promise<Resul
   }
 
   // A leva inteira sai do original, e volta repartida nos dois resultantes
-  const { rows: ficha } = await client.query<{ fase: Fase; dataPlantio: string | null; dataCriacao: string }>(
+  const { rows: ficha } = await client.query<{
+    fase: Fase;
+    dataPlantio: string | null;
+    dataCriacao: string;
+    alturaM: string | null;
+    protocoloId: string | null;
+  }>(
     `SELECT fase, to_char(data_plantio, 'YYYY-MM-DD') AS "dataPlantio",
-            to_char(data_criacao, 'YYYY-MM-DD') AS "dataCriacao"
+            to_char(data_criacao, 'YYYY-MM-DD') AS "dataCriacao", altura_m AS "alturaM", protocolo_id AS "protocoloId"
        FROM lotes WHERE id = $1`,
     [origem.id],
   );
-  const { fase, dataPlantio, dataCriacao } = ficha[0];
+  const { fase, dataPlantio, dataCriacao, alturaM, protocoloId } = ficha[0];
   const hoje = hojeNoViveiro();
   const paraA = origem.quantidadeAtual - input.quantidade;
 
@@ -336,9 +365,11 @@ export async function dividirLote(client: Client, input: Divisao): Promise<Resul
       fase,
       tipoEntrada: 'divisao_entrada',
       dataMovimento: hoje,
+      protocoloHerdado: { id: protocoloId },
     });
-    // RN-43: a fase e as datas das etapas continuam de onde o original estava
-    if (dataPlantio) await client.query('UPDATE lotes SET data_plantio = $2 WHERE id = $1', [novo.id, dataPlantio]);
+    // RN-43: a fase, as datas das etapas e a altura medida continuam de onde o
+    // original estava; sem a altura, os dois cairiam como "sem medida" no estoque
+    await client.query('UPDATE lotes SET data_plantio = $2, altura_m = $3 WHERE id = $1', [novo.id, dataPlantio, alturaM]);
     await herdarProtocolo(client, origem.id, novo.id);
     return { ...novo, quantidade };
   };
@@ -386,9 +417,8 @@ export async function contarLote(
   const diferenca = input.contado - lote.quantidadeAtual;
   if (diferenca === 0) return { codigo: lote.codigo, diferenca, saldo: lote.quantidadeAtual, encerrado: false };
 
-  const resultado = await registrarMovimento(client, {
+  const resultado = await registrarAjusteDeContagem(client, {
     loteId: lote.id,
-    tipo: 'ajuste_contagem',
     quantidade: diferenca,
     observacoes: input.observacoes,
     registradoPor: input.registradoPor,
@@ -417,11 +447,18 @@ export async function alterarFase(db: Db, loteId: string, fase: Exclude<Fase, 'e
  * É o que o item de pedido compara com a altura pedida (RN-10, RN-11), e por
  * isso guarda só a última: a muda cresce, e a medida antiga não vende nada.
  */
-export async function alterarAltura(db: Db, loteId: string, alturaM: number | null): Promise<'ok' | 'nao_encontrado'> {
-  const { rowCount } = await db.query('UPDATE lotes SET altura_m = $2 WHERE id = $1 AND encerrado_em IS NULL', [
-    loteId,
-    alturaM,
-  ]);
+export async function alterarAltura(
+  db: Db,
+  loteId: string,
+  alturaM: number | null,
+  medidaPor: string | null = null,
+): Promise<'ok' | 'nao_encontrado'> {
+  // RNF-15: quem mediu e quando, junto da medida
+  const { rowCount } = await db.query(
+    `UPDATE lotes SET altura_m = $2, altura_medida_por = $3, altura_medida_em = NOW()
+      WHERE id = $1 AND encerrado_em IS NULL`,
+    [loteId, alturaM, medidaPor],
+  );
   return rowCount ? 'ok' : 'nao_encontrado';
 }
 

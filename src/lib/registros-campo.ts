@@ -1,18 +1,23 @@
 import type { PoolClient } from 'pg';
 import * as agenda from './agenda';
 import type { SessionUser } from './auth/session-store';
+import { hojeNoViveiro, isDataIso } from './datas';
 import pool from './db';
 import { type Envio, type TipoEnvio, executarUmaVez } from './envios';
-import { isErroDefinitivo, toUserMessage } from './errors';
+import { UserError, isErroDefinitivo, toUserMessage } from './errors';
 import * as lotes from './lotes';
 import { CAUSAS_PERDA, formatQuantidade, isCausaPerda, registrarMovimento } from './movimentos';
+import { formatAltura, parseAltura } from './pedidos-rotulos';
 import { type Operacao, type Recurso, can } from './permissions';
+import { inicioDaSemana } from './semanas';
+import { findTipoTarefa } from './tipos-tarefa';
 import { withTransaction } from './transaction';
 import { isUuid } from './uuid';
 
 /**
  * O registro de campo que pode ser feito sem conexão (T9.3, RNF-04): perda,
- * contagem e confirmação de tarefa. Chega pela fila do aparelho, em
+ * contagem, confirmação de tarefa, altura do lote e tarefa feita fora da agenda
+ * (as duas últimas desde 27/10/2026, migration 20261027000005). Chega pela fila do aparelho, em
  * `/api/registros`, com a chave gerada lá; a chave e o registro gravam na mesma
  * transação (`executarUmaVez`), e o reenvio recebe a resposta da primeira vez.
  *
@@ -37,6 +42,9 @@ export const PERMISSAO_DO_ENVIO: Record<TipoEnvio, [Recurso, Operacao]> = {
   perda: ['perdas', 'C'],
   contagem: ['movimentos_lote', 'C'],
   confirmacao_tarefa: ['confirmacao_tarefa', 'C'],
+  altura: ['lotes', 'A'],
+  // A tarefa feita é lançar e confirmar: exige também `confirmacao_tarefa`, conferida dentro
+  tarefa_feita: ['agenda', 'C'],
 };
 
 function campo(campos: Campos, nome: string): string {
@@ -136,6 +144,8 @@ async function confirmarTarefa(campos: Campos, envio: Envio, user: SessionUser):
     lote_id: campo(campos, 'lote_id'),
     area_id: campo(campos, 'area_id'),
     canteiro_id: campo(campos, 'canteiro_id'),
+    especie_id: campo(campos, 'especie_id'),
+    recipiente_id: campo(campos, 'recipiente_id'),
     perdidas: campo(campos, 'perdidas'),
     causa: campo(campos, 'causa'),
     ...Object.fromEntries(Object.entries(quantidades).map(([pessoa, texto]) => [`quantidade_${pessoa}`, texto])),
@@ -143,7 +153,16 @@ async function confirmarTarefa(campos: Campos, envio: Envio, user: SessionUser):
   const confirmacao = agenda.parseConfirmacao(
     atribuicao,
     atribuicao.participantes.map((p) => p.id),
-    { loteId: fields.lote_id, areaId: fields.area_id, canteiroId: fields.canteiro_id, quantidades, perdidas: fields.perdidas, causa: fields.causa },
+    {
+      loteId: fields.lote_id,
+      areaId: fields.area_id,
+      canteiroId: fields.canteiro_id,
+      especieId: fields.especie_id,
+      recipienteId: fields.recipiente_id,
+      quantidades,
+      perdidas: fields.perdidas,
+      causa: fields.causa,
+    },
   );
   if ('error' in confirmacao) return { status: 'recusado', error: confirmacao.error, fields };
   if (confirmacao.value.perda && !can(user.perfil, 'perdas', 'C')) return { status: 'proibido' };
@@ -164,6 +183,89 @@ async function confirmarTarefa(campos: Campos, envio: Envio, user: SessionUser):
   });
 }
 
+/** RF-31: a altura medida na trena. Vazia apaga. */
+async function registrarAltura(campos: Campos, envio: Envio): Promise<ResultadoRegistro> {
+  const loteId = campo(campos, 'lote_id');
+  if (!isUuid(loteId)) return { status: 'recusado', error: 'Lote inválido.' };
+  const fields = { altura: campo(campos, 'altura') };
+  const altura = parseAltura(fields.altura);
+  if ('error' in altura) return { status: 'recusado', error: altura.error, fields };
+
+  return gravar(envio, fields, async (client) => {
+    if ((await lotes.alterarAltura(client, loteId, altura.value, envio.usuarioId)) === 'nao_encontrado') {
+      throw new UserError('Lote não encontrado, ou já encerrado.');
+    }
+    return { success: altura.value === null ? 'Altura apagada.' : `Altura registrada: ${formatAltura(altura.value)}.` };
+  });
+}
+
+/**
+ * RF-55: a etapa feita fora da agenda, lançada e confirmada no mesmo gesto. A
+ * lista de quem fez chega em `participantes_lista`: a fila guarda um valor por
+ * nome, e as marcações repetem o nome.
+ */
+async function registrarTarefaFeitaCampo(campos: Campos, envio: Envio, user: SessionUser): Promise<ResultadoRegistro> {
+  if (!can(user.perfil, 'confirmacao_tarefa', 'C')) return { status: 'proibido' };
+  const participantes = campo(campos, 'participantes_lista').split(',').filter(Boolean);
+  const dia = campo(campos, 'dias');
+  const quantidades = Object.fromEntries(participantes.map((p) => [p, campo(campos, `quantidade_${p}`)]));
+  const fields: Campos = { ...campos };
+  if (!isDataIso(dia)) return { status: 'recusado', error: 'Escolha o dia em que a tarefa foi feita.', fields };
+  if (dia > hojeNoViveiro()) return { status: 'recusado', error: 'O dia em que foi feita não pode estar no futuro.', fields };
+  const tipoId = campo(campos, 'tipo_tarefa_id');
+  if (!isUuid(tipoId)) return { status: 'recusado', error: 'Tipo de tarefa inválido.', fields };
+  const tipo = await findTipoTarefa(pool, tipoId);
+  if (!tipo) return { status: 'recusado', error: 'Tipo de tarefa não encontrado.', fields };
+
+  const bruta: agenda.AtribuicaoBruta = {
+    semana: inicioDaSemana(dia),
+    dias: [dia],
+    turnoId: campo(campos, 'turno_id'),
+    horaInicio: '',
+    horaFim: '',
+    participantes,
+    loteId: campo(campos, 'lote_id'),
+    especieId: campo(campos, 'especie_id'),
+    recipienteId: campo(campos, 'recipiente_id'),
+    areaId: campo(campos, 'area_id'),
+    canteiroId: campo(campos, 'canteiro_id'),
+    quantidadePlanejada: '',
+    recorrente: false,
+    observacoes: '',
+    loteEtapaId: campo(campos, 'lote_etapa_id'),
+  };
+  // RF-37: a etapa é de um lote, e é ele quem diz a espécie e o recipiente que o tipo declara
+  if ((tipo.exigeEspecie || tipo.exigeRecipiente) && isUuid(bruta.loteId)) {
+    const lote = await lotes.findLote(pool, bruta.loteId);
+    if (lote) {
+      bruta.especieId ||= lote.especieId;
+      bruta.recipienteId ||= lote.recipienteId;
+    }
+  }
+  const atribuicao = agenda.parseAtribuicao(tipo, bruta);
+  if ('error' in atribuicao) return { status: 'recusado', error: atribuicao.error, fields };
+  const confirmacao = agenda.parseConfirmacao(tipo, atribuicao.value.participantes, {
+    loteId: bruta.loteId,
+    areaId: bruta.areaId,
+    canteiroId: bruta.canteiroId,
+    especieId: bruta.especieId,
+    recipienteId: bruta.recipienteId,
+    quantidades,
+    perdidas: campo(campos, 'perdidas'),
+    causa: campo(campos, 'causa'),
+  });
+  if ('error' in confirmacao) return { status: 'recusado', error: confirmacao.error, fields };
+  const { perda } = confirmacao.value;
+  if (perda && !can(user.perfil, 'perdas', 'C')) return { status: 'proibido' };
+
+  const agendaDoDia = `/producao?dia=${dia}&feito=confirmada`;
+  const destino = perda ? `${agendaDoDia}&perda=${perda.quantidade}&causa=${perda.causa}` : agendaDoDia;
+  return gravar(envio, fields, async (client) => {
+    await agenda.registrarTarefaFeita(client, atribuicao.value, confirmacao.value, envio.usuarioId);
+    return { success: 'Tarefa confirmada.', destino };
+  });
+}
+
 export async function processarRegistro(tipo: TipoEnvio, chave: string, campos: Campos, user: SessionUser): Promise<ResultadoRegistro> {
   const [recurso, operacao] = PERMISSAO_DO_ENVIO[tipo];
   if (!can(user.perfil, recurso, operacao)) return { status: 'proibido' };
@@ -175,5 +277,9 @@ export async function processarRegistro(tipo: TipoEnvio, chave: string, campos: 
       return registrarContagem(campos, envio);
     case 'confirmacao_tarefa':
       return confirmarTarefa(campos, envio, user);
+    case 'altura':
+      return registrarAltura(campos, envio);
+    case 'tarefa_feita':
+      return registrarTarefaFeitaCampo(campos, envio, user);
   }
 }

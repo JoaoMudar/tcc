@@ -197,6 +197,12 @@ describe('parseAtribuicao (RF-37, RF-38)', () => {
     expect(v.horaInicio).toBeNull();
   });
 
+  it('RF-53: a sugestão mantém o lote mesmo no tipo que não o declara; a tarefa à mão, não', () => {
+    const ETAPA = '1c8e2d4f-9a6b-4d2c-8e1f-3a7b8c9d0e15';
+    expect(valor(parseAtribuicao(SIMPLES, bruta({ loteId: LOTE, loteEtapaId: ETAPA }))).loteId).toBe(LOTE);
+    expect(valor(parseAtribuicao(SIMPLES, bruta({ loteId: LOTE }))).loteId).toBeNull();
+  });
+
   it('o domingo é da semana, e aceita tarefa', () => {
     expect(valor(parseAtribuicao(SIMPLES, bruta({ dias: ['2026-09-20'] }))).dias).toEqual(['2026-09-20']);
   });
@@ -298,14 +304,21 @@ describe('parseConfirmacao (RF-40, UC-20)', () => {
   });
 
   it('sem a declaração de área, a confirmação não guarda área nem canteiro', () => {
-    expect(valor(parseConfirmacao(SEMENTE, [P1], { ...vazia, areaId: AREA, canteiroId: CANTEIRO }))).toMatchObject({
+    expect(valor(parseConfirmacao(SEMENTE, [P1], { ...vazia, especieId: ESPECIE, areaId: AREA, canteiroId: CANTEIRO }))).toMatchObject({
       areaId: null,
       canteiroId: null,
     });
   });
 
+  it('RF-37: o tipo que declara espécie a exige na confirmação, mesmo planejado com "Ainda não sei"', () => {
+    expect(parseConfirmacao(SEMENTE, [P1], vazia)).toEqual({ error: expect.stringContaining('exige a espécie') });
+    expect(valor(parseConfirmacao(SEMENTE, [P1], { ...vazia, especieId: ESPECIE })).especieId).toBe(ESPECIE);
+    // O tipo que não a declara não a grava, mesmo que venha
+    expect(valor(parseConfirmacao(SIMPLES, [P1], { ...vazia, especieId: ESPECIE })).especieId).toBeNull();
+  });
+
   it('na unidade kg a quantidade de cada um aceita decimal; em un, não', () => {
-    const v = valor(parseConfirmacao(SEMENTE, [P1, P2], { ...vazia, quantidades: { [P1]: '2,5', [P2]: '1.200,75' } }));
+    const v = valor(parseConfirmacao(SEMENTE, [P1, P2], { ...vazia, especieId: ESPECIE, quantidades: { [P1]: '2,5', [P2]: '1.200,75' } }));
     expect(v.quantidades).toEqual([
       { pessoaId: P1, quantidade: 2.5 },
       { pessoaId: P2, quantidade: 1200.75 },

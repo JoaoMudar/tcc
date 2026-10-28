@@ -15,7 +15,7 @@ import {
   listPessoas,
   savePessoa,
 } from '../pessoas';
-import { insertRecipiente, listRecipientes } from '../recipientes';
+import { insertRecipiente, listRecipientes, updateRecipiente } from '../recipientes';
 import { findTipoTarefa, insertTipoTarefa, listTiposTarefa, updateTipoTarefa } from '../tipos-tarefa';
 import { withTransaction } from '../transaction';
 
@@ -37,6 +37,8 @@ afterAll(async () => {
   await pool.query("DELETE FROM insumos WHERE nome LIKE $1 || '%'", [prefixo]);
   await pool.query("DELETE FROM tipos_tarefa WHERE nome LIKE $1 || '%'", [prefixo]);
   await pool.query("DELETE FROM cadastro.pessoas WHERE nome LIKE $1 || '%'", [prefixo]);
+  // Por último: os cadastros acima apontam para ele (RNF-15)
+  await pool.query("DELETE FROM usuarios WHERE login LIKE $1 || '%'", [prefixo]);
   await pool.end();
 });
 
@@ -93,6 +95,17 @@ describe('espécies contra Postgres real', () => {
 
     const foto = await findFoto(pool, fotoIdFromUrl(porPopular[0].fotoUrl)!);
     expect(foto).toEqual({ tipoConteudo: 'image/jpeg', conteudo: JPEG });
+  });
+
+  it('RN-05: o filtro das pendentes traz só quem espera a revisão do nome', async () => {
+    const { rows } = await pool.query<{ status: string }>('SELECT status_validacao AS status FROM especies WHERE id = $1', [especieId]);
+    const pendentes = await searchEspecies(pool, `${prefixo} CEDRELA`, { soPendentes: true });
+    expect(pendentes.map((e) => e.id)).toEqual(rows[0].status === 'pendente' ? [especieId] : []);
+    await pool.query("UPDATE especies SET status_validacao = 'pendente' WHERE id = $1", [especieId]);
+    expect((await searchEspecies(pool, `${prefixo} CEDRELA`, { soPendentes: true })).map((e) => e.id)).toEqual([especieId]);
+    await pool.query("UPDATE especies SET status_validacao = 'a_identificar' WHERE id = $1", [especieId]);
+    expect(await searchEspecies(pool, `${prefixo} CEDRELA`, { soPendentes: true })).toEqual([]);
+    await pool.query('UPDATE especies SET status_validacao = $2 WHERE id = $1', [especieId, rows[0].status]);
   });
 
   it('trocar a foto apaga a antiga; remover deixa sem foto', async () => {
@@ -238,7 +251,18 @@ describe('pessoas contra Postgres real', () => {
         { ...fornecedor, papeis: [...fornecedor.papeis, { papel: 'cliente', tipoVinculo: null }] },
         {
           documento: '11222333000181',
-          enderecoCobranca: { tipo: 'cobranca', logradouro: 'Rua XV, 10', cidade: 'Rio do Sul', uf: 'SC', cep: '89160000' },
+          razaoSocial: 'Viveiro Teste Comercio de Mudas Ltda',
+          inscricaoEstadual: 'ISENTO',
+          enderecoCobranca: {
+            tipo: 'cobranca',
+            logradouro: 'Rua XV de Novembro',
+            numero: '10',
+            bairro: 'Centro',
+            cidade: 'Rio do Sul',
+            codigoIbge: '4214805',
+            uf: 'SC',
+            cep: '89160000',
+          },
         },
       ),
     );
@@ -252,11 +276,19 @@ describe('pessoas contra Postgres real', () => {
     ]);
     expect(ficha?.documento).toBe('11222333000181');
     expect(ficha?.enderecos.map((e) => e.tipo).sort()).toEqual(['cobranca', 'entrega']);
+    // RF-19: o leiaute da NF-e grava e volta inteiro
+    expect(ficha).toMatchObject({ razaoSocial: 'Viveiro Teste Comercio de Mudas Ltda', inscricaoEstadual: 'ISENTO' });
+    expect(ficha?.enderecos.find((e) => e.tipo === 'cobranca')).toMatchObject({
+      numero: '10',
+      bairro: 'Centro',
+      codigoIbge: '4214805',
+    });
   });
 
   it('sem verFiscal, a ficha não traz documento nem endereço de cobrança', async () => {
     const ficha = await findPessoa(pool, pessoaId, false);
     expect(ficha).not.toHaveProperty('documento');
+    expect(ficha).not.toHaveProperty('inscricaoEstadual');
     expect(ficha?.enderecos.map((e) => e.tipo)).toEqual(['entrega']);
   });
 
@@ -321,5 +353,64 @@ describe('pessoas contra Postgres real', () => {
 
     expect(await addPapel(pool, (funcionario as { id: string }).id, 'cliente')).toBe(`${prefixo} Valdir`);
     expect(await addPapel(pool, randomUUID(), 'cliente')).toBeNull();
+  });
+});
+
+describe('RN-06: características em lista fechada também no banco', () => {
+  it('valor fora da lista é recusado pela restrição', async () => {
+    await expect(
+      pool.query("INSERT INTO especies (nome_cientifico, caracteristicas) VALUES ($1, ARRAY['venenosa'])", [`${prefixo} Fora lista`]),
+    ).rejects.toMatchObject({ code: '23514' });
+  });
+});
+
+/** RNF-15, segunda etapa: o cadastro guarda quem o criou e quem o alterou por último. */
+describe('autor dos cadastros (RNF-15)', () => {
+  const autorDe = async (tabela: string, id: string) =>
+    (
+      await pool.query<{ criadoPor: string | null; atualizadoPor: string | null }>(
+        `SELECT criado_por AS "criadoPor", atualizado_por AS "atualizadoPor" FROM ${tabela} WHERE id = $1`,
+        [id],
+      )
+    ).rows[0];
+  const novoUsuario = async (login: string) =>
+    (
+      await pool.query<{ id: string }>(
+        `INSERT INTO usuarios (login, nome_exibicao, senha_hash, perfil, deve_trocar_senha)
+         VALUES ($1, 'Autor de teste', 'x', 'gerencia', false) RETURNING id`,
+        [login],
+      )
+    ).rows[0].id;
+
+  it('espécie, pessoa e recipiente: quem cria fica nos dois campos, quem altera só no segundo', async () => {
+    const criou = await novoUsuario(`${prefixo}a`);
+    const alterou = await novoUsuario(`${prefixo}b`);
+
+    const especie = await withTransaction(pool, (c) =>
+      saveEspecie(
+        c,
+        null,
+        { nomeCientifico: `${prefixo} Autoria especie`, nomesPopulares: [], caracteristicas: [], observacoes: null, ativa: true },
+        { nova: null, remover: false },
+        criou,
+      ),
+    );
+    if (especie.resultado !== 'ok') throw new Error('espécie não gravada');
+    const pessoa = await withTransaction(pool, (c) =>
+      insertClienteRapido(c, { nome: `${prefixo} Autoria cliente`, telefone: null }, criou),
+    );
+    const recipiente = await insertRecipiente(pool, { nome: `${prefixo} Autoria saco`, volumeLitros: 2 }, criou);
+
+    expect(await autorDe('especies', especie.id)).toEqual({ criadoPor: criou, atualizadoPor: criou });
+    expect(await autorDe('cadastro.pessoas', pessoa)).toEqual({ criadoPor: criou, atualizadoPor: criou });
+    expect(await autorDe('recipientes', recipiente)).toEqual({ criadoPor: criou, atualizadoPor: criou });
+
+    await updateRecipiente(pool, recipiente, { nome: `${prefixo} Autoria saco`, volumeLitros: 2.5, ativo: true }, alterou);
+    expect(await autorDe('recipientes', recipiente)).toEqual({ criadoPor: criou, atualizadoPor: alterou });
+  });
+
+  it('a carga por script grava sem autor', async () => {
+    const id = await insertRecipiente(pool, { nome: `${prefixo} Autoria script`, volumeLitros: 1 });
+    expect(await autorDe('recipientes', id)).toEqual({ criadoPor: null, atualizadoPor: null });
   });
 });

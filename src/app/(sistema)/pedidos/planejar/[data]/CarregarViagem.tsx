@@ -2,12 +2,15 @@
 
 import Link from 'next/link';
 import { useActionState } from 'react';
+import { EscolhaDoLote } from '@/components/pedidos/EscolhaDoLote';
 import { Button } from '@/components/ui/Button';
 import { Notice } from '@/components/ui/Notice';
+import type { SelectOption } from '@/components/ui/SelectField';
 import { EMPTY_FORM_STATE } from '@/lib/form-state';
 import { formatQuantidade } from '@/lib/lotes-rotulos';
 import { formatAltura } from '@/lib/pedidos-rotulos';
 import { ordemDeCarregamento } from '@/lib/rotas';
+import { definirLoteDoItemAction } from '../../[id]/separar/actions';
 import { concluirViagemAction, marcarItemAction, marcarPedidoCarregadoAction } from './actions';
 
 export interface GrupoParaCarregar {
@@ -26,6 +29,9 @@ export interface GrupoParaCarregar {
     separado: boolean;
     /** Já foi contado no caminhão, aqui. */
     carregado: boolean;
+    /** RF-24: o lote de onde sai a venda, baixada ao concluir a viagem. */
+    loteId: string | null;
+    opcoesLote: readonly SelectOption[];
   }[];
 }
 
@@ -160,6 +166,16 @@ export function CarregarViagem({ data, viagemId, pronta, grupos }: CarregarViage
                         </span>
                       </button>
                     </form>
+                    <div className="mt-1 pl-10">
+                      <EscolhaDoLote
+                        pedidoId={grupo.pedidoId}
+                        cargaItemId={item.id}
+                        loteId={item.loteId}
+                        opcoes={item.opcoesLote}
+                        action={definirLoteDoItemAction}
+                        travado={pronta}
+                      />
+                    </div>
                   </li>
                 ))}
               </ul>

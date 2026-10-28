@@ -72,3 +72,25 @@ describe('ConfirmacaoDupla', () => {
     expect(screen.getByRole('dialog').querySelector('input[name="pedido_id"]')).toHaveValue('abc');
   });
 });
+
+describe('RNF-09: a confirmação de que gravou', () => {
+  it('o sucesso fecha a folha e aparece na tela', () => {
+    const { rerender } = render(
+      <ConfirmacaoDupla rotuloBotao="Cancelar pedido" titulo="Cancelar o pedido?" rotuloConfirmar="Sim, cancelar" action={vi.fn()} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar pedido' }));
+    expect(screen.getByRole('button', { name: 'Sim, cancelar' })).toBeInTheDocument();
+
+    rerender(
+      <ConfirmacaoDupla
+        rotuloBotao="Cancelar pedido"
+        titulo="Cancelar o pedido?"
+        rotuloConfirmar="Sim, cancelar"
+        action={vi.fn()}
+        sucesso="Pedido 7 cancelado. O registro continua aqui."
+      />,
+    );
+    expect(screen.queryByRole('button', { name: 'Sim, cancelar' })).toBeNull();
+    expect(screen.getByText('Pedido 7 cancelado. O registro continua aqui.')).toBeInTheDocument();
+  });
+});

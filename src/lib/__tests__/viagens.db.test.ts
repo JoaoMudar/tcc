@@ -1,7 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import { Pool, type PoolClient } from 'pg';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { concluirCarga, criarCargaUnica, criarCargas, listCargas, marcarItemSeparado } from '../cargas';
+import { concluirCarga, criarCargaUnica, criarCargas, definirLoteDoItem, listCargas, marcarItemSeparado } from '../cargas';
+import { somaDias } from '../datas';
+import { criarLote } from '../lotes';
 import {
   concluirVerificacao,
   confirmarPedido,
@@ -59,11 +61,14 @@ let cliente: string;
 let outroCliente: string;
 let especie: string;
 let tubete: string;
+/** RF-24: o lote de onde sai a venda; grande o bastante para todas as viagens do arquivo. */
+let lote: string;
+let canteiroJ: string;
 
 // Cada teste num dia próprio: a viagem é do dia, e dois testes no mesmo dia se enxergariam
-let proximoDia = 1;
+let proximoDia = 0;
 function umDia(): string {
-  return `2031-03-${String(proximoDia++).padStart(2, '0')}`;
+  return somaDias('2031-03-01', proximoDia++);
 }
 
 beforeAll(async () => {
@@ -87,6 +92,32 @@ beforeAll(async () => {
     `${prefixo} Handroanthus`,
   ]));
   tubete = await insertRecipiente(pool, { nome: `${prefixo} tubete`, volumeLitros: 0.055 });
+
+  // A área J e o canteiro 1 são reaproveitados entre execuções: a letra é única no viveiro
+  const {
+    rows: [area],
+  } = await pool.query<{ id: string }>(
+    "INSERT INTO areas (letra) VALUES ('J') ON CONFLICT (letra) DO UPDATE SET letra = EXCLUDED.letra RETURNING id",
+  );
+  const {
+    rows: [canteiro],
+  } = await pool.query<{ id: string }>(
+    `INSERT INTO canteiros (area_id, numero) VALUES ($1, 1)
+     ON CONFLICT (area_id, numero) DO UPDATE SET numero = EXCLUDED.numero RETURNING id`,
+    [area.id],
+  );
+  canteiroJ = canteiro.id;
+  ({ id: lote } = await tx((client) =>
+    criarLote(client, {
+      especieId: especie,
+      recipienteId: tubete,
+      canteiroId: canteiro.id,
+      quantidade: 1_000_000,
+      dataCriacao: '2031-01-01',
+      observacoes: null,
+      registradoPor: usuario,
+    }),
+  ));
 });
 
 afterAll(async () => {
@@ -608,5 +639,97 @@ describe('P17, P19: o endereço de entrega completado na rota', () => {
     await expect(tx((c) => salvarEnderecoDeEntrega(c, viagemId, estranho, endereco))).rejects.toThrow(/não está nesta viagem/);
     await tx((c) => mudarEtapa(c, viagemId, 'montando'));
     await expect(tx((c) => salvarEnderecoDeEntrega(c, viagemId, pedido, endereco))).rejects.toThrow(/etapa da rota/);
+  });
+});
+
+/** RF-24, RF-34: a venda sai do lote quando a viagem fica pronta. */
+describe('a venda baixa o lote na conclusão da viagem', () => {
+  const doLote = async (id: string) => {
+    const { rows } = await pool.query<{ saldo: number; motivo: string | null }>(
+      'SELECT quantidade_atual AS saldo, motivo_encerramento AS motivo FROM lotes WHERE id = $1',
+      [id],
+    );
+    return rows[0];
+  };
+
+  /** Viagem de um pedido, em carregamento, com o item já no caminhão. */
+  async function carregada() {
+    const dia = umDia();
+    const pedido = await pedidoAprovado(dia);
+    const { viagemId } = await tx((c) => adicionarPedido(c, dia, pedido, gerencia()));
+    await tx((c) => mudarEtapa(c, viagemId, 'roteirizando'));
+    await tx((c) => iniciarCarregamento(c, viagemId, gerencia()));
+    const [item] = (await cargasDaViagem(pool, viagemId))[0].itens;
+    await tx((c) => marcarItemCarregado(c, item.id, true));
+    return { viagemId, pedido, item };
+  }
+
+  it('a carga nasce com o lote sugerido, e a viagem pronta grava a venda e baixa o saldo', async () => {
+    const { viagemId, pedido, item } = await carregada();
+    expect(item.loteId).toBe(lote);
+    const antes = (await doLote(lote)).saldo;
+
+    await tx((c) => concluirViagem(c, viagemId, gerencia()));
+
+    expect((await doLote(lote)).saldo).toBe(antes - 300);
+    const { rows } = await pool.query<{ quantidade: number; observacoes: string }>(
+      `SELECT quantidade, observacoes FROM movimentos_lote
+        WHERE lote_id = $1 AND tipo_movimento = 'venda' ORDER BY criado_em DESC LIMIT 1`,
+      [lote],
+    );
+    const numero = (await findPedido(pool, pedido))!.numero;
+    expect(rows[0]).toEqual({ quantidade: -300, observacoes: `Pedido ${numero}` });
+    // RF-28: a soma do histórico continua reproduzindo o saldo
+    const { rows: soma } = await pool.query<{ total: number }>(
+      'SELECT SUM(quantidade)::int AS total FROM movimentos_lote WHERE lote_id = $1',
+      [lote],
+    );
+    expect(soma[0].total).toBe((await doLote(lote)).saldo);
+  });
+
+  it('item sem lote recusa a viagem, e nada é baixado', async () => {
+    const { viagemId, item } = await carregada();
+    await pool.query('UPDATE pedidos_cargas_itens SET lote_id = NULL WHERE id = $1', [item.id]);
+    const antes = (await doLote(lote)).saldo;
+    await expect(tx((c) => concluirViagem(c, viagemId, gerencia()))).rejects.toThrow(/de que lote saem/);
+    expect((await doLote(lote)).saldo).toBe(antes);
+    await tx((c) => definirLoteDoItem(c, item.id, lote));
+  });
+
+  it('a venda que zera o lote o encerra como expedido (RF-34)', async () => {
+    const { viagemId, item } = await carregada();
+    const { id: exato } = await tx((client) =>
+      criarLote(client, {
+        especieId: especie,
+        recipienteId: tubete,
+        canteiroId: canteiroJ,
+        quantidade: 300,
+        dataCriacao: '2031-01-02',
+        observacoes: null,
+        registradoPor: usuario,
+      }),
+    );
+    await tx((c) => definirLoteDoItem(c, item.id, exato));
+    await tx((c) => concluirViagem(c, viagemId, gerencia()));
+    expect(await doLote(exato)).toEqual({ saldo: 0, motivo: 'expedido' });
+  });
+
+  it('o lote trocado precisa ser aberto e do mesmo par, e não muda depois da viagem pronta', async () => {
+    const { viagemId, item } = await carregada();
+    const outro = await insertRecipiente(pool, { nome: `${prefixo} saco ${randomUUID().slice(0, 4)}`, volumeLitros: 1 });
+    const { id: doSaco } = await tx((client) =>
+      criarLote(client, {
+        especieId: especie,
+        recipienteId: outro,
+        canteiroId: canteiroJ,
+        quantidade: 10,
+        dataCriacao: '2031-01-03',
+        observacoes: null,
+        registradoPor: usuario,
+      }),
+    );
+    await expect(tx((c) => definirLoteDoItem(c, item.id, doSaco))).rejects.toThrow(/mesma espécie e recipiente/);
+    await tx((c) => concluirViagem(c, viagemId, gerencia()));
+    await expect(tx((c) => definirLoteDoItem(c, item.id, lote))).rejects.toThrow(/já foi concluída/);
   });
 });

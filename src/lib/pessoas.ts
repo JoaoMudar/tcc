@@ -46,6 +46,25 @@ export interface PessoaFields {
 export interface FiscalFields {
   documento: string | null;
   enderecoCobranca: Endereco | null;
+  /** RF-19, leiaute da NF-e: só na PJ. */
+  razaoSocial: string | null;
+  /** Dígitos ou `ISENTO`; nulo é não contribuinte, ou ainda não informado. */
+  inscricaoEstadual: string | null;
+}
+
+/**
+ * RF-19: a inscrição estadual como a NF-e a aceita. Em branco é "não
+ * contribuinte"; "isento" em qualquer caixa vira `ISENTO`; o resto, só dígitos.
+ */
+export function parseInscricaoEstadual(texto: string): { error: string } | { value: string | null } {
+  const limpo = texto.trim();
+  if (!limpo) return { value: null };
+  if (/^isento$/i.test(limpo)) return { value: 'ISENTO' };
+  const digitos = onlyDigits(limpo);
+  if (digitos.length < 2 || digitos.length > 14 || /[a-z]/i.test(limpo)) {
+    return { error: 'A inscrição estadual é só número, ou ISENTO. Em branco, o cliente não é contribuinte.' };
+  }
+  return { value: digitos };
 }
 
 type Get = (name: string) => string;
@@ -58,13 +77,29 @@ export function parseEndereco(tipo: TipoEndereco, get: Get): { error: string } |
   const cidade = get(enderecoFieldName(tipo, 'cidade')).trim();
   const uf = get(enderecoFieldName(tipo, 'uf')).trim().toUpperCase();
   const cep = onlyDigits(get(enderecoFieldName(tipo, 'cep')));
-  if (!logradouro && !cidade && !uf && !cep) return { value: null };
+  // RF-19: número, bairro e código IBGE só vêm no endereço de cobrança, que é o da nota
+  const numero = get(enderecoFieldName(tipo, 'numero')).trim();
+  const bairro = get(enderecoFieldName(tipo, 'bairro')).trim();
+  const codigoIbge = onlyDigits(get(enderecoFieldName(tipo, 'codigo_ibge')));
+  if (!logradouro && !cidade && !uf && !cep && !numero && !bairro && !codigoIbge) return { value: null };
 
   const label = ENDERECO_LABELS[tipo];
-  if (logradouro.length > 200 || cidade.length > 80) return { error: `${label}: texto longo demais.` };
+  if (logradouro.length > 200 || cidade.length > 80 || numero.length > 20 || bairro.length > 80) {
+    return { error: `${label}: texto longo demais.` };
+  }
   if (uf && !(UFS as readonly string[]).includes(uf)) return { error: `${label}: escolha a UF da lista.` };
   if (cep && cep.length !== 8) return { error: `${label}: o CEP tem 8 números.` };
-  return { value: { tipo, logradouro: logradouro || null, cidade: cidade || null, uf: uf || null, cep: cep || null } };
+  if (codigoIbge && codigoIbge.length !== 7) return { error: `${label}: o código IBGE do município tem 7 números.` };
+  return {
+    value: {
+      tipo,
+      logradouro: logradouro || null,
+      cidade: cidade || null,
+      uf: uf || null,
+      cep: cep || null,
+      ...(tipo === ENDERECO_FISCAL ? { numero: numero || null, bairro: bairro || null, codigoIbge: codigoIbge || null } : {}),
+    },
+  };
 }
 
 /** Identidade, papéis e endereços comuns, lidos do formulário (RF-17, RF-19, RF-22). */
@@ -125,7 +160,18 @@ export function parseFiscalFields(tipo: TipoPessoa, get: Get): { error: string }
   if ('error' in documento) return documento;
   const cobranca = parseEndereco(ENDERECO_FISCAL, get);
   if ('error' in cobranca) return cobranca;
-  return { value: { documento: documento.value, enderecoCobranca: cobranca.value } };
+  const razao = tipo === 'pj' ? get('razao_social').trim().replace(/\s+/g, ' ') : '';
+  if (razao.length > 150) return { error: 'A razão social pode ter até 150 caracteres.' };
+  const inscricao = parseInscricaoEstadual(get('inscricao_estadual'));
+  if ('error' in inscricao) return inscricao;
+  return {
+    value: {
+      documento: documento.value,
+      enderecoCobranca: cobranca.value,
+      razaoSocial: razao || null,
+      inscricaoEstadual: inscricao.value,
+    },
+  };
 }
 
 export function duplicateMessage(error: unknown): string | null {
@@ -170,12 +216,15 @@ export async function listPessoas(
 }
 
 export async function findPessoa(db: Db, id: string, verFiscal: boolean): Promise<PessoaFicha | null> {
-  const colunaDocumento = verFiscal ? ', p.documento' : '';
+  const colunaDocumento = verFiscal
+    ? ', p.documento, p.razao_social AS "razaoSocial", p.inscricao_estadual AS "inscricaoEstadual"'
+    : '';
   const tiposEndereco = verFiscal ? [...ENDERECOS_COMUNS, ENDERECO_FISCAL] : [...ENDERECOS_COMUNS];
   const { rows } = await db.query<PessoaFicha>(
     `SELECT p.id, p.tipo, p.nome, p.telefone, p.email, p.observacoes, p.ativa${colunaDocumento}, ${PAPEIS_AGREGADOS},
             COALESCE((SELECT json_agg(json_build_object('tipo', e.tipo, 'logradouro', e.logradouro, 'cidade', e.cidade,
-                                                        'uf', e.uf, 'cep', e.cep,
+                                                        'uf', e.uf, 'cep', e.cep, 'numero', e.numero, 'bairro', e.bairro,
+                                                        'codigoIbge', e.codigo_ibge,
                                                         'lat', e.lat::float8, 'lng', e.lng::float8) ORDER BY e.tipo, e.criado_em)
                         FROM cadastro.pessoas_enderecos e
                        WHERE e.pessoa_id = p.id AND e.tipo = ANY($2::cadastro.tipo_endereco[])), '[]') AS enderecos
@@ -263,8 +312,9 @@ async function writeEnderecos(client: PoolClient, pessoaId: string, enderecos: r
     const guardada = antes.find((antigo) => antigo.tipo === e.tipo && mesmoTexto(antigo, e));
     const novo = e.lat != null && e.lng != null;
     await client.query(
-      `INSERT INTO cadastro.pessoas_enderecos (pessoa_id, tipo, logradouro, cidade, uf, cep, lat, lng, geocodificado_em)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      `INSERT INTO cadastro.pessoas_enderecos (pessoa_id, tipo, logradouro, cidade, uf, cep, lat, lng, geocodificado_em,
+                                               numero, bairro, codigo_ibge)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
       [
         pessoaId,
         e.tipo,
@@ -275,6 +325,9 @@ async function writeEnderecos(client: PoolClient, pessoaId: string, enderecos: r
         novo ? e.lat : (guardada?.lat ?? null),
         novo ? e.lng : (guardada?.lng ?? null),
         novo ? new Date() : (guardada?.geocodificadoEm ?? null),
+        e.numero ?? null,
+        e.bairro ?? null,
+        e.codigoIbge ?? null,
       ],
     );
   }
@@ -289,6 +342,8 @@ export async function savePessoa(
   id: string | null,
   fields: PessoaFields,
   fiscal: FiscalFields | null,
+  /** RNF-15: quem grava. Nulo na carga por script. */
+  autor: string | null = null,
 ): Promise<{ resultado: 'ok'; id: string } | { resultado: 'nao_encontrado' }> {
   const base = [fields.tipo, fields.nome, fields.telefone, fields.email, fields.observacoes, fields.ativa];
   let pessoaId: string;
@@ -297,17 +352,29 @@ export async function savePessoa(
     const { rowCount } = await client.query(
       `UPDATE cadastro.pessoas
           SET tipo = $1, nome = $2, telefone = $3, email = $4, observacoes = $5, ativa = $6,
-              documento = CASE WHEN $8 THEN $9 ELSE documento END
+              documento = CASE WHEN $8 THEN $9 ELSE documento END,
+              razao_social = CASE WHEN $8 THEN $10 ELSE razao_social END,
+              inscricao_estadual = CASE WHEN $8 THEN $11 ELSE inscricao_estadual END,
+              atualizado_por = $12
         WHERE id = $7`,
-      [...base, id, fiscal !== null, fiscal?.documento ?? null],
+      [
+        ...base,
+        id,
+        fiscal !== null,
+        fiscal?.documento ?? null,
+        fiscal?.razaoSocial ?? null,
+        fiscal?.inscricaoEstadual ?? null,
+        autor,
+      ],
     );
     if (!rowCount) return { resultado: 'nao_encontrado' };
     pessoaId = id;
   } else {
     const { rows } = await client.query<{ id: string }>(
-      `INSERT INTO cadastro.pessoas (tipo, nome, telefone, email, observacoes, ativa, documento)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
-      [...base, fiscal?.documento ?? null],
+      `INSERT INTO cadastro.pessoas (tipo, nome, telefone, email, observacoes, ativa, documento, razao_social, inscricao_estadual,
+                                    criado_por, atualizado_por)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10) RETURNING id`,
+      [...base, fiscal?.documento ?? null, fiscal?.razaoSocial ?? null, fiscal?.inscricaoEstadual ?? null, autor],
     );
     pessoaId = rows[0].id;
   }
@@ -343,10 +410,14 @@ export interface EnderecoDeEntrega {
 }
 
 /** RF-20: nome e telefone bastam para o pedido; a ficha se completa depois. */
-export async function insertClienteRapido(client: PoolClient, input: { nome: string; telefone: string | null }): Promise<string> {
+export async function insertClienteRapido(
+  client: PoolClient,
+  input: { nome: string; telefone: string | null },
+  autor: string | null = null,
+): Promise<string> {
   const { rows } = await client.query<{ id: string }>(
-    "INSERT INTO cadastro.pessoas (tipo, nome, telefone) VALUES ('pf', $1, $2) RETURNING id",
-    [input.nome, input.telefone],
+    "INSERT INTO cadastro.pessoas (tipo, nome, telefone, criado_por, atualizado_por) VALUES ('pf', $1, $2, $3, $3) RETURNING id",
+    [input.nome, input.telefone, autor],
   );
   await writePapeis(client, rows[0].id, [{ papel: 'cliente', tipoVinculo: null }]);
   return rows[0].id;

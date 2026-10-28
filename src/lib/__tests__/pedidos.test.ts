@@ -5,7 +5,9 @@ import {
   alturaParaCampo,
   CANAL_PADRAO,
   DONO_SITUACAO,
+  PASSAGENS_DA_PORTA_GENERICA,
   SITUACOES_PEDIDO,
+  exigePortaPropria,
   TRANSICOES,
   centavosParaSql,
   chaveSaldo,
@@ -593,11 +595,30 @@ describe('máquina de estados do pedido (T8.5, RN-55)', () => {
     expect(podeTransicionar('verificado', 'aprovado', 'admin')).toBe(true);
   });
 
-  it('editar devolve o pedido ao começo da conferência, das quatro situações em que cabe', () => {
-    for (const de of ['verificado', 'pendente_alteracao', 'aprovado', 'separando'] as const) {
+  it('editar devolve o pedido ao começo da conferência, das duas situações em que cabe', () => {
+    for (const de of ['verificado', 'pendente_alteracao'] as const) {
       expect(podeTransicionar(de, 'cadastrado', 'chefia')).toBe(true);
       expect(podeTransicionar(de, 'cadastrado', 'gerencia')).toBe(false);
+      expect(exigePortaPropria(de, 'cadastrado')).toBe(false);
     }
+  });
+
+  it('o aprovado e o separando só voltam ao orçamento pela reabertura (RN-52)', () => {
+    for (const de of ['aprovado', 'separando'] as const) {
+      expect(exigePortaPropria(de, 'cadastrado')).toBe(true);
+      expect(podeTransicionar(de, 'cadastrado', 'gerencia')).toBe(false);
+    }
+    expect(transicoesDe('aprovado', 'chefia').find((t) => t.para === 'cadastrado')?.rotulo).toBe('Reabrir pedido');
+  });
+
+  it('as fases com trabalho próprio não passam pela porta genérica (RF-61)', () => {
+    expect(exigePortaPropria('verificando', 'verificado')).toBe(true);
+    expect(exigePortaPropria('verificado', 'aprovado')).toBe(true);
+    expect(exigePortaPropria('aprovado', 'separando')).toBe(true);
+    expect(exigePortaPropria('separando', 'pronto_envio')).toBe(true);
+    expect(exigePortaPropria('cadastrado', 'verificando')).toBe(false);
+    expect(exigePortaPropria('aprovado', 'cancelado')).toBe(false);
+    expect(PASSAGENS_DA_PORTA_GENERICA).toEqual(['verificando', 'cadastrado', 'cancelado']);
   });
 
   it('pronto para envio também cancela, que é a decisão de 21/09/2026', () => {

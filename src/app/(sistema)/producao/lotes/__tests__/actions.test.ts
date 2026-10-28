@@ -108,8 +108,8 @@ describe('repicagem e fase', () => {
     loggedAs('gerencia');
     vi.mocked(pool.query).mockResolvedValue({ rowCount: 1, rows: [] } as never);
     expect((await actions.alterarAlturaAction({}, form({ lote_id: LOTE, altura: '120' }))).success).toBe('Altura registrada: 1,20 m.');
-    expect(vi.mocked(pool.query).mock.calls[0][1]).toEqual([LOTE, 1.2]);
+    expect(vi.mocked(pool.query).mock.calls[0][1]).toEqual([LOTE, 1.2, 'u1']);
     expect((await actions.alterarAlturaAction({}, form({ lote_id: LOTE, altura: '' }))).success).toBe('Altura apagada.');
-    expect(vi.mocked(pool.query).mock.calls[1][1]).toEqual([LOTE, null]);
+    expect(vi.mocked(pool.query).mock.calls[1][1]).toEqual([LOTE, null, 'u1']);
   });
 });

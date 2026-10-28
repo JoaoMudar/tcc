@@ -57,6 +57,11 @@ describe('RF-55: o que se pode fazer com o que pede providência', () => {
     });
   });
 
+  it('RF-56: a remarcação da tarefa atrasada vai para a semana de hoje, mesmo com a tela numa semana futura', () => {
+    const origem = providenciaDoLote(lote({ atribuicaoPendenteId: 'a1' }), null, '2026-10-12', SEMANA)?.origem;
+    expect(origem).toMatchObject({ marcarHref: `/producao/agenda/a1/editar?semana=${SEMANA}&voltar=agenda` });
+  });
+
   it('sem origem conhecida não há ação', () => {
     expect(providenciaDoLote(lote(), null, SEMANA)).toBeNull();
   });

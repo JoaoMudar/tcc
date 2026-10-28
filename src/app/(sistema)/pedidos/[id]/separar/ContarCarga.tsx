@@ -6,8 +6,15 @@ import { Notice } from '@/components/ui/Notice';
 import { Toast } from '@/components/ui/Toast';
 import { EMPTY_FORM_STATE } from '@/lib/form-state';
 import { formatQuantidade } from '@/lib/lotes-rotulos';
+import { EscolhaDoLote } from '@/components/pedidos/EscolhaDoLote';
+import type { SelectOption } from '@/components/ui/SelectField';
 import { formatAltura } from '@/lib/pedidos-rotulos';
-import { concluirCargaAction, marcarCargaSeparadaAction, marcarItemSeparadoAction } from './actions';
+import {
+  concluirCargaAction,
+  definirLoteDoItemAction,
+  marcarCargaSeparadaAction,
+  marcarItemSeparadoAction,
+} from './actions';
 
 export interface CargaParaContar {
   id: string;
@@ -20,6 +27,9 @@ export interface CargaParaContar {
     alturaM: number | null;
     quantidade: number;
     separado: boolean;
+    /** RF-24: o lote de onde saem as mudas, e os que podem atender o item. */
+    loteId: string | null;
+    opcoesLote: readonly SelectOption[];
   }[];
 }
 
@@ -102,6 +112,13 @@ export function ContarCarga({ pedidoId, cargas }: ContarCargaProps) {
                 {item.alturaM ? ` · ${formatAltura(item.alturaM)}` : ''} · {formatQuantidade(item.quantidade)}
               </p>
             </div>
+            <EscolhaDoLote
+              pedidoId={pedidoId}
+              cargaItemId={item.id}
+              loteId={item.loteId}
+              opcoes={item.opcoesLote}
+              action={definirLoteDoItemAction}
+            />
             {atual.situacao !== 'pronto' && (
               <form action={marcar}>
                 <input type="hidden" name="pedido_id" value={pedidoId} />

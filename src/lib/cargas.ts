@@ -1,5 +1,6 @@
 import type { PoolClient } from 'pg';
 import { UserError } from './errors';
+import { type LoteCandidato, sugerirLote } from './lote-da-venda';
 import { nomeEspecieSql } from './lotes';
 import { type AutorDaMudanca, type PedidoTravado, mudarSituacao, travarPedido } from './pedidos';
 import { SITUACOES_PEDIDO, type SituacaoCarga, type LinhaCarga, validarDivisaoCargas } from './pedidos-rotulos';
@@ -29,6 +30,11 @@ export interface ItemDaCarga {
   separado: boolean;
   /** Contado e posto no caminhão (aba 3 do planejar). */
   carregado: boolean;
+  /** RF-24: de que lote saem as mudas; a conclusão da viagem baixa a venda nele. */
+  loteId: string | null;
+  loteCodigo: string | null;
+  especieId: string | null;
+  recipienteId: string;
 }
 
 export interface Carga {
@@ -102,7 +108,8 @@ export async function criarCargaUnica(
     1,
     itens.map((item) => ({ itemId: item.id, quantidade: item.quantidade })),
   );
-  await mudarSituacao(client, pedidoId, 'separando', autor, 'Uma carga só.');
+  await sugerirLotesDoPedido(client, pedidoId);
+  await mudarSituacao(client, pedidoId, 'separando', autor, 'Uma carga só.', { viaPortaPropria: true });
   return { cargaId, numero: pedido.numero };
 }
 
@@ -144,7 +151,10 @@ export async function criarCargas(
   for (const [indice, linhas] of usadas.entries()) {
     await inserirCarga(client, pedidoId, indice + 1, linhas);
   }
-  await mudarSituacao(client, pedidoId, 'separando', autor, `Dividido em ${usadas.length} carga(s).`);
+  await sugerirLotesDoPedido(client, pedidoId);
+  await mudarSituacao(client, pedidoId, 'separando', autor, `Dividido em ${usadas.length} carga(s).`, {
+    viaPortaPropria: true,
+  });
   return { criadas: usadas.length };
 }
 
@@ -158,15 +168,21 @@ export async function criarCargas(
  * A condição do `WHERE` é a trava: carga já pronta e pedido fora da separação
  * não aceitam marcação, e zero linhas afetadas é erro, e não silêncio.
  */
-export async function marcarItemSeparado(client: Client, cargaItemId: string, separado: boolean): Promise<void> {
+export async function marcarItemSeparado(
+  client: Client,
+  cargaItemId: string,
+  separado: boolean,
+  autor: string | null = null,
+): Promise<void> {
+  // RNF-15: quem marcou e quando; desfeita a marcação, o autor sai junto
   const { rowCount } = await client.query(
-    `UPDATE pedidos_cargas_itens SET separado = $2
+    `UPDATE pedidos_cargas_itens SET separado = $2, separado_por = CASE WHEN $2 THEN $3::uuid END, separado_em = CASE WHEN $2 THEN NOW() END
       WHERE id = $1
         AND carga_id IN (SELECT c.id
                            FROM pedidos_cargas c
                            JOIN pedidos p ON p.id = c.pedido_id
                           WHERE c.situacao <> 'pronto' AND p.situacao = 'separando')`,
-    [cargaItemId, separado],
+    [cargaItemId, separado, autor],
   );
   if (!rowCount) {
     throw new UserError('Este item não pode mais ser marcado: a carga já está pronta ou o pedido saiu da separação.');
@@ -177,15 +193,21 @@ export async function marcarItemSeparado(client: Client, cargaItemId: string, se
  * "Marcar todos": a carga inteira de uma vez, com a mesma trava do item. Grava
  * o valor final, como o item, e não inverte.
  */
-export async function marcarCargaSeparada(client: Client, cargaId: string, separado: boolean): Promise<void> {
+export async function marcarCargaSeparada(
+  client: Client,
+  cargaId: string,
+  separado: boolean,
+  autor: string | null = null,
+): Promise<void> {
+  // RNF-15: quem marcou e quando, como no item
   const { rowCount } = await client.query(
-    `UPDATE pedidos_cargas_itens SET separado = $2
+    `UPDATE pedidos_cargas_itens SET separado = $2, separado_por = CASE WHEN $2 THEN $3::uuid END, separado_em = CASE WHEN $2 THEN NOW() END
       WHERE carga_id = $1
         AND carga_id IN (SELECT c.id
                            FROM pedidos_cargas c
                            JOIN pedidos p ON p.id = c.pedido_id
                           WHERE c.situacao <> 'pronto' AND p.situacao = 'separando')`,
-    [cargaId, separado],
+    [cargaId, separado, autor],
   );
   if (!rowCount) {
     throw new UserError('Esta carga não pode mais ser marcada: ela já está pronta ou o pedido saiu da separação.');
@@ -250,9 +272,91 @@ export async function concluirCarga(
   // P19: separar não é carregar. A viagem só fica pronta pelo carregamento
   // (`concluirViagem`), e não porque o pedido ficou separado ao lado do carro
   if (pedidoPronto) {
-    await mudarSituacao(client, carga.pedidoId, 'pronto_envio', autor, 'Todas as cargas foram separadas.');
+    await mudarSituacao(client, carga.pedidoId, 'pronto_envio', autor, 'Todas as cargas foram separadas.', {
+      viaPortaPropria: true,
+    });
   }
   return { numero: carga.numero, pedidoPronto };
+}
+
+/**
+ * RF-24: os lotes abertos que podem atender os itens do pedido (mesma espécie e
+ * recipiente), para a sugestão e para a escolha na tela.
+ */
+export async function lotesCandidatosDoPedido(db: Db | Client, pedidoId: string): Promise<LoteCandidato[]> {
+  const { rows } = await db.query<LoteCandidato>(
+    `SELECT l.id, l.codigo, l.especie_id AS "especieId", l.recipiente_id AS "recipienteId",
+            l.quantidade_atual AS saldo, l.altura_m::float8 AS "alturaM",
+            to_char(l.data_criacao, 'YYYY-MM-DD') AS "dataCriacao"
+       FROM lotes l
+      WHERE l.encerrado_em IS NULL
+        AND (l.especie_id, l.recipiente_id) IN (SELECT i.especie_id, i.recipiente_id
+                                                  FROM pedidos_itens i
+                                                 WHERE i.pedido_id = $1 AND i.especie_id IS NOT NULL)
+      ORDER BY l.data_criacao, l.codigo`,
+    [pedidoId],
+  );
+  return rows;
+}
+
+/** RF-24: grava a sugestão nos itens de carga ainda sem lote. Quem separa troca se precisar. */
+async function sugerirLotesDoPedido(client: Client, pedidoId: string): Promise<void> {
+  const candidatos = await lotesCandidatosDoPedido(client, pedidoId);
+  const { rows } = await client.query<{ id: string; especieId: string | null; recipienteId: string; alturaM: number | null; quantidade: number }>(
+    `SELECT ci.id, i.especie_id AS "especieId", i.recipiente_id AS "recipienteId",
+            i.altura_m::float8 AS "alturaM", ci.quantidade
+       FROM pedidos_cargas_itens ci
+       JOIN pedidos_cargas c ON c.id = ci.carga_id
+       JOIN pedidos_itens i ON i.id = ci.item_id
+      WHERE c.pedido_id = $1 AND ci.lote_id IS NULL`,
+    [pedidoId],
+  );
+  for (const item of rows) {
+    const loteId = sugerirLote(candidatos, item);
+    if (loteId) await client.query('UPDATE pedidos_cargas_itens SET lote_id = $2 WHERE id = $1', [item.id, loteId]);
+  }
+}
+
+/**
+ * RF-24: troca o lote de onde sai o item, na separação ou no carregamento. Só
+ * lote aberto do mesmo par de espécie e recipiente, e só enquanto a viagem do
+ * pedido não foi concluída: depois disso a venda já foi baixada.
+ */
+export async function definirLoteDoItem(client: Client, cargaItemId: string, loteId: string): Promise<void> {
+  const { rows } = await client.query<{
+    especieId: string | null;
+    recipienteId: string;
+    situacaoPedido: string;
+    viagemPronta: boolean;
+  }>(
+    `SELECT i.especie_id AS "especieId", i.recipiente_id AS "recipienteId", p.situacao AS "situacaoPedido",
+            EXISTS (SELECT 1 FROM viagens_paradas vp JOIN viagens v ON v.id = vp.viagem_id
+                     WHERE vp.pedido_id = p.id AND v.situacao = 'pronta') AS "viagemPronta"
+       FROM pedidos_cargas_itens ci
+       JOIN pedidos_cargas c ON c.id = ci.carga_id
+       JOIN pedidos p ON p.id = c.pedido_id
+       JOIN pedidos_itens i ON i.id = ci.item_id
+      WHERE ci.id = $1
+        FOR UPDATE OF ci`,
+    [cargaItemId],
+  );
+  const item = rows[0];
+  if (!item) throw new UserError('Item da carga não encontrado.');
+  if (item.viagemPronta) throw new UserError('A viagem deste pedido já foi concluída, e a venda já saiu do lote.');
+  if (item.situacaoPedido !== 'separando' && item.situacaoPedido !== 'pronto_envio') {
+    throw new UserError('Este pedido não está em separação.');
+  }
+  const { rows: lote } = await client.query<{ especieId: string; recipienteId: string; aberto: boolean; codigo: string }>(
+    `SELECT especie_id AS "especieId", recipiente_id AS "recipienteId", encerrado_em IS NULL AS aberto, codigo
+       FROM lotes WHERE id = $1`,
+    [loteId],
+  );
+  if (!lote[0]) throw new UserError('Lote não encontrado.');
+  if (!lote[0].aberto) throw new UserError(`O lote ${lote[0].codigo} está encerrado.`);
+  if (lote[0].especieId !== item.especieId || lote[0].recipienteId !== item.recipienteId) {
+    throw new UserError(`O lote ${lote[0].codigo} não é da mesma espécie e recipiente do item.`);
+  }
+  await client.query('UPDATE pedidos_cargas_itens SET lote_id = $2 WHERE id = $1', [cargaItemId, loteId]);
 }
 
 /** T8.13: as cargas do pedido, com o que vai em cada uma. */
@@ -269,10 +373,12 @@ export async function listCargas(db: Db, pedidoId: string): Promise<Carga[]> {
   const { rows: itens } = await db.query<ItemDaCarga & { cargaId: string }>(
     `SELECT ci.id, ci.carga_id AS "cargaId", ci.item_id AS "itemId", ci.quantidade, ci.separado, ci.carregado,
             COALESCE(${nomeEspecieSql('e')}, 'Espécie não definida') AS especie, r.nome AS recipiente,
-            i.altura_m::float8 AS "alturaM"
+            i.altura_m::float8 AS "alturaM", ci.lote_id AS "loteId", l.codigo AS "loteCodigo",
+            i.especie_id AS "especieId", i.recipiente_id AS "recipienteId"
        FROM pedidos_cargas_itens ci
        JOIN pedidos_cargas c ON c.id = ci.carga_id
        JOIN pedidos_itens i ON i.id = ci.item_id
+       LEFT JOIN lotes l ON l.id = ci.lote_id
        LEFT JOIN especies e ON e.id = i.especie_id
        JOIN recipientes r ON r.id = i.recipiente_id
       WHERE c.pedido_id = $1

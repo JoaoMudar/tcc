@@ -96,7 +96,8 @@ export async function cancelarEntregaAction(_previous: FormState, formData: Form
     return { error: toUserMessage(error) };
   }
   revalidar(viagem.data);
-  redirect('/pedidos');
+  // RNF-09: a carteira diz que a entrega foi cancelada, em vez de só trocar de tela
+  redirect('/pedidos?feito=entrega_cancelada');
 }
 
 /**
@@ -303,14 +304,14 @@ export async function iniciarCarregamentoAction(_previous: FormState, formData: 
 
 /** P19: a contagem de um item no caminhão. Grava o valor final, e não inverte o atual. */
 export async function marcarItemAction(_previous: FormState, formData: FormData): Promise<FormState> {
-  await requirePermission('cargas_pedido', 'A');
+  const user = await requirePermission('cargas_pedido', 'A');
   const data = formText(formData, 'data');
   const cargaItemId = formText(formData, 'carga_item_id');
   if (!isDataIso(data) || !isUuid(cargaItemId)) return { error: 'Item inválido.' };
   const carregado = formText(formData, 'carregado') === 'sim';
 
   try {
-    await withTransaction(pool, (client) => viagens.marcarItemCarregado(client, cargaItemId, carregado));
+    await withTransaction(pool, (client) => viagens.marcarItemCarregado(client, cargaItemId, carregado, user.usuarioId));
   } catch (error) {
     return { error: toUserMessage(error) };
   }
@@ -320,7 +321,7 @@ export async function marcarItemAction(_previous: FormState, formData: FormData)
 
 /** P19: "Marcar todos" de um pedido no caminhão. Grava o valor final, e não inverte o atual. */
 export async function marcarPedidoCarregadoAction(_previous: FormState, formData: FormData): Promise<FormState> {
-  await requirePermission('cargas_pedido', 'A');
+  const user = await requirePermission('cargas_pedido', 'A');
   const viagem = lerViagem(formData);
   const pedidoId = formText(formData, 'pedido_id');
   if (!viagem || !isUuid(pedidoId)) return { error: 'Pedido inválido.' };
@@ -328,7 +329,7 @@ export async function marcarPedidoCarregadoAction(_previous: FormState, formData
 
   try {
     await withTransaction(pool, (client) =>
-      viagens.marcarPedidoCarregado(client, viagem.viagemId, pedidoId, carregado),
+      viagens.marcarPedidoCarregado(client, viagem.viagemId, pedidoId, carregado, user.usuarioId),
     );
   } catch (error) {
     return { error: toUserMessage(error) };

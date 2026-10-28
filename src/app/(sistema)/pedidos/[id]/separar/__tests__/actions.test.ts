@@ -139,7 +139,8 @@ describe('contar (T8.14)', () => {
     const dados = form({ pedido_id: PEDIDO, carga_item_id: ITEM_A, separado: 'sim' });
     expect((await actions.marcarItemSeparadoAction({}, dados)).success).toMatch(/separado/i);
     const [, valores] = gravouEm('UPDATE pedidos_cargas_itens')[0];
-    expect(valores).toEqual([ITEM_A, true]);
+    // RNF-15: quem separou vai junto
+    expect(valores).toEqual([ITEM_A, true, 'u1']);
   });
 
   it('desmarcar manda false, e não inverte no servidor', async () => {
@@ -147,7 +148,7 @@ describe('contar (T8.14)', () => {
     const dados = form({ pedido_id: PEDIDO, carga_item_id: ITEM_A, separado: 'nao' });
     await actions.marcarItemSeparadoAction({}, dados);
     const [, valores] = gravouEm('UPDATE pedidos_cargas_itens')[0];
-    expect(valores).toEqual([ITEM_A, false]);
+    expect(valores).toEqual([ITEM_A, false, 'u1']);
   });
 
   it('item marcado numa carga já pronta é recusado', async () => {
@@ -164,13 +165,14 @@ describe('contar (T8.14)', () => {
     expect((await actions.marcarCargaSeparadaAction({}, dados)).success).toMatch(/separados/i);
     const [[sql, valores]] = gravouEm('UPDATE pedidos_cargas_itens');
     expect(String(sql)).toContain('WHERE carga_id = $1');
-    expect(valores).toEqual([CARGA, true]);
+    // RNF-15: quem separou vai junto, como no item
+    expect(valores).toEqual([CARGA, true, 'u1']);
   });
 
   it('"Desmarcar todos" manda false', async () => {
     client.query.mockResolvedValue({ rows: [], rowCount: 3 });
     await actions.marcarCargaSeparadaAction({}, form({ pedido_id: PEDIDO, carga_id: CARGA, separado: 'nao' }));
-    expect(gravouEm('UPDATE pedidos_cargas_itens')[0][1]).toEqual([CARGA, false]);
+    expect(gravouEm('UPDATE pedidos_cargas_itens')[0][1]).toEqual([CARGA, false, 'u1']);
   });
 
   it('"Marcar todos" numa carga já pronta é recusado', async () => {

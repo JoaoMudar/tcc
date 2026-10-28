@@ -9,10 +9,28 @@ vi.mock('@/lib/db', () => ({ default: { query: vi.fn(), connect: vi.fn(async () 
 vi.mock(import('../agenda'), async (original) => ({
   ...(await original()),
   confirmarAtribuicao: vi.fn(async () => ({ loteId: null, perda: null })),
+  registrarTarefaFeita: vi.fn(async () => ({ id: 'nova', loteId: null, perda: null })),
 }));
+vi.mock(import('../tipos-tarefa'), async (original) => ({
+  ...(await original()),
+  findTipoTarefa: vi.fn(async () => ({
+    id: TIPO,
+    nome: 'Limpar mato',
+    categoria: 'manutencao' as const,
+    eQuantitativa: true,
+    exigeLote: true,
+    exigeEspecie: false,
+    exigeRecipiente: false,
+    exigeArea: false,
+    unidadeMedida: 'un' as const,
+    ativo: true,
+  })),
+}));
+const TIPO = '4f1b5a7c-2d9e-4a5f-9b4c-6d0e1f2a3b4c';
 
 const { default: pool } = await import('@/lib/db');
 const { processarRegistro } = await import('../registros-campo');
+const agenda = await import('../agenda');
 
 const CHAVE = '9d0e2f6a-7b8c-4d1a-8e0f-3a7b8c9d0e1f';
 const LOTE = '0b9f3f3e-8a5b-4c1a-9d0e-2f6a7b8c9d0e';
@@ -205,5 +223,57 @@ describe('confirmação de tarefa (T5.5)', () => {
     const fica = await processarRegistro('confirmacao_tarefa', CHAVE, { id: TAREFA, lote_id: LOTE, depois: 'ficar' }, gerencia);
     expect(fica).toMatchObject({ status: 'gravado' });
     expect(fica).not.toHaveProperty('destino', expect.any(String));
+  });
+});
+
+describe('RNF-04: altura e tarefa feita também vão pela fila (auditoria de 24/10/2026)', () => {
+  it('a altura grava com a chave na mesma transação, e a chave já vista não grava de novo', async () => {
+    bancoCom();
+    const primeira = await processarRegistro('altura', CHAVE, { lote_id: LOTE, altura: '120' }, usuario('gerencia'));
+    expect(primeira).toMatchObject({ status: 'gravado', success: 'Altura registrada: 1,20 m.' });
+    expect(inserts('envios_recebidos')).toHaveLength(1);
+    expect(client.query.mock.calls.some(([sql]) => String(sql).includes('UPDATE lotes SET altura_m'))).toBe(true);
+
+    client.query.mockReset();
+    bancoCom({ chaveJaVista: true });
+    await processarRegistro('altura', CHAVE, { lote_id: LOTE, altura: '120' }, usuario('gerencia'));
+    expect(client.query.mock.calls.some(([sql]) => String(sql).includes('UPDATE lotes SET altura_m'))).toBe(false);
+  });
+
+  it('altura que não se entende volta recusada sem ir ao banco; a chefia não registra', async () => {
+    expect(await processarRegistro('altura', CHAVE, { lote_id: LOTE, altura: 'alta' }, usuario('gerencia'))).toMatchObject({
+      status: 'recusado',
+    });
+    expect(await processarRegistro('altura', CHAVE, { lote_id: LOTE, altura: '120' }, usuario('chefia'))).toEqual({ status: 'proibido' });
+    expectNoDatabase();
+  });
+
+  it('a tarefa feita lê a lista de quem fez e grava lançada e confirmada, com o destino da agenda do dia', async () => {
+    bancoCom();
+    const campos = {
+      dias: '2026-10-20',
+      turno_id: OUTRO,
+      tipo_tarefa_id: TIPO,
+      lote_id: LOTE,
+      lote_etapa_id: TAREFA,
+      participantes_lista: PESSOA,
+      [`quantidade_${PESSOA}`]: '30',
+    };
+    const resultado = await processarRegistro('tarefa_feita', CHAVE, campos, usuario('gerencia'));
+    expect(resultado).toMatchObject({ status: 'gravado', destino: '/producao?dia=2026-10-20&feito=confirmada' });
+    const [, atribuicao, confirmacao] = vi.mocked(agenda.registrarTarefaFeita).mock.calls[0];
+    expect(atribuicao).toMatchObject({ dias: ['2026-10-20'], participantes: [PESSOA], loteId: LOTE, loteEtapaId: TAREFA });
+    expect(confirmacao.quantidades).toEqual([{ pessoaId: PESSOA, quantidade: 30 }]);
+  });
+
+  it('tarefa feita no futuro ou sem ninguém volta recusada', async () => {
+    const base = { turno_id: OUTRO, tipo_tarefa_id: TIPO, lote_id: LOTE, participantes_lista: PESSOA };
+    expect(await processarRegistro('tarefa_feita', CHAVE, { ...base, dias: '2999-01-01' }, usuario('gerencia'))).toMatchObject({
+      status: 'recusado',
+      error: expect.stringContaining('futuro'),
+    });
+    expect(
+      await processarRegistro('tarefa_feita', CHAVE, { ...base, dias: '2026-10-20', participantes_lista: '' }, usuario('gerencia')),
+    ).toMatchObject({ status: 'recusado', error: expect.stringContaining('pessoa') });
   });
 });

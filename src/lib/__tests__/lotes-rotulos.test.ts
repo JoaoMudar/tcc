@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { opcoesDeLote } from '../lotes-rotulos';
+import { opcoesDeLote, recipienteMaior } from '../lotes-rotulos';
 
 const lote = (id: string, areaLetra: string, canteiroNumero: number, posicao: number | null = null) => ({
   id,
@@ -22,5 +22,18 @@ describe('opcoesDeLote', () => {
   it('o lote sem posição vem depois dos posicionados do mesmo canteiro', () => {
     const opcoes = opcoesDeLote([lote('b', 'A', 1), lote('a', 'A', 1, 3)]);
     expect(opcoes.map((o) => o.value)).toEqual(['a', 'b']);
+  });
+});
+
+describe('recipienteMaior (RF-29, RN-22)', () => {
+  it('só o volume maior é destino da repicagem', () => {
+    expect(recipienteMaior(0.055, 0.9)).toBe(true);
+    expect(recipienteMaior(0.9, 0.055)).toBe(false);
+    expect(recipienteMaior(0.9, 0.9)).toBe(false);
+  });
+
+  it('sem volume cadastrado não há como comparar, e não se barra', () => {
+    expect(recipienteMaior(null, 0.9)).toBe(true);
+    expect(recipienteMaior(0.9, null)).toBe(true);
   });
 });

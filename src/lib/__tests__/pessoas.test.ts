@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseFiscalFields, parsePessoaFields, papeisResumo } from '../pessoas';
+import { parseFiscalFields, parseInscricaoEstadual, parsePessoaFields, papeisResumo } from '../pessoas';
 
 function getter(values: Record<string, string>) {
   return (name: string) => values[name] ?? '';
@@ -74,8 +74,43 @@ describe('parseFiscalFields (RF-19, RF-21)', () => {
     expect(parsed).toEqual({
       value: {
         documento: '11222333000181',
-        enderecoCobranca: { tipo: 'cobranca', logradouro: null, cidade: 'Rio do Sul', uf: 'SC', cep: null },
+        enderecoCobranca: {
+          tipo: 'cobranca',
+          logradouro: null,
+          cidade: 'Rio do Sul',
+          uf: 'SC',
+          cep: null,
+          numero: null,
+          bairro: null,
+          codigoIbge: null,
+        },
+        razaoSocial: null,
+        inscricaoEstadual: null,
       },
+    });
+  });
+
+  it('RF-19: lê razão social (só na PJ), inscrição estadual, número, bairro e código IBGE', () => {
+    const campos = {
+      razao_social: '  Viveiro   Mudar Ltda ',
+      inscricao_estadual: '255.123.456',
+      endereco_cobranca_logradouro: 'Rua XV',
+      endereco_cobranca_numero: '10',
+      endereco_cobranca_bairro: 'Centro',
+      endereco_cobranca_codigo_ibge: '4214805',
+    };
+    const pj = parseFiscalFields('pj', getter(campos));
+    expect(pj).toMatchObject({
+      value: {
+        razaoSocial: 'Viveiro Mudar Ltda',
+        inscricaoEstadual: '255123456',
+        enderecoCobranca: { numero: '10', bairro: 'Centro', codigoIbge: '4214805' },
+      },
+    });
+    // Na PF a razão social não existe, mesmo que venha
+    expect(parseFiscalFields('pf', getter(campos))).toMatchObject({ value: { razaoSocial: null } });
+    expect(parseFiscalFields('pj', getter({ endereco_cobranca_codigo_ibge: '42148' }))).toEqual({
+      error: expect.stringContaining('código IBGE'),
     });
   });
 
@@ -84,7 +119,18 @@ describe('parseFiscalFields (RF-19, RF-21)', () => {
   });
 
   it('documento em branco é aceito', () => {
-    expect(parseFiscalFields('pf', getter({}))).toEqual({ value: { documento: null, enderecoCobranca: null } });
+    expect(parseFiscalFields('pf', getter({}))).toEqual({
+      value: { documento: null, enderecoCobranca: null, razaoSocial: null, inscricaoEstadual: null },
+    });
+  });
+});
+
+describe('parseInscricaoEstadual (RF-19)', () => {
+  it('em branco é não contribuinte, isento em qualquer caixa, e o resto só dígitos', () => {
+    expect(parseInscricaoEstadual('')).toEqual({ value: null });
+    expect(parseInscricaoEstadual('isento')).toEqual({ value: 'ISENTO' });
+    expect(parseInscricaoEstadual('255.123.456')).toEqual({ value: '255123456' });
+    expect(parseInscricaoEstadual('abc')).toEqual({ error: expect.stringContaining('ISENTO') });
   });
 });
 
