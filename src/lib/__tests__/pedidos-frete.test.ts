@@ -52,13 +52,13 @@ describe('sugestaoDeFrete: o destino do pedido (P19)', () => {
     expect(sugestao).toMatchObject({ distanciaKm: 42 });
     expect(vi.mocked(geocodificarTexto).mock.calls[0][0]).toBe('Sítio Novo, Ituporanga, SC');
     expect(sqls(db).some((sql) => sql.includes('SET entrega_lat'))).toBe(true);
-    expect(sqls(db).some((sql) => sql.includes('UPDATE cadastro.pessoas_enderecos'))).toBe(false);
+    expect(sqls(db).some((sql) => sql.includes('UPDATE pessoas_enderecos'))).toBe(false);
   });
 
   it('sem destino próprio, vale o do cliente, e a coordenada volta para o cadastro', async () => {
     const db = banco({ proprio: false, enderecoId: 'e1', logradouro: 'Rua XV', cidade: 'Rio do Sul', uf: 'SC' });
     await sugestaoDeFrete(db as never, PEDIDO, 'agrolandia');
-    expect(sqls(db).some((sql) => sql.includes('UPDATE cadastro.pessoas_enderecos'))).toBe(true);
+    expect(sqls(db).some((sql) => sql.includes('UPDATE pessoas_enderecos'))).toBe(true);
     expect(sqls(db).some((sql) => sql.includes('SET entrega_lat'))).toBe(false);
   });
 

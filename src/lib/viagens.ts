@@ -169,7 +169,7 @@ async function linhasDasParadas(db: Db, viagemId: string): Promise<LinhaParada[]
             (e.geocodificado_em IS NOT NULL AND e.lat IS NULL) AS "naoAchado"
        FROM viagens_paradas vp
        LEFT JOIN pedidos p ON p.id = vp.pedido_id
-       LEFT JOIN cadastro.pessoas c ON c.id = p.cliente_id
+       LEFT JOIN pessoas c ON c.id = p.cliente_id
        ${ENDERECO_DO_PEDIDO}
       WHERE vp.viagem_id = $1
       ORDER BY vp.ordem`,
@@ -203,7 +203,7 @@ export async function pedidosDisponiveis(db: Db): Promise<PedidoParaViagem[]> {
     `SELECT p.id, p.numero_pedido AS numero, c.nome AS cliente, e.cidade, e.logradouro,
             to_char(p.data_entrega, 'YYYY-MM-DD') AS "dataEntrega", p.situacao
        FROM pedidos p
-       JOIN cadastro.pessoas c ON c.id = p.cliente_id
+       JOIN pessoas c ON c.id = p.cliente_id
        ${ENDERECO_DO_PEDIDO}
       WHERE p.situacao = ANY($1::text[])
         AND NOT EXISTS (SELECT 1 FROM viagens_paradas vp WHERE vp.pedido_id = p.id)

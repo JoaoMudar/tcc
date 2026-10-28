@@ -95,11 +95,11 @@ beforeAll(async () => {
   ));
   const turnos = await pool.query<{ id: string }>("SELECT id FROM turnos_trabalho WHERE nome = 'manha'");
   manha = turnos.rows[0].id;
-  const pessoa = await pool.query<{ id: string }>("INSERT INTO cadastro.pessoas (tipo, nome) VALUES ('pf', $1) RETURNING id", [
+  const pessoa = await pool.query<{ id: string }>("INSERT INTO pessoas (tipo, nome) VALUES ('pf', $1) RETURNING id", [
     `${prefixo} Rogério`,
   ]);
   rogerio = pessoa.rows[0].id;
-  await pool.query("INSERT INTO cadastro.pessoas_papeis (pessoa_id, papel, tipo_vinculo, ativo) VALUES ($1, 'funcionario', 'fixo', true)", [
+  await pool.query("INSERT INTO pessoas_papeis (pessoa_id, papel, tipo_vinculo, ativo) VALUES ($1, 'funcionario', 'fixo', true)", [
     rogerio,
   ]);
   const tipo = await pool.query<{ id: string }>(

@@ -184,7 +184,7 @@ export function papeisResumo(papeis: readonly PapelPessoa[]): string {
 
 const PAPEIS_AGREGADOS = `
   COALESCE((SELECT json_agg(json_build_object('papel', pp.papel, 'tipoVinculo', pp.tipo_vinculo) ORDER BY pp.papel)
-              FROM cadastro.pessoas_papeis pp WHERE pp.pessoa_id = p.id AND pp.ativo), '[]') AS papeis,
+              FROM pessoas_papeis pp WHERE pp.pessoa_id = p.id AND pp.ativo), '[]') AS papeis,
   EXISTS (SELECT 1 FROM usuarios u WHERE u.pessoa_id = p.id AND u.ativo) AS "temAcesso"`;
 
 /**
@@ -204,10 +204,10 @@ export async function listPessoas(
 
   const { rows } = await db.query<PessoaResumo>(
     `SELECT p.id, p.tipo, p.nome, p.telefone, p.ativa${colunaDocumento}, ${PAPEIS_AGREGADOS}
-       FROM cadastro.pessoas p
+       FROM pessoas p
       WHERE ($1 = '' OR p.nome ILIKE '%' || $2 || '%' OR ($3 <> '' AND p.telefone LIKE '%' || $3 || '%') ${buscaDocumento})
-        AND ($4::cadastro.tipo_papel IS NULL OR EXISTS (
-              SELECT 1 FROM cadastro.pessoas_papeis x WHERE x.pessoa_id = p.id AND x.ativo AND x.papel = $4))
+        AND ($4::tipo_papel IS NULL OR EXISTS (
+              SELECT 1 FROM pessoas_papeis x WHERE x.pessoa_id = p.id AND x.ativo AND x.papel = $4))
       ORDER BY p.ativa DESC, p.nome
       LIMIT 300`,
     [termo, escapeLike(termo), numero, options.papel ?? null],
@@ -226,9 +226,9 @@ export async function findPessoa(db: Db, id: string, verFiscal: boolean): Promis
                                                         'uf', e.uf, 'cep', e.cep, 'numero', e.numero, 'bairro', e.bairro,
                                                         'codigoIbge', e.codigo_ibge,
                                                         'lat', e.lat::float8, 'lng', e.lng::float8) ORDER BY e.tipo, e.criado_em)
-                        FROM cadastro.pessoas_enderecos e
-                       WHERE e.pessoa_id = p.id AND e.tipo = ANY($2::cadastro.tipo_endereco[])), '[]') AS enderecos
-       FROM cadastro.pessoas p
+                        FROM pessoas_enderecos e
+                       WHERE e.pessoa_id = p.id AND e.tipo = ANY($2::tipo_endereco[])), '[]') AS enderecos
+       FROM pessoas p
       WHERE p.id = $1`,
     [id, tiposEndereco],
   );
@@ -242,7 +242,7 @@ export async function findPessoaPorDocumento(
   excetoId: string | null = null,
 ): Promise<{ id: string; nome: string } | null> {
   const { rows } = await db.query<{ id: string; nome: string }>(
-    'SELECT id, nome FROM cadastro.pessoas WHERE documento = $1 AND ($2::uuid IS NULL OR id <> $2::uuid)',
+    'SELECT id, nome FROM pessoas WHERE documento = $1 AND ($2::uuid IS NULL OR id <> $2::uuid)',
     [documento, excetoId],
   );
   return rows[0] ?? null;
@@ -255,7 +255,7 @@ export async function findPessoasPorTelefone(
   excetoId: string | null = null,
 ): Promise<{ id: string; nome: string }[]> {
   const { rows } = await db.query<{ id: string; nome: string }>(
-    `SELECT id, nome FROM cadastro.pessoas
+    `SELECT id, nome FROM pessoas
       WHERE telefone = $1 AND ($2::uuid IS NULL OR id <> $2::uuid)
       ORDER BY ativa DESC, nome LIMIT 5`,
     [telefone, excetoId],
@@ -267,13 +267,13 @@ async function writePapeis(client: PoolClient, pessoaId: string, papeis: readonl
   const nomes = papeis.map((p) => p.papel);
   // O papel retirado fica inativo, e não apagado: pedido e agenda antigos continuam sabendo quem era quem
   await client.query(
-    `UPDATE cadastro.pessoas_papeis SET ativo = false
-      WHERE pessoa_id = $1 AND ativo AND NOT (papel = ANY($2::cadastro.tipo_papel[]))`,
+    `UPDATE pessoas_papeis SET ativo = false
+      WHERE pessoa_id = $1 AND ativo AND NOT (papel = ANY($2::tipo_papel[]))`,
     [pessoaId, nomes],
   );
   await client.query(
-    `INSERT INTO cadastro.pessoas_papeis (pessoa_id, papel, tipo_vinculo)
-     SELECT $1, t.papel, t.vinculo FROM unnest($2::cadastro.tipo_papel[], $3::text[]) AS t(papel, vinculo)
+    `INSERT INTO pessoas_papeis (pessoa_id, papel, tipo_vinculo)
+     SELECT $1, t.papel, t.vinculo FROM unnest($2::tipo_papel[], $3::text[]) AS t(papel, vinculo)
      ON CONFLICT (pessoa_id, papel) DO UPDATE SET ativo = true, tipo_vinculo = EXCLUDED.tipo_vinculo`,
     [pessoaId, nomes, papeis.map((p) => p.tipoVinculo)],
   );
@@ -304,7 +304,7 @@ const mesmoTexto = (a: TextoDoEndereco, b: TextoDoEndereco) =>
  */
 async function writeEnderecos(client: PoolClient, pessoaId: string, enderecos: readonly Endereco[], incluiFiscal: boolean) {
   const { rows: antes } = await client.query<CoordenadaGuardada>(
-    `DELETE FROM cadastro.pessoas_enderecos WHERE pessoa_id = $1 AND ($2 OR tipo <> 'cobranca')
+    `DELETE FROM pessoas_enderecos WHERE pessoa_id = $1 AND ($2 OR tipo <> 'cobranca')
      RETURNING tipo, logradouro, cidade, uf, cep, lat, lng, geocodificado_em AS "geocodificadoEm"`,
     [pessoaId, incluiFiscal],
   );
@@ -312,7 +312,7 @@ async function writeEnderecos(client: PoolClient, pessoaId: string, enderecos: r
     const guardada = antes.find((antigo) => antigo.tipo === e.tipo && mesmoTexto(antigo, e));
     const novo = e.lat != null && e.lng != null;
     await client.query(
-      `INSERT INTO cadastro.pessoas_enderecos (pessoa_id, tipo, logradouro, cidade, uf, cep, lat, lng, geocodificado_em,
+      `INSERT INTO pessoas_enderecos (pessoa_id, tipo, logradouro, cidade, uf, cep, lat, lng, geocodificado_em,
                                                numero, bairro, codigo_ibge)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
       [
@@ -350,7 +350,7 @@ export async function savePessoa(
 
   if (id) {
     const { rowCount } = await client.query(
-      `UPDATE cadastro.pessoas
+      `UPDATE pessoas
           SET tipo = $1, nome = $2, telefone = $3, email = $4, observacoes = $5, ativa = $6,
               documento = CASE WHEN $8 THEN $9 ELSE documento END,
               razao_social = CASE WHEN $8 THEN $10 ELSE razao_social END,
@@ -371,7 +371,7 @@ export async function savePessoa(
     pessoaId = id;
   } else {
     const { rows } = await client.query<{ id: string }>(
-      `INSERT INTO cadastro.pessoas (tipo, nome, telefone, email, observacoes, ativa, documento, razao_social, inscricao_estadual,
+      `INSERT INTO pessoas (tipo, nome, telefone, email, observacoes, ativa, documento, razao_social, inscricao_estadual,
                                     criado_por, atualizado_por)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10) RETURNING id`,
       [...base, fiscal?.documento ?? null, fiscal?.razaoSocial ?? null, fiscal?.inscricaoEstadual ?? null, autor],
@@ -388,9 +388,9 @@ export async function savePessoa(
 /** "Usar este cadastro": a pessoa que já existe ganha o papel, sem mexer no resto (RF-17). Devolve o nome, ou `null` se não existe. */
 export async function addPapel(db: Db, pessoaId: string, papel: Exclude<Papel, 'funcionario'>): Promise<string | null> {
   const { rows } = await db.query<{ nome: string }>(
-    `WITH alvo AS (SELECT id, nome FROM cadastro.pessoas WHERE id = $1),
+    `WITH alvo AS (SELECT id, nome FROM pessoas WHERE id = $1),
           papel AS (
-            INSERT INTO cadastro.pessoas_papeis (pessoa_id, papel)
+            INSERT INTO pessoas_papeis (pessoa_id, papel)
             SELECT id, $2 FROM alvo
             ON CONFLICT (pessoa_id, papel) DO UPDATE SET ativo = true
           )
@@ -416,7 +416,7 @@ export async function insertClienteRapido(
   autor: string | null = null,
 ): Promise<string> {
   const { rows } = await client.query<{ id: string }>(
-    "INSERT INTO cadastro.pessoas (tipo, nome, telefone, criado_por, atualizado_por) VALUES ('pf', $1, $2, $3, $3) RETURNING id",
+    "INSERT INTO pessoas (tipo, nome, telefone, criado_por, atualizado_por) VALUES ('pf', $1, $2, $3, $3) RETURNING id",
     [input.nome, input.telefone, autor],
   );
   await writePapeis(client, rows[0].id, [{ papel: 'cliente', tipoVinculo: null }]);

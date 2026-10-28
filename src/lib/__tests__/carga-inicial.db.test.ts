@@ -58,7 +58,7 @@ describe('importarCarga (T10.5)', () => {
     ]);
 
     const papel = await pool.query(
-      `SELECT pp.tipo_vinculo, pe.telefone FROM cadastro.pessoas pe JOIN cadastro.pessoas_papeis pp ON pp.pessoa_id = pe.id
+      `SELECT pp.tipo_vinculo, pe.telefone FROM pessoas pe JOIN pessoas_papeis pp ON pp.pessoa_id = pe.id
         WHERE pe.nome = $1 AND pp.papel = 'funcionario'`,
       [`${p} Rogério`],
     );

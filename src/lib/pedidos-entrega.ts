@@ -30,7 +30,7 @@ export const ENDERECO_DO_PEDIDO = `LEFT JOIN LATERAL (
                  UNION ALL
                  SELECT x.id, false, x.logradouro, x.cidade, x.uf, x.cep, x.lat, x.lng, x.geocodificado_em,
                         1, x.criado_em
-                   FROM cadastro.pessoas_enderecos x
+                   FROM pessoas_enderecos x
                   WHERE x.pessoa_id = p.cliente_id AND x.tipo = 'entrega') d
           ORDER BY d.prioridade, d.criado_em, d.id
           LIMIT 1) e ON true`;
@@ -55,7 +55,7 @@ export async function guardarCoordenada(db: Db, onde: OndeGuardar, ponto: Coorde
       [onde.pedidoId, ponto?.lat ?? null, ponto?.lng ?? null],
     );
   } else if (onde.enderecoId) {
-    await db.query('UPDATE cadastro.pessoas_enderecos SET lat = $2, lng = $3, geocodificado_em = NOW() WHERE id = $1', [
+    await db.query('UPDATE pessoas_enderecos SET lat = $2, lng = $3, geocodificado_em = NOW() WHERE id = $1', [
       onde.enderecoId,
       ponto?.lat ?? null,
       ponto?.lng ?? null,

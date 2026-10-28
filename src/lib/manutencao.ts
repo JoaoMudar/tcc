@@ -39,7 +39,7 @@ export const ENTIDADES_CRITICAS = [
   'semanas',
   'pedidos',
   'pedidos_itens',
-  'cadastro.pessoas',
+  'pessoas',
   'usuarios',
 ] as const;
 

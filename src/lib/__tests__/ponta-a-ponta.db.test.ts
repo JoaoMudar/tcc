@@ -58,10 +58,10 @@ async function usuario(perfil: 'gerencia' | 'chefia'): Promise<string> {
 }
 
 async function funcionario(nome: string): Promise<string> {
-  const { rows } = await pool.query<{ id: string }>("INSERT INTO cadastro.pessoas (tipo, nome) VALUES ('pf', $1) RETURNING id", [
+  const { rows } = await pool.query<{ id: string }>("INSERT INTO pessoas (tipo, nome) VALUES ('pf', $1) RETURNING id", [
     `${prefixo} ${nome}`,
   ]);
-  await pool.query("INSERT INTO cadastro.pessoas_papeis (pessoa_id, papel, tipo_vinculo) VALUES ($1, 'funcionario', 'fixo')", [rows[0].id]);
+  await pool.query("INSERT INTO pessoas_papeis (pessoa_id, papel, tipo_vinculo) VALUES ($1, 'funcionario', 'fixo')", [rows[0].id]);
   return rows[0].id;
 }
 

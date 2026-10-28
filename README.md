@@ -123,7 +123,7 @@ São três papéis, e correspondem às três pessoas que operam o sistema:
 - **gerencia**: agenda da semana, lotes, protocolo e mapa
 
 > **Não há perfil de campo.** Os seis colaboradores do viveiro não operam o sistema: o trabalho
-> deles é planejado e confirmado pela gerência. Eles existem em `cadastro.pessoas_papeis` com o papel
+> deles é planejado e confirmado pela gerência. Eles existem em `pessoas_papeis` com o papel
 > `funcionario`, que diz *esta pessoa trabalha aqui* e não implica acesso. A matriz completa está em
 > `src/lib/permissions.ts`.
 

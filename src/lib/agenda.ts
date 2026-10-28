@@ -310,8 +310,8 @@ export interface Funcionario {
 export async function listFuncionarios(db: Db): Promise<Funcionario[]> {
   const { rows } = await db.query<Funcionario>(
     `SELECT pe.id, pe.nome
-       FROM cadastro.pessoas pe
-       JOIN cadastro.pessoas_papeis pp ON pp.pessoa_id = pe.id AND pp.papel = 'funcionario' AND pp.ativo
+       FROM pessoas pe
+       JOIN pessoas_papeis pp ON pp.pessoa_id = pe.id AND pp.papel = 'funcionario' AND pp.ativo
       WHERE pe.ativa
       ORDER BY pe.nome`,
   );
@@ -383,7 +383,7 @@ const SELECT_ATRIBUICAO = `
          COALESCE((SELECT json_agg(json_build_object('id', p.pessoa_id, 'nome', pe.nome, 'quantidade', p.quantidade_feita::float8)
                                    ORDER BY pe.nome)
                      FROM atribuicoes_participantes p
-                     JOIN cadastro.pessoas pe ON pe.id = p.pessoa_id
+                     JOIN pessoas pe ON pe.id = p.pessoa_id
                     WHERE p.atribuicao_id = a.id), '[]') AS participantes
     FROM atribuicoes a
     JOIN semanas s ON s.id = a.semana_id
@@ -590,8 +590,8 @@ async function conferirReferencias(client: Client, input: AtribuicaoInput): Prom
     `SELECT (SELECT ativo FROM turnos_trabalho WHERE id = $1) AS turno,
             (SELECT ativo FROM tipos_tarefa WHERE id = $2) AS tipo,
             (SELECT COUNT(*)::int
-               FROM cadastro.pessoas pe
-               JOIN cadastro.pessoas_papeis pp ON pp.pessoa_id = pe.id AND pp.papel = 'funcionario' AND pp.ativo
+               FROM pessoas pe
+               JOIN pessoas_papeis pp ON pp.pessoa_id = pe.id AND pp.papel = 'funcionario' AND pp.ativo
               WHERE pe.ativa AND pe.id = ANY($3::uuid[])) AS pessoas,
             (SELECT encerrado_em IS NULL FROM lotes WHERE id = $4) AS lote,
             (SELECT area_id FROM canteiros WHERE id = $5) AS "areaDoCanteiro",
@@ -665,8 +665,8 @@ async function copiarRecorrentesDe(
             a.quantidade_planejada::float8 AS "quantidadePlanejada", a.e_recorrente AS recorrente, a.observacoes,
             ARRAY(SELECT p.pessoa_id::text
                     FROM atribuicoes_participantes p
-                    JOIN cadastro.pessoas pe ON pe.id = p.pessoa_id AND pe.ativa
-                    JOIN cadastro.pessoas_papeis pp ON pp.pessoa_id = p.pessoa_id AND pp.papel = 'funcionario' AND pp.ativo
+                    JOIN pessoas pe ON pe.id = p.pessoa_id AND pe.ativa
+                    JOIN pessoas_papeis pp ON pp.pessoa_id = p.pessoa_id AND pp.papel = 'funcionario' AND pp.ativo
                    WHERE p.atribuicao_id = a.id) AS participantes
        FROM atribuicoes a
        JOIN semanas s ON s.id = a.semana_id
@@ -939,7 +939,7 @@ async function trocarParticipante(client: Client, id: string, troca: { sai: stri
   const { rows: grupo } = await client.query<{ pessoaId: string; nome: string }>(
     `SELECT p.pessoa_id AS "pessoaId", pe.nome
        FROM atribuicoes_participantes p
-       JOIN cadastro.pessoas pe ON pe.id = p.pessoa_id
+       JOIN pessoas pe ON pe.id = p.pessoa_id
       WHERE p.atribuicao_id = $1`,
     [id],
   );
@@ -953,8 +953,8 @@ async function trocarParticipante(client: Client, id: string, troca: { sai: stri
   }
   const { rows: funcionario } = await client.query<{ id: string }>(
     `SELECT pe.id
-       FROM cadastro.pessoas pe
-       JOIN cadastro.pessoas_papeis pp ON pp.pessoa_id = pe.id AND pp.papel = 'funcionario' AND pp.ativo
+       FROM pessoas pe
+       JOIN pessoas_papeis pp ON pp.pessoa_id = pe.id AND pp.papel = 'funcionario' AND pp.ativo
       WHERE pe.id = $1 AND pe.ativa`,
     [troca.entra],
   );
