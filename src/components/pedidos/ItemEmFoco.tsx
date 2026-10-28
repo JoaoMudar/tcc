@@ -6,7 +6,7 @@ import { Modal } from '@/components/ui/Modal';
 import type { SelectOption } from '@/components/ui/SelectField';
 import { TextField } from '@/components/ui/TextField';
 import { lerQuantidade } from '@/lib/lotes-rotulos';
-import { chaveSaldo, mascaraAltura, parseAltura, saldoDoItem } from '@/lib/pedidos-rotulos';
+import { chaveSaldo, mascaraAltura, normalizaCampoAltura, parseAltura, saldoDoItem } from '@/lib/pedidos-rotulos';
 import { GrupoEspecies } from './GrupoEspecies';
 import { type Linha, type SaldosPorChave, type ValorLinha, textoSaldo } from './linhas-pedido';
 
@@ -102,11 +102,12 @@ export function ItemEmFoco({
       />
       <TextField
         label="Altura em metros"
-        inputMode="numeric"
+        inputMode="decimal"
         autoComplete="off"
         placeholder="0,00 m"
         value={linha.altura}
-        onChange={(evento) => onAlterar(linha.chave, 'altura', mascaraAltura(evento.target.value, linha.altura))}
+        onChange={(evento) => onAlterar(linha.chave, 'altura', mascaraAltura(evento.target.value))}
+        onBlur={(evento) => onAlterar(linha.chave, 'altura', normalizaCampoAltura(evento.target.value))}
       />
       <TextField
         label="Quantidade"

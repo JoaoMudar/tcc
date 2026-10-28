@@ -17,5 +17,8 @@ export default defineConfig({
     include: ['src/**/*.test.{ts,tsx}', 'scripts/**/*.test.{ts,mjs}'],
     // Os testes contra Postgres real rodam só em `npm run test:db`
     exclude: ['**/node_modules/**', '**/*.db.test.ts'],
+    // Com 3 ou mais workers o jsdom esgota a memória da máquina de dev e o
+    // pre-commit cai sem nenhum teste ter falhado
+    maxWorkers: 2,
   },
 });

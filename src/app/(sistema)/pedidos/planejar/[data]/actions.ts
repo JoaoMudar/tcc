@@ -9,8 +9,7 @@ import { toUserMessage } from '@/lib/errors';
 import { type FormState, formText } from '@/lib/form-state';
 import { lerEnderecoDeEntrega } from '@/lib/endereco-entrega-form';
 import { avisarMudancaDeData } from '@/lib/notificacoes-envio';
-import { type AvisoDaRota, type SugestaoDeEndereco, lerCoordenada } from '@/lib/rotas';
-import { MapaIndisponivel, sugerirEnderecos } from '@/lib/rotas-ors';
+import { type AvisoDaRota, lerCoordenada } from '@/lib/rotas';
 import { withTransaction } from '@/lib/transaction';
 import { isUuid } from '@/lib/uuid';
 import * as viagens from '@/lib/viagens';
@@ -161,19 +160,6 @@ export async function irParaEtapaAction(previous: FormState, formData: FormData)
   }
   revalidar(viagem.data);
   return {};
-}
-
-/** A lista que abre enquanto se digita um endereço. Mapa fora do ar é lista vazia: o texto livre continua valendo. */
-export async function buscarEnderecosAction(texto: string): Promise<SugestaoDeEndereco[]> {
-  await requirePermission('cargas_pedido', 'A');
-  const busca = typeof texto === 'string' ? texto.trim() : '';
-  if (busca.length < 3 || busca.length > 200) return [];
-  try {
-    return await sugerirEnderecos(busca);
-  } catch (error) {
-    if (error instanceof MapaIndisponivel) return [];
-    throw error;
-  }
 }
 
 function coordenadaDoForm(formData: FormData) {
@@ -330,6 +316,25 @@ export async function marcarItemAction(_previous: FormState, formData: FormData)
     return { error: toUserMessage(error) };
   }
   revalidar(data);
+  return {};
+}
+
+/** P19: "Marcar todos" de um pedido no caminhão. Grava o valor final, e não inverte o atual. */
+export async function marcarPedidoCarregadoAction(_previous: FormState, formData: FormData): Promise<FormState> {
+  const user = await requirePermission('cargas_pedido', 'A');
+  const viagem = lerViagem(formData);
+  const pedidoId = formText(formData, 'pedido_id');
+  if (!viagem || !isUuid(pedidoId)) return { error: 'Pedido inválido.' };
+  const carregado = formText(formData, 'carregado') === 'sim';
+
+  try {
+    await withTransaction(pool, (client) =>
+      viagens.marcarPedidoCarregado(client, viagem.viagemId, pedidoId, carregado, user.usuarioId),
+    );
+  } catch (error) {
+    return { error: toUserMessage(error) };
+  }
+  revalidar(viagem.data);
   return {};
 }
 

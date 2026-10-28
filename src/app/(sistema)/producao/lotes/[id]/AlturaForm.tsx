@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Notice } from '@/components/ui/Notice';
 import { TextField } from '@/components/ui/TextField';
 import { Toast } from '@/components/ui/Toast';
-import { formatAltura, mascaraAltura } from '@/lib/pedidos-rotulos';
+import { formatAltura, mascaraAltura, normalizaCampoAltura } from '@/lib/pedidos-rotulos';
 
 /**
  * RF-31: a altura da muda do lote, medida na trena. É ela que o item de pedido
@@ -23,11 +23,12 @@ export function AlturaForm({ loteId, alturaM }: { loteId: string; alturaM: numbe
       <TextField
         label="Altura em metros"
         name="altura"
-        inputMode="numeric"
+        inputMode="decimal"
         autoComplete="off"
         placeholder="0,00 m"
         value={altura}
-        onChange={(evento) => setAltura(mascaraAltura(evento.target.value, altura))}
+        onChange={(evento) => setAltura(mascaraAltura(evento.target.value))}
+        onBlur={() => setAltura(normalizaCampoAltura(altura))}
       />
       {state.error && <Notice tone="error">{state.error}</Notice>}
       {state.guardado && <Notice tone="warning">{state.guardado}</Notice>}

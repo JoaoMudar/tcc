@@ -349,11 +349,12 @@ export function GradeItens({
                       <TextField
                         label={`Altura do item ${indice + 1}, em metros`}
                         compacto
-                        inputMode="numeric"
+                        inputMode="decimal"
                         autoComplete="off"
                         value={linha.altura}
                         onFocus={() => setFoco({ linha: indice, coluna: 2 })}
-                        onChange={(evento) => onAlterar(linha.chave, 'altura', mascaraAltura(evento.target.value, linha.altura))}
+                        onChange={(evento) => onAlterar(linha.chave, 'altura', mascaraAltura(evento.target.value))}
+                        onBlur={(evento) => onAlterar(linha.chave, 'altura', normalizaCampoAltura(evento.target.value))}
                       />
                     </td>
                     <td className="border-l border-line p-0">
