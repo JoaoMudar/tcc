@@ -123,7 +123,7 @@ export async function dadosDoAviso(
   const { rows } = await db.query<{ cliente: string; dataEntrega: string | null }>(
     `SELECT c.nome AS cliente, to_char(p.data_entrega, 'YYYY-MM-DD') AS "dataEntrega"
        FROM pedidos p
-       JOIN cadastro.pessoas c ON c.id = p.cliente_id
+       JOIN pessoas c ON c.id = p.cliente_id
       WHERE p.id = $1`,
     [pedidoId],
   );

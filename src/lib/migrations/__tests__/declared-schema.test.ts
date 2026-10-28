@@ -71,6 +71,15 @@ describe('parseDeclaredSchema', () => {
     expect([...schema.keys()]).toEqual(['public.nova']);
   });
 
+  it('acompanha SET SCHEMA, e a ALTER seguinte acha a tabela no schema novo', () => {
+    const schema = parseDeclaredSchema([
+      'CREATE SCHEMA cadastro; CREATE TABLE cadastro.pessoas (id UUID);',
+      'ALTER TABLE cadastro.pessoas SET SCHEMA public; ALTER TABLE pessoas ADD COLUMN nome TEXT;',
+    ]);
+    expect([...schema.keys()]).toEqual(['public.pessoas']);
+    expect(columnsOf(schema, 'public.pessoas')).toEqual(['id', 'nome']);
+  });
+
   it('falha ruidosamente com ALTER sobre tabela desconhecida', () => {
     expect(() => parseDeclaredSchema(['ALTER TABLE fantasma ADD COLUMN x INT;'])).toThrow(
       'não declarada',

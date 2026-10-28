@@ -81,7 +81,7 @@ beforeAll(async () => {
   cliente = await tx((client) => insertClienteRapido(client, { nome: `${prefixo} Prefeitura`, telefone: null }));
   outroCliente = await tx((client) => insertClienteRapido(client, { nome: `${prefixo} Sítio`, telefone: null }));
   await pool.query(
-    `INSERT INTO cadastro.pessoas_enderecos (pessoa_id, tipo, logradouro, cidade, uf)
+    `INSERT INTO pessoas_enderecos (pessoa_id, tipo, logradouro, cidade, uf)
      VALUES ($1, 'entrega', 'Rua XV de Novembro, 1200', 'Rio do Sul', 'SC')`,
     [cliente],
   );
@@ -527,13 +527,13 @@ describe('o carregamento (Tela 3)', () => {
 describe('a coordenada guardada no endereço', () => {
   it('some quando o texto do endereço muda', async () => {
     const { rows } = await pool.query<{ id: string }>(
-      `INSERT INTO cadastro.pessoas_enderecos (pessoa_id, tipo, cidade, lat, lng, geocodificado_em)
+      `INSERT INTO pessoas_enderecos (pessoa_id, tipo, cidade, lat, lng, geocodificado_em)
        VALUES ($1, 'cobranca', 'Ibirama', -27.05, -49.51, NOW()) RETURNING id`,
       [outroCliente],
     );
-    await pool.query("UPDATE cadastro.pessoas_enderecos SET cep = '89140000' WHERE id = $1", [rows[0].id]);
+    await pool.query("UPDATE pessoas_enderecos SET cep = '89140000' WHERE id = $1", [rows[0].id]);
     const { rows: depois } = await pool.query(
-      'SELECT lat, lng, geocodificado_em FROM cadastro.pessoas_enderecos WHERE id = $1',
+      'SELECT lat, lng, geocodificado_em FROM pessoas_enderecos WHERE id = $1',
       [rows[0].id],
     );
     expect(depois[0]).toEqual({ lat: null, lng: null, geocodificado_em: null });
@@ -541,13 +541,13 @@ describe('a coordenada guardada no endereço', () => {
 
   it('fica quando só a coordenada é gravada', async () => {
     const { rows } = await pool.query<{ id: string }>(
-      "INSERT INTO cadastro.pessoas_enderecos (pessoa_id, tipo, cidade) VALUES ($1, 'cobranca', 'Ibirama') RETURNING id",
+      "INSERT INTO pessoas_enderecos (pessoa_id, tipo, cidade) VALUES ($1, 'cobranca', 'Ibirama') RETURNING id",
       [outroCliente],
     );
-    await pool.query('UPDATE cadastro.pessoas_enderecos SET lat = -27.05, lng = -49.51, geocodificado_em = NOW() WHERE id = $1', [
+    await pool.query('UPDATE pessoas_enderecos SET lat = -27.05, lng = -49.51, geocodificado_em = NOW() WHERE id = $1', [
       rows[0].id,
     ]);
-    const { rows: depois } = await pool.query('SELECT lat::float8 AS lat FROM cadastro.pessoas_enderecos WHERE id = $1', [
+    const { rows: depois } = await pool.query('SELECT lat::float8 AS lat FROM pessoas_enderecos WHERE id = $1', [
       rows[0].id,
     ]);
     expect(depois[0].lat).toBe(-27.05);
@@ -558,7 +558,7 @@ describe('P17, P19: o endereço de entrega completado na rota', () => {
   async function entregaDe(clienteId: string) {
     const { rows } = await pool.query(
       `SELECT logradouro, cidade, uf, lat::float8 AS lat, lng::float8 AS lng, geocodificado_em IS NOT NULL AS geocodificado
-         FROM cadastro.pessoas_enderecos WHERE pessoa_id = $1 AND tipo = 'entrega'`,
+         FROM pessoas_enderecos WHERE pessoa_id = $1 AND tipo = 'entrega'`,
       [clienteId],
     );
     return rows;
@@ -612,7 +612,7 @@ describe('P17, P19: o endereço de entrega completado na rota', () => {
   it('o destino do pedido tem prioridade sobre o do cliente, sem trocá-lo', async () => {
     const novo = await tx((c) => insertClienteRapido(c, { nome: `${prefixo} Muda de endereço`, telefone: null }));
     await pool.query(
-      `INSERT INTO cadastro.pessoas_enderecos (pessoa_id, tipo, logradouro, cidade, lat, lng, geocodificado_em)
+      `INSERT INTO pessoas_enderecos (pessoa_id, tipo, logradouro, cidade, lat, lng, geocodificado_em)
        VALUES ($1, 'entrega', 'Rua Velha', 'Lontras', -27.1, -49.5, NOW())`,
       [novo],
     );

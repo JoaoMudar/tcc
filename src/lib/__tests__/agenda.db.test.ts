@@ -62,10 +62,10 @@ const ids: Record<string, string> = {};
 const tx = <T>(fn: (client: PoolClient) => Promise<T>) => withTransaction(pool, fn);
 
 async function funcionario(nome: string, ativo = true): Promise<string> {
-  const { rows } = await pool.query<{ id: string }>("INSERT INTO cadastro.pessoas (tipo, nome) VALUES ('pf', $1) RETURNING id", [
+  const { rows } = await pool.query<{ id: string }>("INSERT INTO pessoas (tipo, nome) VALUES ('pf', $1) RETURNING id", [
     `${prefixo} ${nome}`,
   ]);
-  await pool.query("INSERT INTO cadastro.pessoas_papeis (pessoa_id, papel, tipo_vinculo, ativo) VALUES ($1, 'funcionario', 'fixo', $2)", [
+  await pool.query("INSERT INTO pessoas_papeis (pessoa_id, papel, tipo_vinculo, ativo) VALUES ($1, 'funcionario', 'fixo', $2)", [
     rows[0].id,
     ativo,
   ]);
@@ -339,7 +339,7 @@ describe('agenda da semana contra Postgres', () => {
   it('TA-29: a semana nova nasce com as recorrentes, e só com elas', async () => {
     // Tarefa de quem deixou de ser funcionário não vai para a semana nova
     await criar({ participantes: [valdir], dias: ['2030-01-10'] });
-    await pool.query("UPDATE cadastro.pessoas_papeis SET ativo = false WHERE pessoa_id = $1 AND papel = 'funcionario'", [valdir]);
+    await pool.query("UPDATE pessoas_papeis SET ativo = false WHERE pessoa_id = $1 AND papel = 'funcionario'", [valdir]);
 
     const aberta = await tx((client) => abrirSemana(client, S2));
     expect(aberta).toMatchObject({ criada: true, recorrentes: 2 });

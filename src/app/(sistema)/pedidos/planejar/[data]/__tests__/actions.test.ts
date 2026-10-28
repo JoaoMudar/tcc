@@ -338,7 +338,7 @@ describe('o endereço de entrega completado na rota (P17, P19)', () => {
     expect(valores).toEqual([PEDIDO, 'Estrada Geral', 'Ibirama', 'SC', null, -27.05, -49.52]);
     expect(gravouEm('sugerir_ordem = sugerir_ordem OR $2')[0][1]).toEqual([VIAGEM, true]);
     // P19: o destino é do pedido, e o cadastro do cliente fica como está
-    expect(gravouEm('cadastro.pessoas_enderecos')).toHaveLength(0);
+    expect(gravouEm('pessoas_enderecos')).toHaveLength(0);
   });
 
   it('o mapa fora do ar não impede: o ponto fica com um texto que diz de onde veio', async () => {

@@ -4,7 +4,7 @@
  * (divida-tecnica §3): pega a migration registrada que não aplicou nada.
  *
  * Cobre o que as migrations deste projeto usam: CREATE TABLE, ALTER TABLE
- * (ADD, DROP e RENAME COLUMN, RENAME TO) e DROP TABLE.
+ * (ADD, DROP e RENAME COLUMN, RENAME TO, SET SCHEMA) e DROP TABLE.
  */
 
 export type DeclaredSchema = Map<string, Set<string>>;
@@ -146,6 +146,11 @@ function applyAlterTable(schema: DeclaredSchema, statement: string): boolean {
       schema.delete(table);
       schema.set(renamed, columns);
       table = renamed;
+    } else if ((m = new RegExp(`^SET\\s+SCHEMA\\s+(${IDENT})`, 'i').exec(action))) {
+      const moved = `${unquote(m[1])}.${table.split('.')[1]}`;
+      schema.delete(table);
+      schema.set(moved, columns);
+      table = moved;
     } else if (
       (m = new RegExp(`^RENAME\\s+(?:COLUMN\\s+)?(${IDENT})\\s+TO\\s+(${IDENT})`, 'i').exec(action)) &&
       !/^RENAME\s+CONSTRAINT/i.test(action)

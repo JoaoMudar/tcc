@@ -441,12 +441,12 @@ describe('pessoas (RF-17, RF-19 a RF-21)', () => {
   it('P17: a localização colada sem endereço vira o endereço de entrega, com o ponto', async () => {
     loggedAs('chefia');
     client.query.mockImplementation(async (sql: string) =>
-      sql.includes('INSERT INTO cadastro.pessoas ') ? { rows: [{ id: ID }] } : { rows: [], rowCount: 1 },
+      sql.includes('INSERT INTO pessoas ') ? { rows: [{ id: ID }] } : { rows: [], rowCount: 1 },
     );
     await pessoas
       .savePessoaAction({}, form({ ...PESSOA, confirmar_novo: '1', endereco_entrega_localizacao: '-27.05, -49.52' }))
       .catch(() => undefined); // o cadastro novo redireciona para a ficha
-    const [[, valores]] = client.query.mock.calls.filter(([sql]) => String(sql).includes('INSERT INTO cadastro.pessoas_enderecos'));
+    const [[, valores]] = client.query.mock.calls.filter(([sql]) => String(sql).includes('INSERT INTO pessoas_enderecos'));
     expect(valores.slice(1, 8)).toEqual(['entrega', 'Localização enviada pelo WhatsApp', null, null, null, -27.05, -49.52]);
   });
 
@@ -469,7 +469,7 @@ describe('pessoas (RF-17, RF-19 a RF-21)', () => {
   it('confirmado que é outra pessoa, cria com o papel numa transação', async () => {
     loggedAs('chefia');
     client.query.mockImplementation(async (sql: string) =>
-      sql.includes('INSERT INTO cadastro.pessoas ') ? { rows: [{ id: ID }] } : { rows: [], rowCount: 1 },
+      sql.includes('INSERT INTO pessoas ') ? { rows: [{ id: ID }] } : { rows: [], rowCount: 1 },
     );
     await expect(pessoas.savePessoaAction({}, form({ ...PESSOA, confirmar_novo: '1' }))).rejects.toThrow(
       `redirect:/cadastros/pessoas/${ID}?salvo=1`,
@@ -477,7 +477,7 @@ describe('pessoas (RF-17, RF-19 a RF-21)', () => {
     expect(pool.query).not.toHaveBeenCalled();
     const sqls = client.query.mock.calls.map((call) => String(call[0]));
     expect(sqls[0]).toBe('BEGIN');
-    expect(sqls.some((sql) => sql.includes('INSERT INTO cadastro.pessoas_papeis'))).toBe(true);
+    expect(sqls.some((sql) => sql.includes('INSERT INTO pessoas_papeis'))).toBe(true);
     expect(sqls.at(-1)).toBe('COMMIT');
   });
 
@@ -507,11 +507,11 @@ describe('pessoas (RF-17, RF-19 a RF-21)', () => {
     it('só nome e telefone bastam, e volta com o cliente em vez de ir para a ficha', async () => {
       loggedAs('chefia');
       client.query.mockImplementation(async (sql: string) =>
-        sql.includes('INSERT INTO cadastro.pessoas ') ? { rows: [{ id: ID }] } : { rows: [], rowCount: 1 },
+        sql.includes('INSERT INTO pessoas ') ? { rows: [{ id: ID }] } : { rows: [], rowCount: 1 },
       );
       const state = await pessoas.savePessoaAction({}, form({ ...DO_PEDIDO, confirmar_novo: '1' }));
       expect(state).toEqual({ success: 'Cliente Sítio Boa Vista cadastrado.', cliente: { id: ID, nome: 'Sítio Boa Vista' } });
-      const papel = client.query.mock.calls.find((call) => String(call[0]).includes('INSERT INTO cadastro.pessoas_papeis'));
+      const papel = client.query.mock.calls.find((call) => String(call[0]).includes('INSERT INTO pessoas_papeis'));
       expect(JSON.stringify(papel?.[1])).toContain('cliente');
     });
 
@@ -543,7 +543,7 @@ describe('autor do cadastro (RNF-15)', () => {
     vi.mocked(pool.query).mockResolvedValue({ rows: [] } as never);
     client.query.mockResolvedValue({ rows: [{ id: ID }] });
     await pessoas.createClienteRapido({}, form({ nome: 'Sítio Boa Vista', telefone: '(47) 99612-4408' }));
-    const insert = client.query.mock.calls.find(([sql]) => String(sql).includes('INSERT INTO cadastro.pessoas'));
+    const insert = client.query.mock.calls.find(([sql]) => String(sql).includes('INSERT INTO pessoas'));
     expect(insert?.[1]).toEqual(['Sítio Boa Vista', '47996124408', 'u1']);
   });
 });

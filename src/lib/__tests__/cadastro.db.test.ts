@@ -36,7 +36,7 @@ afterAll(async () => {
   await pool.query("DELETE FROM recipientes WHERE nome LIKE $1 || '%'", [prefixo]);
   await pool.query("DELETE FROM insumos WHERE nome LIKE $1 || '%'", [prefixo]);
   await pool.query("DELETE FROM tipos_tarefa WHERE nome LIKE $1 || '%'", [prefixo]);
-  await pool.query("DELETE FROM cadastro.pessoas WHERE nome LIKE $1 || '%'", [prefixo]);
+  await pool.query("DELETE FROM pessoas WHERE nome LIKE $1 || '%'", [prefixo]);
   // Por último: os cadastros acima apontam para ele (RNF-15)
   await pool.query("DELETE FROM usuarios WHERE login LIKE $1 || '%'", [prefixo]);
   await pool.end();
@@ -202,7 +202,7 @@ describe('P17: a coordenada do endereço sobrevive ao salvar a pessoa', () => {
 
   async function ponto(id: string) {
     const { rows } = await pool.query(
-      "SELECT lat::float8 AS lat, lng::float8 AS lng FROM cadastro.pessoas_enderecos WHERE pessoa_id = $1 AND tipo = 'entrega'",
+      "SELECT lat::float8 AS lat, lng::float8 AS lng FROM pessoas_enderecos WHERE pessoa_id = $1 AND tipo = 'entrega'",
       [id],
     );
     return rows[0];
@@ -267,7 +267,7 @@ describe('pessoas contra Postgres real', () => {
       ),
     );
 
-    const { rows } = await pool.query('SELECT id FROM cadastro.pessoas WHERE nome = $1', [fornecedor.nome]);
+    const { rows } = await pool.query('SELECT id FROM pessoas WHERE nome = $1', [fornecedor.nome]);
     expect(rows).toHaveLength(1);
     const ficha = await findPessoa(pool, pessoaId, true);
     expect(ficha?.papeis).toEqual([
@@ -300,7 +300,7 @@ describe('pessoas contra Postgres real', () => {
     expect(ficha?.documento).toBe('11222333000181');
     expect(ficha?.enderecos.map((e) => e.tipo).sort()).toEqual(['cobranca', 'entrega']);
     // O papel retirado fica inativo, e não some da tabela
-    const { rows } = await pool.query('SELECT papel, ativo FROM cadastro.pessoas_papeis WHERE pessoa_id = $1 ORDER BY papel', [
+    const { rows } = await pool.query('SELECT papel, ativo FROM pessoas_papeis WHERE pessoa_id = $1 ORDER BY papel', [
       pessoaId,
     ]);
     expect(rows).toEqual([
@@ -402,7 +402,7 @@ describe('autor dos cadastros (RNF-15)', () => {
     const recipiente = await insertRecipiente(pool, { nome: `${prefixo} Autoria saco`, volumeLitros: 2 }, criou);
 
     expect(await autorDe('especies', especie.id)).toEqual({ criadoPor: criou, atualizadoPor: criou });
-    expect(await autorDe('cadastro.pessoas', pessoa)).toEqual({ criadoPor: criou, atualizadoPor: criou });
+    expect(await autorDe('pessoas', pessoa)).toEqual({ criadoPor: criou, atualizadoPor: criou });
     expect(await autorDe('recipientes', recipiente)).toEqual({ criadoPor: criou, atualizadoPor: criou });
 
     await updateRecipiente(pool, recipiente, { nome: `${prefixo} Autoria saco`, volumeLitros: 2.5, ativo: true }, alterou);

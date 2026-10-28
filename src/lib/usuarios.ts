@@ -78,7 +78,7 @@ const SELECT_USUARIO = `
          u.deve_trocar_senha AS "deveTrocarSenha", u.bloqueado_ate AS "bloqueadoAte",
          u.pessoa_id AS "pessoaId", p.nome AS "pessoaNome"
     FROM usuarios u
-    LEFT JOIN cadastro.pessoas p ON p.id = u.pessoa_id`;
+    LEFT JOIN pessoas p ON p.id = u.pessoa_id`;
 
 export async function listUsuarios(db: Db, busca = ''): Promise<UsuarioResumo[]> {
   const termo = busca.trim();
@@ -147,7 +147,7 @@ export async function saveUsuarioChanges(
 export async function listPessoasDisponiveis(db: Db, usuarioId: string | null): Promise<{ id: string; nome: string }[]> {
   const { rows } = await db.query<{ id: string; nome: string }>(
     `SELECT p.id, p.nome
-       FROM cadastro.pessoas p
+       FROM pessoas p
       WHERE p.ativa
         AND NOT EXISTS (
           SELECT 1 FROM usuarios u

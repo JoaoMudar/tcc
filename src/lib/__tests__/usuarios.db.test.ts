@@ -37,7 +37,7 @@ beforeEach(async () => {
 
 afterAll(async () => {
   await pool.query("DELETE FROM usuarios WHERE login LIKE $1 || '%'", [prefixo]);
-  await pool.query("DELETE FROM cadastro.pessoas WHERE nome LIKE $1 || '%'", [prefixo]);
+  await pool.query("DELETE FROM pessoas WHERE nome LIKE $1 || '%'", [prefixo]);
   await pool.end();
 });
 
@@ -93,7 +93,7 @@ describe('usuarios contra Postgres real', () => {
 
   it('pessoa com usuário sai da lista de vínculo, menos para o próprio usuário', async () => {
     const { rows } = await pool.query<{ id: string }>(
-      "INSERT INTO cadastro.pessoas (tipo, nome) VALUES ('pf', $1) RETURNING id",
+      "INSERT INTO pessoas (tipo, nome) VALUES ('pf', $1) RETURNING id",
       [`${prefixo} Débora`],
     );
     const pessoaId = rows[0].id;
