@@ -7,7 +7,7 @@ import { parseDeclaredSchema } from '../declared-schema';
 import { sortMigrationFiles } from '../runner';
 
 const MIGRATIONS_DIR = path.join(process.cwd(), 'migrations');
-const SCHEMAS = ['public', 'cadastro'];
+const SCHEMAS = ['public'];
 
 let client: Client;
 
@@ -68,6 +68,14 @@ describe('schema declarado nas migrations x banco real', () => {
       'SELECT filename FROM _migrations ORDER BY filename',
     );
     expect(rows.map((r) => r.filename)).toEqual(files);
+  });
+
+  it('o modelo inteiro está no public, sem schema próprio', async () => {
+    const { rows } = await client.query<{ nspname: string }>(
+      `SELECT nspname FROM pg_namespace
+        WHERE nspname NOT IN ('public', 'information_schema') AND nspname NOT LIKE 'pg\\_%'`,
+    );
+    expect(rows.map((r) => r.nspname)).toEqual([]);
   });
 
   it('tabelas e colunas coincidem nos dois sentidos', async () => {
