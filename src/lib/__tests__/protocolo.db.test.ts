@@ -153,12 +153,12 @@ beforeAll(async () => {
 
   // Quem executa: a sugestão aceita só vira tarefa com participante (RN-40)
   const { rows: pessoaRows } = await pool.query<{ id: string }>(
-    "INSERT INTO cadastro.pessoas (tipo, nome) VALUES ('pf', $1) RETURNING id",
+    "INSERT INTO pessoas (tipo, nome) VALUES ('pf', $1) RETURNING id",
     [`${prefixo} Rogerio`],
   );
   pessoa = pessoaRows[0].id;
   await pool.query(
-    "INSERT INTO cadastro.pessoas_papeis (pessoa_id, papel, tipo_vinculo, ativo) VALUES ($1, 'funcionario', 'fixo', true)",
+    "INSERT INTO pessoas_papeis (pessoa_id, papel, tipo_vinculo, ativo) VALUES ($1, 'funcionario', 'fixo', true)",
     [pessoa],
   );
 
@@ -228,7 +228,7 @@ afterAll(async () => {
   await pool.query('DELETE FROM recipientes WHERE id IN ($1, $2)', [tubete, semProtocolo]);
   await pool.query("DELETE FROM areas WHERE letra = 'T'");
   await pool.query('DELETE FROM tipos_tarefa WHERE id IN ($1, $2, $3)', [tipoComLote, tipoPlantio, tipoSemLote ?? tipoComLote]);
-  await pool.query('DELETE FROM cadastro.pessoas WHERE id = $1', [pessoa]);
+  await pool.query('DELETE FROM pessoas WHERE id = $1', [pessoa]);
   await pool.query('DELETE FROM usuarios WHERE id = $1', [usuario]);
   await pool.end();
 });

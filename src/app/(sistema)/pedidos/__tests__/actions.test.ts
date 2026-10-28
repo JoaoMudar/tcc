@@ -725,7 +725,7 @@ describe('endereço de entrega pelo frete (P17, P19)', () => {
     const state = await actions.salvarEnderecoDoPedidoAction({}, form({ pedido_id: PEDIDO, endereco: 'Rua XV, 120' }));
     expect(state).toEqual({ success: 'Endereço salvo.' });
     expect(gravouEndereco().map(([, valores]) => valores)).toEqual([[PEDIDO, 'Rua XV, 120', null, null, null, null, null]]);
-    expect(client.query.mock.calls.some(([sql]) => String(sql).includes('cadastro.pessoas_enderecos'))).toBe(false);
+    expect(client.query.mock.calls.some(([sql]) => String(sql).includes('pessoas_enderecos'))).toBe(false);
   });
 
   it('pedido aprovado não completa endereço por aqui', async () => {

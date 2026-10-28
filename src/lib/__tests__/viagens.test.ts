@@ -111,7 +111,7 @@ describe('sugerirRota', () => {
 
     expect(geocodificarTexto).toHaveBeenCalledTimes(1);
     expect(geocodificarTexto).toHaveBeenCalledWith('Rua XV, 10, Rio do Sul, SC');
-    const cache = gravou('UPDATE cadastro.pessoas_enderecos');
+    const cache = gravou('UPDATE pessoas_enderecos');
     expect(cache).toHaveLength(1);
     expect(cache[0][1]).toEqual(['end-2', -27.21, -49.64]);
 
@@ -126,7 +126,7 @@ describe('sugerirRota', () => {
     vi.mocked(otimizarOrdem).mockResolvedValue({ ordem: ['p-situada'], distanciaM: 1000, duracaoS: 60 });
 
     await expect(sugerirRota(pool, VIAGEM)).resolves.toBeNull();
-    expect(gravou('UPDATE cadastro.pessoas_enderecos')[0][1]).toEqual(['end-2', null, null]);
+    expect(gravou('UPDATE pessoas_enderecos')[0][1]).toEqual(['end-2', null, null]);
     expect(ordemGravada()).toEqual(['p-situada', 'p-a-achar', 'p-sem-endereco', 'avulsa']);
   });
 

@@ -271,7 +271,7 @@ export async function listPedidos(db: Db, filtro: FiltroPedidos = {}): Promise<P
             -- O frete entra no total, e o total que é nulo continua nulo
             (${TOTAL_SQL} + ROUND(COALESCE(p.frete, 0) * 100)::bigint) AS "totalCentavos"
        FROM pedidos p
-       JOIN cadastro.pessoas c ON c.id = p.cliente_id
+       JOIN pessoas c ON c.id = p.cliente_id
       WHERE ($1::uuid IS NULL OR p.cliente_id = $1)
         AND NOT EXISTS (SELECT 1 FROM unnest($2::text[]) AS t(termo)
                          WHERE ${semAcento('c.nome')} NOT LIKE '%' || t.termo || '%')
@@ -302,7 +302,7 @@ export async function findPedido(db: Db, id: string): Promise<FichaPedido | null
             e.proprio AS "entregaPropria", e.logradouro AS "entregaLogradouro", e.cidade AS "entregaCidade",
             e.uf AS "entregaUf"
        FROM pedidos p
-       JOIN cadastro.pessoas c ON c.id = p.cliente_id
+       JOIN pessoas c ON c.id = p.cliente_id
        JOIN usuarios u ON u.id = p.criado_por
        ${ENDERECO_DO_PEDIDO}
       WHERE p.id = $1`,
@@ -381,9 +381,9 @@ export async function listEspeciesPermitidas(db: Db, itemId: string): Promise<st
 export async function listClientes(db: Db): Promise<{ id: string; nome: string }[]> {
   const { rows } = await db.query<{ id: string; nome: string }>(
     `SELECT p.id, p.nome
-       FROM cadastro.pessoas p
+       FROM pessoas p
       WHERE p.ativa
-        AND EXISTS (SELECT 1 FROM cadastro.pessoas_papeis x
+        AND EXISTS (SELECT 1 FROM pessoas_papeis x
                      WHERE x.pessoa_id = p.id AND x.ativo AND x.papel = 'cliente')
       ORDER BY p.nome
       LIMIT 500`,

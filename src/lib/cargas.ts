@@ -388,7 +388,7 @@ export async function pedidosDoPeriodo(db: Db, de: string, ate: string): Promise
             COUNT(DISTINCT l.id)::int AS cargas,
             COUNT(DISTINCT l.id) FILTER (WHERE l.situacao = 'pronto')::int AS prontas
        FROM pedidos p
-       JOIN cadastro.pessoas c ON c.id = p.cliente_id
+       JOIN pessoas c ON c.id = p.cliente_id
        LEFT JOIN pedidos_cargas l ON l.pedido_id = p.id
       WHERE p.data_entrega BETWEEN $1 AND $2
         AND p.situacao IN ('aprovado', 'separando', 'pronto_envio')
