@@ -82,7 +82,7 @@ async function main() {
   let dump = arquivo;
   try {
     const { rows } = await pool.query<{ n: number }>(
-      "SELECT COUNT(*)::int AS n FROM information_schema.tables WHERE table_schema IN ('public', 'cadastro')",
+      "SELECT COUNT(*)::int AS n FROM information_schema.tables WHERE table_schema = 'public'",
     );
     if (rows[0].n > 0) throw new Error(`O banco de destino já tem ${rows[0].n} tabela(s). Crie um banco vazio para a restauração.`);
 
