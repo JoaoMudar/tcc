@@ -37,9 +37,10 @@ describe('item do pedido em tela cheia (T8.1)', () => {
         onCriarEspecie={vi.fn()}
       />,
     );
-    fireEvent.change(screen.getByLabelText('Altura em metros'), {
-      target: { value: '80' },
-    });
+    const campo = screen.getByLabelText('Altura em metros');
+    fireEvent.change(campo, { target: { value: ',5' } });
+    expect(onAlterar).toHaveBeenLastCalledWith(3, 'altura', '0,5');
+    fireEvent.blur(campo, { target: { value: '80' } });
     expect(onAlterar).toHaveBeenLastCalledWith(3, 'altura', '0,80 m');
   });
 

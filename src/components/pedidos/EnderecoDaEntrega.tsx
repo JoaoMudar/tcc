@@ -7,7 +7,6 @@ import { CampoLocalizacao } from '@/components/ui/CampoLocalizacao';
 import { Modal } from '@/components/ui/Modal';
 import { Notice } from '@/components/ui/Notice';
 import { EMPTY_FORM_STATE, type FormState } from '@/lib/form-state';
-import type { SugestaoDeEndereco } from '@/lib/rotas';
 
 interface EnderecoDaEntregaProps {
   nomeCliente: string;
@@ -15,7 +14,6 @@ interface EnderecoDaEntregaProps {
   endereco: string | null;
   /** Quem grava: a rota do planejar ou o frete do pedido, cada um com a sua permissão. */
   acao: (previous: FormState, formData: FormData) => Promise<FormState>;
-  buscar: (texto: string) => Promise<SugestaoDeEndereco[]>;
   /** O que identifica a viagem ou o pedido, em campos escondidos. */
   camposOcultos: Record<string, string>;
   onFechar: () => void;
@@ -32,7 +30,6 @@ export function EnderecoDaEntrega({
   nomeCliente,
   endereco,
   acao,
-  buscar,
   camposOcultos,
   onFechar,
   onSalvo,
@@ -54,7 +51,6 @@ export function EnderecoDaEntrega({
           label="Endereço"
           name="endereco"
           defaultValue={estado.fields?.endereco ?? endereco ?? ''}
-          buscar={buscar}
         />
         <CampoLocalizacao name="localizacao" defaultValue={estado.fields?.localizacao} />
         <p className="text-sm text-muted">Vale só para este pedido. O cadastro do cliente não muda.</p>

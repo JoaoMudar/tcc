@@ -5,8 +5,21 @@ import type { SugestaoDeEndereco } from '@/lib/rotas';
 import { classeRotulo } from './marcaObrigatorio';
 
 /** Espera a pessoa parar de digitar antes de perguntar ao mapa. */
-const ESPERA_MS = 300;
+const ESPERA_MS = 400;
 const MINIMO = 3;
+
+type Buscar = (texto: string, sinal: AbortSignal) => Promise<SugestaoDeEndereco[]>;
+
+/**
+ * A busca padrão: a rota `/api/enderecos`, e não uma Server Action. As actions
+ * do navegador andam numa fila só e passam pelo roteador da página, e digitar
+ * muito empilhava buscas e travava a tela (ver a rota).
+ */
+const buscarNaRota: Buscar = async (texto, sinal) => {
+  const resposta = await fetch(`/api/enderecos?q=${encodeURIComponent(texto)}`, { signal: sinal });
+  if (!resposta.ok) return [];
+  return (await resposta.json()) as SugestaoDeEndereco[];
+};
 
 interface CampoEnderecoProps {
   label: string;
@@ -15,8 +28,8 @@ interface CampoEnderecoProps {
   defaultValue?: string;
   required?: boolean;
   className?: string;
-  /** Quem procura: a Server Action, para a chave do mapa ficar no servidor. */
-  buscar: (texto: string) => Promise<SugestaoDeEndereco[]>;
+  /** Quem procura. O padrão é a rota do servidor, onde a chave do mapa fica; os testes trocam. */
+  buscar?: Buscar;
   /** Fora de formulário: avisa o texto e a coordenada a cada mudança. */
   onAlterar?: (texto: string, ponto: { lat: number; lng: number } | null) => void;
 }
@@ -27,7 +40,15 @@ interface CampoEnderecoProps {
  * exato. **O texto livre continua valendo**: sem escolher, ou com o mapa fora do
  * ar, o endereço digitado é procurado depois, como antes.
  */
-export function CampoEndereco({ label, name, defaultValue = '', required = false, className = '', buscar, onAlterar }: CampoEnderecoProps) {
+export function CampoEndereco({
+  label,
+  name,
+  defaultValue = '',
+  required = false,
+  className = '',
+  buscar = buscarNaRota,
+  onAlterar,
+}: CampoEnderecoProps) {
   const id = useId();
   const listaId = `${id}-lista`;
   const [texto, setTexto] = useState(defaultValue);
@@ -36,25 +57,38 @@ export function CampoEndereco({ label, name, defaultValue = '', required = false
   const [aberta, setAberta] = useState(false);
   const [ativa, setAtiva] = useState(-1);
   const pedido = useRef(0);
+  // Apagar e redigitar o mesmo trecho não pergunta de novo ao mapa
+  const jaBuscadas = useRef(new Map<string, SugestaoDeEndereco[]>());
 
   useEffect(() => {
     const busca = texto.trim();
     // Escolhido da lista, ou curto demais: não há o que procurar
     if (ponto || busca.length < MINIMO) return;
     const numero = ++pedido.current;
-    const espera = setTimeout(async () => {
-      let achadas: SugestaoDeEndereco[] = [];
-      try {
-        achadas = await buscar(busca);
-      } catch {
-        // Sem lista, o campo segue como texto livre
-      }
+    const mostrar = (achadas: SugestaoDeEndereco[]) => {
       // Resposta de uma busca que já foi superada pela digitação chega tarde e fica fora
       if (numero !== pedido.current) return;
       setSugestoes(achadas);
       setAtiva(-1);
+    };
+    // A busca superada é cancelada, e não só ignorada: não ocupa a rede do celular
+    const controle = new AbortController();
+    const espera = setTimeout(async () => {
+      const guardada = jaBuscadas.current.get(busca);
+      if (guardada) return mostrar(guardada);
+      try {
+        const achadas = await buscar(busca, controle.signal);
+        jaBuscadas.current.set(busca, achadas);
+        mostrar(achadas);
+      } catch {
+        // Cancelada, ou sem rede: sem lista, o campo segue como texto livre
+        mostrar([]);
+      }
     }, ESPERA_MS);
-    return () => clearTimeout(espera);
+    return () => {
+      clearTimeout(espera);
+      controle.abort();
+    };
   }, [texto, ponto, buscar]);
 
   function digitar(valor: string) {

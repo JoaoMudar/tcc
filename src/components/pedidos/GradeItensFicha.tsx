@@ -7,9 +7,11 @@ import {
   type ItemParaAprovar,
   camposFaltando,
   chaveSaldo,
+  completaPreco,
   formatAltura,
   formatMoeda,
   itemVendavel,
+  mascaraDecimal,
   quantidadeConfirmada,
   rotuloGenerico,
   rotuloGrupo,
@@ -268,7 +270,8 @@ export function GradeItensFicha({
       aria-invalid={linha.falta.preco || undefined}
       title={linha.falta.preco ? TEXTO_OBRIGATORIO : undefined}
       value={valores?.[linha.item.id]?.preco ?? ''}
-      onChange={(evento) => onAlterar?.(linha.item.id, 'preco', evento.target.value)}
+      onChange={(evento) => onAlterar?.(linha.item.id, 'preco', mascaraDecimal(evento.target.value))}
+      onBlur={(evento) => onAlterar?.(linha.item.id, 'preco', completaPreco(evento.target.value))}
       className={`${classe} ${celula(linha.falta.preco)}`}
     />
   );

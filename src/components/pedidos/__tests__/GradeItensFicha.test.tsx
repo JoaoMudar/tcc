@@ -56,6 +56,23 @@ describe('GradeItensFicha (T8.1, RF-65)', () => {
     expect(screen.getAllByLabelText('Quantidade do item 1')).toHaveLength(2);
   });
 
+  it('o preço digitado sai do campo sempre com os centavos', () => {
+    const onAlterar = vi.fn();
+    render(
+      <GradeItensFicha
+        itens={[item()]}
+        saldos={{}}
+        valores={{ a: { preco: '', quantidade: '100', recipienteId: 't' } }}
+        onAlterar={onAlterar}
+      />,
+    );
+    const [preco] = screen.getAllByLabelText('Preço do item 1');
+    fireEvent.change(preco, { target: { value: '12.5x' } });
+    expect(onAlterar).toHaveBeenLastCalledWith('a', 'preco', '12,5');
+    fireEvent.blur(preco, { target: { value: '0' } });
+    expect(onAlterar).toHaveBeenLastCalledWith('a', 'preco', '0,00');
+  });
+
   it('com recipiente conferido diferente, a célula vira escolha entre os dois', () => {
     const conferido = item({ recipienteDisponivelId: 's', recipienteDisponivel: 'Saco 17x22', disponivel: true });
     render(

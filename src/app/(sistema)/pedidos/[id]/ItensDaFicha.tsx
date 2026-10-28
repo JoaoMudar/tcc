@@ -41,7 +41,6 @@ import {
 import {
   adicionarItemAction,
   atualizarItemAction,
-  buscarEnderecosDoPedidoAction,
   negociarItensAction,
   removerItemAction,
   salvarEnderecoDoPedidoAction,
@@ -583,7 +582,6 @@ export function ItensDaFicha({
                   onAlterarOrigem: alterarOrigem,
                   endereco: enderecoInicial,
                   onAlterarEndereco: alterarEndereco,
-                  buscar: buscarEnderecosDoPedidoAction,
                   onSugerir: sugerir,
                   onTrocarEntrega: () => setEditandoEndereco(true),
                 }
@@ -627,7 +625,6 @@ export function ItensDaFicha({
           // Trocar é escrever outro destino: o atual já aparece na linha "Entrega em"
           endereco={null}
           acao={salvarEnderecoDoPedidoAction}
-          buscar={buscarEnderecosDoPedidoAction}
           camposOcultos={{ pedido_id: pedidoId }}
           onFechar={fecharEndereco}
           onSalvo={enderecoSalvo}

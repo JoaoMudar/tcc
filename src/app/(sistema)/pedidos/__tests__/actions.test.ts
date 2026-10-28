@@ -748,10 +748,6 @@ describe('endereço de entrega pelo frete (P17, P19)', () => {
     expect(state.error).toBeTruthy();
     expectNoDatabase();
   });
-
-  it('a busca de endereços ignora texto curto', async () => {
-    await expect(actions.buscarEnderecosDoPedidoAction('ab')).resolves.toEqual([]);
-  });
 });
 
 describe('usarSuplenteAction (P18)', () => {

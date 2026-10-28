@@ -707,6 +707,32 @@ export async function marcarItemCarregado(
 }
 
 /**
+ * "Marcar todos": os itens de um pedido da viagem de uma vez, com a mesma trava
+ * do item. Grava o valor final, e não inverte.
+ */
+export async function marcarPedidoCarregado(
+  client: Client,
+  viagemId: string,
+  pedidoId: string,
+  carregado: boolean,
+  autor: string | null = null,
+): Promise<void> {
+  // RNF-15: quem marcou e quando, como no item
+  const { rowCount } = await client.query(
+    `UPDATE pedidos_cargas_itens SET carregado = $3, carregado_por = CASE WHEN $3 THEN $4::uuid END, carregado_em = CASE WHEN $3 THEN NOW() END
+      WHERE carga_id IN (SELECT c.id
+                           FROM pedidos_cargas c
+                           JOIN viagens_paradas vp ON vp.pedido_id = c.pedido_id
+                           JOIN viagens v ON v.id = vp.viagem_id
+                          WHERE v.id = $1 AND c.pedido_id = $2 AND v.situacao = 'carregando')`,
+    [viagemId, pedidoId, carregado, autor],
+  );
+  if (!rowCount) {
+    throw new UserError('Este pedido não pode mais ser marcado: a viagem não está em carregamento.');
+  }
+}
+
+/**
  * RF-24, RF-34: o caminhão carregado é a venda saindo do viveiro, e é aqui que
  * ela baixa o lote, pela porta única. Item sem lote recusa a viagem inteira:
  * baixar de um lote qualquer faria o saldo mentir em outro canteiro. A baixa
