@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/Button';
 import { Notice } from '@/components/ui/Notice';
 import { Toast } from '@/components/ui/Toast';
 import { TextField } from '@/components/ui/TextField';
+import { useCursorDaMascara } from '@/components/useCursorDaMascara';
+import { cursorPelaDireita } from '@/lib/cursor-mascara';
 import { EMPTY_FORM_STATE } from '@/lib/form-state';
 import { mascaraDecimal3 } from '@/lib/recipientes';
 import { createRecipiente } from './actions';
@@ -12,6 +14,7 @@ import { createRecipiente } from './actions';
 /** Volume ou peso na máscara de três casas, enquanto se digita. */
 function CampoDecimal({ label, name, inicial, hint }: { label: string; name: string; inicial?: string; hint: string }) {
   const [valor, setValor] = useState(() => mascaraDecimal3(inicial ?? ''));
+  const manterCursor = useCursorDaMascara();
   return (
     <TextField
       label={label}
@@ -19,7 +22,10 @@ function CampoDecimal({ label, name, inicial, hint }: { label: string; name: str
       inputMode="numeric"
       autoComplete="off"
       value={valor}
-      onChange={(evento) => setValor(mascaraDecimal3(evento.target.value, valor))}
+      onChange={(evento) => {
+        manterCursor(evento.target, cursorPelaDireita(evento.target));
+        setValor(mascaraDecimal3(evento.target.value, valor));
+      }}
       hint={hint}
     />
   );

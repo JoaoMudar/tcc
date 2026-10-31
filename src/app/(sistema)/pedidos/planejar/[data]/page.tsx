@@ -149,6 +149,7 @@ export default async function PlanejarPage({ params, searchParams }: PlanejarPag
             separado: item.separado,
             carregado: item.carregado,
             loteId: item.loteId,
+            loteCodigo: item.loteCodigo,
             opcoesLote: opcoesDeLote(lotesPorPedido.get(grupo.pedidoId) ?? [], item),
           })),
         }))}

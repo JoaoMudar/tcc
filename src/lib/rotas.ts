@@ -70,13 +70,20 @@ export function resumoDoItem(item: { especie: string; quantidade: number | null;
     .join(' · ');
 }
 
-/** O endereço do cadastro em uma linha, como a API de mapas e o Google o leem. */
+/**
+ * O endereço do cadastro em uma linha, como a API de mapas e o Google o leem.
+ * Quando o logradouro gravado é o rótulo inteiro do geocodificador
+ * ("Ituporanga, SC, Brazil"), a cidade e a UF já estão nele e não se repetem.
+ */
 export function enderecoEmTexto(endereco: {
   logradouro: string | null;
   cidade: string | null;
   uf: string | null;
 }): string | null {
-  const partes = [endereco.logradouro, endereco.cidade, endereco.uf].map((p) => p?.trim()).filter(Boolean);
+  const logradouro = endereco.logradouro?.trim() || null;
+  const jaTem = new Set((logradouro ?? '').split(',').map((parte) => parte.trim().toLowerCase()));
+  const resto = [endereco.cidade, endereco.uf].map((p) => p?.trim()).filter((p) => p && !jaTem.has(p.toLowerCase()));
+  const partes = [logradouro, ...resto].filter(Boolean);
   return partes.length > 0 ? partes.join(', ') : null;
 }
 

@@ -4,6 +4,8 @@ import { startTransition, useActionState, useEffect, useRef, useState } from 're
 import { Notice } from '@/components/ui/Notice';
 import { Pill } from '@/components/ui/Pill';
 import { TextField } from '@/components/ui/TextField';
+import { useCursorDaMascara } from '@/components/useCursorDaMascara';
+import { cursorPelaDireita } from '@/lib/cursor-mascara';
 import { EMPTY_FORM_STATE } from '@/lib/form-state';
 import { decimalParaCampo, mascaraDecimal3 } from '@/lib/recipientes';
 import { updateRecipiente } from './actions';
@@ -40,6 +42,7 @@ export function RecipienteForm({ recipiente, podeEditar }: RecipienteFormProps) 
   // O que já está no banco: sair do campo sem mudar nada não regrava
   const gravado = useRef(JSON.stringify(valores));
   const espera = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const manterCursor = useCursorDaMascara();
 
   useEffect(() => () => {
     if (espera.current) clearTimeout(espera.current);
@@ -101,7 +104,10 @@ export function RecipienteForm({ recipiente, podeEditar }: RecipienteFormProps) 
             inputMode="numeric"
             autoComplete="off"
             value={valores.volume}
-            onChange={(evento) => alterar('volume', evento.target.value)}
+            onChange={(evento) => {
+              manterCursor(evento.target, cursorPelaDireita(evento.target));
+              alterar('volume', evento.target.value);
+            }}
             onBlur={() => gravar(valores)}
           />
           <TextField
@@ -110,7 +116,10 @@ export function RecipienteForm({ recipiente, podeEditar }: RecipienteFormProps) 
             inputMode="numeric"
             autoComplete="off"
             value={valores.peso}
-            onChange={(evento) => alterar('peso', evento.target.value)}
+            onChange={(evento) => {
+              manterCursor(evento.target, cursorPelaDireita(evento.target));
+              alterar('peso', evento.target.value);
+            }}
             onBlur={() => gravar(valores)}
           />
           <label className="flex min-h-touch items-center gap-2 text-base font-semibold text-gray-700">

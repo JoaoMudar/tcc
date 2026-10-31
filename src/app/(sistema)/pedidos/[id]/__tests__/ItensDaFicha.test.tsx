@@ -11,7 +11,7 @@ import {
   sugerirFreteAction,
   usarSuplenteAction,
 } from '../../actions';
-import { ATRASO_GRAVACAO_MS, ItensDaFicha, pesoDaFicha } from '../ItensDaFicha';
+import { ATRASO_GRAVACAO_MS, ItensDaFicha, pesoDaFicha, textoDistancia } from '../ItensDaFicha';
 
 vi.mock('../../actions', () => ({
   adicionarItemAction: vi.fn(async () => ({ success: 'ok', itemId: 'novo' })),
@@ -178,6 +178,13 @@ describe('ItensDaFicha: o orçamento edita a grade do cadastro, gravando ao digi
   });
 });
 
+describe('textoDistancia', () => {
+  it('o número é a ida, e a volta vem dobrada ao lado', () => {
+    expect(textoDistancia(131.3)).toBe('Sugestão para ≈ 131,3 km de ida, 262,6 km ida e volta.');
+    expect(textoDistancia(null)).toBeNull();
+  });
+});
+
 describe('ItensDaFicha: o que a verificação achou não se perde', () => {
   // Pediu 50 em tubete: tem 30, completou com 20 em saco. O Cedro não tem.
   const principal = item({ id: 'p', quantidade: 50, disponivel: false, quantidadeDisponivel: 30 });
@@ -266,7 +273,7 @@ describe('ItensDaFicha: o fechamento do pedido (RF-66)', () => {
     });
     expect(sugerirFreteAction).toHaveBeenCalledWith('p1', 'itapema');
     expect((screen.getByLabelText('Frete') as HTMLInputElement).value).toBe('70,00');
-    expect(screen.getByText(/85 km, ida e volta/)).toBeTruthy();
+    expect(screen.getByText('Sugestão para ≈ 85 km de ida, 170 km ida e volta.')).toBeTruthy();
   });
 
   it('"Outro" abre o endereço de saída, e a sugestão e o frete gravado o levam', async () => {

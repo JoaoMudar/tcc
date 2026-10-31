@@ -5,6 +5,7 @@ import { montarSaldos } from '@/components/pedidos/linhas-pedido';
 import { Pill, type PillTone } from '@/components/ui/Pill';
 import { formatData } from '@/lib/datas';
 import pool from '@/lib/db';
+import { formatTelefone } from '@/lib/documento';
 import { nomeExibido, searchEspecies } from '@/lib/especies';
 import { saldoDisponivel } from '@/lib/estoque';
 import { formatDateTime } from '@/lib/format';
@@ -85,7 +86,7 @@ export default async function PedidoPage({ params }: PedidoPageProps) {
           <div className="flex items-start justify-between gap-3">
             <div>
               {!editaCabecalho && <h2 className="text-xl font-bold text-ink">{pedido.cliente}</h2>}
-              {pedido.clienteTelefone && <p className="text-sm text-muted">{pedido.clienteTelefone}</p>}
+              {pedido.clienteTelefone && <p className="text-sm text-muted">{formatTelefone(pedido.clienteTelefone)}</p>}
             </div>
             <Pill tone={TOM[situacao]}>{SITUACOES_PEDIDO[situacao]}</Pill>
           </div>

@@ -132,7 +132,16 @@ export function PessoaForm({ pessoa, verFiscal, podeEditar, paraPedido }: Pessoa
           </fieldset>
           )}
           {!paraPedido && funcionario && (
-            <SelectField label="Vínculo do funcionário" name="tipo_vinculo" options={VINCULO_OPTIONS} defaultValue={vinculo} required />
+            // O reset do form depois da action volta o select à opção com que ele montou;
+            // a key o remonta com o vínculo devolvido, e o aviso não apaga a escolha
+            <SelectField
+              key={vinculo ?? ''}
+              label="Vínculo do funcionário"
+              name="tipo_vinculo"
+              options={VINCULO_OPTIONS}
+              defaultValue={vinculo}
+              required
+            />
           )}
 
           {ENDERECOS_COMUNS.map((t) => (

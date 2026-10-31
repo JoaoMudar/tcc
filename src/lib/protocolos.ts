@@ -696,8 +696,9 @@ async function travarOcorrencia(client: Db, loteId: string, protocoloEtapaId: st
  * RF-55, RN-41: adia a etapa X dias a partir de hoje, ou do vencimento se ele
  * ainda não chegou. Não mexe em data nenhuma: grava a ação, e a visão soma os
  * dias ao vencimento da ocorrência que está por vir. Vencida, a linha leva junto
- * o atraso até hoje, e é por isso que `dias` é o deslocamento real do vencimento.
- * Concluída a etapa, a ocorrência muda e o adiamento deixa de contar sozinho.
+ * o atraso até hoje, e é por isso que `dias` é o deslocamento real do vencimento;
+ * `dias_escolhidos` guarda o que a gerência pediu, que é o que o histórico mostra
+ * (TA-82, migration 20261030000001). Concluída a etapa, a ocorrência muda e o adiamento deixa de contar sozinho.
  */
 export async function adiarEtapa(
   client: Db,
@@ -710,9 +711,9 @@ export async function adiarEtapa(
   const { ocorrencia, vencimento } = await travarOcorrencia(client, loteId, protocoloEtapaId);
   const novo = somaDias(vencimento < hoje ? hoje : vencimento, dias);
   await client.query(
-    `INSERT INTO lotes_etapas_acoes (lote_id, protocolo_etapa_id, ocorrencia, tipo_acao, dias, registrado_por)
-     VALUES ($1, $2, $3, 'adiamento', $4, $5)`,
-    [loteId, protocoloEtapaId, ocorrencia, diasEntre(vencimento, novo), registradoPor],
+    `INSERT INTO lotes_etapas_acoes (lote_id, protocolo_etapa_id, ocorrencia, tipo_acao, dias, dias_escolhidos, registrado_por)
+     VALUES ($1, $2, $3, 'adiamento', $4, $5, $6)`,
+    [loteId, protocoloEtapaId, ocorrencia, diasEntre(vencimento, novo), dias, registradoPor],
   );
   return { vencimento: novo };
 }
@@ -747,6 +748,8 @@ export interface AcaoDaEtapa {
   rotulo: string;
   tipoAcao: TipoAcaoEtapa;
   dias: number | null;
+  /** No adiamento: os dias escolhidos, sem o atraso até hoje. Nulo nas linhas anteriores a 30/10/2026. */
+  diasEscolhidos: number | null;
   dataAcao: string;
   registradoPor: string;
 }
@@ -754,7 +757,7 @@ export interface AcaoDaEtapa {
 /** RF-55: o histórico das ações da gerência sobre o protocolo do lote, do mais novo para o mais antigo. */
 export async function listAcoesDoLote(db: Db, loteId: string): Promise<AcaoDaEtapa[]> {
   const { rows } = await db.query<AcaoDaEtapa>(
-    `SELECT ac.id, pe.rotulo, ac.tipo_acao AS "tipoAcao", ac.dias,
+    `SELECT ac.id, pe.rotulo, ac.tipo_acao AS "tipoAcao", ac.dias, ac.dias_escolhidos AS "diasEscolhidos",
             to_char(ac.data_acao, 'YYYY-MM-DD') AS "dataAcao", u.nome_exibicao AS "registradoPor"
        FROM lotes_etapas_acoes ac
        JOIN protocolos_etapas pe ON pe.id = ac.protocolo_etapa_id
@@ -799,8 +802,8 @@ export async function herdarProtocolo(client: Db, origemId: string, destinoId: s
   // RF-30: o adiamento da ocorrência em aberto vem junto; sem ele o vencimento
   // dos resultantes voltava ao de antes do adiamento
   await client.query(
-    `INSERT INTO lotes_etapas_acoes (lote_id, protocolo_etapa_id, ocorrencia, tipo_acao, dias, data_acao, registrado_por, observacoes)
-     SELECT $2, ac.protocolo_etapa_id, ac.ocorrencia, ac.tipo_acao, ac.dias, ac.data_acao, ac.registrado_por, ac.observacoes
+    `INSERT INTO lotes_etapas_acoes (lote_id, protocolo_etapa_id, ocorrencia, tipo_acao, dias, dias_escolhidos, data_acao, registrado_por, observacoes)
+     SELECT $2, ac.protocolo_etapa_id, ac.ocorrencia, ac.tipo_acao, ac.dias, ac.dias_escolhidos, ac.data_acao, ac.registrado_por, ac.observacoes
        FROM lotes_etapas_acoes ac
        JOIN lotes_etapas origem ON origem.lote_id = ac.lote_id AND origem.protocolo_etapa_id = ac.protocolo_etapa_id
        JOIN lotes_etapas destino ON destino.lote_id = $2 AND destino.protocolo_etapa_id = ac.protocolo_etapa_id

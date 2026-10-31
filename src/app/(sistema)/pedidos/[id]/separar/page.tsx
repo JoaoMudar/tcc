@@ -105,6 +105,7 @@ export default async function SepararPage({ params }: SepararPageProps) {
                 quantidade: item.quantidade,
                 separado: item.separado,
                 loteId: item.loteId,
+                loteCodigo: item.loteCodigo,
                 opcoesLote: opcoesDeLote(lotes, item),
               })),
             }))}

@@ -74,3 +74,18 @@ describe('RecipienteForm, salva ao digitar', () => {
     expect(screen.getByText(/de 2 a 60 caracteres/)).toBeTruthy();
   });
 });
+
+describe('RecipienteForm, cursor na máscara de três casas', () => {
+  it('digitar no meio do volume não joga o cursor para o fim', () => {
+    renderiza();
+    const campo = screen.getByLabelText('Volume (L)') as HTMLInputElement;
+    campo.focus();
+    // em "2,800", um 1 depois do 2: "21,800"
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(campo, '21,800');
+    campo.setSelectionRange(2, 2);
+    fireEvent.change(campo);
+    expect(campo.value).toBe('21,800');
+    expect(campo.selectionStart).toBe(3);
+  });
+});
+

@@ -406,8 +406,8 @@ describe('RF-55, RN-41: postergar e confirmar a tarefa feita fora da agenda', ()
 
     expect(await listAcoesDoLote(pool, id)).toMatchObject([
       { tipoAcao: 'conclusao_sem_agenda', dias: null, dataAcao: '2026-12-20' },
-      { tipoAcao: 'adiamento', dias: 5 },
-      { tipoAcao: 'adiamento', dias: 10 },
+      { tipoAcao: 'adiamento', dias: 5, diasEscolhidos: 5 },
+      { tipoAcao: 'adiamento', dias: 10, diasEscolhidos: 10 },
     ]);
   });
 
@@ -460,7 +460,8 @@ describe('RF-55, RN-41: postergar e confirmar a tarefa feita fora da agenda', ()
     // Venceu em 14/12; em 10/01 pede três dias: vai para 13/01, e não para 17/12
     expect(await tx((client) => adiarEtapa(client, id, limpeza, 3, '2027-01-10', usuario))).toEqual({ vencimento: '2027-01-13' });
     expect((await daVisao(id, limpeza))!.proximoVencimento).toBe('2027-01-13');
-    expect(await listAcoesDoLote(pool, id)).toMatchObject([{ tipoAcao: 'adiamento', dias: 30 }]);
+    // O histórico mostra os três escolhidos (TA-82)
+    expect(await listAcoesDoLote(pool, id)).toMatchObject([{ tipoAcao: 'adiamento', dias: 30, diasEscolhidos: 3 }]);
   });
 
   it('RF-55: adiar a tarefa já lançada fica no histórico do lote, sem mexer no vencimento da etapa', async () => {
