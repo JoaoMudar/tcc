@@ -97,6 +97,16 @@ describe('CalendarioCargas e a rotina "Planejar pedido" (P14)', () => {
     expect(dia(2).className).toContain('bg-red-200');
   });
 
+  it('entrega que passou com o pedido carregado ou concluído não fica vermelha', () => {
+    for (const situacao of ['carregado', 'concluido']) {
+      const { unmount } = render(
+        <CalendarioCargas mes="2026-10-01" hoje="2026-10-20" pedidos={[{ ...PEDIDO, situacao }]} diasProntos={['2026-10-02']} />,
+      );
+      expect(dia(2).className).not.toContain('bg-red-200');
+      unmount();
+    }
+  });
+
   it('a legenda mostra a cor num quadradinho, sem escrever o nome dela', () => {
     render(<CalendarioCargas mes="2026-10-01" hoje="2026-09-29" pedidos={[PEDIDO]} />);
     const item = screen.getByText('não confirmada');

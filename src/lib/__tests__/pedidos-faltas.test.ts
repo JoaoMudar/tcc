@@ -77,7 +77,7 @@ describe('o que falta para aprovar (espelho de confirmarPedido)', () => {
 });
 
 describe('rótulos da linha do tempo', () => {
-  it('cobrem as oito situações', () => {
+  it('cobrem as dez situações', () => {
     expect(Object.keys(ROTULO_HISTORICO).sort()).toEqual(Object.keys(SITUACOES_PEDIDO).sort());
     expect(ROTULO_HISTORICO.cadastrado).toBe('Cadastrado');
   });

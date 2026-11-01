@@ -24,7 +24,7 @@ export function isCanalVenda(value: string): value is CanalVenda {
 }
 
 /**
- * RN-55: o pedido percorre oito situações, e **cada uma tem dono**. A chefia
+ * RN-55: o pedido percorre dez situações, e **cada uma tem dono**. A chefia
  * cadastra e decide; a conferência no viveiro e a separação são da gerência, e a
  * chefia também as executa. Saber de quem o pedido está esperando é o que a
  * lista usa para pôr a etiqueta de providência.
@@ -40,6 +40,8 @@ export const SITUACOES_PEDIDO = {
   aprovado: 'Aprovado',
   separando: 'Separando',
   pronto_envio: 'Pronto para envio',
+  carregado: 'Carregado',
+  concluido: 'Concluído',
   cancelado: 'Cancelado',
 } as const;
 
@@ -49,7 +51,7 @@ export function isSituacaoPedido(value: string): value is SituacaoPedido {
   return Object.hasOwn(SITUACOES_PEDIDO, value);
 }
 
-/** De quem o pedido está esperando. `null` nas duas situações de fim de linha. */
+/** De quem o pedido está esperando. `null` do pronto para envio em diante, que não pede providência. */
 export const DONO_SITUACAO: Record<SituacaoPedido, Perfil | null> = {
   cadastrado: 'gerencia',
   verificando: 'gerencia',
@@ -58,6 +60,8 @@ export const DONO_SITUACAO: Record<SituacaoPedido, Perfil | null> = {
   aprovado: 'gerencia',
   separando: 'gerencia',
   pronto_envio: null,
+  carregado: null,
+  concluido: null,
   cancelado: null,
 };
 
@@ -100,9 +104,13 @@ const REABRIVEIS = ['aprovado', 'separando'] as const;
 /**
  * **`pronto_envio` também cancela, e é a mesma razão de 21/09/2026**: a venda que
  * cai depois de pronta precisa ficar registrada, senão o pedido afirma para
- * sempre uma entrega que não houve.
+ * sempre uma entrega que não houve. Vale também para `carregado` e `concluido`:
+ * a conclusão vem da data da viagem, e não de alguém confirmar a entrega.
  */
 const CANCELAVEIS = (Object.keys(SITUACOES_PEDIDO) as SituacaoPedido[]).filter((s) => s !== 'cancelado');
+
+/** O que já subiu no caminhão: é o que "Cancelar entrega" devolve a pronto para envio. */
+export const ENTREGA_CANCELAVEL = ['carregado', 'concluido'] as const;
 
 export const TRANSICOES: readonly Transicao[] = [
   { de: 'cadastrado', para: 'verificando', por: CHEFIA_E_GERENCIA, rotulo: 'Iniciar verificação' },
@@ -111,6 +119,16 @@ export const TRANSICOES: readonly Transicao[] = [
   { de: 'verificado', para: 'pendente_alteracao', por: SO_CHEFIA, rotulo: 'Solicitar alteração' },
   { de: 'aprovado', para: 'separando', por: CHEFIA_E_GERENCIA, rotulo: 'Organizar cargas', portaPropria: true },
   { de: 'separando', para: 'pronto_envio', por: CHEFIA_E_GERENCIA, rotulo: 'Concluir separação', portaPropria: true },
+  { de: 'pronto_envio', para: 'carregado', por: CHEFIA_E_GERENCIA, rotulo: 'Carga pronta', portaPropria: true },
+  { de: 'carregado', para: 'concluido', por: CHEFIA_E_GERENCIA, rotulo: 'Concluir entrega', portaPropria: true },
+  // "Cancelar entrega" apaga a viagem pronta: o pedido deixa de estar no caminhão
+  ...ENTREGA_CANCELAVEL.map((de) => ({
+    de,
+    para: 'pronto_envio' as const,
+    por: CHEFIA_E_GERENCIA,
+    rotulo: 'Cancelar entrega',
+    portaPropria: true as const,
+  })),
   ...EDITAVEIS_PELA_CHEFIA.map((de) => ({
     de,
     para: 'cadastrado' as const,
@@ -453,6 +471,8 @@ export const ROTULO_HISTORICO: Record<SituacaoPedido, string> = {
   aprovado: 'Aprovado',
   separando: 'Separando',
   pronto_envio: 'Pronto para envio',
+  carregado: 'Carregado',
+  concluido: 'Concluído',
   cancelado: 'Cancelado',
 };
 

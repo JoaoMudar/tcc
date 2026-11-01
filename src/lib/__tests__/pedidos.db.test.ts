@@ -102,7 +102,7 @@ function novoPedido(extra: Partial<Parameters<typeof criarPedido>[1]> = {}) {
 }
 
 /**
- * O caminho até a aprovação. No fluxo de oito situações ela não é mais um passo
+ * O caminho até a aprovação. No fluxo de dez situações ela não é mais um passo
  * a partir do cadastro: a gerência confere antes, e é a conferência que
  * habilita a chefia a aprovar.
  */
@@ -406,7 +406,7 @@ describe('estoque disponível no item (T8.2, RF-62, UC-32)', () => {
 
 describe('fluxo e histórico (T8.6, RF-61)', () => {
   it('a lista fechada do banco é a mesma do TypeScript', async () => {
-    // As oito situações vivem no CHECK e em SITUACOES_PEDIDO. Este teste existe
+    // As dez situações vivem no CHECK e em SITUACOES_PEDIDO. Este teste existe
     // para as duas não divergirem em silêncio quando uma delas mudar.
     const { rows } = await pool.query<{ def: string }>(
       "SELECT pg_get_constraintdef(oid) AS def FROM pg_constraint WHERE conname = 'pedidos_situacao_valida'",
