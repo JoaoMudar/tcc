@@ -21,9 +21,9 @@ describe('EscolhaDoLote (RF-24)', () => {
     expect(dados.get('carga_item_id')).toBe('ci');
   });
 
-  it('sem lote do par, avisa que a venda não terá de onde sair', () => {
+  it('sem lote do par, diz só que não tem em estoque', () => {
     render(<EscolhaDoLote pedidoId="p" cargaItemId="ci" loteId={null} opcoes={[]} action={vi.fn()} />);
-    expect(screen.getByText(/nenhum lote aberto/i)).toBeTruthy();
+    expect(screen.getByText('Sem estoque.')).toBeTruthy();
   });
 
   it('travado na viagem pronta: mostra, sem trocar', () => {
@@ -44,7 +44,7 @@ describe('EscolhaDoLote (RF-24)', () => {
     render(
       <EscolhaDoLote pedidoId="p" cargaItemId="ci" loteId="l9" loteCodigo="2026-0009" opcoes={[]} action={vi.fn()} travado />,
     );
-    expect(screen.queryByText(/nenhum lote aberto/i)).toBeNull();
+    expect(screen.queryByText('Sem estoque.')).toBeNull();
     const select = screen.getByLabelText(/sai do lote/i) as HTMLSelectElement;
     expect(select.value).toBe('l9');
     expect(select.selectedOptions[0].textContent).toBe('2026-0009');
