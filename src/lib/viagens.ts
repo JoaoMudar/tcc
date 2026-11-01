@@ -5,10 +5,10 @@ import { UserError } from './errors';
 import { nomeEspecieSql } from './lotes';
 import { registrarMovimento } from './movimentos';
 import { PARTIDA_AGROLANDIA, PARTIDA_ITAPEMA } from './parametros';
-import { type AutorDaMudanca, travarPedido } from './pedidos';
+import { type AutorDaMudanca, mudarSituacao, travarPedido } from './pedidos';
 import { ENDERECO_DO_PEDIDO, gravarEnderecoDoPedido, guardarCoordenada } from './pedidos-entrega';
 import type { EnderecoDeEntrega } from './pessoas';
-import { SITUACOES_PEDIDO, type SituacaoPedido } from './pedidos-rotulos';
+import { ENTREGA_CANCELAVEL, SITUACOES_PEDIDO, type SituacaoPedido } from './pedidos-rotulos';
 import { type AvisoDaRota, type SituacaoViagem, aplicarOrdemSugerida, enderecoEmTexto } from './rotas';
 import { type Coordenada, MapaIndisponivel, geocodificarTexto, otimizarOrdem } from './rotas-ors';
 import type { Db } from './sql';
@@ -194,9 +194,8 @@ export async function listParadas(db: Db, viagemId: string): Promise<ParadaDaVia
 
 /**
  * O que pode entrar numa viagem: pedido de aprovado para cima
- * (`SITUACOES_DA_VIAGEM`) que **nunca esteve em viagem nenhuma**. Como não há
- * situação "entregue", o pedido que já saiu num caminhão continua pronto para
- * envio, e sem esta regra a lista acumularia tudo o que já foi entregue.
+ * (`SITUACOES_DA_VIAGEM`) que **não está em viagem nenhuma**: o pronto para envio
+ * que já está numa viagem em andamento não pode entrar em outra.
  */
 export async function pedidosDisponiveis(db: Db): Promise<PedidoParaViagem[]> {
   const { rows } = await db.query<Omit<PedidoParaViagem, 'itens'>>(
@@ -401,6 +400,15 @@ export async function cancelarViagem(
     [viagemId],
   );
   const ids = pedidos.map((pedido) => pedido.id);
+
+  // A viagem pronta já pôs os pedidos no caminhão: sem ela, voltam a pronto para envio
+  const { rows: noCaminhao } = await client.query<{ id: string }>(
+    'SELECT id FROM pedidos WHERE id = ANY($1::uuid[]) AND situacao = ANY($2::text[]) ORDER BY numero_pedido',
+    [ids, ENTREGA_CANCELAVEL],
+  );
+  for (const pedido of noCaminhao) {
+    await mudarSituacao(client, pedido.id, 'pronto_envio', autor, 'A entrega foi cancelada.', { viaPortaPropria: true });
+  }
 
   await client.query(
     `UPDATE pedidos_cargas_itens SET carregado = false
@@ -775,7 +783,8 @@ async function baixarVendas(client: Client, viagemId: string, registradoPor: str
  * **Carregar direto vale como separar**: a separação é opcional, e o pedido
  * aprovado que foi direto para o caminhão tem os itens dados como separados e
  * as cargas fechadas por `concluirCarga`, que leva o pedido a pronto para envio.
- * A carga que já chegou pronta da separação fica como está.
+ * A carga que já chegou pronta da separação fica como está. Com tudo no caminhão,
+ * cada pedido da viagem passa a carregado.
  */
 export async function concluirViagem(
   client: Client,
@@ -818,11 +827,51 @@ export async function concluirViagem(
   for (const carga of cargas) await concluirCarga(client, carga.id, autor);
   await client.query("UPDATE viagens SET situacao = 'pronta' WHERE id = $1", [viagemId]);
 
-  const { rows: pedidos } = await client.query<{ n: number }>(
-    'SELECT COUNT(*)::int AS n FROM viagens_paradas WHERE viagem_id = $1 AND pedido_id IS NOT NULL',
+  const { rows: pedidos } = await client.query<{ id: string }>(
+    'SELECT pedido_id AS id FROM viagens_paradas WHERE viagem_id = $1 AND pedido_id IS NOT NULL ORDER BY ordem',
     [viagemId],
   );
-  return { pedidos: pedidos[0].n };
+  for (const pedido of pedidos) {
+    await mudarSituacao(client, pedido.id, 'carregado', autor, 'Todos os itens foram carregados.', { viaPortaPropria: true });
+  }
+  return { pedidos: pedidos.length };
+}
+
+/**
+ * O pedido carregado cuja viagem ficou para trás está concluído. Não há tarefa
+ * agendada: quem abre os pedidos dispara a passagem, e os dois primeiros a abrir
+ * no mesmo instante não se atrapalham (`SKIP LOCKED`).
+ *
+ * **O autor é quem fechou a carga**, e não quem abriu a tela, que não fez nada: o
+ * histórico exige um autor, e a observação diz que a passagem foi automática.
+ * O perfil de administrador só dispensa a conferência de perfil da transição.
+ */
+export async function concluirEntregasPassadas(db: Conectavel, hoje: string): Promise<void> {
+  await withTransaction(db, async (client) => {
+    const { rows } = await client.query<{ id: string; data: string; autor: string }>(
+      `SELECT p.id, to_char(v.data, 'YYYY-MM-DD') AS data,
+              (SELECT h.alterado_por FROM pedidos_historico h
+                WHERE h.pedido_id = p.id AND h.situacao_nova = 'carregado'
+                ORDER BY h.criado_em DESC, h.id DESC LIMIT 1) AS autor
+         FROM pedidos p
+         JOIN viagens_paradas vp ON vp.pedido_id = p.id
+         JOIN viagens v ON v.id = vp.viagem_id
+        WHERE p.situacao = 'carregado' AND v.situacao = 'pronta' AND v.data < $1
+        ORDER BY p.numero_pedido
+          FOR UPDATE OF p SKIP LOCKED`,
+      [hoje],
+    );
+    for (const { id, data, autor } of rows) {
+      await mudarSituacao(
+        client,
+        id,
+        'concluido',
+        { perfil: 'admin', usuarioId: autor },
+        `Concluído automaticamente: a data da viagem (${formatData(data).slice(0, 5)}) passou.`,
+        { viaPortaPropria: true },
+      );
+    }
+  });
 }
 
 /**

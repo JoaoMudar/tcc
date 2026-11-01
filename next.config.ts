@@ -25,6 +25,8 @@ export const SECURITY_HEADERS = [
 ];
 
 const nextConfig: NextConfig = {
+  // Esconde o indicador "N" do Next.js que aparece no canto da tela em desenvolvimento
+  devIndicators: false,
   async headers() {
     return [
       { source: '/:path*', headers: SECURITY_HEADERS },

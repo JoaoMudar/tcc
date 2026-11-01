@@ -8,7 +8,7 @@ import pool from '@/lib/db';
 import { chavePublicaVapid } from '@/lib/notificacoes-envio';
 import { listPedidos } from '@/lib/pedidos';
 import { can } from '@/lib/permissions';
-import { diasComViagemPronta, viagensEmAndamento } from '@/lib/viagens';
+import { concluirEntregasPassadas, diasComViagemPronta, viagensEmAndamento } from '@/lib/viagens';
 import { requirePageAccess } from '@/lib/auth/guards';
 import { desinscreverAparelhoAction, inscreverAparelhoAction } from '../conta/sessoes/actions';
 import { CalendarioCargas } from './CalendarioCargas';
@@ -31,6 +31,7 @@ export default async function PedidosPage({ searchParams }: PedidosPageProps) {
   const fimDoMes = somaDias(`${somaDias(mes, 31).slice(0, 7)}-01`, -1);
 
   const inicioDoPeriodo = somaDias(mes, -7);
+  await concluirEntregasPassadas(pool, hoje);
   const [lista, doMes, viagens, diasProntos] = await Promise.all([
     // RF-60: o filtro de cliente vai ao banco, e acha também o pedido antigo
     listPedidos(pool, { clienteId: params.cliente ?? null, texto: params.q ?? '' }),

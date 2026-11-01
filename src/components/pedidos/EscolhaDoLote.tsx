@@ -53,7 +53,7 @@ export function EscolhaDoLote({
       : opcoes;
 
   if (lista.length === 0) {
-    return <Notice tone="error">Nenhum lote aberto desta espécie e recipiente: a venda não terá de onde sair.</Notice>;
+    return <p className="text-xs text-muted">Sem estoque.</p>;
   }
 
   return (

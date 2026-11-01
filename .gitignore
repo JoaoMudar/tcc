@@ -56,3 +56,6 @@ npm-debug.log*
 /scripts/renumerar.mjs
 /scripts/leia.mjs
 /scripts/tmp-*.mjs
+
+# prints brutos da captura das telas (a composição em docs/tcc-figuras/telas/ é que vai para o TCC)
+docs/tcc-figuras/telas/brutos/

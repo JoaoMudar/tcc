@@ -58,6 +58,9 @@ const NOMES_MES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', '
 
 const DIAS_DA_SEMANA = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'];
 
+/** Do pronto para envio em diante, a entrega que passou não está atrasada. */
+const JA_PRONTO = ['pronto_envio', 'carregado', 'concluido'];
+
 /** Segunda é 0 e domingo é 6: a semana do viveiro começa na segunda. */
 function colunaDe(iso: string): number {
   return (new Date(`${iso}T00:00:00Z`).getUTCDay() + 6) % 7;
@@ -141,7 +144,7 @@ export function CalendarioCargas({ mes, hoje, pedidos, viagens = [], diasProntos
         {dias.map((dia) => {
           const entrega = entregas.get(dia) ?? [];
           // Entrega que passou com o pedido ainda não pronto é o que precisa saltar
-          const atrasada = entrega.some((p) => dia < hoje && p.situacao !== 'pronto_envio');
+          const atrasada = entrega.some((p) => dia < hoje && !JA_PRONTO.includes(p.situacao));
           const carregar = carregamentos.get(dia) ?? [];
           const cor = atrasada
             ? `${COR_ATRASADA} font-bold`

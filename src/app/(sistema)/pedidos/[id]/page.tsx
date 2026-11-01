@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { PageHeader } from '@/components/PageHeader';
 import { montarSaldos } from '@/components/pedidos/linhas-pedido';
 import { Pill, type PillTone } from '@/components/ui/Pill';
-import { formatData } from '@/lib/datas';
+import { formatData, hojeNoViveiro } from '@/lib/datas';
 import pool from '@/lib/db';
 import { formatTelefone } from '@/lib/documento';
 import { nomeExibido, searchEspecies } from '@/lib/especies';
@@ -14,6 +14,7 @@ import { podeTransicionar } from '@/lib/pedidos-rotulos';
 import { can } from '@/lib/permissions';
 import { formatVolume, listRecipientes } from '@/lib/recipientes';
 import { isUuid } from '@/lib/uuid';
+import { concluirEntregasPassadas } from '@/lib/viagens';
 import { requirePageAccess } from '@/lib/auth/guards';
 import { CabecalhoPedido } from './CabecalhoPedido';
 import { CancelarPedido } from './CancelarPedido';
@@ -33,6 +34,8 @@ const TOM: Record<SituacaoPedido, PillTone> = {
   aprovado: 'green',
   separando: 'blue',
   pronto_envio: 'green',
+  carregado: 'green',
+  concluido: 'neutral',
   cancelado: 'red',
 };
 
@@ -48,6 +51,7 @@ export default async function PedidoPage({ params }: PedidoPageProps) {
   const user = await requirePageAccess('pedidos');
   const { id } = await params;
   if (!isUuid(id)) notFound();
+  await concluirEntregasPassadas(pool, hojeNoViveiro());
   const pedido = await findPedido(pool, id);
   if (!pedido) notFound();
 

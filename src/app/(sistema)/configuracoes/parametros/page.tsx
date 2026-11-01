@@ -21,10 +21,7 @@ export default async function ParametrosPage() {
         <Link href="/configuracoes" className="text-base font-semibold text-brand-dark">
           Voltar
         </Link>
-        <Notice tone="info">
-          Estes valores mudam o que as telas mostram. Não é possível criar nem excluir parâmetro.
-          {!podeEditar && ' Seu perfil pode consultar, mas não alterar.'}
-        </Notice>
+        {!podeEditar && <Notice tone="info">Seu perfil pode consultar, mas não alterar.</Notice>}
         <ParametrosForm
           podeEditar={podeEditar}
           parametros={parametros.map((parametro) => ({

@@ -31,9 +31,13 @@ const RETROCESSOS: ReadonlySet<SituacaoPedido> = new Set(['cadastrado', 'pendent
 
 export type SentidoDaFase = 'inicio' | 'avanca' | 'retrocede';
 
-/** A primeira fase não tem de onde vir; as demais avançam ou retrocedem. */
-export function sentidoDaFase(situacao: SituacaoPedido, indice: number): SentidoDaFase {
+/**
+ * A primeira fase não tem de onde vir; as demais avançam ou retrocedem. Cancelar a
+ * entrega devolve o carregado ou concluído a pronto para envio, que é retrocesso.
+ */
+export function sentidoDaFase(situacao: SituacaoPedido, indice: number, anterior?: SituacaoPedido | null): SentidoDaFase {
   if (indice === 0) return 'inicio';
+  if (situacao === 'pronto_envio' && (anterior === 'carregado' || anterior === 'concluido')) return 'retrocede';
   return RETROCESSOS.has(situacao) ? 'retrocede' : 'avanca';
 }
 
@@ -68,7 +72,7 @@ export function LinhaDoTempo({ fases }: { fases: readonly FaseDoPedido[] }) {
             );
           }
           const atual = indice === ultimaFase;
-          const marcador = MARCADOR[sentidoDaFase(fase.situacaoNova, indice)];
+          const marcador = MARCADOR[sentidoDaFase(fase.situacaoNova, indice, fase.situacaoAnterior)];
           return (
             <li
               key={indice}

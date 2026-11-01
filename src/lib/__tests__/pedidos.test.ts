@@ -531,7 +531,7 @@ describe('chave do saldo (RF-62)', () => {
 });
 
 describe('máquina de estados do pedido (T8.5, RN-55)', () => {
-  it('são as oito situações, na ordem do fluxo', () => {
+  it('são as dez situações, na ordem do fluxo', () => {
     expect(Object.keys(SITUACOES_PEDIDO)).toEqual([
       'cadastrado',
       'verificando',
@@ -540,6 +540,8 @@ describe('máquina de estados do pedido (T8.5, RN-55)', () => {
       'aprovado',
       'separando',
       'pronto_envio',
+      'carregado',
+      'concluido',
       'cancelado',
     ]);
   });
@@ -553,6 +555,8 @@ describe('máquina de estados do pedido (T8.5, RN-55)', () => {
     expect(DONO_SITUACAO.cadastrado).toBe('gerencia');
     expect(DONO_SITUACAO.verificado).toBe('chefia');
     expect(DONO_SITUACAO.pronto_envio).toBeNull();
+    expect(DONO_SITUACAO.carregado).toBeNull();
+    expect(DONO_SITUACAO.concluido).toBeNull();
     expect(DONO_SITUACAO.cancelado).toBeNull();
   });
 
@@ -575,13 +579,17 @@ describe('máquina de estados do pedido (T8.5, RN-55)', () => {
     expect(podeTransicionar('aprovado', 'separando', 'chefia')).toBe(true);
   });
 
-  it('a gerência executa exatamente duas fases: conferir e separar', () => {
+  it('a gerência executa exatamente três fases: conferir, separar e carregar', () => {
     const daGerencia = TRANSICOES.filter((t) => t.por.includes('gerencia')).map((t) => `${t.de} > ${t.para}`);
     expect(daGerencia).toEqual([
       'cadastrado > verificando',
       'verificando > verificado',
       'aprovado > separando',
       'separando > pronto_envio',
+      'pronto_envio > carregado',
+      'carregado > concluido',
+      'carregado > pronto_envio',
+      'concluido > pronto_envio',
     ]);
   });
 
@@ -623,6 +631,18 @@ describe('máquina de estados do pedido (T8.5, RN-55)', () => {
 
   it('pronto para envio também cancela, que é a decisão de 21/09/2026', () => {
     expect(podeTransicionar('pronto_envio', 'cancelado', 'chefia')).toBe(true);
+  });
+
+  it('carregado e concluído também cancelam: a conclusão vem da data, e não de confirmar a entrega', () => {
+    expect(podeTransicionar('carregado', 'cancelado', 'chefia')).toBe(true);
+    expect(podeTransicionar('concluido', 'cancelado', 'chefia')).toBe(true);
+  });
+
+  it('carregar e concluir só acontecem pela porta própria, e nesta ordem', () => {
+    expect(exigePortaPropria('pronto_envio', 'carregado')).toBe(true);
+    expect(exigePortaPropria('carregado', 'concluido')).toBe(true);
+    expect(podeTransicionar('separando', 'carregado', 'admin')).toBe(false);
+    expect(podeTransicionar('pronto_envio', 'concluido', 'admin')).toBe(false);
   });
 
   it('cancelado é fim de linha, e não cancela de novo', () => {

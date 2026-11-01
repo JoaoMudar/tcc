@@ -20,6 +20,13 @@ describe('sentidoDaFase', () => {
     expect(sentidoDaFase('pendente_alteracao', 3)).toBe('retrocede');
     expect(sentidoDaFase('cancelado', 2)).toBe('retrocede');
   });
+
+  it('carregar e concluir avançam; cancelar a entrega volta a pronto para envio e retrocede', () => {
+    expect(sentidoDaFase('carregado', 6, 'pronto_envio')).toBe('avanca');
+    expect(sentidoDaFase('concluido', 7, 'carregado')).toBe('avanca');
+    expect(sentidoDaFase('pronto_envio', 7, 'carregado')).toBe('retrocede');
+    expect(sentidoDaFase('pronto_envio', 8, 'concluido')).toBe('retrocede');
+  });
 });
 
 describe('LinhaDoTempo', () => {

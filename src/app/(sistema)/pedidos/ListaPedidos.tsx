@@ -52,6 +52,8 @@ const TOM: Record<SituacaoPedido, PillTone> = {
   aprovado: 'green',
   separando: 'blue',
   pronto_envio: 'green',
+  carregado: 'green',
+  concluido: 'neutral',
   cancelado: 'red',
 };
 
@@ -140,7 +142,7 @@ export function ListaPedidos({ pedidos, hoje, filtroInicial = { clienteId: '', t
 
                 {/* T8.15: de quem o pedido está esperando, o que há a fazer e
                     quanto corre. */}
-                {pedido.situacao !== 'cancelado' && pedido.situacao !== 'pronto_envio' && (
+                {DONO_SITUACAO[pedido.situacao] !== null && (
                   <div className="flex flex-wrap items-center gap-2">
                     {DONO_SITUACAO[pedido.situacao] && (
                       <span className="text-sm text-muted">

@@ -23,6 +23,7 @@ import {
   adicionarPedido,
   cancelarViagem,
   cargasDaViagem,
+  concluirEntregasPassadas,
   concluirViagem,
   definirChegada,
   findViagem,
@@ -247,7 +248,7 @@ describe('montar a carga (Tela 1)', () => {
 
     // Já esteve numa viagem concluída: não volta para a lista nem entra em outra
     expect((await pedidosDisponiveis(pool)).map((p) => p.id)).not.toContain(pronto);
-    await expect(tx((c) => adicionarPedido(c, umDia(), pronto, gerencia()))).rejects.toThrow(/já está em outra viagem/);
+    await expect(tx((c) => adicionarPedido(c, umDia(), pronto, gerencia()))).rejects.toThrow(/está em carregado/);
   });
 
     it('tirar renumera as paradas, e tirar o último apaga a viagem', async () => {
@@ -374,8 +375,8 @@ describe('o carregamento (Tela 3)', () => {
     // Ninguém passou pela tela Separar: fechar a viagem dá os itens como separados
     expect((await listCargas(pool, a))[0]).toMatchObject({ situacao: 'pronto', itens: [expect.objectContaining({ separado: true })] });
 
-    expect((await findPedido(pool, a))!.situacao).toBe('pronto_envio');
-    expect((await findPedido(pool, b))!.situacao).toBe('pronto_envio');
+    expect((await findPedido(pool, a))!.situacao).toBe('carregado');
+    expect((await findPedido(pool, b))!.situacao).toBe('carregado');
     expect((await viagemDoDia(pool, dia))!.situacao).toBe('pronta');
     expect((await viagensEmAndamento(pool)).map((v) => v.id)).not.toContain(viagemId);
     // "Planejar outra viagem neste dia" ignora a pronta
@@ -399,6 +400,52 @@ describe('o carregamento (Tela 3)', () => {
     await tx((c) => marcarItemCarregado(c, carga.itens[0].id, true));
     await tx((c) => concluirViagem(c, viagemId, gerencia()));
     expect((await viagemDoDia(pool, dia))!.situacao).toBe('pronta');
+    expect((await findPedido(pool, pedido))!.situacao).toBe('carregado');
+  });
+
+  /** A viagem pronta de um pedido só, com o item contado no caminhão. */
+  async function viagemCarregada() {
+    const dia = umDia();
+    const pedido = await pedidoAprovado(dia);
+    const { viagemId } = await tx((c) => adicionarPedido(c, dia, pedido, gerencia()));
+    await tx((c) => mudarEtapa(c, viagemId, 'roteirizando'));
+    await tx((c) => iniciarCarregamento(c, viagemId, gerencia()));
+    await tx((c) => marcarPedidoCarregado(c, viagemId, pedido, true));
+    await tx((c) => concluirViagem(c, viagemId, gerencia()));
+    return { dia, viagemId, pedido };
+  }
+
+  it('o pedido carregado só fica concluído depois da data da viagem, uma vez, e com o autor da carga', async () => {
+    const { dia, pedido } = await viagemCarregada();
+
+    await concluirEntregasPassadas(pool, dia);
+    expect((await findPedido(pool, pedido))!.situacao).toBe('carregado');
+
+    await concluirEntregasPassadas(pool, somaDias(dia, 1));
+    await concluirEntregasPassadas(pool, somaDias(dia, 1));
+    expect((await findPedido(pool, pedido))!.situacao).toBe('concluido');
+    const concluidas = (await listHistorico(pool, pedido)).filter((h) => h.situacaoNova === 'concluido');
+    expect(concluidas).toHaveLength(1);
+    expect(concluidas[0].alteradoPor).toBe('Chefia da viagem');
+    expect(concluidas[0].observacoes).toMatch(/automaticamente/);
+  });
+
+  it('o pedido de viagem que não ficou pronta não é concluído, mesmo depois da data', async () => {
+    const { dia, viagemId, a } = await viagemNaRota();
+    await tx((c) => iniciarCarregamento(c, viagemId, gerencia()));
+    await concluirEntregasPassadas(pool, somaDias(dia, 30));
+    expect((await findPedido(pool, a))!.situacao).toBe('separando');
+  });
+
+  it('cancelar a entrega devolve o carregado e o concluído a pronto para envio', async () => {
+    for (const passou of [false, true]) {
+      const { dia, viagemId, pedido } = await viagemCarregada();
+      if (passou) await concluirEntregasPassadas(pool, somaDias(dia, 1));
+      await tx((c) => cancelarViagem(c, viagemId, gerencia()));
+      const ficha = (await findPedido(pool, pedido))!;
+      expect(ficha.situacao).toBe('pronto_envio');
+      expect(ficha.dataEntrega).toBeNull();
+    }
   });
 
   it('P19: só se carrega com a viagem em carregamento, e a marcação é idempotente', async () => {

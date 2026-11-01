@@ -416,7 +416,7 @@ export async function pedidosDoPeriodo(db: Db, de: string, ate: string): Promise
        JOIN pessoas c ON c.id = p.cliente_id
        LEFT JOIN pedidos_cargas l ON l.pedido_id = p.id
       WHERE p.data_entrega BETWEEN $1 AND $2
-        AND p.situacao IN ('aprovado', 'separando', 'pronto_envio')
+        AND p.situacao IN ('aprovado', 'separando', 'pronto_envio', 'carregado', 'concluido')
       GROUP BY p.id, c.nome
       ORDER BY p.data_entrega, p.numero_pedido`,
     [de, ate],
