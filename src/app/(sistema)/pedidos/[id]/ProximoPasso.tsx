@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Notice } from '@/components/ui/Notice';
 import { EMPTY_FORM_STATE } from '@/lib/form-state';
@@ -36,7 +36,7 @@ const CLASSE_LINK =
  * decisões da chefia sobre o pedido verificado.
  *
  * "Solicitar alteração" devolve o pedido ao orçamento: a chefia acerta os itens
- * com o cliente e a verificação recomeça.
+ * com o cliente e a verificação recomeça. O primeiro toque só abre a confirmação.
  */
 export function ProximoPasso({
   pedidoId,
@@ -49,6 +49,8 @@ export function ProximoPasso({
 }: ProximoPassoProps & EstadoDaGrade) {
   const [aprovacao, aprovar, aprovando] = useActionState(confirmarPedidoAction, EMPTY_FORM_STATE);
   const [alteracao, alterar, alterando] = useActionState(transicionarPedidoAction, EMPTY_FORM_STATE);
+  // F4 §5: a devolução foi acionada sem querer na avaliação; agora pede confirmação
+  const [confirmandoAlteracao, setConfirmandoAlteracao] = useState(false);
 
   if ((situacao === 'cadastrado' || situacao === 'verificando') && podeConferir) {
     return (
@@ -82,14 +84,29 @@ export function ProximoPasso({
               </Button>
             </form>
           )}
-          <form action={alterar}>
-            <input type="hidden" name="pedido_id" value={pedidoId} />
-            <input type="hidden" name="para" value="cadastrado" />
-            <Button type="submit" variant="outline" pending={alterando} pendingLabel="Enviando…" disabled={salvando}>
+          {!confirmandoAlteracao && (
+            <Button type="button" variant="outline" disabled={salvando} onClick={() => setConfirmandoAlteracao(true)}>
               Solicitar alteração
             </Button>
-          </form>
+          )}
         </div>
+        {confirmandoAlteracao && (
+          <form action={alterar} className="flex flex-col gap-2 rounded-xl border-2 border-amber-300 bg-amber-50 p-3">
+            <p className="text-base font-semibold text-ink">
+              O pedido volta para o orçamento e a verificação recomeça. Confirma?
+            </p>
+            <input type="hidden" name="pedido_id" value={pedidoId} />
+            <input type="hidden" name="para" value="cadastrado" />
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Button type="button" variant="secondary" onClick={() => setConfirmandoAlteracao(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" pending={alterando} pendingLabel="Enviando…" disabled={salvando}>
+                Sim, solicitar alteração
+              </Button>
+            </div>
+          </form>
+        )}
       </section>
     );
   }
