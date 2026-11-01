@@ -14,6 +14,11 @@ export const ESPACO = 28;
 /**
  * Filtra as telas pelos ids da linha de comando e pelo banco em uso.
  * Sem id, todas as do banco.
+ *
+ * @template {{ id: string, banco: string }} T
+ * @param {T[]} telas
+ * @param {{ ids?: string[], banco?: string | null }} [filtro]
+ * @returns {T[]}
  */
 export function filtraTelas(telas, { ids = [], banco = null } = {}) {
   return telas.filter((t) => (ids.length === 0 || ids.includes(t.id)) && (!banco || t.banco === banco));
@@ -70,7 +75,12 @@ export const PADRAO_CONTATO = [
   String.raw`\b\d{10,14}\b`, // telefone ou documento sem máscara
 ].join('|');
 
-/** Credenciais do perfil vindas do ambiente: `CAPTURA_LOGIN_GERENCIA`, `CAPTURA_SENHA_GERENCIA`. */
+/**
+ * Credenciais do perfil vindas do ambiente: `CAPTURA_LOGIN_GERENCIA`, `CAPTURA_SENHA_GERENCIA`.
+ *
+ * @param {string} perfil
+ * @param {Record<string, string | undefined>} [env]
+ */
 export function credenciais(perfil, env = process.env) {
   const chave = perfil.toUpperCase();
   const login = env[`CAPTURA_LOGIN_${chave}`];
