@@ -403,6 +403,20 @@ describe('GanttSemana: arrastar (RNF-03, RF-38)', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('João já está nesta tarefa');
   });
 
+  it('a recusa de um segundo arrasto não perde o desfazer do primeiro (TA-79)', async () => {
+    montar([tarefa({ horaInicio: '07:30', horaFim: '08:30' }), tarefa({ id: 'a2', tipo: 'Capinar', participantes: [{ ...GILBERTO, quantidade: null }, { ...JOAO, quantidade: null }] })]);
+    await arrastar(screen.getByRole('link', { name: TITULO }), { clientX: 0.25, linha: linhaDe(GILBERTO.id) });
+    expect(enviado()).toMatchObject({ id: 'a1', hora_inicio: '09:30' });
+
+    const [capinarDoGilberto] = screen.getAllByRole('link', { name: /Capinar/ });
+    await arrastar(capinarDoGilberto, { clientX: 0, linha: linhaDe(JOAO.id) });
+    const recusa = screen.getByRole('alert');
+    expect(recusa).toHaveTextContent('João já está nesta tarefa');
+    await act(async () => fireEvent.click(within(recusa).getByRole('button', { name: 'Desfazer' })));
+    expect(reagendarAtribuicaoAction).toHaveBeenCalledTimes(2);
+    expect(enviado(1)).toMatchObject({ id: 'a1', hora_inicio: '07:30', hora_fim: '08:30' });
+  });
+
   it('soltar sem sair do lugar não chama o servidor', async () => {
     montar();
     await arrastar(screen.getByRole('link', { name: TITULO }), { clientX: 0, linha: linhaDe(GILBERTO.id) });

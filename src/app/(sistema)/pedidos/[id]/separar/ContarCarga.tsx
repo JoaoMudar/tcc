@@ -29,6 +29,7 @@ export interface CargaParaContar {
     separado: boolean;
     /** RF-24: o lote de onde saem as mudas, e os que podem atender o item. */
     loteId: string | null;
+    loteCodigo: string | null;
     opcoesLote: readonly SelectOption[];
   }[];
 }
@@ -116,6 +117,7 @@ export function ContarCarga({ pedidoId, cargas }: ContarCargaProps) {
               pedidoId={pedidoId}
               cargaItemId={item.id}
               loteId={item.loteId}
+              loteCodigo={item.loteCodigo}
               opcoes={item.opcoesLote}
               action={definirLoteDoItemAction}
             />

@@ -114,7 +114,19 @@ export function GanttSemana({
   const [aviso, setAviso] = useState<AvisoDesfazer | null>(null);
   /** O último horário produzido, para quem não vê a etiqueta (RNF-08). */
   const [anuncio, setAnuncio] = useState('');
-  const fecharAviso = useCallback(() => setAviso(null), []);
+  /**
+   * O desfazer do último movimento aceito, guardado à parte do aviso: uma
+   * recusa ou um erro trocam o texto, mas o botão continua desfazendo o
+   * movimento de antes. Vale enquanto houver aviso na tela.
+   */
+  const ultimoDesfazer = useRef<(() => void) | null>(null);
+  const fecharAviso = useCallback(() => {
+    ultimoDesfazer.current = null;
+    setAviso(null);
+  }, []);
+  const avisarErro = useCallback((texto: string) => {
+    setAviso({ texto, tom: 'erro', desfazer: ultimoDesfazer.current ?? undefined });
+  }, []);
 
   // O zoom recorta a semana; as setas do teclado andam no passo dele, como as do cabeçalho
   const { zoom, setZoom } = useZoomAgenda();
@@ -161,18 +173,22 @@ export function GanttSemana({
   const enviar = useCallback(
     (mudanca: Mudanca, texto: string, volta: Mudanca | null) => {
       const desfazer = volta
-        ? () =>
+        ? () => {
+            ultimoDesfazer.current = null;
             startTransition(async () => {
               const estado = await mandar(volta);
               setAviso(estado.error ? { texto: estado.error, tom: 'erro' } : { texto: 'Desfeito.', tom: 'info' });
-            })
+            });
+          }
         : undefined;
       startTransition(async () => {
         const estado = await mandar(mudanca);
-        setAviso(estado.error ? { texto: estado.error, tom: 'erro' } : { texto, tom: 'info', desfazer });
+        if (estado.error) return avisarErro(estado.error);
+        ultimoDesfazer.current = desfazer ?? null;
+        setAviso({ texto, tom: 'info', desfazer });
       });
     },
-    [mandar],
+    [mandar, avisarErro],
   );
 
   // Ctrl+Z desfaz o mesmo que o botão do aviso, enquanto o aviso está na tela
@@ -202,7 +218,7 @@ export function GanttSemana({
       const entra = trocaPessoa ? funcionarios.find((f) => f.id === r.pessoa) : undefined;
       if (trocaPessoa && !entra) return;
       if (entra && a.participantes.some((p) => p.id === entra.id)) {
-        setAviso({ texto: `${entra.nome} já está nesta tarefa.`, tom: 'erro' });
+        avisarErro(`${entra.nome} já está nesta tarefa.`);
         return;
       }
       const saiu = a.participantes.find((p) => p.id === r.pessoaOriginal);
@@ -237,7 +253,7 @@ export function GanttSemana({
       if (r.mudouHora) setAnuncio(intervalo(r.faixa));
       enviar(mudanca, `Tarefa remarcada: ${partes.join(', ')}.`, volta);
     },
-    [lista, turnos, funcionarios, enviar],
+    [lista, turnos, funcionarios, enviar, avisarErro],
   );
 
   /** RF-38: a secundária vira a principal já, e o erro a devolve. */
@@ -250,10 +266,11 @@ export function GanttSemana({
         const dados = new FormData();
         dados.set('id', id);
         const estado = await promoverAtribuicaoAction({}, dados);
-        setAviso(estado.error ? { texto: estado.error, tom: 'erro' } : { texto: `Principal: ${a.tipo}.`, tom: 'info' });
+        if (estado.error) return avisarErro(estado.error);
+        setAviso({ texto: `Principal: ${a.tipo}.`, tom: 'info' });
       });
     },
-    [lista, aplicarOtimista],
+    [lista, aplicarOtimista, avisarErro],
   );
 
   const { sessao, iniciar, aoTeclar } = useArrasteBarra({ dias, janela, ancoras, onSoltar: soltar });

@@ -1358,6 +1358,58 @@ describe('conferência por tipo de item (P12, 20260925000001)', () => {
     ]);
   });
 
+  it('P17: gravar o preço de outro item com o que a tela envia não regrava a pedida do dividido (TA-85, TA-89)', async () => {
+    const { id } = await novoPedido({
+      itens: [
+        { especieId: especie, recipienteId: null, quantidade: 50, precoCentavos: null },
+        { especieId: especie, recipienteId: null, quantidade: null, precoCentavos: null },
+      ],
+    });
+    const [dividido, comSuplente] = (await listItens(pool, id)).sort((a, b) => (b.quantidade ?? 0) - (a.quantidade ?? 0));
+    await tx((c) =>
+      marcarDisponibilidade(c, id, dividido.id, 'disponivel', gerencia(), {
+        quantidade: 20,
+        recipienteId: tubete,
+        complementos: [{ quantidade: 30, recipienteId: saco, alturaM: null }],
+      }),
+    );
+    await tx((c) =>
+      marcarDisponibilidade(c, id, comSuplente.id, 'disponivel', gerencia(), {
+        recipienteId: tubete,
+        complementos: [{ quantidade: null, recipienteId: saco, alturaM: null }],
+      }),
+    );
+    await tx((c) => concluirVerificacao(c, id, gerencia()));
+    const complemento = (await listItens(pool, id)).find((i) => i.complementaItemId === dividido.id && !i.suplente)!;
+
+    // A ficha manda todas as linhas vendáveis a cada gravação, cada uma com a quantidade confirmada
+    const linha = (itemId: string, quantidade: number | null, precoCentavos: number | null = null) => ({
+      itemId,
+      precoCentavos,
+      quantidade,
+      recipienteId: null,
+    });
+    await tx((c) =>
+      negociarItens(c, id, [linha(dividido.id, 20), linha(complemento.id, 30), linha(comSuplente.id, null, 450)], chefia()),
+    );
+    const depois = await listItens(pool, id);
+    expect(depois.find((i) => i.id === dividido.id)).toMatchObject({ quantidade: 50, quantidadeDisponivel: 20 });
+    expect(depois.find((i) => i.id === comSuplente.id)?.precoCentavos).toBe(450);
+
+    await tx((c) =>
+      negociarItens(c, id, [linha(dividido.id, 20, 300), linha(complemento.id, 30, 900), linha(comSuplente.id, 100)], chefia()),
+    );
+    expect((await listItens(pool, id)).find((i) => i.id === dividido.id)).toMatchObject({ quantidade: 50, precoCentavos: 300 });
+    await tx((c) => confirmarPedido(c, id, chefia()));
+    const aprovados = (await listItens(pool, id))
+      .filter((i) => i.quantidade !== null && i.precoCentavos !== 450)
+      .sort((a, b) => a.quantidade! - b.quantidade!);
+    expect(aprovados.map((i) => [i.quantidade, i.recipienteId, i.precoCentavos])).toEqual([
+      [20, tubete, 300],
+      [30, saco, 900],
+    ]);
+  });
+
   it('P18: o item sem quantidade guarda o outro recipiente como suplente, que não é linha e sai na aprovação', async () => {
     const { id } = await novoPedido({ itens: [{ especieId: especie, recipienteId: null, quantidade: null, precoCentavos: null }] });
     const [item] = await listItens(pool, id);

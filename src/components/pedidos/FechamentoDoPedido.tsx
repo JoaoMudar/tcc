@@ -17,7 +17,7 @@ interface FechamentoDoPedidoProps {
   edicao?: {
     freteTexto: string;
     origem: OrigemFrete;
-    /** "≈ 84 km, ida e volta", depois de uma sugestão. */
+    /** "≈ 84 km de ida, 168 km ida e volta", depois de uma sugestão. */
     distancia: string | null;
     sugerindo: boolean;
     aviso: string | null;

@@ -187,7 +187,7 @@ describe('RF-55: postergar e confirmar o que pede providência', () => {
     );
     expect(await actions.adiarEtapaAction({}, form({ lote_id: LOTE, etapa_id: ETAPA, dias: '7' }))).toEqual({ success: 'Adiada para 17/01/2999.' });
     const insert = client.query.mock.calls.find(([sql]) => String(sql).includes('INSERT INTO lotes_etapas_acoes'));
-    expect(insert?.[1]).toEqual([LOTE, ETAPA, 3, 7, 'u1']);
+    expect(insert?.[1]).toEqual([LOTE, ETAPA, 3, 7, 7, 'u1']);
     expect(client.query).toHaveBeenCalledWith('COMMIT');
   });
 
@@ -201,8 +201,8 @@ describe('RF-55: postergar e confirmar o que pede providência', () => {
       );
       expect(await actions.adiarEtapaAction({}, form({ lote_id: LOTE, etapa_id: ETAPA, dias: '1' }))).toEqual({ success: 'Adiada para 06/10/2026.' });
       const insert = client.query.mock.calls.find(([sql]) => String(sql).includes('INSERT INTO lotes_etapas_acoes'));
-      // De 01/10 a 06/10: os quatro dias de atraso mais o um pedido
-      expect(insert?.[1]).toEqual([LOTE, ETAPA, 1, 5, 'u1']);
+      // De 01/10 a 06/10: os quatro dias de atraso mais o um pedido; o um fica guardado para o histórico
+      expect(insert?.[1]).toEqual([LOTE, ETAPA, 1, 5, 1, 'u1']);
     } finally {
       vi.useRealTimers();
     }

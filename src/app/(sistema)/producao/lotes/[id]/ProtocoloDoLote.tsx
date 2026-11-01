@@ -6,6 +6,16 @@ import type { AcaoDaEtapa, EtapaDoLote } from '@/lib/protocolos';
 const TOM_PILL = { em_dia: 'green', atencao: 'amber', atraso: 'red' } as const;
 
 /**
+ * TA-82: o histórico diz os dias que a gerência escolheu. Na etapa vencida o
+ * vencimento andou mais (o atraso até hoje entra), e `dias` guarda esse total;
+ * a linha anterior a 30/10/2026 só tem ele.
+ */
+export function textoPostergada(acao: Pick<AcaoDaEtapa, 'dias' | 'diasEscolhidos'>): string {
+  const n = acao.diasEscolhidos ?? acao.dias;
+  return `postergada ${n} ${n === 1 ? 'dia' : 'dias'}`;
+}
+
+/**
  * RF-48, RF-51: o que este lote já recebeu e o que ele tem a receber. A etapa de
  * alerta desligado não recebe indicação nenhuma, nem verde (RN-39, TA-37): a
  * irrigação diária colorida deixaria o viveiro inteiro em atraso toda manhã.
@@ -67,7 +77,7 @@ export function ProtocoloDoLote({ etapas, acoes = [] }: { etapas: readonly Etapa
                 <span className="text-base text-ink">
                   {acao.rotulo}:{' '}
                   {acao.tipoAcao === 'adiamento'
-                    ? `postergada ${acao.dias} ${acao.dias === 1 ? 'dia' : 'dias'}`
+                    ? textoPostergada(acao)
                     : acao.tipoAcao === 'adiamento_tarefa'
                       ? `tarefa adiada ${acao.dias} ${acao.dias === 1 ? 'dia' : 'dias'}`
                       : 'concluída sem agenda'}

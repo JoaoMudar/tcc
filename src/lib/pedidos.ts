@@ -757,6 +757,8 @@ interface ItemParaNegociar {
   recipienteId: string | null;
   recipienteDisponivelId: string | null;
   suplente: boolean;
+  /** Tem complemento que não é suplente: a conferência dividiu o item em mais de uma linha. */
+  dividido: boolean;
 }
 
 /**
@@ -859,7 +861,8 @@ export async function negociarItens(
     const { rows } = await client.query<ItemParaNegociar>(
       `SELECT i.quantidade, i.generico, i.item_pai_id AS "itemPaiId", pai.quantidade AS "quantidadePai",
               i.disponivel, i.quantidade_disponivel AS "quantidadeDisponivel",
-              i.recipiente_id AS "recipienteId", i.recipiente_disponivel_id AS "recipienteDisponivelId", i.suplente
+              i.recipiente_id AS "recipienteId", i.recipiente_disponivel_id AS "recipienteDisponivelId", i.suplente,
+              EXISTS (SELECT 1 FROM pedidos_itens c WHERE c.complementa_item_id = i.id AND NOT c.suplente) AS dividido
          FROM pedidos_itens i
          LEFT JOIN pedidos_itens pai ON pai.id = i.item_pai_id
         WHERE i.id = $2 AND i.pedido_id = $1`,
@@ -903,6 +906,31 @@ export async function negociarItens(
     const opcoes = [item.recipienteId, item.recipienteDisponivelId].filter((id): id is string => id !== null);
     if (linha.recipienteId !== null && !opcoes.includes(linha.recipienteId)) {
       throw new UserError('Escolha o recipiente pedido ou o que a conferência achou. Outro, só com "Solicitar alteração".');
+    }
+
+    // No item dividido, a quantidade da linha é a parte achada aqui, e não o pedido:
+    // a pedida fica, porque é com ela que a soma das linhas se compara (TA-85, TA-89).
+    // Sem pedida (o suplente usado), o número digitado é a própria quantidade
+    if (item.dividido && item.quantidade !== null && linha.quantidade !== null) {
+      await client.query(
+        `UPDATE pedidos_itens
+            SET preco_unitario = COALESCE($3, preco_unitario),
+                precificado_por = CASE WHEN $3 IS NULL THEN precificado_por ELSE $6::uuid END,
+                precificado_em = CASE WHEN $3 IS NULL THEN precificado_em ELSE NOW() END,
+                quantidade_disponivel = $4,
+                recipiente_id = COALESCE($5::uuid, recipiente_id),
+                recipiente_disponivel_id = CASE WHEN $5::uuid IS NULL THEN recipiente_disponivel_id END
+          WHERE id = $2 AND pedido_id = $1`,
+        [
+          pedidoId,
+          linha.itemId,
+          linha.precoCentavos === null ? null : centavosParaSql(linha.precoCentavos),
+          linha.quantidade,
+          linha.recipienteId,
+          autor.usuarioId,
+        ],
+      );
+      continue;
     }
 
     const encerra = linha.quantidade !== null;

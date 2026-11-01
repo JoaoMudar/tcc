@@ -30,4 +30,23 @@ describe('EscolhaDoLote (RF-24)', () => {
     render(<EscolhaDoLote pedidoId="p" cargaItemId="ci" loteId="l1" opcoes={OPCOES} action={vi.fn()} travado />);
     expect((screen.getByLabelText(/sai do lote/i) as HTMLSelectElement).disabled).toBe(true);
   });
+
+  it('depois de gravar, continua mostrando o lote escolhido, e não o sugerido', async () => {
+    const action = vi.fn(async () => ({ success: 'Lote escolhido.' }));
+    render(<EscolhaDoLote pedidoId="p" cargaItemId="ci" loteId="l1" opcoes={OPCOES} action={action} />);
+    const select = screen.getByLabelText(/sai do lote/i) as HTMLSelectElement;
+    fireEvent.change(select, { target: { value: 'l2' } });
+    await waitFor(() => expect(action).toHaveBeenCalled());
+    await waitFor(() => expect(select.value).toBe('l2'));
+  });
+
+  it('travado, mostra o lote gravado mesmo depois de ele zerar e sair das opções', () => {
+    render(
+      <EscolhaDoLote pedidoId="p" cargaItemId="ci" loteId="l9" loteCodigo="2026-0009" opcoes={[]} action={vi.fn()} travado />,
+    );
+    expect(screen.queryByText(/nenhum lote aberto/i)).toBeNull();
+    const select = screen.getByLabelText(/sai do lote/i) as HTMLSelectElement;
+    expect(select.value).toBe('l9');
+    expect(select.selectedOptions[0].textContent).toBe('2026-0009');
+  });
 });

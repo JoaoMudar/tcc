@@ -31,6 +31,7 @@ export interface GrupoParaCarregar {
     carregado: boolean;
     /** RF-24: o lote de onde sai a venda, baixada ao concluir a viagem. */
     loteId: string | null;
+    loteCodigo: string | null;
     opcoesLote: readonly SelectOption[];
   }[];
 }
@@ -171,6 +172,7 @@ export function CarregarViagem({ data, viagemId, pronta, grupos }: CarregarViage
                         pedidoId={grupo.pedidoId}
                         cargaItemId={item.id}
                         loteId={item.loteId}
+                        loteCodigo={item.loteCodigo}
                         opcoes={item.opcoesLote}
                         action={definirLoteDoItemAction}
                         travado={pronta}

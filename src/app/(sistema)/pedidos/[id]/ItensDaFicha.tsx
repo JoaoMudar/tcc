@@ -214,9 +214,14 @@ function conferenciaDoOrcamento(itens: readonly ItemDaFicha[], chaves: ReadonlyM
  */
 const serial = (linha: Linha) => JSON.stringify({ ...linha, chave: undefined, grupo: especiesDoGrupo(linha) });
 
-/** "≈ 84 km, ida e volta": de onde veio a sugestão. */
-function textoDistancia(km: number | null): string | null {
-  return km === null ? null : `Sugestão para ≈ ${km.toLocaleString('pt-BR')} km, ida e volta.`;
+/**
+ * "≈ 84 km de ida, 168 km ida e volta": de onde veio a sugestão. A distância
+ * que chega é só a ida, e a conta do frete a dobra (`calcularFrete`).
+ */
+export function textoDistancia(km: number | null): string | null {
+  if (km === null) return null;
+  const formata = (n: number) => n.toLocaleString('pt-BR', { maximumFractionDigits: 1 });
+  return `Sugestão para ≈ ${formata(km)} km de ida, ${formata(km * 2)} km ida e volta.`;
 }
 
 /**

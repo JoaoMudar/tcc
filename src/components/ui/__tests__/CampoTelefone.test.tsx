@@ -2,6 +2,13 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { CampoTelefone } from '../CampoTelefone';
 
+/** Como o navegador: o texto muda, o cursor fica onde a tecla o deixou, e o evento sai. */
+function teclar(c: HTMLInputElement, valor: string, cursor: number) {
+  Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(c, valor);
+  c.setSelectionRange(cursor, cursor);
+  fireEvent.change(c);
+}
+
 function campo() {
   return screen.getByLabelText(/Telefone/) as HTMLInputElement;
 }
@@ -47,5 +54,21 @@ describe('CampoTelefone', () => {
     render(<CampoTelefone />);
     fireEvent.change(campo(), { target: { value: '47' } });
     expect(campo().getAttribute('aria-invalid')).toBeNull();
+  });
+
+  it('corrigir só o DDD no meio do número não embaralha o resto (TA-84)', () => {
+    render(<CampoTelefone />);
+    const c = campo();
+    c.focus();
+    fireEvent.change(c, { target: { value: '20996124408' } });
+    expect(c.value).toBe('(20) 99612-4408');
+    expect(screen.getByText(/DDD 20 não existe/)).toBeTruthy();
+    // selecionar o "20" e digitar "4", depois "7"
+    teclar(c, '(4) 99612-4408', 2);
+    expect(c.selectionStart).toBe(2);
+    teclar(c, `${c.value.slice(0, 2)}7${c.value.slice(2)}`, 3);
+    expect(c.value).toBe('(47) 99612-4408');
+    expect(c.selectionStart).toBe(3);
+    expect(screen.queryByText(/DDD 20 não existe/)).toBeNull();
   });
 });

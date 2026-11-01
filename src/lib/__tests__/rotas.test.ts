@@ -38,6 +38,15 @@ describe('resumoDoItem', () => {
 describe('enderecoEmTexto', () => {
   it('junta o que existe, sem vírgula sobrando', () => {
     expect(enderecoEmTexto({ logradouro: 'Rua XV, 12', cidade: 'Rio do Sul', uf: 'SC' })).toBe('Rua XV, 12, Rio do Sul, SC');
+  });
+
+  it('não repete cidade e UF que o rótulo do geocodificador já traz (TA-91)', () => {
+    expect(enderecoEmTexto({ logradouro: 'Ituporanga, SC, Brazil', cidade: 'Ituporanga', uf: 'SC' })).toBe(
+      'Ituporanga, SC, Brazil',
+    );
+    expect(enderecoEmTexto({ logradouro: 'Rua Blumenau, 40', cidade: 'Blumenau', uf: 'SC' })).toBe(
+      'Rua Blumenau, 40, Blumenau, SC',
+    );
     expect(enderecoEmTexto({ logradouro: ' ', cidade: 'Ibirama', uf: null })).toBe('Ibirama');
     expect(enderecoEmTexto({ logradouro: null, cidade: null, uf: null })).toBeNull();
   });

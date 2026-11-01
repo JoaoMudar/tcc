@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { SituacaoPedido } from '@/lib/pedidos-rotulos';
 import { ProximoPasso } from '../ProximoPasso';
@@ -48,6 +48,24 @@ describe('ProximoPasso: só o passo seguinte do fluxo (RN-55)', () => {
   it('com gravação em andamento, aprovar espera', () => {
     montar('verificado', { salvando: true });
     expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Aprovar pedido' }).disabled).toBe(true);
+  });
+
+  it('solicitar alteração pede confirmação antes de devolver (F4 §5)', () => {
+    montar('verificado');
+    fireEvent.click(screen.getByRole('button', { name: 'Solicitar alteração' }));
+    expect(screen.getByText(/volta para o orçamento/)).toBeTruthy();
+    const confirmar = screen.getByRole<HTMLButtonElement>('button', { name: 'Sim, solicitar alteração' });
+    expect(confirmar.type).toBe('submit');
+    // O primeiro toque não envia: o botão de antes não é de envio
+    expect(botoes()).toEqual(['Aprovar pedido', 'Cancelar', 'Sim, solicitar alteração']);
+  });
+
+  it('cancelar a confirmação volta ao botão de antes', () => {
+    montar('verificado');
+    fireEvent.click(screen.getByRole('button', { name: 'Solicitar alteração' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+    expect(botoes()).toEqual(['Aprovar pedido', 'Solicitar alteração']);
+    expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Solicitar alteração' }).type).toBe('button');
   });
 
   it('a gerência não decide o pedido verificado', () => {
